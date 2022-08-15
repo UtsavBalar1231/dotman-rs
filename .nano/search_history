@@ -1,0 +1,103 @@
+Always do PCIe L2 suspend/resume during link down recover
+drv_connected_last
+cnss_pci_select_window
+nci_reset_rsp);
+ead Notification of RESET comman
+CONFIG_DISABLE_NCI_DEBUG
+set FW download mode, reset VEN\n", __func__);
+nci_get_version_cmd
+reset_enable_gpio
+: - reset NFCC 2 - pull down and pull up VEN\
+hardware dependent del
+dev_err
+dev_er
+dev_warn
+_err(dev, "%s : irq:%d, ven:%d, firm:%d, clkreq:%d\n
+f (client->dev.of_node) {
+pdata->en_gpio = of_get_named_gpio(np, "qcom,nq-ven", 0)
+dev_dbg(&nqx_dev->client->dev, "eSE HAL service setting en_gpio HIGH\n");
+i2c_master_recv(client, nci_reset_rsp, NCI_RESET_RSP_LEN);
+"%s: - i2c_master_send core reset Error\n", __func__);
+et = i2c_master_recv(client, nci_reset_ntf, NCI_R
+<<
+CONFIG_FACTORY_BUILD
+>>>
+oem
+i_hr_inquiry(struct scsi_devi
+0x15D0
+PA_PHYTESTCONTROL
+phytype
+new_peer_pa_tactivate
+0x800
+ufs_init_serial
+ufs_get_serial
+QUERY_DESC_DEVICE_DEF_SIZE
+ufshcd_tune_unipro_params
+ufshcd_apply_pm_quirks);
+ufshcd_apply_pm_quirks
+ufshcd_is_hs_mode
+QUERY_DESC_LENGTH_OFFSET
+fsa4480_probe
+return 0
+HW_PLATFORM_L3A
+DWC3_GUCTL1_PARKMODE_DISABLE_SS
+mmon->fsg = NULL;
+ int is_event_supported(unsig
+err = f2fs_get_node_info
+s_sbi_flag_set(sbi, SBI_QUOTA_SKIP_FLUSH)) {
+own_write(&sbi->node_write);
+err = block_operations(sbi);
+CP_PARENT_XATTR_SET
+is_inflight_io
+ttr.c
+int slow fsync spend more than 1s
+if (boost)
+excess_dirty_threshold
+f the trim thread is running and we rece
+f2fs_realtime_discard_enable
+p_app_show(struct seq_file *m, void *v)
+top_app
+seq_buf_alloc
+ifdef CONFIG_CPU_FREQ_STAT
+cpuset_cpus_allowed
+srcu_notifier_head transition_notifie
+HARDWARE_PLATFORM_PSYCHE
+mihw
+nuconfig NAMESPACES
+onfig PCSPKR_PLATFORM
+ti_init();
+<<<<
+<<<
+-e
+device
+inc
+alioth
+CONFIG_TOUCHSCREEN_FOCALTECH
+focaltech_3658u
+focaltech_
+CONFIG_MODULE_SIG
+CONFIG_CRYPTO_SHA512
+CONFIG_NETFILTER_XT_MATCH_CONNBYTES
+CONFIG_SLA_STAIC_COLLECT
+CONFIG_WIFI_THREE_ANTENNA
+CONFIG_TOUCHSCREEN_FOCALTECH_3658U
+munch
+CONFIG_QPNP_SMB5_MUNCH
+CONFIG_BQ2597X_CHARGE_PUMP_STANDALONE_MUNCH
+CONFIG_QPNP_FG_GEN4
+CONFIG_FUEL_GAUGE_BQ27Z561_MUNCH
+CONFIG_HL6111R
+CONFIG_USB_PD_POLICY_MUNCH
+CONFIG_US_PROXIMITY
+CONFIG_BATT_VERIFY
+BATT_VERIFY
+CONFIG_LIRC
+CONFIG_XLOGCHAR
+CONFIG_REGULATOR_PM8008
+CONFIG_REGULATOR_QCOM_RPMH
+CONFIG_THERMAL_DIMMING
+V
+CONFIG_GPIO_TESTING_MODE
+
+
+

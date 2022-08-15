@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# Script to upload file to gcloud bucket
+gcloud alpha storage cp $1 gs://utsav_bucket1
