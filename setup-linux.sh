@@ -7,7 +7,7 @@ export TZ="Asia/Kolkata"
 sudo apt-get update
 sudo apt-get install \
 	tmux \
-	batcat \
+	thefuck \
 	zsh \
 	-y
 
@@ -27,8 +27,11 @@ sudo cp $(pwd)/bin/* /usr/local/bin
 bash ./scripts/setup-git.sh
 bash ./scripts/setup-android-environment.sh
 
-source ~/.zshrc
-
 # Configure bat
-bat --generate-config-file
+arch=$(dpkg --print-architecture)
+wget https://github.com/sharkdp/bat/releases/download/v0.21.0/bat_0.21.0_"${arch}".deb
+sudo dpkg -i bat_0.21.0_"${arch}".deb
+rm bat_0.21.0_"${arch}".deb
+
+$(which bat) --generate-config-file
 cp batconfig ~/.config/bat/config

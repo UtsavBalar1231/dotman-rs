@@ -127,5 +127,3 @@ export HOSTCC="ccache gcc"
 export HOSTCXX="ccache g++"
 
 source /usr/local/secret
-
-alias bat='batcat'
