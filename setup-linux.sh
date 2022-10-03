@@ -8,6 +8,9 @@ sudo apt-get update
 sudo apt-get install \
 	tmux \
 	thefuck \
+	neovim \
+	fzf \
+	fd-find \
 	zsh \
 	-y
 
@@ -35,3 +38,15 @@ rm bat_0.21.0_"${arch}".deb
 
 $(which bat) --generate-config-file
 cp batconfig ~/.config/bat/config
+
+# Configure NeoVIM
+#
+# Installing vim-plug
+curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+
+# VIM configuration
+cp -vr $(pwd)/nvim/ ~/.config/
+
+# NVIM update and install plugins
+nvim +PlugInstall +PlugUpdate +PlugClean +UpdateRemotePlugins
