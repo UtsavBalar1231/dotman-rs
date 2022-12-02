@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-# Script to download file from gcloud bucket
-gcloud alpha storage cp gs://utsav_bucket1/$1 $(pwd)

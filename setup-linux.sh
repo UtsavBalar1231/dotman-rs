@@ -32,12 +32,35 @@ bash ./scripts/setup-android-environment.sh
 
 # Configure bat
 arch=$(dpkg --print-architecture)
-wget https://github.com/sharkdp/bat/releases/download/v0.21.0/bat_0.21.0_"${arch}".deb
-sudo dpkg -i bat_0.21.0_"${arch}".deb
-rm bat_0.21.0_"${arch}".deb
+
+function get_latest_release() {
+    curl --silent "https://api.github.com/repos/$1/releases/latest" | # Get latest release from GitHub api
+        grep '"tag_name":' |                                          # Get tag line
+        sed -E 's/.*"([^"]+)".*/\1/'                                  # Pluck JSON value
+}
+
+function bat_install() {
+    VRELEASE=$(get_latest_release 'sharkdp/bat')
+    RELEASE=$(echo ${VRELEASE} | sed 's/v0/0/g')
+    ARCHIVE=bat_${RELEASE}_${1}.deb
+    wget https://github.com/sharkdp/bat/releases/download/${VRELEASE}/${ARCHIVE}
+    sudo dpkg -i ${ARCHIVE}
+    rm ${ARCHIVE}
+}
+bat_install ${arch}
+
 
 $(which bat) --generate-config-file
 cp batconfig ~/.config/bat/config
+
+# Install gotop
+git clone --depth=1 https://github.com/cjbassi/gotop /tmp/gotop
+/tmp/gotop/scripts/download.sh
+mv $(pwd)/gotop /usr/local/bin/
+
+# Install micro editor
+curl https://getmic.ro | bash
+sudo install micro /usr/local/bin/micro
 
 # Configure NeoVIM
 #
