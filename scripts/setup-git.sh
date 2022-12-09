@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-cp $(pwd)/../.gitconfig ~/
+cp ../.gitconfig ~/
 
 git config --global user.name UtsavBalar1231
 git config --global user.email utsavbalar1231@gmail.com

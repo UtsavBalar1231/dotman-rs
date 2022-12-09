@@ -3,29 +3,31 @@
 # Set local timezone
 export TZ="Asia/Kolkata"
 
+DEBIAN_VER=$(cat /etc/debian_version)
+
+if [ -f /etc/debian_version ]; then
+	echo -e "Debian ${DEBIAN_VER} detected"
+	if (( $(echo "${DEBIAN_VER}" > 10 |bc -l) )); then
+		exit 1
+	else
+		echo
+		# TODO: Add debian specific things here
+	fi
+fi
+
 # Install necessary packages
 sudo apt-get update
 sudo apt-get install \
+	fd-find \
+	fzf \
+	neovim \
 	tmux \
 	thefuck \
-	neovim \
-	fzf \
-	fd-find \
 	zsh \
 	-y
 
-# Install Oh My ZSH
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-sudo chsh $(which zsh)
-cp $(pwd)/.zshrc ~/.zshrc
-sudo cp -r $(pwd)/.oh-my-zsh/* ~/.oh-my-zsh/
-cp $(pwd)/.p10k.zsh ~/
-
 # Configure tmux
 cp $(pwd)/.tmux.conf ~/
-
-# Copy local binaries
-sudo cp $(pwd)/bin/* /usr/local/bin
 
 # Setup build environment
 bash ./scripts/setup-git.sh
@@ -48,22 +50,30 @@ function bat_install() {
     sudo dpkg -i ${ARCHIVE}
     rm -f ${ARCHIVE}
 }
-bat_install ${arch}
 
-
-$(which bat) --generate-config-file
-cp batconfig ~/.config/bat/config
+if [ ! $(which bat) ]; then
+	bat_install ${arch}
+	$(which bat) --generate-config-file
+	cp batconfig ~/.config/bat/config
+fi
 
 # Install gotop
-git clone --depth=1 https://github.com/cjbassi/gotop /tmp/gotop
-/tmp/gotop/scripts/download.sh
-mv $(pwd)/gotop /usr/local/bin/
+if [ ! $(which gotop) ]; then
+	git clone --depth=1 https://github.com/cjbassi/gotop /tmp/gotop
+	/tmp/gotop/scripts/download.sh
+	sudo install $(pwd)/gotop /usr/local/bin/gotop
+	if [ -f $(pwd)/gotop ]; then
+		rm -f $(pwd)/gotop
+	fi
+fi
 
 # Install micro editor
-curl https://getmic.ro | bash
-sudo install micro /usr/local/bin/micro
-if [ -f $(pwd)/micro ]; then
-   rm -f $(pwd)/micro
+if [ ! $(which micro) ]; then
+	curl https://getmic.ro | bash
+	sudo install micro /usr/local/bin/micro
+	if [ -f $(pwd)/micro ]; then
+	   rm -f $(pwd)/micro
+	fi
 fi
 
 # Install zenith
@@ -74,16 +84,33 @@ function zenith_install() {
     sudo dpkg -i ${ARCHIVE}
     rm -f ${ARCHIVE}
 }
-zenith_install ${arch}
+if [ ! $(which zenith) ]; then
+	echo
+	# zenith_install ${arch}
+fi
 
 # Configure NeoVIM
 #
 # Installing vim-plug
-curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
-       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+if [ ! -f "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim ]; then
+	curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+	       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+fi
 
 # VIM configuration
 cp -vr $(pwd)/nvim/ ~/.config/
 
 # NVIM update and install plugins
-nvim +PlugInstall +PlugUpdate +PlugClean +UpdateRemotePlugins
+echo -e "Run nvim comand:"
+echo -e "nvim +PlugInstall +PlugUpdate +PlugClean +UpdateRemotePlugins"
+
+# Install Oh My ZSH
+if [ ! -d ${HOME}/.oh-my-zsh ]; then
+	sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+	cp $(pwd)/.zshrc ~/.zshrc
+	sudo cp -r $(pwd)/.oh-my-zsh/* ~/.oh-my-zsh/
+fi
+
+sudo chsh $(which zsh)
+
+./setup-zsh-dependencies.sh
