@@ -1,7 +1,7 @@
 " Fish doesn't play all that well with others
 set shell=/bin/bash
 let mapleader = "\<Space>"
-
+set showcmd
 " =============================================================================
 " # PLUGINS
 " =============================================================================
@@ -342,7 +342,7 @@ nnoremap <silent> g* g*zz
 
 " Very magic by default
 nnoremap ? ?\v
-nnoremap / /\v
+" nnoremap / /\v
 cnoremap %s/ %sm/
 
 " =============================================================================
@@ -470,6 +470,23 @@ map <Leader>y "+y
 " paste from system clipboard (requires xclip)
 map <Leader>p "+p
 
+" Use Q as well to quit
+command! -bang Q q<bang>
+
+" shift+arrow selection
+nmap <S-Up> v<Up>
+nmap <S-Down> v<Down>
+nmap <S-Left> v<Left>
+nmap <S-Right> v<Right>
+vmap <S-Up> <Up>
+vmap <S-Down> <Down>
+vmap <S-Left> <Left>
+vmap <S-Right> <Right>
+imap <S-Up> <Esc>v<Up>
+imap <S-Down> <Esc>v<Down>
+imap <S-Left> <Esc>v<Left>
+imap <S-Right> <Esc>v<Right>
+
 " =============================================================================
 " # Autocommands
 " =============================================================================
@@ -479,7 +496,7 @@ autocmd BufRead *.orig set readonly
 autocmd BufRead *.pacnew set readonly
 
 " Leave paste mode when leaving insert mode
-autocmd InsertLeave * set nopaste
+" autocmd InsertLeave * set nopaste
 
 " Jump to last edit position on opening file
 if has("autocmd")

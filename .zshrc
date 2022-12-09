@@ -121,9 +121,20 @@ eval $(thefuck --alias FUCK)
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
+if [ -d $HOME/ccache ]; then
 export CCACHE_DIR=$HOME/ccache && export USE_CCACHE=1 && export CCACHE_EXEC=/usr/bin/ccache && export CCACHE_COMPRESS=1
+else
+mkdir -p $HOME/ccache
+export CCACHE_DIR=$HOME/ccache && export USE_CCACHE=1 && export CCACHE_EXEC=/usr/bin/ccache && export CCACHE_COMPRESS=1
+fi
 export CC="ccache gcc"
 export HOSTCC="ccache gcc"
 export HOSTCXX="ccache g++"
 
 source /usr/local/secret
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+alias ls='exa'
+alias cat='bat'
+alias awk='ag'

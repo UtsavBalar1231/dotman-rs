@@ -19,6 +19,7 @@ sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.
 sudo chsh $(which zsh)
 cp $(pwd)/.zshrc ~/.zshrc
 sudo cp -r $(pwd)/.oh-my-zsh/* ~/.oh-my-zsh/
+cp $(pwd)/.p10k.zsh ~/
 
 # Configure tmux
 cp $(pwd)/.tmux.conf ~/
@@ -28,7 +29,7 @@ sudo cp $(pwd)/bin/* /usr/local/bin
 
 # Setup build environment
 bash ./scripts/setup-git.sh
-bash ./scripts/setup-android-environment.sh
+bash ./scripts/setup-env.sh
 
 # Configure bat
 arch=$(dpkg --print-architecture)
@@ -45,7 +46,7 @@ function bat_install() {
     ARCHIVE=bat_${RELEASE}_${1}.deb
     wget https://github.com/sharkdp/bat/releases/download/${VRELEASE}/${ARCHIVE}
     sudo dpkg -i ${ARCHIVE}
-    rm ${ARCHIVE}
+    rm -f ${ARCHIVE}
 }
 bat_install ${arch}
 
@@ -61,6 +62,19 @@ mv $(pwd)/gotop /usr/local/bin/
 # Install micro editor
 curl https://getmic.ro | bash
 sudo install micro /usr/local/bin/micro
+if [ -f $(pwd)/micro ]; then
+   rm -f $(pwd)/micro
+fi
+
+# Install zenith
+function zenith_install() {
+    VRELEASE=$(get_latest_release 'bvaisvil/zenith')
+    ARCHIVE=zenith_${RELEASE}-1_${1}.deb
+    wget https://github.com/bvaisvil/zenith/releases/download/${VRELEASE}/${ARCHIVE}
+    sudo dpkg -i ${ARCHIVE}
+    rm -f ${ARCHIVE}
+}
+zenith_install ${arch}
 
 # Configure NeoVIM
 #
