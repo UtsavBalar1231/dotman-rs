@@ -10,8 +10,9 @@ if [ -f /etc/debian_version ]; then
 	if (( $(echo "${DEBIAN_VER}" > 10 |bc -l) )); then
 		exit 1
 	else
-		echo
-		# TODO: Add debian specific things here
+		# Setup build environment
+		bash $(pwd)/scripts/setup-git.sh
+		bash $(pwd)/scripts/setup-env.sh
 	fi
 fi
 
@@ -28,10 +29,6 @@ sudo apt-get install \
 
 # Configure tmux
 cp $(pwd)/.tmux.conf ~/
-
-# Setup build environment
-bash ./scripts/setup-git.sh
-bash ./scripts/setup-env.sh
 
 # Configure bat
 arch=$(dpkg --print-architecture)

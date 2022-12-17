@@ -1,0 +1,33 @@
+"languageserver": {
+  "bash": {
+    "command": "bash-language-server",
+    "args": ["start"],
+    "filetypes": ["sh"]
+  },
+    "clangd": {
+    "command": "clangd",
+    "rootPatterns": ["compile_flags.txt", "compile_commands.json"],
+    "filetypes": ["c", "cc", "cpp", "c++", "objc", "objcpp"]
+  },
+    "golang": {
+    "command": "gopls",
+    "rootPatterns": ["go.mod"],
+    "filetypes": ["go"]
+  },
+    "lua": {
+    "command": "lua-lsp",
+    "filetypes": ["lua"]
+  },
+	"python": {
+	"command": "pyls",
+	"filetypes": ["python"]
+  },
+	"typescript": {
+	"command": "typescript-language-server",
+	"filetypes": ["typescript", "typescriptreact"]
+  },
+	"vim": {
+	"command": "vim-language-server",
+	"filetypes": ["vim"]
+  },
+}

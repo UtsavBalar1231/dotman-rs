@@ -82,6 +82,7 @@ plugins=(
 	sudo
 	web-search
 	zsh-autosuggestions
+	F-Sy-H
 )
 
 source $ZSH/oh-my-zsh.sh

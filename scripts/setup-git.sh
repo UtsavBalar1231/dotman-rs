@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 
-cp ../.gitconfig ~/
-
-git config --global user.name UtsavBalar1231
-git config --global user.email utsavbalar1231@gmail.com
-git config --global credential.helper store
-git config --global merge.log 10000
+cp -av $(pwd)/.gitconfig ~/
 
 # Setup githooks
 mkdir -p ~/.git/hooks

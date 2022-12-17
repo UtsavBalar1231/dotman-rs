@@ -1,19 +1,16 @@
-# prompt style and colors based on Steve Losh's Prose theme:
-# https://github.com/sjl/oh-my-zsh/blob/master/themes/prose.zsh-theme
-#
 # vcs_info modifications from Bart Trojanowski's zsh prompt:
 # http://www.jukie.net/bart/blog/pimping-out-zsh-prompt
 #
 # git untracked files modification from Brian Carper:
 # https://briancarper.net/blog/570/git-info-in-your-zsh-prompt
 
-#use extended color palette if available
+# use extended color palette if available
 if [[ $TERM = (*256color|*rxvt*) ]]; then
-  turquoise="%{${(%):-"%F{81}"}%}"
-  orange="%{${(%):-"%F{166}"}%}"
-  purple="%{${(%):-"%F{135}"}%}"
-  hotpink="%{${(%):-"%F{161}"}%}"
-  limegreen="%{${(%):-"%F{118}"}%}"
+  turquoise="%{${(%):-"%F{66}"}%}"
+  orange="%{${(%):-"%F{208}"}%}"
+  purple="%{${(%):-"%F{175}"}%}"
+  hotpink="%{${(%):-"%F{167}"}%}"
+  limegreen="%{${(%):-"%F{142}"}%}"
 else
   turquoise="%{${(%):-"%F{cyan}"}%}"
   orange="%{${(%):-"%F{yellow}"}%}"
@@ -90,4 +87,5 @@ ZSH_THEME_RUBY_PROMPT_SUFFIX="%{$reset_color%}"
 ZSH_THEME_RVM_PROMPT_OPTIONS="v g"
 
 setopt prompt_subst
-PROMPT="${purple}%n%{$reset_color%} in ${limegreen}%~%{$reset_color%}\$(ruby_prompt_info)\$vcs_info_msg_0_${orange} λ%{$reset_color%} "
+PROMPT="┌─[${purple}%n%{$reset_color%}] in ${limegreen}%~%{$reset_color%}\$(ruby_prompt_info)\$vcs_info_msg_0_
+└─[${orange}λ%{$reset_color%}] "

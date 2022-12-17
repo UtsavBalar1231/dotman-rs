@@ -1,6 +1,7 @@
 [core]
 	pager = diff-so-fancy | less --tabs=4 -RFX
 	hooksPath = /home/utsav/.git/hooks
+	editor = nvim
 [interactive]
 	diffFilter = diff-so-fancy --patch
 [color]
