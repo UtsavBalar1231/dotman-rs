@@ -10,6 +10,13 @@ if [ -f /etc/debian_version ]; then
 	if (( $(echo "${DEBIAN_VER}" > 10 |bc -l) )); then
 		exit 1
 	else
+		if [ -e which snap ]; then
+			sudo snap install diff-so-fancy
+		else
+			sudo apt update
+			sudo apt install snapd
+			sudo snap install diff-so-fancy
+		fi
 		# Setup build environment
 		bash $(pwd)/scripts/setup-git.sh
 		bash $(pwd)/scripts/setup-env.sh
@@ -105,7 +112,6 @@ echo -e "nvim +PlugInstall +PlugUpdate +PlugClean +UpdateRemotePlugins"
 if [ ! -d ${HOME}/.oh-my-zsh ]; then
 	sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 	cp $(pwd)/.zshrc ~/.zshrc
-	sudo cp -r $(pwd)/.oh-my-zsh/* ~/.oh-my-zsh/
 fi
 
 sudo chsh $(which zsh)

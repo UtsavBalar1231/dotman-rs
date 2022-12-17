@@ -1,7 +1,7 @@
-" Fish doesn't play all that well with others
 set shell=/usr/bin/zsh
 let mapleader = "\<Space>"
-set showcmd
+let g:loaded_matchit = 1
+let g:loaded_matchparen = 1
 
 " =============================================================================
 " # PLUGINS
@@ -9,18 +9,15 @@ set showcmd
 
 " install vim-plug if needed.
 if empty(glob('~/.local/share/nvim/site/autoload/plug.vim'))
-  silent !curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs
-    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-  autocmd VimEnter * PlugInstall --sync | source ~/.config/nvim/init.vim
+	silent !curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs
+				\ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+	autocmd VimEnter * PlugInstall --sync | source ~/.config/nvim/init.vim
 endif
-
-set rtp+=~/dev/others/base16/templates/vim/
 
 call plug#begin()
 
 " Load plugins
 " VIM enhancements
-Plug 'ciaranm/securemodelines'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'justinmk/vim-sneak'
 
@@ -37,8 +34,11 @@ Plug 'junegunn/fzf.vim'
 " Nerdy stuff
 Plug 'preservim/nerdcommenter'
 Plug 'preservim/nerdtree'
-" icons
+Plug 'Xuyuanp/nerdtree-git-plugin'
+Plug 'PhilRunninger/nerdtree-visual-selection'
+Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
 Plug 'ryanoasis/vim-devicons'
+
 " git
 Plug 'tpope/vim-fugitive'
 Plug 'junegunn/gv.vim'
@@ -46,48 +46,46 @@ Plug 'airblade/vim-gitgutter'
 
 " Autocomplete framework
 Plug 'ncm2/ncm2'
+Plug 'ncm2/ncm2-bufword'
+Plug 'ncm2/ncm2-path'
 Plug 'roxma/nvim-yarp'
 
 " base16 vim themes
 Plug 'chriskempson/base16-vim'
 
 " Language specific plugins
-Plug 'wbthomason/packer.nvim'
 Plug 'neovim/nvim-lspconfig'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 " rust
 Plug 'rust-lang/rust.vim'
+Plug 'ncm2/ncm2-racer'
+Plug 'racer-rust/vim-racer'
 
 " move line/selection left/right up/down
 Plug 'matze/vim-move'
 
-" Requires lsp server to be installed
-" npm i -g pyright // for python
+" vim's conceal feature for additional visual eyecandy.
+Plug 'khzaw/vim-conceal'
+
+" Indent guides
+Plug 'Yggdroot/indentLine'
 
 call plug#end()
-
-
-if has('nvim')
-    set guicursor=n-v-c:block-Cursor/lCursor-blinkon0,i-ci:ver25-Cursor/lCursor,r-cr:hor20-Cursor/lCursor
-    set inccommand=nosplit
-    noremap <C-q> :confirm qall<CR>
-end
 
 " system clipboard
 set clipboard+=unnamedplus
 
 " deal with colors
 if !has('gui_running')
-  set t_Co=256
+	set t_Co=256
 endif
 if (match($TERM, "-256color") != -1) && (match($TERM, "screen-256color") == -1)
-  " screen does not (yet) support truecolor
-  set termguicolors
+	" screen does not (yet) support truecolor
+	set termguicolors
 endif
 set background=dark
 let base16colorspace=256
-let g:base16_shell_path="~/dev/others/base16/templates/shell/scripts/"
 colorscheme base16-gruvbox-dark-hard
 syntax on
 hi Normal ctermbg=NONE
@@ -100,23 +98,24 @@ call Base16hi("LspSignatureActiveParameter", g:base16_gui05, g:base16_gui03, g:b
 " Would be nice to customize the highlighting of warnings and the like to make
 " them less glaring. But alas
 " https://github.com/nvim-lua/lsp_extensions.nvim/issues/21
-" call Base16hi("CocHintSign", g:base16_gui03, "", g:base16_cterm03, "", "", "")
+call Base16hi("CocHintSign", g:base16_gui03, "", g:base16_cterm03, "", "", "")
 
 " Lightline
 let g:lightline = {
-      \ 'active': {
-      \   'left': [ [ 'mode', 'paste' ],
-      \             [ 'readonly', 'filename', 'modified' ] ],
-      \   'right': [ [ 'lineinfo' ],
-      \              [ 'percent' ],
-      \              [ 'fileencoding', 'filetype' ] ],
-      \ },
-      \ 'component_function': {
-      \   'filename': 'LightlineFilename'
-      \ },
-      \ }
+	\ 'colorscheme': 'one',
+			\ 'active': {
+				\   'left': [ [ 'mode', 'paste' ],
+				\             [ 'readonly', 'filename', 'modified' ] ],
+				\   'right': [ [ 'lineinfo' ],
+				\              [ 'percent' ],
+				\              [ 'fileencoding', 'filetype' ] ],
+				\ },
+				\ 'component_function': {
+					\   'filename': 'LightlineFilename'
+					\ },
+					\ }
 function! LightlineFilename()
-  return expand('%:t') !=# '' ? @% : '[No Name]'
+	return expand('%:t') !=# '' ? @% : '[No Name]'
 endfunction
 
 " from http://sheerun.net/2014/03/21/how-to-boost-your-vim-productivity/
@@ -140,41 +139,29 @@ vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist, opts)
 -- Use an on_attach function to only map the following keys
 -- after the language server attaches to the current buffer
 local on_attach = function(client, bufnr)
-  -- Enable completion triggered by <c-x><c-o>
-  vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
+-- Enable completion triggered by <c-x><c-o>
+vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
 
-  -- Mappings.
-  -- See `:help vim.lsp.*` for documentation on any of the below functions
-  local bufopts = { noremap=true, silent=true, buffer=bufnr }
-  vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, bufopts)
-  vim.keymap.set('n', 'gd', vim.lsp.buf.definition, bufopts)
-  vim.keymap.set('n', 'K', vim.lsp.buf.hover, bufopts)
-  vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, bufopts)
-  vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, bufopts)
-  vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, bufopts)
-  vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, bufopts)
-  vim.keymap.set('n', '<space>wl', function()
-    print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-  end, bufopts)
-  vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, bufopts)
-  vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, bufopts)
-  vim.keymap.set('n', '<space>ca', vim.lsp.buf.code_action, bufopts)
-  vim.keymap.set('n', 'gr', vim.lsp.buf.references, bufopts)
-  vim.keymap.set('n', '<space>f', function() vim.lsp.buf.format { async = true } end, bufopts)
+-- Mappings.
+-- See `:help vim.lsp.*` for documentation on any of the below functions
+local bufopts = { noremap=true, silent=true, buffer=bufnr }
+vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, bufopts)
+vim.keymap.set('n', 'gd', vim.lsp.buf.definition, bufopts)
+vim.keymap.set('n', 'K', vim.lsp.buf.hover, bufopts)
+vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, bufopts)
+vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, bufopts)
+vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, bufopts)
+vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, bufopts)
+vim.keymap.set('n', '<space>wl', function()
+print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+end, bufopts)
+vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, bufopts)
+vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, bufopts)
+vim.keymap.set('n', '<space>ca', vim.lsp.buf.code_action, bufopts)
+vim.keymap.set('n', 'gr', vim.lsp.buf.references, bufopts)
+vim.keymap.set('n', '<space>f', function() vim.lsp.buf.format { async = true } end, bufopts)
 end
 
-local lsp_flags = {
-  -- This is the default in Nvim 0.7+
-  debounce_text_changes = 150,
-}
-require('lspconfig')['pyright'].setup{
-    on_attach = on_attach,
-    flags = lsp_flags,
-}
-require('lspconfig')['tsserver'].setup{
-    on_attach = on_attach,
-    flags = lsp_flags,
-}
 END
 
 " Javascript
@@ -183,17 +170,18 @@ let javaScript_fold=0
 " Java
 let java_ignore_javadoc=1
 
-" Latex
-let g:latex_indent_enabled = 1
-let g:latex_fold_envs = 0
-let g:latex_fold_sections = []
-
 " Open hotkeys
 map <C-p> :Files<CR>
 nmap <leader>; :Buffers<CR>
 
 " Quick-save
 nmap <leader>w :w<CR>
+
+" :X to save and exit
+command! X wq
+
+" Use Q as well to quit
+command! -bang Q q<bang>
 
 " Coc Explorer NVIM
 :nmap <space>e <Cmd>CocCommand explorer<CR>
@@ -207,9 +195,15 @@ autocmd FileType tagbar,nerdtree setlocal signcolumn=no
 """"""""""""""""""""""""""""""""
 " NerdTree
 """"""""""""""""""""""""""""""""
-nnoremap <silent> <leader>tt :NERDTreeToggle<CR>
+" Start NERDTree when Vim starts with a directory argument.
+autocmd StdinReadPre * let s:std_in=1
+autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists('s:std_in') |
+			\ execute 'NERDTree' argv()[0] | wincmd p | enew | execute 'cd '.argv()[0] | endif
 
 " close vim if the only window left open is a NERDTree
+nnoremap <silent> <leader>tt :NERDTreeToggle<CR>
+nnoremap <silent> <leader>tf :NERDTreeFind<CR>
+
 autocmd BufEnter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
 
 " If you are using vim-plug, you'll also need to add these lines to avoid crashes when calling vim-plug functions while the cursor is on the NERDTree window:
@@ -223,6 +217,9 @@ let NERDTreeShowHidden=1
 """"""""""""""""""""""""""
 " run rustfmt on save
 let g:rustfmt_autosave = 1
+let g:rustfmt_emit_files = 1
+let g:rustfmt_fail_silently = 0
+let g:rust_clip_command = 'xclip -selection clipboard'
 
 " Don't confirm .lvimrc
 let g:localvimrc_ask = 0
@@ -391,20 +388,20 @@ noremap <leader>c :w !xsel -ib<cr><cr>
 noremap <leader>s :Rg
 let g:fzf_layout = { 'down': '~20%' }
 command! -bang -nargs=* Rg
-  \ call fzf#vim#grep(
-  \   'rg --column --line-number --no-heading --color=always '.shellescape(<q-args>), 1,
-  \   <bang>0 ? fzf#vim#with_preview('up:60%')
-  \           : fzf#vim#with_preview('right:50%:hidden', '?'),
-  \   <bang>0)
+			\ call fzf#vim#grep(
+			\   'rg --column --line-number --no-heading --color=always '.shellescape(<q-args>), 1,
+			\   <bang>0 ? fzf#vim#with_preview('up:60%')
+			\           : fzf#vim#with_preview('right:50%:hidden', '?'),
+			\   <bang>0)
 
 function! s:list_cmd()
-  let base = fnamemodify(expand('%'), ':h:.:S')
-  return base == '.' ? 'fdfind --type file --follow' : printf('fdfind --type file --follow | sort -u %s', shellescape(expand('%')))
+	let base = fnamemodify(expand('%'), ':h:.:S')
+	return base == '.' ? 'fdfind --type file --follow' : printf('fdfind --type file --follow | sort -u %s', shellescape(expand('%')))
 endfunction
 
 command! -bang -nargs=? -complete=dir Files
-  \ call fzf#vim#files(<q-args>, {'source': s:list_cmd(),
-  \                               'options': '--tiebreak=index'}, <bang>0)
+			\ call fzf#vim#files(<q-args>, {'source': s:list_cmd(),
+			\                               'options': '--tiebreak=index'}, <bang>0)
 
 
 " Open new file adjacent to current file
@@ -427,7 +424,6 @@ nnoremap <leader>, :set invlist<cr>
 " <leader>q shows stats
 nnoremap <leader>q g<c-g>
 
-" Keymap for replacing up to next _ or -
 noremap <leader>m ct_
 
 " copy to system clipboard (requries xclip)
@@ -435,23 +431,6 @@ map <Leader>y "+y
 
 " paste from system clipboard (requires xclip)
 map <Leader>p "+p
-
-" Use Q as well to quit
-command! -bang Q q<bang>
-
-" shift+arrow selection
-nmap <S-Up> v<Up>
-nmap <S-Down> v<Down>
-nmap <S-Left> v<Left>
-nmap <S-Right> v<Right>
-vmap <S-Up> <Up>
-vmap <S-Down> <Down>
-vmap <S-Left> <Left>
-vmap <S-Right> <Right>
-imap <S-Up> <Esc>v<Up>
-imap <S-Down> <Esc>v<Down>
-imap <S-Left> <Esc>v<Left>
-imap <S-Right> <Esc>v<Right>
 
 " =============================================================================
 " # Autocommands
@@ -461,13 +440,10 @@ imap <S-Right> <Esc>v<Right>
 autocmd BufRead *.orig set readonly
 autocmd BufRead *.pacnew set readonly
 
-" Leave paste mode when leaving insert mode
-" autocmd InsertLeave * set nopaste
-
 " Jump to last edit position on opening file
 if has("autocmd")
-  " https://stackoverflow.com/questions/31449496/vim-ignore-specifc-file-in-autocommand
-  au BufReadPost * if expand('%:p') !~# '\m/\.git/' && line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+	" https://stackoverflow.com/questions/31449496/vim-ignore-specifc-file-in-autocommand
+	au BufReadPost * if expand('%:p') !~# '\m/\.git/' && line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 endif
 
 " Follow Rust code style rules
@@ -480,6 +456,13 @@ autocmd BufRead *.md set filetype=markdown
 autocmd BufRead *.lds set filetype=ld
 autocmd BufRead *.tex set filetype=tex
 autocmd BufRead *.trm set filetype=c
+autocmd BufRead *.c set filetype=c
+autocmd BufRead *.h set filetype=c
+autocmd BufRead *.S set filetype=asm
+autocmd BufRead *.s set filetype=asm
+autocmd BufRead *.asm set filetype=asm
+autocmd BufRead *.sh set filetype=sh
+autocmd BufRead *.zsh set filetype=zsh
 autocmd BufRead *.xlsx.axlsx set filetype=ruby
 
 " Script plugins

@@ -1,4 +1,4 @@
-"languageserver": {
+{
   "bash": {
     "command": "bash-language-server",
     "args": ["start"],
@@ -9,7 +9,8 @@
     "rootPatterns": ["compile_flags.txt", "compile_commands.json"],
     "filetypes": ["c", "cc", "cpp", "c++", "objc", "objcpp"]
   },
-    "golang": {
+  "rust-analyzer.enable": true,
+  "golang": {
     "command": "gopls",
     "rootPatterns": ["go.mod"],
     "filetypes": ["go"]
@@ -30,4 +31,5 @@
 	"command": "vim-language-server",
 	"filetypes": ["vim"]
   },
-}
+  "clangd.path": "~/.config/coc/extensions/coc-clangd-data/install/15.0.6/clangd_15.0.6/bin/clangd"
+}	
