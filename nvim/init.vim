@@ -2,6 +2,7 @@ set shell=/usr/bin/zsh
 let mapleader = "\<Space>"
 let g:loaded_matchit = 1
 let g:loaded_matchparen = 1
+let g:coc_disable_startup_warning = 1
 
 " =============================================================================
 " # PLUGINS
