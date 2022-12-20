@@ -8,13 +8,6 @@ let g:coc_disable_startup_warning = 1
 " # PLUGINS
 " =============================================================================
 
-" install vim-plug if needed.
-if empty(glob('~/.local/share/nvim/site/autoload/plug.vim'))
-	silent !curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs
-				\ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-	autocmd VimEnter * PlugInstall --sync | source ~/.config/nvim/init.vim
-endif
-
 call plug#begin()
 
 " Load plugins
@@ -78,13 +71,11 @@ call plug#end()
 set clipboard+=unnamedplus
 
 " deal with colors
-if !has('gui_running')
-	set t_Co=256
-endif
-if (match($TERM, "-256color") != -1) && (match($TERM, "screen-256color") == -1)
-	" screen does not (yet) support truecolor
-	set termguicolors
-endif
+set t_Co=256
+
+" screen does not (yet) support truecolor
+set termguicolors
+
 set background=dark
 let base16colorspace=256
 colorscheme base16-gruvbox-dark-hard
@@ -103,18 +94,18 @@ call Base16hi("CocHintSign", g:base16_gui03, "", g:base16_cterm03, "", "", "")
 
 " Lightline
 let g:lightline = {
-	\ 'colorscheme': 'one',
+			\ 'colorscheme': 'one',
 			\ 'active': {
-				\   'left': [ [ 'mode', 'paste' ],
-				\             [ 'readonly', 'filename', 'modified' ] ],
-				\   'right': [ [ 'lineinfo' ],
-				\              [ 'percent' ],
-				\              [ 'fileencoding', 'filetype' ] ],
-				\ },
-				\ 'component_function': {
-					\   'filename': 'LightlineFilename'
-					\ },
-					\ }
+			\   'left': [ [ 'mode', 'paste' ],
+			\             [ 'readonly', 'filename', 'modified' ] ],
+			\   'right': [ [ 'lineinfo' ],
+			\              [ 'percent' ],
+			\              [ 'fileencoding', 'filetype' ] ],
+			\ },
+			\ 'component_function': {
+			\   'filename': 'LightlineFilename'
+			\ },
+			\ }
 function! LightlineFilename()
 	return expand('%:t') !=# '' ? @% : '[No Name]'
 endfunction
@@ -242,7 +233,7 @@ filetype plugin indent on
 set autoindent
 set timeoutlen=300 " http://stackoverflow.com/questions/2158516/delay-before-o-opens-a-new-line
 set encoding=utf-8
-set scrolloff=4
+set scrolloff=2
 set noshowmode
 set hidden
 set nowrap
