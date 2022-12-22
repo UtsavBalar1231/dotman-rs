@@ -1,4 +1,3 @@
-
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
@@ -19,7 +18,7 @@ ZSH_THEME="cunt-theme"
 
 # Uncomment the following line to use hyphen-insensitive completion.
 # Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
+HYPHEN_INSENSITIVE="true"
 
 # Uncomment one of the following lines to change the auto-update behavior
 # zstyle ':omz:update' mode disabled  # disable automatic updates
@@ -39,7 +38,7 @@ ZSH_THEME="cunt-theme"
 # DISABLE_AUTO_TITLE="true"
 
 # Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
+ENABLE_CORRECTION="true"
 
 # Uncomment the following line to display red dots whilst waiting for completion.
 # You can also set it to another string to have that shown instead of the default red dots.
@@ -78,32 +77,6 @@ plugins=(
 
 source $ZSH/oh-my-zsh.sh
 
-# User configuration
-
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-
 export PATH="/home/utsav/.local/bin:/home/utsav/.zsh/diff-so-fancy:$PATH"
 
 eval $(thefuck --alias)
@@ -115,9 +88,9 @@ else
 	export CCACHE_DIR=$HOME/ccache && export USE_CCACHE=1 && export CCACHE_EXEC=/usr/bin/ccache && export CCACHE_COMPRESS=1
 fi
 
-export CC="ccache gcc"
-export HOSTCC="ccache gcc"
-export HOSTCXX="ccache g++"
+#export CC="ccache gcc"
+#export HOSTCC="ccache gcc"
+#export HOSTCXX="ccache g++"
 
 if [ -f /usr/local/secret/ ]; then
 	source /usr/local/secret
@@ -132,3 +105,5 @@ alias grep='rg'
 alias diff='diff-so-fancy'
 alias n='nvim'
 alias v='nvim'
+
+PROMPT_COMMAND=${PROMPT_COMMAND:+$PROMPT_COMMAND; }'printf "\033]0;%s@%s:%s\007" "${USER}" "${HOSTNAME%%.*}" "${PWD/#$HOME/\~}"'
