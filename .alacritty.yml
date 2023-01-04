@@ -11,11 +11,11 @@ window:
   dimensions:
     columns: 140
     lines: 38
-  padding:
-    x: 40
-    y: 40
+  #padding:
+    #x: 40
+    #y: 40
   # Still won't show in a window manger, but will in a desktop environment
-  decorations: none
+  decorations: full
   dynamic_padding: true
   startup_mode: windowed
   dynamic_title: true

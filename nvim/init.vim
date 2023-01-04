@@ -3,7 +3,6 @@ let mapleader = "\<Space>"
 let g:loaded_matchit = 1
 let g:loaded_matchparen = 1
 let g:coc_disable_startup_warning = 1
-
 " =============================================================================
 " # PLUGINS
 " =============================================================================
@@ -65,6 +64,9 @@ Plug 'khzaw/vim-conceal'
 " Indent guides
 Plug 'Yggdroot/indentLine'
 
+" C plugins
+Plug 'chazy/cscope_maps'
+
 call plug#end()
 
 " system clipboard
@@ -120,6 +122,10 @@ if executable('rg')
 endif
 
 lua << END
+-- bash language server
+require'lspconfig'.bashls.setup{}
+
+
 -- Mappings.
 -- See `:help vim.diagnostic.*` for documentation on any of the below functions
 local opts = { noremap=true, silent=true }
@@ -300,6 +306,26 @@ nnoremap ? ?\v
 " nnoremap / /\v
 cnoremap %s/ %sm/
 
+" Use tab for trigger completion with characters ahead and navigate.
+" Use command ':verbose imap <tab>' to make sure tab is not mapped by other plugin.
+inoremap <silent><expr> <TAB>
+			\ coc#pum#visible() ? coc#pum#next(1) :
+			\ <SID>check_back_space() ? "\<TAB>" :
+			\ coc#refresh()
+inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+
+" Use coc#pum#info() if you need to confirm completion,
+" only when there selected complete item
+inoremap <silent><expr> <cr> coc#pum#visible() && coc#pum#info()['index'] != -1 ? coc#pum#confirm() : "\<C-g>u\<CR>"
+
+function! s:check_back_space() abort
+	let col = col('.') - 1
+	return !col || getline('.')[col - 1]  =~# '\s'
+endfunction
+
+" Use <c-space> to trigger completion.
+inoremap <silent><expr> <c-space> coc#refresh()
+
 " =============================================================================
 " # GUI settings
 " =============================================================================
@@ -459,6 +485,8 @@ autocmd BufRead *.xlsx.axlsx set filetype=ruby
 
 " Script plugins
 autocmd Filetype html,xml,xsl,php source ~/.config/nvim/scripts/closetag.vim
+
+source ~/.config/nvim/cscope_maps.vim
 
 " =============================================================================
 " # Footer

@@ -1,35 +1,31 @@
 {
-  "bash": {
-    "command": "bash-language-server",
-    "args": ["start"],
-    "filetypes": ["sh"]
-  },
-    "clangd": {
-    "command": "clangd",
-    "rootPatterns": ["compile_flags.txt", "compile_commands.json"],
-    "filetypes": ["c", "cc", "cpp", "c++", "objc", "objcpp"]
-  },
-  "rust-analyzer.enable": true,
-  "golang": {
-    "command": "gopls",
-    "rootPatterns": ["go.mod"],
-    "filetypes": ["go"]
-  },
-    "lua": {
-    "command": "lua-lsp",
-    "filetypes": ["lua"]
-  },
-	"python": {
-	"command": "pyls",
-	"filetypes": ["python"]
-  },
-	"typescript": {
-	"command": "typescript-language-server",
-	"filetypes": ["typescript", "typescriptreact"]
-  },
-	"vim": {
-	"command": "vim-language-server",
-	"filetypes": ["vim"]
-  },
-  "clangd.path": "~/.config/coc/extensions/coc-clangd-data/install/15.0.6/clangd_15.0.6/bin/clangd"
-}	
+	"languageserver": {
+		"bash": {
+			"command": "bash-language-server",
+			"args": ["start"],
+			"filetypes": ["sh"]
+		},
+		"rust-analyzer.enable": true,
+		"golang": {
+			"command": "gopls",
+			"rootPatterns": ["go.mod"],
+			"filetypes": ["go"]
+		},
+		"lua": {
+			"command": "lua-lsp",
+			"filetypes": ["lua"]
+		},
+		"python": {
+			"command": "pyls",
+			"filetypes": ["python"]
+		},
+		"typescript": {
+			"command": "typescript-language-server",
+			"filetypes": ["typescript", "typescriptreact"]
+		},
+		"vim": {
+			"command": "vim-language-server",
+			"filetypes": ["vim"]
+		}
+	}
+}

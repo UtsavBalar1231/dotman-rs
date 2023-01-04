@@ -42,6 +42,9 @@ fi
 
 # VIM configuration
 cp -vr $(pwd)/nvim/ ~/.config/
+# LSP for bash and VIM
+sudo npm i -g bash-language-server
+sudo npm i -g vim-language-server
 
 # NVIM update and install plugins
 echo -e "Run nvim comand:"
