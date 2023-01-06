@@ -22,10 +22,6 @@
 		"typescript": {
 			"command": "typescript-language-server",
 			"filetypes": ["typescript", "typescriptreact"]
-		},
-		"vim": {
-			"command": "vim-language-server",
-			"filetypes": ["vim"]
 		}
 	}
 }

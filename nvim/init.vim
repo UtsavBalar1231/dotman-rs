@@ -2,7 +2,7 @@ set shell=/usr/bin/zsh
 let mapleader = "\<Space>"
 let g:loaded_matchit = 1
 let g:loaded_matchparen = 1
-let g:coc_disable_startup_warning = 1
+" let g:coc_disable_startup_warning = 1
 " =============================================================================
 " # PLUGINS
 " =============================================================================
@@ -20,9 +20,9 @@ Plug 'machakann/vim-highlightedyank'
 Plug 'andymass/vim-matchup'
 
 " Fuzzy finder
-Plug 'airblade/vim-rooter'
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-Plug 'junegunn/fzf.vim'
+" Plug 'airblade/vim-rooter'
+" Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+" Plug 'junegunn/fzf.vim'
 
 " Nerdy stuff
 Plug 'preservim/nerdcommenter'
@@ -34,26 +34,43 @@ Plug 'ryanoasis/vim-devicons'
 
 " git
 Plug 'tpope/vim-fugitive'
-Plug 'junegunn/gv.vim'
+" Git commit browser
+" Plug 'junegunn/gv.vim'
 Plug 'airblade/vim-gitgutter'
 
 " Autocomplete framework
-Plug 'ncm2/ncm2'
-Plug 'ncm2/ncm2-bufword'
-Plug 'ncm2/ncm2-path'
-Plug 'roxma/nvim-yarp'
+"Plug 'ncm2/ncm2'
+"Plug 'ncm2/ncm2-bufword'
+"Plug 'ncm2/ncm2-path'
+"Plug 'roxma/nvim-yarp'
+Plug 'hrsh7th/cmp-buffer'                            
+Plug 'hrsh7th/cmp-nvim-lsp'
+Plug 'hrsh7th/cmp-nvim-lsp-signature-help'
+Plug 'hrsh7th/cmp-nvim-lua'
+Plug 'hrsh7th/cmp-path'                              
+Plug 'hrsh7th/cmp-vsnip'                             
+Plug 'hrsh7th/nvim-cmp' 
+Plug 'hrsh7th/vim-vsnip'  
+Plug 'neovim/nvim-lspconfig'
+" Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 " base16 vim themes
 Plug 'chriskempson/base16-vim'
 
-" Language specific plugins
-Plug 'neovim/nvim-lspconfig'
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
-
 " rust
 Plug 'rust-lang/rust.vim'
-Plug 'ncm2/ncm2-racer'
-Plug 'racer-rust/vim-racer'
+" Plug 'ncm2/ncm2-racer'
+" Plug 'racer-rust/vim-racer'
+" Plug 'simrat39/rust-tools.nvim'
+Plug 'kyazdani42/nvim-web-devicons'
+Plug 'folke/trouble.nvim'
+Plug 'kdarkhan/rust-tools.nvim'
+
+" rust tree sitter
+Plug 'nvim-treesitter/nvim-treesitter'
+
+" Floating Term
+Plug 'voldikss/vim-floaterm'
 
 " move line/selection left/right up/down
 Plug 'matze/vim-move'
@@ -66,6 +83,10 @@ Plug 'Yggdroot/indentLine'
 
 " C plugins
 Plug 'chazy/cscope_maps'
+
+" Telescope
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-telescope/telescope.nvim'
 
 call plug#end()
 
@@ -92,7 +113,7 @@ call Base16hi("LspSignatureActiveParameter", g:base16_gui05, g:base16_gui03, g:b
 " Would be nice to customize the highlighting of warnings and the like to make
 " them less glaring. But alas
 " https://github.com/nvim-lua/lsp_extensions.nvim/issues/21
-call Base16hi("CocHintSign", g:base16_gui03, "", g:base16_cterm03, "", "", "")
+" call Base16hi("CocHintSign", g:base16_gui03, "", g:base16_cterm03, "", "", "")
 
 " Lightline
 let g:lightline = {
@@ -109,7 +130,7 @@ let g:lightline = {
 			\ },
 			\ }
 function! LightlineFilename()
-	return expand('%:t') !=# '' ? @% : '[No Name]'
+
 endfunction
 
 " from http://sheerun.net/2014/03/21/how-to-boost-your-vim-productivity/
@@ -122,43 +143,164 @@ if executable('rg')
 endif
 
 lua << END
--- bash language server
-require'lspconfig'.bashls.setup{}
+-- rust tools
+local rt = require("rust-tools")
 
+rt.setup({
+server = {
+	on_attach = function(_, bufnr)
+	-- Hover actions
+	vim.keymap.set("n", "<C-space>", rt.hover_actions.hover_actions, { buffer = bufnr })
+	-- Code action groups
+	vim.keymap.set("n", "<Leader>a", rt.code_action_group.code_action_group, { buffer = bufnr })
+	end,
+},
+})
 
--- Mappings.
--- See `:help vim.diagnostic.*` for documentation on any of the below functions
-local opts = { noremap=true, silent=true }
-vim.keymap.set('n', '<space>e', vim.diagnostic.open_float, opts)
-vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, opts)
-vim.keymap.set('n', ']d', vim.diagnostic.goto_next, opts)
-vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist, opts)
-
--- Use an on_attach function to only map the following keys
--- after the language server attaches to the current buffer
-local on_attach = function(client, bufnr)
--- Enable completion triggered by <c-x><c-o>
-vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
-
--- Mappings.
--- See `:help vim.lsp.*` for documentation on any of the below functions
-local bufopts = { noremap=true, silent=true, buffer=bufnr }
-vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, bufopts)
-vim.keymap.set('n', 'gd', vim.lsp.buf.definition, bufopts)
-vim.keymap.set('n', 'K', vim.lsp.buf.hover, bufopts)
-vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, bufopts)
-vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, bufopts)
-vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, bufopts)
-vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, bufopts)
-vim.keymap.set('n', '<space>wl', function()
-print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-end, bufopts)
-vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, bufopts)
-vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, bufopts)
-vim.keymap.set('n', '<space>ca', vim.lsp.buf.code_action, bufopts)
-vim.keymap.set('n', 'gr', vim.lsp.buf.references, bufopts)
-vim.keymap.set('n', '<space>f', function() vim.lsp.buf.format { async = true } end, bufopts)
+-- LSP Diagnostics Options Setup 
+local sign = function(opts)
+vim.fn.sign_define(opts.name, {
+	texthl = opts.name,
+	text = opts.text,
+	numhl = ''
+})
 end
+
+sign({name = 'DiagnosticSignError', text = ''})
+sign({name = 'DiagnosticSignWarn', text = ''})
+sign({name = 'DiagnosticSignHint', text = ''})
+sign({name = 'DiagnosticSignInfo', text = ''})
+
+vim.diagnostic.config({
+virtual_text = false,
+signs = true,
+update_in_insert = true,
+underline = true,
+severity_sort = false,
+float = {
+	border = 'rounded',
+	source = 'always',
+	header = '',
+	prefix = '',
+},
+})
+
+vim.cmd([[
+set signcolumn=yes
+autocmd CursorHold * lua vim.diagnostic.open_float(nil, { focusable = false })
+]])
+
+--Set completeopt to have a better completion experience
+-- :help completeopt
+-- menuone: popup even when there's only one match
+-- noinsert: Do not insert text until a selection is made
+-- noselect: Do not select, force to select one from the menu
+-- shortness: avoid showing extra messages when using completion
+-- updatetime: set updatetime for CursorHold
+vim.opt.completeopt = {'menuone', 'noselect', 'noinsert'}
+vim.opt.shortmess = vim.opt.shortmess + { c = true}
+vim.api.nvim_set_option('updatetime', 250) 
+
+-- Fixed column for diagnostics to appear
+-- Show autodiagnostic popup on cursor hover_range
+-- Goto previous / next diagnostic warning / error 
+-- Show inlay_hints more frequently 
+vim.cmd([[
+set signcolumn=yes
+autocmd CursorHold * lua vim.diagnostic.open_float(nil, { focusable = false })
+]])
+
+-- Completion Plugin Setup
+local cmp = require'cmp'
+cmp.setup({
+-- Enable LSP snippets
+snippet = {
+	expand = function(args)
+	vim.fn["vsnip#anonymous"](args.body)
+	end,
+	},
+	mapping = {
+		['<C-p>'] = cmp.mapping.select_prev_item(),
+		['<C-n>'] = cmp.mapping.select_next_item(),
+		-- Add tab support
+		['<S-Tab>'] = cmp.mapping.select_prev_item(),
+		['<Tab>'] = cmp.mapping.select_next_item(),
+		['<A-f>'] = cmp.mapping.scroll_docs(-4),
+		['<C-f>'] = cmp.mapping.scroll_docs(4),
+		['<C-Space>'] = cmp.mapping.complete(),
+		['<C-e>'] = cmp.mapping.close(),
+		['<CR>'] = cmp.mapping.confirm({
+		behavior = cmp.ConfirmBehavior.Insert,
+		select = true,
+		})
+		},
+	-- Installed sources:
+	sources = {
+		{ name = 'path' },                              -- file paths
+		{ name = 'nvim_lsp', keyword_length = 3 },      -- from language server
+		{ name = 'nvim_lsp_signature_help'},            -- display function signatures with current parameter emphasized
+		{ name = 'nvim_lua', keyword_length = 2},       -- complete neovim's Lua runtime API such vim.lsp.*
+		{ name = 'buffer', keyword_length = 2 },        -- source current buffer
+		{ name = 'vsnip', keyword_length = 2 },         -- nvim-cmp source for vim-vsnip 
+		{ name = 'calc'},                               -- source for math calculation
+	},
+	window = {
+		completion = cmp.config.window.bordered(),
+		documentation = cmp.config.window.bordered(),
+	},
+	formatting = {
+		fields = {'menu', 'abbr', 'kind'},
+		format = function(entry, item)
+		local menu_icon ={
+		nvim_lsp = 'λ',
+		vsnip = '⋗',
+		buffer = 'Ω',
+		path = '🖫',
+		}
+		item.menu = menu_icon[entry.source.name]
+		return item
+		end,
+},
+})
+
+-- Treesitter Plugin Setup 
+require('nvim-treesitter.configs').setup {
+	ensure_installed = { "lua", "rust", "toml" },
+	auto_install = true,
+	highlight = {
+		enable = true,
+		additional_vim_regex_highlighting=false,
+	},
+	ident = { enable = true }, 
+	rainbow = {
+		enable = true,
+		extended_mode = true,
+		max_file_lines = nil,
+	}
+	}
+-- Treesitter folding 
+vim.wo.foldmethod = 'expr'
+vim.wo.foldexpr = 'nvim_treesitter#foldexpr()'
+
+-- Copilot
+vim.g.copilot_assume_mapped = true
+
+-- Telescope Plugin Setup
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
+vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
+vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
+vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
+vim.keymap.set('n', '<leader>fc', builtin.commands, {})
+vim.keymap.set('n', '<leader>fo', builtin.oldfiles, {})
+vim.keymap.set('n', '<leader>ft', builtin.tags, {})
+
+-- trouble Plugin Setup
+require("trouble").setup {
+-- your configuration comes here
+-- or leave it empty to use the default settings
+-- refer to the configuration section below
+}
 
 END
 
@@ -167,6 +309,11 @@ let javaScript_fold=0
 
 " Java
 let java_ignore_javadoc=1
+
+" FloaTerm configuration
+map <F1> :FloatermNew --wintype=normal --height=0.9 --width=0.9 --position=right --autoclose=2 --name=terminal<CR>
+map <F2> :FloatermToggle terminal<CR>
+map <F3> :FloatermHide<CR>
 
 " Open hotkeys
 map <C-p> :Files<CR>
@@ -182,7 +329,7 @@ command! X wq
 command! -bang Q q<bang>
 
 " Coc Explorer NVIM
-:nmap <space>e <Cmd>CocCommand explorer<CR>
+" :nmap <space>e <Cmd>CocCommand explorer<CR>
 
 " Always show the signcolumn, otherwise it would shift the text each time
 " diagnostics appear/become resolved.
@@ -221,12 +368,6 @@ let g:rust_clip_command = 'xclip -selection clipboard'
 
 " Don't confirm .lvimrc
 let g:localvimrc_ask = 0
-" Completion
-" Better completion
-" menuone: popup even when there's only one match
-" noinsert: Do not insert text until a selection is made
-" noselect: Do not select, force user to select one from the menu
-set completeopt=menuone,noinsert,noselect
 " Better display for messages
 set cmdheight=2
 " You will have bad experience for diagnostic messages when it's default 4000.
@@ -308,23 +449,23 @@ cnoremap %s/ %sm/
 
 " Use tab for trigger completion with characters ahead and navigate.
 " Use command ':verbose imap <tab>' to make sure tab is not mapped by other plugin.
-inoremap <silent><expr> <TAB>
-			\ coc#pum#visible() ? coc#pum#next(1) :
-			\ <SID>check_back_space() ? "\<TAB>" :
-			\ coc#refresh()
-inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+"inoremap <silent><expr> <TAB>
+			"\ coc#pum#visible() ? coc#pum#next(1) :
+			"\ <SID>check_back_space() ? "\<TAB>" :
+			"\ coc#refresh()
+"inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
 
 " Use coc#pum#info() if you need to confirm completion,
 " only when there selected complete item
-inoremap <silent><expr> <cr> coc#pum#visible() && coc#pum#info()['index'] != -1 ? coc#pum#confirm() : "\<C-g>u\<CR>"
+"inoremap <silent><expr> <cr> coc#pum#visible() && coc#pum#info()['index'] != -1 ? coc#pum#confirm() : "\<C-g>u\<CR>"
 
-function! s:check_back_space() abort
-	let col = col('.') - 1
-	return !col || getline('.')[col - 1]  =~# '\s'
-endfunction
+"function! s:check_back_space() abort
+"let col = col('.') - 1
+"return !col || getline('.')[col - 1]  =~# '\s'
+"endfunction
 
-" Use <c-space> to trigger completion.
-inoremap <silent><expr> <c-space> coc#refresh()
+"" Use <c-space> to trigger completion.
+"inoremap <silent><expr> <c-space> coc#refresh()
 
 " =============================================================================
 " # GUI settings
@@ -403,23 +544,23 @@ noremap <leader>p :read !xsel --clipboard --output<cr>
 noremap <leader>c :w !xsel -ib<cr><cr>
 
 " <leader>s for Rg search
-noremap <leader>s :Rg
-let g:fzf_layout = { 'down': '~20%' }
-command! -bang -nargs=* Rg
-			\ call fzf#vim#grep(
-			\   'rg --column --line-number --no-heading --color=always '.shellescape(<q-args>), 1,
-			\   <bang>0 ? fzf#vim#with_preview('up:60%')
-			\           : fzf#vim#with_preview('right:50%:hidden', '?'),
-			\   <bang>0)
+"noremap <leader>s :Rg
+"let g:fzf_layout = { 'down': '~20%' }
+"command! -bang -nargs=* Rg
+			"\ call fzf#vim#grep(
+			"\   'rg --column --line-number --no-heading --color=always '.shellescape(<q-args>), 1,
+			"\   <bang>0 ? fzf#vim#with_preview('up:60%')
+			"\           : fzf#vim#with_preview('right:50%:hidden', '?'),
+			"\   <bang>0)
 
-function! s:list_cmd()
-	let base = fnamemodify(expand('%'), ':h:.:S')
-	return base == '.' ? 'fdfind --type file --follow' : printf('fdfind --type file --follow | sort -u %s', shellescape(expand('%')))
-endfunction
+"function! s:list_cmd()
+	"let base = fnamemodify(expand('%'), ':h:.:S')
+	"return base == '.' ? 'fdfind --type file --follow' : printf('fdfind --type file --follow | sort -u %s', shellescape(expand('%')))
+"endfunction
 
-command! -bang -nargs=? -complete=dir Files
-			\ call fzf#vim#files(<q-args>, {'source': s:list_cmd(),
-			\                               'options': '--tiebreak=index'}, <bang>0)
+"command! -bang -nargs=? -complete=dir Files
+			"\ call fzf#vim#files(<q-args>, {'source': s:list_cmd(),
+			"\                               'options': '--tiebreak=index'}, <bang>0)
 
 
 " Open new file adjacent to current file
