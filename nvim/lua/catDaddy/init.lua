@@ -1,0 +1,5 @@
+require('catDaddy.editor')
+require('catDaddy.remap')
+require('catDaddy.plugins')
+require('catDaddy.autocmds')
+require('catDaddy.copilot')
