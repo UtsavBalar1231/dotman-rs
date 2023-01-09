@@ -2,10 +2,10 @@ local g = vim.g
 local opt = vim.opt
 
 -- Set ZSH as default global shell
-g.shell = '/usr/bin/zsh'
+g.shell = "/usr/bin/zsh"
 
 -- Map the leader key to space
-g.mapleader = ' '
+g.mapleader = " "
 
 -- Enable auto indentation in vim
 opt.autoindent = true
@@ -14,13 +14,13 @@ opt.autoindent = true
 opt.timeoutlen = 250
 
 -- Set default encoding
-opt.encoding = 'utf-8'
+opt.encoding = "utf-8"
 
 -- Default scrolloff in vim
 opt.scrolloff = 4
 
 -- Enable undo dir setup
-opt.undodir = vim.fn.stdpath('config') .. '/../../.vimdid'
+opt.undodir = vim.fn.stdpath("config") .. "/../../.vimdid"
 opt.undofile = true
 
 -----------------------
@@ -55,11 +55,11 @@ opt.gdefault = true
 --- General editor settings ---
 -------------------------------
 -- Enable mouse support
-opt.mouse = 'a'
+opt.mouse = "a"
 -- Copy/paste to system clipboard
-opt.clipboard:append 'unnamedplus'
+opt.clipboard:append("unnamedplus")
 -- Autocomplete options
-opt.completeopt = 'menuone,noinsert,noselect'
+opt.completeopt = "menuone,noinsert,noselect"
 
 -------------------------------
 --- General editor UI setup ---
@@ -71,9 +71,9 @@ opt.relativenumber = true
 -- Highlight matching parenthesis
 opt.showmatch = true
 -- Enable folding (default 'foldmarker')
-opt.foldmethod = 'marker'
+opt.foldmethod = "marker"
 -- Line lenght marker at 80 columns
-opt.colorcolumn = '80'
+opt.colorcolumn = "80"
 -- Vertical split to the right
 opt.splitright = true
 -- Horizontal split to the bottom
@@ -89,7 +89,7 @@ opt.termguicolors = true
 -- Set global statusline
 opt.laststatus = 3
 -- Use backspaces over new line
-opt.backspace = '2'
+opt.backspace = "2"
 -- Enable ttyfast
 opt.ttyfast = true
 -- Show (partial) command in status line
@@ -98,25 +98,21 @@ opt.showcmd = true
 opt.showmode = false
 -- Show nbsp, extends, precedes and trailing spaces
 opt.list = false
-opt.listchars = 'nbsp:¬,extends:»,precedes:«,trail:•'
+opt.listchars = "nbsp:¬,extends:»,precedes:«,trail:•"
 -- Better display for messages
 opt.cmdheight = 2
--- Diagnostic messages time
-opt.updatetime = 300
-
 
 ----------------------------
 --- Format options setup ---
 ----------------------------
-opt.formatoptions:append 'j' -- Auto remove comments when joining lines
-opt.formatoptions:append 'n' -- Auto indent new lines
-opt.formatoptions:append 'q' -- Allow formatting comments w/ gq
-opt.formatoptions:append 'r' -- Auto indent after paste
-opt.formatoptions:append 't' -- Auto indent after <C-t>
-opt.formatoptions:append 'c' -- Auto indent comment lines
-opt.formatoptions:append 'o' -- Auto continue comments
-opt.formatoptions:append 'b' -- Auto indent after <C-o>
-
+opt.formatoptions:append("j") -- Auto remove comments when joining lines
+opt.formatoptions:append("n") -- Auto indent new lines
+opt.formatoptions:append("q") -- Allow formatting comments w/ gq
+opt.formatoptions:append("r") -- Auto indent after paste
+opt.formatoptions:append("t") -- Auto indent after <C-t>
+opt.formatoptions:append("c") -- Auto indent comment lines
+opt.formatoptions:append("o") -- Auto continue comments
+opt.formatoptions:append("b") -- Auto indent after <C-o>
 
 ---------------------------
 --- Editor Optimization ---
@@ -129,10 +125,8 @@ opt.history = 1000
 opt.lazyredraw = true
 -- Max column for syntax highlight
 opt.synmaxcol = 500
--- ms to wait for trigger an event
-opt.updatetime = 250
 
 --- Make diffing better: https://vimways.org/2018/the-power-of-diff/
-opt.diffopt:append 'iwhite'
-opt.diffopt:append 'algorithm:patience'
-opt.diffopt:append 'indent-heuristic'
+opt.diffopt:append("iwhite")
+opt.diffopt:append("algorithm:patience")
+opt.diffopt:append("indent-heuristic")

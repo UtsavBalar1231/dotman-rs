@@ -75,22 +75,18 @@ time([[try_loadstring definition]], false)
 time([[Defining packer_plugins]], true)
 _G.packer_plugins = {
   ["BetterLua.vim"] = {
-    loaded = false,
-    needs_bufread = false,
-    only_cond = false,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/opt/BetterLua.vim",
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/BetterLua.vim",
     url = "https://github.com/euclidianAce/BetterLua.vim"
   },
-  LuaSnip = {
+  ["Comment.nvim"] = {
     loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/LuaSnip",
-    url = "https://github.com/L3MON4D3/LuaSnip"
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/Comment.nvim",
+    url = "https://github.com/numToStr/Comment.nvim"
   },
   ["c.vim"] = {
-    loaded = false,
-    needs_bufread = true,
-    only_cond = false,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/opt/c.vim",
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/c.vim",
     url = "https://github.com/vim-scripts/c.vim"
   },
   ["cmp-buffer"] = {
@@ -103,50 +99,47 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/cmp-nvim-lsp",
     url = "https://github.com/hrsh7th/cmp-nvim-lsp"
   },
-  ["cmp-nvim-lua"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/cmp-nvim-lua",
-    url = "https://github.com/hrsh7th/cmp-nvim-lua"
-  },
   ["cmp-path"] = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/cmp-path",
     url = "https://github.com/hrsh7th/cmp-path"
   },
-  cmp_luasnip = {
+  ["cmp-vsnip"] = {
     loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/cmp_luasnip",
-    url = "https://github.com/saadparwaiz1/cmp_luasnip"
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/cmp-vsnip",
+    url = "https://github.com/hrsh7th/cmp-vsnip"
   },
-  ["friendly-snippets"] = {
+  ["copilot.vim"] = {
     loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/friendly-snippets",
-    url = "https://github.com/rafamadriz/friendly-snippets"
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/copilot.vim",
+    url = "https://github.com/github/copilot.vim"
+  },
+  ["fidget.nvim"] = {
+    config = { "\27LJ\2\n4\0\0\3\0\3\0\0066\0\0\0'\2\1\0B\0\2\0029\0\2\0B\0\1\1K\0\1\0\nsetup\vfidget\frequire\0" },
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/fidget.nvim",
+    url = "https://github.com/j-hui/fidget.nvim"
+  },
+  ["formatter.nvim"] = {
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/formatter.nvim",
+    url = "https://github.com/mhartington/formatter.nvim"
   },
   ["gruvbox.nvim"] = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/gruvbox.nvim",
     url = "https://github.com/ellisonleao/gruvbox.nvim"
   },
-  ["lsp-zero.nvim"] = {
+  indentLine = {
+    config = { "\27LJ\2\nì\2\0\0\2\0\f\0\0256\0\0\0009\0\1\0'\1\3\0=\1\2\0006\0\0\0009\0\1\0005\1\5\0=\1\4\0006\0\0\0009\0\1\0'\1\a\0=\1\6\0006\0\0\0009\0\1\0'\1\3\0=\1\b\0006\0\0\0009\0\1\0005\1\n\0=\1\t\0006\0\0\0009\0\1\0'\1\a\0=\1\v\0K\0\1\0#indent_blankline_concealcursor\1\6\0\0\thelp\vpacker\14dashboard\rNvimTree\rfloaterm&indent_blankline_filetype_exclude\26indent_blankline_char\binc\29indentLine_concealcursor\1\6\0\0\thelp\vpacker\14dashboard\rNvimTree\rfloaterm\31indentLine_fileTypeExclude\bâ”†\20indentLine_char\6g\bvim\0" },
     loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/lsp-zero.nvim",
-    url = "https://github.com/VonHeikemen/lsp-zero.nvim"
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/indentLine",
+    url = "https://github.com/Yggdroot/indentLine"
   },
   ["lualine.nvim"] = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/lualine.nvim",
     url = "https://github.com/nvim-lualine/lualine.nvim"
-  },
-  ["mason-lspconfig.nvim"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/mason-lspconfig.nvim",
-    url = "https://github.com/williamboman/mason-lspconfig.nvim"
-  },
-  ["mason.nvim"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/mason.nvim",
-    url = "https://github.com/williamboman/mason.nvim"
   },
   ["nvim-cmp"] = {
     loaded = true,
@@ -183,11 +176,14 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/plenary.nvim",
     url = "https://github.com/nvim-lua/plenary.nvim"
   },
+  ["popup.nvim"] = {
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/popup.nvim",
+    url = "https://github.com/nvim-lua/popup.nvim"
+  },
   ["python-syntax"] = {
-    loaded = false,
-    needs_bufread = false,
-    only_cond = false,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/opt/python-syntax",
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/python-syntax",
     url = "https://github.com/vim-python/python-syntax"
   },
   ["rust-tools.nvim"] = {
@@ -232,10 +228,8 @@ _G.packer_plugins = {
     url = "https://github.com/airblade/vim-gitgutter"
   },
   ["vim-markdown"] = {
-    loaded = false,
-    needs_bufread = true,
-    only_cond = false,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/opt/vim-markdown",
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/vim-markdown",
     url = "https://github.com/plasticboy/vim-markdown"
   },
   ["vim-matchup"] = {
@@ -250,6 +244,11 @@ _G.packer_plugins = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/vim-sneak",
     url = "https://github.com/justinmk/vim-sneak"
+  },
+  ["vim-vsnip"] = {
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/vim-vsnip",
+    url = "https://github.com/hrsh7th/vim-vsnip"
   },
   ["wilder.nvim"] = {
     loaded = true,
@@ -270,26 +269,18 @@ time([[packadd for vim-matchup]], false)
 time([[Config for vim-sneak]], true)
 try_loadstring("\27LJ\2\nJ\0\0\2\0\4\0\t6\0\0\0009\0\1\0)\1\1\0=\1\2\0006\0\0\0009\0\1\0)\1\1\0=\1\3\0K\0\1\0\17sneak#s_next\16sneak#label\6g\bvim\0", "config", "vim-sneak")
 time([[Config for vim-sneak]], false)
+-- Config for: fidget.nvim
+time([[Config for fidget.nvim]], true)
+try_loadstring("\27LJ\2\n4\0\0\3\0\3\0\0066\0\0\0'\2\1\0B\0\2\0029\0\2\0B\0\1\1K\0\1\0\nsetup\vfidget\frequire\0", "config", "fidget.nvim")
+time([[Config for fidget.nvim]], false)
+-- Config for: indentLine
+time([[Config for indentLine]], true)
+try_loadstring("\27LJ\2\nì\2\0\0\2\0\f\0\0256\0\0\0009\0\1\0'\1\3\0=\1\2\0006\0\0\0009\0\1\0005\1\5\0=\1\4\0006\0\0\0009\0\1\0'\1\a\0=\1\6\0006\0\0\0009\0\1\0'\1\3\0=\1\b\0006\0\0\0009\0\1\0005\1\n\0=\1\t\0006\0\0\0009\0\1\0'\1\a\0=\1\v\0K\0\1\0#indent_blankline_concealcursor\1\6\0\0\thelp\vpacker\14dashboard\rNvimTree\rfloaterm&indent_blankline_filetype_exclude\26indent_blankline_char\binc\29indentLine_concealcursor\1\6\0\0\thelp\vpacker\14dashboard\rNvimTree\rfloaterm\31indentLine_fileTypeExclude\bâ”†\20indentLine_char\6g\bvim\0", "config", "indentLine")
+time([[Config for indentLine]], false)
 -- Config for: vim-floaterm
 time([[Config for vim-floaterm]], true)
 try_loadstring("\27LJ\2\n­\2\0\0\2\0\14\1\0296\0\0\0009\0\1\0*\1\0\0=\1\2\0006\0\0\0009\0\1\0*\1\0\0=\1\3\0006\0\0\0009\0\1\0'\1\5\0=\1\4\0006\0\0\0009\0\1\0'\1\a\0=\1\6\0006\0\0\0009\0\1\0'\1\t\0=\1\b\0006\0\0\0009\0\1\0'\1\v\0=\1\n\0006\0\0\0009\0\1\0'\1\r\0=\1\f\0K\0\1\0\t<F5>\25floaterm_keymap_kill\t<F4>\25floaterm_keymap_next\t<F3>\25floaterm_keymap_prev\t<F2>\24floaterm_keymap_new\t<F1>\27floaterm_keymap_toggle\20floaterm_height\19floaterm_width\6g\bvim›³æÌ\25Ì™³ÿ\3\0", "config", "vim-floaterm")
 time([[Config for vim-floaterm]], false)
-vim.cmd [[augroup packer_load_aucmds]]
-vim.cmd [[au!]]
-  -- Filetype lazy-loads
-time([[Defining lazy-load filetype autocommands]], true)
-vim.cmd [[au FileType cpp ++once lua require("packer.load")({'c.vim'}, { ft = "cpp" }, _G.packer_plugins)]]
-vim.cmd [[au FileType lua ++once lua require("packer.load")({'BetterLua.vim'}, { ft = "lua" }, _G.packer_plugins)]]
-vim.cmd [[au FileType c ++once lua require("packer.load")({'c.vim'}, { ft = "c" }, _G.packer_plugins)]]
-vim.cmd [[au FileType python ++once lua require("packer.load")({'python-syntax'}, { ft = "python" }, _G.packer_plugins)]]
-vim.cmd [[au FileType markdown ++once lua require("packer.load")({'vim-markdown'}, { ft = "markdown" }, _G.packer_plugins)]]
-time([[Defining lazy-load filetype autocommands]], false)
-vim.cmd("augroup END")
-vim.cmd [[augroup filetypedetect]]
-time([[Sourcing ftdetect script at: /home/utsav/.local/share/nvim/site/pack/packer/opt/vim-markdown/ftdetect/markdown.vim]], true)
-vim.cmd [[source /home/utsav/.local/share/nvim/site/pack/packer/opt/vim-markdown/ftdetect/markdown.vim]]
-time([[Sourcing ftdetect script at: /home/utsav/.local/share/nvim/site/pack/packer/opt/vim-markdown/ftdetect/markdown.vim]], false)
-vim.cmd("augroup END")
 
 _G._packer.inside_compile = false
 if _G._packer.needs_bufread == true then
