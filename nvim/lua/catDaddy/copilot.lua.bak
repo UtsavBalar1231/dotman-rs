@@ -21,6 +21,7 @@ end
 
 vim.g.copilot_assume_mapped = true
 
--- Map <C-Space> and <C-Right> to accept copilot suggestion
+-- Map <C-Space> to trigger copilot
 vim.api.nvim_set_keymap("i", "<C-Space>", 'copilot#Accept("<CR>")', { silent = true, expr = true })
+
 vim.api.nvim_set_keymap("i", "<C-Right>", 'copilot#Accept("<CR>")', { silent = true, expr = true })

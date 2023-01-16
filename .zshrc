@@ -77,6 +77,10 @@ plugins=(
 
 source $ZSH/oh-my-zsh.sh
 
+flashfetch
+alias todo="todo.sh ls"
+todo
+
 export PATH="/home/utsav/.local/bin:/home/utsav/.zsh/diff-so-fancy:$PATH"
 
 eval $(thefuck --alias)
@@ -88,9 +92,9 @@ else
 	export CCACHE_DIR=$HOME/ccache && export USE_CCACHE=1 && export CCACHE_EXEC=/usr/bin/ccache && export CCACHE_COMPRESS=1
 fi
 
-#export CC="ccache gcc"
-#export HOSTCC="ccache gcc"
-#export HOSTCXX="ccache g++"
+export CC="ccache gcc"
+export HOSTCC="ccache gcc"
+export HOSTCXX="ccache g++"
 
 if [ -f /usr/local/secret/ ]; then
 	source /usr/local/secret

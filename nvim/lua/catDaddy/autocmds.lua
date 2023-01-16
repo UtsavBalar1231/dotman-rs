@@ -12,6 +12,9 @@ autocmd("TextYankPost", {
 	end,
 })
 
+-- Close nvim if NvimTree is only running buffer
+autocmd("BufEnter", { command = [[if winnr('$') == 1 && bufname() == 'NvimTree_' . tabpagenr() | quit | endif]] })
+
 -- Remove whitespace on save
 autocmd("BufWritePre", { pattern = "", command = ":%s/\\s\\+$//e" })
 
@@ -44,6 +47,6 @@ autocmd("BufNewFile,BufRead", { pattern = "*.h", command = "set filetype=c" })
 autocmd("BufNewFile,BufRead", { pattern = "*.S", command = "set filetype=asm" })
 autocmd("BufNewFile,BufRead", { pattern = "*.asm", command = "set filetype=asm" })
 autocmd("BufNewFile,BufRead", { pattern = "*.s", command = "set filetype=asm" })
-autocmd("BufNewFile,BufRead", { pattern = "*.sh", command = "set filetype=sh" })
+autocmd("BufNewFile,BufRead", { pattern = "*.sh", command = "set filetype=bash" })
 autocmd("BufNewFile,BufRead", { pattern = "*.zsh", command = "set filetype=zsh" })
 autocmd("BufNewFile,BufRead", { pattern = "*.lua", command = "set filetype=lua" })

@@ -77,7 +77,42 @@ return require("packer").startup(function(use)
 	use("airblade/vim-gitgutter")
 
 	-- Autocompletion and LSP
-	use("neovim/nvim-lspconfig")
+	use({
+		"VonHeikemen/lsp-zero.nvim",
+		requires = {
+			-- LSP Support
+			{ "neovim/nvim-lspconfig" },
+			{ "williamboman/mason.nvim" },
+			{ "williamboman/mason-lspconfig.nvim" },
+
+			-- Autocompletion
+			{ "hrsh7th/nvim-cmp" },
+			{ "hrsh7th/cmp-buffer" },
+			{ "hrsh7th/cmp-path" },
+			{ "saadparwaiz1/cmp_luasnip" },
+			{ "hrsh7th/cmp-nvim-lsp" },
+			{ "hrsh7th/cmp-nvim-lua" },
+			{ "hrsh7th/cmp-cmdline" },
+			{ "hrsh7th/cmp-nvim-lsp-signature-help" },
+
+			-- For vsnip users.
+			{ "hrsh7th/cmp-vsnip" },
+			{ "hrsh7th/vim-vsnip" },
+
+			-- Snippets
+			{ "L3MON4D3/LuaSnip" },
+			-- Snippet Collection (Optional)
+			{ "rafamadriz/friendly-snippets" },
+		},
+	})
+
+	-- Tabline cmp plugin
+	use({
+		"tzachar/cmp-tabnine",
+		run = "./install.sh",
+		requires = "hrsh7th/nvim-cmp",
+	})
+
 	-- Visualize lsp progress
 	use({
 		"j-hui/fidget.nvim",
@@ -85,7 +120,7 @@ return require("packer").startup(function(use)
 			require("fidget").setup()
 		end,
 	})
-	use("hrsh7th/nvim-cmp")
+	--[[ use("hrsh7th/nvim-cmp")
 
 	use({
 		-- cmp LSP completion
@@ -100,7 +135,7 @@ return require("packer").startup(function(use)
 	})
 	-- See hrsh7th other plugins for more great completion sources!
 	-- Snippet engine
-	use("hrsh7th/vim-vsnip")
+	use("hrsh7th/vim-vsnip") ]]
 	-- Adds extra functionality over rust analyzer
 	use("kdarkhan/rust-tools.nvim")
 
@@ -134,29 +169,7 @@ return require("packer").startup(function(use)
 	use("github/copilot.vim")
 
 	-- Identline for better indent
-	use({
-		"Yggdroot/indentLine",
-		config = function()
-			vim.g.indentLine_char = "┆"
-			vim.g.indentLine_fileTypeExclude = {
-				"help",
-				"packer",
-				"dashboard",
-				"NvimTree",
-				"floaterm",
-			}
-			vim.g.indentLine_concealcursor = "inc"
-			vim.g.indent_blankline_char = "┆"
-			vim.g.indent_blankline_filetype_exclude = {
-				"help",
-				"packer",
-				"dashboard",
-				"NvimTree",
-				"floaterm",
-			}
-			vim.g.indent_blankline_concealcursor = "inc"
-		end,
-	})
+	use("Yggdroot/indentLine")
 
 	-- Comments support
 	use("numToStr/Comment.nvim")

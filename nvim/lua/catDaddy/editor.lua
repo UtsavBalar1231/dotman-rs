@@ -125,6 +125,8 @@ opt.history = 1000
 opt.lazyredraw = true
 -- Max column for syntax highlight
 opt.synmaxcol = 500
+-- Disable swap files
+opt.swapfile = false
 
 --- Make diffing better: https://vimways.org/2018/the-power-of-diff/
 opt.diffopt:append("iwhite")
