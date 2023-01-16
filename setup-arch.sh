@@ -5,18 +5,16 @@ export TZ="Asia/Kolkata"
 
 # Setup build environment
 bash $(pwd)/scripts/setup_git.sh
-bash $(pwd)/scripts/setup_arch.sh
+bash $(pwd)/scripts/setup_env.sh
 
 # Install necessary packages
-sudo pacman -Sy
-sudo pacman -S \
+sudo pacman -Sy --noconfirm
+sudo pacman -S --noconfirm \
 	fzf \
 	bat \
-	gotop \
 	micro \
 	neovim \
 	ripgrep \
-	python-neovim \
 	tmux \
 	zsh \
 	-y
@@ -34,28 +32,13 @@ fi
 #
 # Configure NeoVIM
 #
-# Installing vim-plug
-if [ ! -f "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim ]; then
-	curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
-		https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-fi
-
-# VIM configuration
 cp -vr $(pwd)/nvim/ ~/.config/
-# LSP for bash and VIM
-sudo npm i -g bash-language-server
-sudo npm i -g vim-language-server
-
-# NVIM update and install plugins
-echo -e "Run nvim comand:"
-echo -e "nvim +PlugInstall +PlugUpdate +PlugClean +UpdateRemotePlugins"
 
 # Install Oh My ZSH
 if [ ! -e ${HOME}/.oh-my-zsh/.oh-my-zsh.sh ]; then
 	bash -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 fi
 
-sudo chsh $(which zsh)
-cp -v $(pwd)/.zshrc ~/.zshrc
+sudo chsh $(whoami)
 
 zsh $(pwd)/setup-zsh-dependencies.sh

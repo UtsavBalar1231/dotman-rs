@@ -1,5 +1,6 @@
 #!/usr/bin/env zsh
 
+cp -av $(pwd)/.zshrc ${HOME}/.zshrc
 # Install zsh-autosuggestions
 if [ ! -d  ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]; then
 	git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
