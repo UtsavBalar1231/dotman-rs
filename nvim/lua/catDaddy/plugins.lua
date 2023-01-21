@@ -22,7 +22,7 @@ return require("packer").startup(function(use)
 	use("wbthomason/packer.nvim")
 
 	-- Sexy gruvbox theme
-	use("ellisonleao/gruvbox.nvim")
+	use("sainnhe/gruvbox-material")
 
 	-- Motion tool to jump to any location
 	use({
@@ -35,7 +35,9 @@ return require("packer").startup(function(use)
 
 	-- A fucking fast status line
 	-- Requires nvim-web-devicons
-	use("nvim-lualine/lualine.nvim")
+	use({
+		"nvim-lualine/lualine.nvim",
+	})
 
 	-- match-up is a plugin that lets you highlight, navigate, and operate on sets of matching text.
 	use({
@@ -70,7 +72,10 @@ return require("packer").startup(function(use)
 	})
 
 	-- Better Wildmenu please
-	use("gelguy/wilder.nvim")
+	use({
+		"gelguy/wilder.nvim",
+		requires = { "romgrk/fzy-lua-native" },
+	})
 
 	-- Git integration
 	use("tpope/vim-fugitive")
@@ -106,13 +111,6 @@ return require("packer").startup(function(use)
 		},
 	})
 
-	-- Tabline cmp plugin
-	use({
-		"tzachar/cmp-tabnine",
-		run = "./install.sh",
-		requires = "hrsh7th/nvim-cmp",
-	})
-
 	-- Visualize lsp progress
 	use({
 		"j-hui/fidget.nvim",
@@ -120,39 +118,20 @@ return require("packer").startup(function(use)
 			require("fidget").setup()
 		end,
 	})
-	--[[ use("hrsh7th/nvim-cmp")
 
-	use({
-		-- cmp LSP completion
-		"hrsh7th/cmp-nvim-lsp",
-		-- cmp Snippet completion
-		"hrsh7th/cmp-vsnip",
-		-- cmp Path completion
-		"hrsh7th/cmp-path",
-		"hrsh7th/cmp-buffer",
-		after = { "hrsh7th/nvim-cmp" },
-		requires = { "hrsh7th/nvim-cmp" },
-	})
-	-- See hrsh7th other plugins for more great completion sources!
-	-- Snippet engine
-	use("hrsh7th/vim-vsnip") ]]
+	-- Rust language support
 	-- Adds extra functionality over rust analyzer
-	use("kdarkhan/rust-tools.nvim")
-
-	-- Rust support
+	use("simrat39/rust-tools.nvim")
 	use("rust-lang/rust.vim")
 
 	-- Markdown support
-	use("plasticboy/vim-markdown")
-
-	-- Lua support
-	use("euclidianAce/BetterLua.vim")
-
-	-- Python support
-	use("vim-python/python-syntax")
-
-	-- C/C++ support
-	use("vim-scripts/c.vim")
+	-- install without yarn or npm
+	use({
+		"iamcco/markdown-preview.nvim",
+		run = function()
+			vim.fn["mkdp#util#install"]()
+		end,
+	})
 
 	-- Telescope
 	use({
@@ -169,13 +148,16 @@ return require("packer").startup(function(use)
 	use("github/copilot.vim")
 
 	-- Identline for better indent
-	use("Yggdroot/indentLine")
+	use("lukas-reineke/indent-blankline.nvim")
 
 	-- Comments support
 	use("numToStr/Comment.nvim")
 
 	-- Formatter
 	use("mhartington/formatter.nvim")
+
+	-- Buffer Line nvim
+	use({ "akinsho/bufferline.nvim", branch = "dev" })
 
 	-- Automatically set up configuration after cloning packer.nvim
 	if packer_bootstrap then

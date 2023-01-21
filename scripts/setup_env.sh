@@ -14,7 +14,10 @@ else
 		ed gcc-libs grep gzip inetutils libarchive libelf libtool \
 		linux-headers make pacman patch pkgconf sed sudo systemd \
 		systemd-libs texinfo util-linux which xz exa curl wget \
-		nodejs npm neofetch htop clang llvm llvm-libs
+		nodejs npm htop clang llvm llvm-libs
 	# firefox-beta-bin slack-desktop touche libinput-gestures
 	# whatsapp-nativefier
 fi
+
+# copy .clang-format file to home directory
+cp -avx "$(pwd)"/.clang-format ~/.clang-format

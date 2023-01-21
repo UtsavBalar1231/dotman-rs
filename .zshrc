@@ -1,113 +1,56 @@
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+HISTFILE=~/.histfile
+HISTSIZE=10000
+SAVEHIST=10000
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt incappendhistory
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
 
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="cunt-theme"
+bindkey -e
 
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
+zstyle :compinstall filename '/home/utsav/.zshrc'
 
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
+autoload -Uz compinit && compinit
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-HYPHEN_INSENSITIVE="true"
+# Alias definitions.
+source ~/.config/zsh/aliases.zsh
 
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
+# User configuration
+export EDITOR=nvim
 
-# Uncomment the following line to change how often to auto-update (in days).
-# zstyle ':omz:update' frequency 13
+# language environment
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(
-	git
-	sudo
-	web-search
-	zsh-autosuggestions
-	F-Sy-H
-)
-
-source $ZSH/oh-my-zsh.sh
-
-flashfetch
-alias todo="todo.sh ls"
-todo
-
-export PATH="/home/utsav/.local/bin:/home/utsav/.zsh/diff-so-fancy:$PATH"
-
-eval $(thefuck --alias)
-
-if [ -d $HOME/ccache ]; then
-	export CCACHE_DIR=$HOME/ccache && export USE_CCACHE=1 && export CCACHE_EXEC=/usr/bin/ccache && export CCACHE_COMPRESS=1
-else
-	mkdir -p $HOME/ccache
-	export CCACHE_DIR=$HOME/ccache && export USE_CCACHE=1 && export CCACHE_EXEC=/usr/bin/ccache && export CCACHE_COMPRESS=1
+# zsh syntax highlighting
+if [[ ! -f $HOME/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+	git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git $HOME/.config/zsh/plugins/zsh-syntax-highlighting
 fi
+source $HOME/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
-export CC="ccache gcc"
-export HOSTCC="ccache gcc"
-export HOSTCXX="ccache g++"
-
-if [ -f /usr/local/secret/ ]; then
-	source /usr/local/secret
+# zsh autosuggestions
+if [[ ! -f $HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+	git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions $HOME/.config/zsh/plugins/zsh-autosuggestions
 fi
+source $HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# zsh completion
+if [[ ! -f $HOME/.config/zsh/plugins/zsh-completions/zsh-completions.plugin.zsh ]]; then
+	git clone --depth=1 https://github.com/zsh-users/zsh-completions $HOME/.config/zsh/plugins/zsh-completions
+fi
+fpath=($HOME/.config/zsh/plugins/zsh-completions/src $fpath)
+autoload -Uz compinit && compinit
 
-alias ls='exa'
-alias cat='bat'
-alias awk='ag'
-alias grep='rg'
-alias diff='diff-so-fancy'
-alias n='nvim'
-alias v='nvim'
+# zsh history search
+if [[ ! -f $HOME/.config/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh ]]; then
+	git clone --depth=1 https://github.com/zsh-users/zsh-history-substring-search $HOME/.config/zsh/plugins/zsh-history-substring-search
+fi
+source $HOME/.config/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
 
-PROMPT_COMMAND=${PROMPT_COMMAND:+$PROMPT_COMMAND; }'printf "\033]0;%s@%s:%s\007" "${USER}" "${HOSTNAME%%.*}" "${PWD/#$HOME/\~}"'
+# zsh theme
+source $HOME/.config/zsh/theme/cunt-theme.zsh-theme

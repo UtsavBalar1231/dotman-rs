@@ -74,11 +74,6 @@ end
 time([[try_loadstring definition]], false)
 time([[Defining packer_plugins]], true)
 _G.packer_plugins = {
-  ["BetterLua.vim"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/BetterLua.vim",
-    url = "https://github.com/euclidianAce/BetterLua.vim"
-  },
   ["Comment.nvim"] = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/Comment.nvim",
@@ -89,10 +84,10 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/LuaSnip",
     url = "https://github.com/L3MON4D3/LuaSnip"
   },
-  ["c.vim"] = {
+  ["bufferline.nvim"] = {
     loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/c.vim",
-    url = "https://github.com/vim-scripts/c.vim"
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/bufferline.nvim",
+    url = "https://github.com/akinsho/bufferline.nvim"
   },
   ["cmp-buffer"] = {
     loaded = true,
@@ -124,11 +119,6 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/cmp-path",
     url = "https://github.com/hrsh7th/cmp-path"
   },
-  ["cmp-tabnine"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/cmp-tabnine",
-    url = "https://github.com/tzachar/cmp-tabnine"
-  },
   ["cmp-vsnip"] = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/cmp-vsnip",
@@ -138,6 +128,11 @@ _G.packer_plugins = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/cmp_luasnip",
     url = "https://github.com/saadparwaiz1/cmp_luasnip"
+  },
+  ["copilot.vim"] = {
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/copilot.vim",
+    url = "https://github.com/github/copilot.vim"
   },
   ["fidget.nvim"] = {
     config = { "\27LJ\2\n4\0\0\3\0\3\0\0066\0\0\0'\2\1\0B\0\2\0029\0\2\0B\0\1\1K\0\1\0\nsetup\vfidget\frequire\0" },
@@ -155,15 +150,20 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/friendly-snippets",
     url = "https://github.com/rafamadriz/friendly-snippets"
   },
-  ["gruvbox.nvim"] = {
+  ["fzy-lua-native"] = {
     loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/gruvbox.nvim",
-    url = "https://github.com/ellisonleao/gruvbox.nvim"
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/fzy-lua-native",
+    url = "https://github.com/romgrk/fzy-lua-native"
   },
-  indentLine = {
+  ["gruvbox-material"] = {
     loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/indentLine",
-    url = "https://github.com/Yggdroot/indentLine"
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/gruvbox-material",
+    url = "https://github.com/sainnhe/gruvbox-material"
+  },
+  ["indent-blankline.nvim"] = {
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/indent-blankline.nvim",
+    url = "https://github.com/lukas-reineke/indent-blankline.nvim"
   },
   ["lsp-zero.nvim"] = {
     loaded = true,
@@ -174,6 +174,11 @@ _G.packer_plugins = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/lualine.nvim",
     url = "https://github.com/nvim-lualine/lualine.nvim"
+  },
+  ["markdown-preview.nvim"] = {
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/markdown-preview.nvim",
+    url = "https://github.com/iamcco/markdown-preview.nvim"
   },
   ["mason-lspconfig.nvim"] = {
     loaded = true,
@@ -225,15 +230,10 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/popup.nvim",
     url = "https://github.com/nvim-lua/popup.nvim"
   },
-  ["python-syntax"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/python-syntax",
-    url = "https://github.com/vim-python/python-syntax"
-  },
   ["rust-tools.nvim"] = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/rust-tools.nvim",
-    url = "https://github.com/kdarkhan/rust-tools.nvim"
+    url = "https://github.com/simrat39/rust-tools.nvim"
   },
   ["rust.vim"] = {
     loaded = true,
@@ -271,11 +271,6 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/vim-gitgutter",
     url = "https://github.com/airblade/vim-gitgutter"
   },
-  ["vim-markdown"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/vim-markdown",
-    url = "https://github.com/plasticboy/vim-markdown"
-  },
   ["vim-matchup"] = {
     after_files = { "/home/utsav/.local/share/nvim/site/pack/packer/opt/vim-matchup/after/plugin/matchit.vim" },
     loaded = true,
@@ -309,6 +304,10 @@ time([[Setup for vim-matchup]], false)
 time([[packadd for vim-matchup]], true)
 vim.cmd [[packadd vim-matchup]]
 time([[packadd for vim-matchup]], false)
+-- Config for: vim-sneak
+time([[Config for vim-sneak]], true)
+try_loadstring("\27LJ\2\nJ\0\0\2\0\4\0\t6\0\0\0009\0\1\0)\1\1\0=\1\2\0006\0\0\0009\0\1\0)\1\1\0=\1\3\0K\0\1\0\17sneak#s_next\16sneak#label\6g\bvim\0", "config", "vim-sneak")
+time([[Config for vim-sneak]], false)
 -- Config for: fidget.nvim
 time([[Config for fidget.nvim]], true)
 try_loadstring("\27LJ\2\n4\0\0\3\0\3\0\0066\0\0\0'\2\1\0B\0\2\0029\0\2\0B\0\1\1K\0\1\0\nsetup\vfidget\frequire\0", "config", "fidget.nvim")
@@ -317,10 +316,6 @@ time([[Config for fidget.nvim]], false)
 time([[Config for vim-floaterm]], true)
 try_loadstring("\27LJ\2\n­\2\0\0\2\0\14\1\0296\0\0\0009\0\1\0*\1\0\0=\1\2\0006\0\0\0009\0\1\0*\1\0\0=\1\3\0006\0\0\0009\0\1\0'\1\5\0=\1\4\0006\0\0\0009\0\1\0'\1\a\0=\1\6\0006\0\0\0009\0\1\0'\1\t\0=\1\b\0006\0\0\0009\0\1\0'\1\v\0=\1\n\0006\0\0\0009\0\1\0'\1\r\0=\1\f\0K\0\1\0\t<F5>\25floaterm_keymap_kill\t<F4>\25floaterm_keymap_next\t<F3>\25floaterm_keymap_prev\t<F2>\24floaterm_keymap_new\t<F1>\27floaterm_keymap_toggle\20floaterm_height\19floaterm_width\6g\bvim›³æÌ\25Ì™³ÿ\3\0", "config", "vim-floaterm")
 time([[Config for vim-floaterm]], false)
--- Config for: vim-sneak
-time([[Config for vim-sneak]], true)
-try_loadstring("\27LJ\2\nJ\0\0\2\0\4\0\t6\0\0\0009\0\1\0)\1\1\0=\1\2\0006\0\0\0009\0\1\0)\1\1\0=\1\3\0K\0\1\0\17sneak#s_next\16sneak#label\6g\bvim\0", "config", "vim-sneak")
-time([[Config for vim-sneak]], false)
 
 _G._packer.inside_compile = false
 if _G._packer.needs_bufread == true then

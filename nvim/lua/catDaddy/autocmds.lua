@@ -13,7 +13,7 @@ autocmd("TextYankPost", {
 })
 
 -- Close nvim if NvimTree is only running buffer
-autocmd("BufEnter", { command = [[if winnr('$') == 1 && bufname() == 'NvimTree_' . tabpagenr() | quit | endif]] })
+-- autocmd("BufEnter", { command = [[if winnr('$') == 1 && bufname() == 'NvimTree_' . tabpagenr() | quit | endif]] })
 
 -- Remove whitespace on save
 autocmd("BufWritePre", { pattern = "", command = ":%s/\\s\\+$//e" })
