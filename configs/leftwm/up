@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+autorandr -c
+
+# Polkit agent
+/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+
+# Start the compositor
+picom --experimental-backends &
+
+# Mount the drives
+udisksctl mount -b /dev/sda1 --no-user-interaction &
+
+# make keyboard smooth
+xset r rate 300 60
+
+# Set the background
+feh --bg-fill ~/Pictures/gruvbox_pixel.png

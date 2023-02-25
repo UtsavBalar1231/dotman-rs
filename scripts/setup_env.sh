@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+cp -av "$(pwd)"/../configs/.clang-format ~/
+cp -av "$(pwd)"/../configs/.zshrc ~/
+cp -avr "$(pwd)"/../configs/* ~/.config/
+
 if [ ! -f /etc/arch-release ]; then
 	sudo apt update
 	sudo apt install -y \
@@ -15,9 +19,4 @@ else
 		linux-headers make pacman patch pkgconf sed sudo systemd \
 		systemd-libs texinfo util-linux which xz exa curl wget \
 		nodejs npm htop clang llvm llvm-libs
-	# firefox-beta-bin slack-desktop touche libinput-gestures
-	# whatsapp-nativefier
 fi
-
-# copy .clang-format file to home directory
-cp -avx "$(pwd)"/.clang-format ~/.clang-format
