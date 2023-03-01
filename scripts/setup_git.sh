@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-cp -av $(pwd)/.gitconfig ~/
+cp -av "$(pwd)"/.gitconfig ~/
 
 # Setup githooks
 mkdir -p ~/.git/hooks

@@ -11,6 +11,7 @@ if [ -e "/etc/debian_version" ]; then
 		exit 1
 	else
 		# Setup build environment
+		echo "############### Setting up build environment ###############"
 		bash "$(pwd)"/scripts/setup_git.sh
 		bash "$(pwd)"/scripts/setup_env.sh
 	fi
@@ -23,11 +24,12 @@ sudo apt-get install \
 	fzf \
 	neovim \
 	tmux \
-	thefuck \
+	btop \
 	zsh \
 	-y
 
-# Configure bat
+# Install bat
+echo "############### Installing bat ###############"
 arch=$(dpkg --print-architecture)
 
 function get_latest_release() {
@@ -51,6 +53,8 @@ if [ -z "$(which bat)" ]; then
 fi
 
 # Install diff-so-fancy
+echo "############### Installing diff-so-fancy ###############"
+
 if [ -z "$(which diff-so-fancy)" ]; then
 	wget https://github.com/so-fancy/diff-so-fancy/releases/download/v1.4.3/diff-so-fancy
 	chmod +x "$(pwd)"/diff-so-fancy
@@ -58,9 +62,13 @@ if [ -z "$(which diff-so-fancy)" ]; then
 fi
 
 # VIM configuration
+echo "############### Setting up nvim configuration ###############"
 sudo ln -s ~/.config/nvim /root/.config/nvim
 
+# setup zsh
+echo "############### Setting up zsh configuration ###############"
 sudo chsh -s "$(which zsh)" "$(whoami)"
 sudo chsh -s "$(which zsh)" root
 
-source "${HOME}"/.zshrc
+echo "DO!:"
+echo -e "\033[1;32msource ${HOME}/.zshrc\033[0m"
