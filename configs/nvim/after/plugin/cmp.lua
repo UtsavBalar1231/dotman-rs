@@ -16,8 +16,8 @@ cmp.setup({
 			vim_item.kind = lspkind.presets.default[vim_item.kind]
 			vim_item.menu = ({
 				nvim_lsp = "[LSP]",
-				nvim_lua = "[Lua]",
 				vsnip = "[VSnip]",
+				nvim_lua = "[Lua]",
 				path = "[Path]",
 				buffer = "[Buffer]",
 				cmdline = "[Cmd]",
@@ -59,38 +59,17 @@ cmp.setup({
 	-- Installed sources
 	sources = {
 		{ name = "nvim_lsp" },
-		{ name = "nvim_lua" },
 		{ name = "vsnip" },
+		{ name = "nvim_lua" },
 		{ name = "path" },
 		{ name = "buffer" },
 		{ name = "cmdline" },
 	},
 })
 
--- LSP Diagnostics Options Setup
-local sign = function(sign_opts)
-	vim.fn.sign_define(sign_opts.name, {
-		texthl = sign_opts.name,
-		text = sign_opts.text,
-		numhl = "",
-	})
-end
-
-sign({ name = "DiagnosticSignError", text = "" })
-sign({ name = "DiagnosticSignWarn", text = "" })
-sign({ name = "DiagnosticSignHint", text = "" })
-sign({ name = "DiagnosticSignInfo", text = "" })
-
--- vim.diagnostic.config({
--- 	virtual_text = false,
--- 	signs = true,
--- 	update_in_insert = true,
--- 	underline = true,
--- 	severity_sort = false,
--- 	float = { border = "rounded", source = "always", header = "", prefix = "" },
--- })
-
-vim.opt.completeopt = { "menuone", "noselect", "noinsert" }
+-- have a fixed column for the diagnostics to appear in
+-- this removes the jitter when warnings/errors flow in
+vim.wo.signcolumn = "yes"
 vim.opt.shortmess = vim.opt.shortmess + { c = true }
 vim.api.nvim_set_option("updatetime", 200)
 vim.cmd([[ highlight! default link CmpItemKind CmpItemMenuDefault ]])

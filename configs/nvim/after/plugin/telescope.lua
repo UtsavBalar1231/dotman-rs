@@ -47,13 +47,6 @@ telescope.setup({
 	extensions = {
 		file_browser = {
 			hijack_netrw = true,
-			file_icons = {
-				["lua"] = {
-					icon = "",
-					color = "#61afef",
-					name = "Lua",
-				},
-			},
 			mappings = {
 				i = {
 					["<C-w>"] = function()

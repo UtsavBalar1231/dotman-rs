@@ -25,19 +25,19 @@ keymap("n", "<leader>tw", ":tabclose<CR>", default_options)
 keymap("n", "<leader>to", ":tabonly<CR>", default_options)
 
 -- Use Q to quit bang
-vim.cmd("command! -bang Q q<bang>")
+keymap("n", "Q", ":q<CR>", default_options)
 -- Use W to write bang
-vim.cmd("command! -bang W w<bang>")
+keymap("n", "W", ":w<CR>", default_options)
 -- Use X to quit all bang
-vim.cmd("command! -bang X x<bang>")
+keymap("n", "X", ":qa<CR>", default_options)
 
 -- Centered search results
-vim.cmd("nnoremap <silent> n nzz")
-vim.cmd("nnoremap <silent> N Nzz")
-vim.cmd("nnoremap <silent> * *zz")
-vim.cmd("nnoremap <silent> # #zz")
-vim.cmd("nnoremap <silent> g* g*zz")
-vim.cmd("nnoremap <silent> g# g#zz")
+keymap("n", "n", "nzz", default_options)
+keymap("n", "N", "Nzz", default_options)
+keymap("n", "*", "*zz", default_options)
+keymap("n", "#", "#zz", default_options)
+keymap("n", "g*", "g*zz", default_options)
+keymap("n", "g#", "g#zz", default_options)
 
 -- Ctrl+j and Ctrl+k as Esc
 -- Ctrl-j is a little awkward unfortunately:
@@ -152,3 +152,7 @@ keymap("n", "sk", "<C-w>k", default_options)
 keymap("n", "sj", "<C-w>j", default_options)
 
 --- Window navigation }}}
+
+-- Disable :help on <F1>
+keymap("n", "<F1>", "<ESC>", default_options)
+keymap("i", "<F1>", "<ESC>", default_options)

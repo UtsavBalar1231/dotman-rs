@@ -1,4 +1,3 @@
-
 local ensure_packer = function()
 	local fn = vim.fn
 	local install_path = fn.stdpath("data") .. "/site/pack/packer/start/packer.nvim"
@@ -99,7 +98,6 @@ return require("packer").startup(function(use)
 		"nvim-telescope/telescope.nvim",
 		"nvim-telescope/telescope-fzf-native.nvim",
 		"nvim-telescope/telescope-file-browser.nvim",
-		requires = { "nvim-lua/popup.nvim" },
 	})
 
 	-- Fithub
@@ -109,13 +107,18 @@ return require("packer").startup(function(use)
 		"dinhhuy258/git.nvim",
 	})
 
+	use({
+		"windwp/nvim-autopairs",
+		config = function()
+			require("nvim-autopairs").setup({})
+		end,
+	})
+
 	-- Identline for better indent
 	use("lukas-reineke/indent-blankline.nvim")
 
 	-- Comments support
-	use({ "numToStr/Comment.nvim", requires = {
-		"JoosepAlviste/nvim-ts-context-commentstring",
-	} })
+	use("numToStr/Comment.nvim")
 
 	-- Buffer Line nvim
 	use({ "akinsho/bufferline.nvim", branch = "dev" })

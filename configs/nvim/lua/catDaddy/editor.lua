@@ -72,8 +72,8 @@ opt.relativenumber = true
 opt.showmatch = true
 -- Enable folding (default 'foldmarker')
 opt.foldmethod = "marker"
--- Line lenght marker at 80 columns
-opt.colorcolumn = "80"
+-- Line lenght marker at 120 columns
+opt.colorcolumn = "120"
 -- Vertical split to the right
 opt.splitright = true
 -- Horizontal split to the bottom
@@ -105,13 +105,11 @@ opt.cmdheight = 2
 ----------------------------
 --- Format options setup ---
 ----------------------------
-opt.formatoptions:append("j") -- Auto remove comments when joining lines
 opt.formatoptions:append("n") -- Auto indent new lines
 opt.formatoptions:append("q") -- Allow formatting comments w/ gq
 opt.formatoptions:append("r") -- Auto indent after paste
 opt.formatoptions:append("t") -- Auto indent after <C-t>
 opt.formatoptions:append("c") -- Auto indent comment lines
-opt.formatoptions:append("o") -- Auto continue comments
 opt.formatoptions:append("b") -- Auto indent after <C-o>
 
 -------------------------------
@@ -136,6 +134,9 @@ opt.lazyredraw = true
 opt.synmaxcol = 500
 -- Disable swap files
 opt.swapfile = false
+
+-- remove toolbar from guioptions
+vim.cmd("set guioptions-=T")
 
 --- Make diffing better: https://vimways.org/2018/the-power-of-diff/
 opt.diffopt:append("iwhite")
