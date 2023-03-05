@@ -1,8 +1,8 @@
 #/usr/bin/env zsh
 
 alias ls='exa'
-alias ll='exa -l'
-alias la='exa -la'
+alias ll='exa -l -g --icons'
+alias la='exa -la -g --icons'
 alias l='exa -l'
 
 alias grep='rg'
