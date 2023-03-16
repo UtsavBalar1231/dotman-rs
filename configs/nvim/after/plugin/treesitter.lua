@@ -6,6 +6,16 @@ end
 
 -- Treesitter Plugin Setup Start --
 treesitter_configs.setup({
+	context_commentstring = {
+		enable = true,
+		config = {
+			text = {
+				__default = "// %s",
+				comment = "// %s",
+			},
+		},
+		enable_autocmd = false,
+	},
 	ensure_installed = {
 		"bash",
 		"c",

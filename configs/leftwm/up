@@ -5,9 +5,6 @@ autorandr -c
 # Polkit agent
 /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 
-# Start the compositor
-picom --experimental-backends &
-
 # Mount the drives
 udisksctl mount -b /dev/sda1 --no-user-interaction &
 

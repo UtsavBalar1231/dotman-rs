@@ -15,6 +15,7 @@ local colors = {
 	green = "#b8bb26",
 	blue = "#83a598",
 	yellow = "#fe8019",
+	grey = "#a89984",
 }
 
 local diagnostics = {
@@ -26,21 +27,17 @@ local diagnostics = {
 		error = { fg = colors.red },
 		warn = { fg = colors.yellow },
 		info = { fg = colors.blue },
-		hint = { fg = colors.green },
 	},
 	update_in_insert = false,
-	always_visible = true,
+	always_visible = false,
 }
 
 local diff = {
 	"diff",
 	colored = false,
 	symbols = {
-		add = " ",
 		modified = "柳",
-		remove = " ",
 		added = " ",
-		changed = "柳",
 		removed = " ",
 	},
 }
@@ -51,10 +48,10 @@ local filetype = {
 	icon = nil,
 	fmt = function(str)
 		if not (str == nil or str == "") then
-			if not (str == "markdown") then
-				return "." .. str
-			else
+			if str == "markdown" then
 				return ".md"
+			else
+				return "." .. str
 			end
 		else
 			return 'Open a file with ":e"'
@@ -77,13 +74,13 @@ local branch = {
 			elseif mode == "V" then
 				return ":V"
 			elseif mode == "" then
-				return "^"
+				return "^ V ^"
 			elseif mode == "R" then
 				return "-_-"
 			elseif mode == "t" then
 				return "'_'"
 			else
-				return "¯\\_(ツ)_/¯"
+				return "(╯°□°)╯"
 			end
 		else
 			return "git:" .. str
@@ -97,34 +94,25 @@ end
 
 local filename = {
 	"filename",
-	color = { fg = colors.bg, bg = colors.fg, gui = "bold" },
+	color = { fg = colors.bg, bg = colors.grey, gui = "bold" },
+	file_status = true,
 	symbols = {
 		readonly = "",
 		modified = "",
 		unreadable = "",
 		new = "",
 	},
-	path = 1,
-	fmt = function(str)
-		if not (str == "n") then
-			if not (starts_with(str, "~/")) then
-				return "~/" .. str .. ""
-			else
-				return str
-			end
-		else
-			return "[No Name]"
-		end
-	end,
+	path = 3,
 }
 
 local filesize = {
 	"filesize",
-	color = { gui = "bold" },
 	cond = function()
 		return vim.fn.empty(vim.fn.expand("%:t")) ~= 1
 	end,
-	icons_enabled = false,
+	fmt = function(str)
+		return string.format("%sb", str)
+	end,
 }
 
 local progress = {
@@ -136,7 +124,7 @@ local progress = {
 			if str == "Bot" then
 				return "EOF"
 			elseif str == "Top" then
-				return "BOF"
+				return "TOF"
 			end
 		end
 	end,
@@ -184,7 +172,6 @@ lualine.setup({
 			{
 				lsp_name,
 				icon = " LSP:",
-				color = { fg = colors.green, gui = "bold" },
 			},
 			encoding,
 		},

@@ -71,6 +71,11 @@ return require("packer").startup(function(use)
 
 	--- Autocompletion and LSP }}}
 
+	-- NVIM DAP for debugging
+	use("mfussenegger/nvim-dap")
+	use("rcarriga/nvim-dap-ui")
+	use("theHamsta/nvim-dap-virtual-text")
+
 	-- Visualize lsp progress
 	use({
 		"j-hui/fidget.nvim",
@@ -100,25 +105,17 @@ return require("packer").startup(function(use)
 		"nvim-telescope/telescope-file-browser.nvim",
 	})
 
-	-- Fithub
+	-- Github
 	use({
 		"github/copilot.vim",
 		"lewis6991/gitsigns.nvim",
-		"dinhhuy258/git.nvim",
-	})
-
-	use({
-		"windwp/nvim-autopairs",
-		config = function()
-			require("nvim-autopairs").setup({})
-		end,
 	})
 
 	-- Identline for better indent
 	use("lukas-reineke/indent-blankline.nvim")
 
 	-- Comments support
-	use("numToStr/Comment.nvim")
+	use({ "numToStr/Comment.nvim", requires = "JoosepAlviste/nvim-ts-context-commentstring" })
 
 	-- Buffer Line nvim
 	use({ "akinsho/bufferline.nvim", branch = "dev" })

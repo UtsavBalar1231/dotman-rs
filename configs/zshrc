@@ -21,6 +21,9 @@ setopt auto_cd
 # Enable auto pushd
 setopt auto_pushd
 
+# fast typing
+xset r rate 300 60
+
 zstyle :compinstall filename '~/.zshrc'
 autoload -Uz compinit && compinit
 zstyle ':completion:*' menu select

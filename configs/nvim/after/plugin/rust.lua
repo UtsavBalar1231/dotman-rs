@@ -1,3 +1,4 @@
+-- convert a very long virtual text to multiple lines
 
 local function on_attach(client, buffer)
 	local keymap_opts = { buffer = buffer }
