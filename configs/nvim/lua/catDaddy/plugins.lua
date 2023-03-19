@@ -40,6 +40,17 @@ return require("packer").startup(function(use)
 	-- Tree Sitter plugin
 	use({ "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" })
 
+	use({
+		"nvim-neo-tree/neo-tree.nvim",
+		branch = "v2.x",
+		requires = {
+			"MunifTanjim/nui.nvim",
+		},
+	})
+
+	-- Async
+	use("kevinhwang91/promise-async")
+
 	--- Autocompletion and LSP {{{
 	use("neovim/nvim-lspconfig")
 
@@ -52,29 +63,26 @@ return require("packer").startup(function(use)
 	use("hrsh7th/cmp-path")
 	use("hrsh7th/cmp-nvim-lsp")
 	use("hrsh7th/cmp-nvim-lua")
-	use("hrsh7th/cmp-cmdline")
 
 	-- LSP Snippets
-	use("hrsh7th/cmp-vsnip")
-	use("hrsh7th/vim-vsnip")
+	use("saadparwaiz1/cmp_luasnip")
+	use("L3MON4D3/LuaSnip")
 	use("rafamadriz/friendly-snippets")
 
 	-- LSP Formatting
-	use("jose-elias-alvarez/null-ls.nvim")
+	use({
+		"jose-elias-alvarez/null-ls.nvim",
+		config = function()
+			require("colorizer").setup()
+		end,
+	})
 
 	-- LSP UI
 	use("onsails/lspkind-nvim")
-	use({
-		"glepnir/lspsaga.nvim",
-		branch = "main",
-	})
+	use("stevearc/dressing.nvim")
+	use("NvChad/nvim-colorizer.lua")
 
 	--- Autocompletion and LSP }}}
-
-	-- NVIM DAP for debugging
-	use("mfussenegger/nvim-dap")
-	use("rcarriga/nvim-dap-ui")
-	use("theHamsta/nvim-dap-virtual-text")
 
 	-- Visualize lsp progress
 	use({
@@ -87,6 +95,17 @@ return require("packer").startup(function(use)
 	-- Adds extra functionality over rust analyzer
 	use("simrat39/rust-tools.nvim")
 	use("rust-lang/rust.vim")
+	use({
+		"Saecki/crates.nvim",
+		config = function()
+			require("crates").setup({
+				null_ls = {
+					enabled = true,
+					name = "crates.nvim",
+				},
+			})
+		end,
+	})
 
 	-- Markdown support
 	-- install without yarn or npm

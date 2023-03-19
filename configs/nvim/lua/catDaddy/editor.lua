@@ -11,7 +11,7 @@ g.mapleader = " "
 opt.autoindent = true
 
 -- http://stackoverflow.com/questions/2158516/delay-before-o-opens-a-new-line
-opt.timeoutlen = 250
+opt.timeoutlen = 200
 
 -- Set default encoding
 opt.encoding = "utf-8"
@@ -72,7 +72,7 @@ opt.relativenumber = true
 opt.showmatch = true
 -- Enable folding (default 'foldmarker')
 opt.foldmethod = "marker"
--- Line lenght marker at 120 columns
+-- Line length marker at 120 columns
 opt.colorcolumn = "120"
 -- Vertical split to the right
 opt.splitright = true
@@ -100,7 +100,9 @@ opt.showmode = false
 opt.list = false
 opt.listchars = "nbsp:¬,extends:»,precedes:«,trail:•"
 -- Better display for messages
-opt.cmdheight = 2
+opt.cmdheight = 1
+-- Show cursor line
+opt.cursorline = true
 
 ----------------------------
 --- Format options setup ---
@@ -111,15 +113,6 @@ opt.formatoptions:append("r") -- Auto indent after paste
 opt.formatoptions:append("t") -- Auto indent after <C-t>
 opt.formatoptions:append("c") -- Auto indent comment lines
 opt.formatoptions:append("b") -- Auto indent after <C-o>
-
--------------------------------
---- Centered Search Results ---
--------------------------------
-vim.cmd("nnoremap <silent> n nzz")
-vim.cmd("nnoremap <silent> N Nzz")
-vim.cmd("nnoremap <silent> * *zz")
-vim.cmd("nnoremap <silent> # #zz")
-vim.cmd("nnoremap <silent> g* g*zz")
 
 ---------------------------
 --- Editor Optimization ---

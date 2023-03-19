@@ -4,9 +4,6 @@ local default_options = { noremap = true, silent = true }
 -- Map <leader>w to quick save
 keymap("n", "<leader>w", ":w<CR>", default_options)
 
--- Map <leader>q to quick quit
-keymap("n", "<leader>q", ":q<CR>", default_options)
-
 -- Map <leader>Q to quick quit all
 keymap("n", "<leader>Q", ":qa<CR>", default_options)
 
@@ -28,8 +25,6 @@ keymap("n", "<leader>to", ":tabonly<CR>", default_options)
 keymap("n", "Q", ":q<CR>", default_options)
 -- Use W to write bang
 keymap("n", "W", ":w<CR>", default_options)
--- Use X to quit all bang
-keymap("n", "X", ":qa<CR>", default_options)
 
 -- Centered search results
 keymap("n", "n", "nzz", default_options)
@@ -119,9 +114,6 @@ keymap("v", "<leader><Up>", ":m '<-2<CR>gv=gv", default_options)
 -- Update and install plugins
 keymap("n", "<leader>uu", ":PackerSync<CR>", default_options)
 
--- Map <leader>cc to center the current line
-keymap("n", "<leader>cc", "zz", default_options)
-
 -- Map <leader>md to center the current line
 keymap("n", "<leader>md", ":MarkdownPreview<CR>", default_options)
 
@@ -156,3 +148,12 @@ keymap("n", "sj", "<C-w>j", default_options)
 -- Disable :help on <F1>
 keymap("n", "<F1>", "<ESC>", default_options)
 keymap("i", "<F1>", "<ESC>", default_options)
+
+-------------------------------
+--- Centered Search Results ---
+-------------------------------
+keymap("n", "n", "nzz", default_options)
+keymap("n", "N", "Nzz", default_options)
+keymap("n", "*", "*zz", default_options)
+keymap("n", "#", "#zz", default_options)
+keymap("n", "g*", "g*zz", default_options)

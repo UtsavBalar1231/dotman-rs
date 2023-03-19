@@ -2,13 +2,100 @@
 local augroup = vim.api.nvim_create_augroup
 -- Create autocommand
 local autocmd = vim.api.nvim_create_autocmd
+local utils = require("catDaddy.utils")
+
+vim.on_key(function(char)
+	if vim.fn.mode() == "n" then
+		local new_hlsearch = vim.tbl_contains({ "<CR>", "n", "N", "*", "#", "?", "/" }, vim.fn.keytrans(char))
+		if vim.opt.hlsearch:get() ~= new_hlsearch then
+			vim.opt.hlsearch = new_hlsearch
+		end
+	end
+end, vim.api.nvim_create_namespace("auto_hlsearch"))
+
+autocmd({ "VimEnter", "FileType", "BufEnter", "WinEnter" }, {
+	desc = "URL Highlighting",
+	group = augroup("highlighturl", { clear = true }),
+	pattern = "*",
+	callback = function()
+		utils.set_url_match()
+	end,
+})
+
+autocmd("FileType", {
+	desc = "Make q close help, man, quickfix, dap floats",
+	group = augroup("q_close_windows", { clear = true }),
+	pattern = { "qf", "help", "man", "dap-float" },
+	callback = function(event)
+		vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true, nowait = true })
+	end,
+})
+
+autocmd("FileType", {
+	desc = "Unlist quickfist buffers",
+	group = augroup("unlist_quickfist", { clear = true }),
+	pattern = "qf",
+	callback = function()
+		vim.opt_local.buflisted = false
+	end,
+})
 
 -- Highlight on yank
 augroup("YankHighlight", { clear = true })
 autocmd("TextYankPost", {
+	desc = "Highlight on yank",
 	group = "YankHighlight",
 	callback = function()
 		vim.highlight.on_yank({ higroup = "IncSearch", timeout = "400" })
+	end,
+})
+
+autocmd("BufEnter", {
+	desc = "Quit Nvim if more than one window is open and only sidebar windows are list",
+	group = augroup("auto_quit", { clear = true }),
+	callback = function()
+		local wins = vim.api.nvim_tabpage_list_wins(0)
+		-- Both neo-tree and aerial will auto-quit if there is only a single window left
+		if #wins <= 1 then
+			return
+		end
+		local sidebar_fts = { aerial = true, ["neo-tree"] = true }
+		for _, winid in ipairs(wins) do
+			if vim.api.nvim_win_is_valid(winid) then
+				local bufnr = vim.api.nvim_win_get_buf(winid)
+				local filetype = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
+				-- If any visible windows are not sidebars, early return
+				if not sidebar_fts[filetype] then
+					return
+				-- If the visible window is a sidebar
+				else
+					-- only count filetypes once, so remove a found sidebar from the detection
+					sidebar_fts[filetype] = nil
+				end
+			end
+		end
+		if #vim.api.nvim_list_tabpages() > 1 then
+			vim.cmd.tabclose()
+		else
+			vim.cmd.qall()
+		end
+	end,
+})
+
+autocmd("BufEnter", {
+	desc = "Open Neo-Tree on startup with directory",
+	group = augroup("neotree_start", { clear = true }),
+	callback = function()
+		if package.loaded["neo-tree"] then
+			vim.api.nvim_del_augroup_by_name("neotree_start")
+		else
+			local stats = vim.loop.fs_stat(vim.api.nvim_buf_get_name(0))
+			if stats and stats.type == "directory" then
+				require("neo-tree")
+				vim.api.nvim_del_augroup_by_name("neotree_start")
+				vim.api.nvim_exec_autocmds("BufEnter", {})
+			end
+		end
 	end,
 })
 
@@ -17,9 +104,6 @@ autocmd("BufWritePre", { pattern = "", command = ":%s/\\s\\+$//e" })
 
 -- Set completeopt to have a better completion experience
 autocmd("InsertEnter", { pattern = "", command = "setlocal completeopt=menuone,noselect" })
-
--- Avoid showing message extra message when using completion
-autocmd("InsertLeave", { pattern = "", command = "setlocal completeopt=menuone" })
 
 -- Avoid accidental writes to buffer that shouldn't be written
 autocmd("BufReadPre", { pattern = "*.swp", command = "set noreadonly" })

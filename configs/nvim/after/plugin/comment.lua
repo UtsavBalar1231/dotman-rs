@@ -12,9 +12,9 @@ comment.setup({
 	-- LHS of toggle mappings in NORMAL mode
 	toggler = {
 		-- Line-comment toggle keymap
-		line = "<leader>ll",
+		line = "<leader>/",
 		-- Block-comment toggle keymap
-		block = "<leader>bb",
+		block = "<leader>b",
 	},
 
 	-- LHS of operator-pending mappings in NORMAL/VISUAL mode
