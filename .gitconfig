@@ -1,5 +1,5 @@
 [core]
-	pager = diff-so-fancy | less --tabs=4 -RFX
+	pager = bat
 	hooksPath = /home/utsav/.git/hooks
 	editor = nvim
 [interactive]
@@ -19,9 +19,6 @@
 	old = red bold
 	new = green bold
 	whitespace = red reverse
-[user]
-	name = UtsavBalar1231
-	email = utsavbalar1231@gmail.com
 [credential]
 	helper = store
 [merge]
