@@ -4,6 +4,7 @@ purple="%{${(%):-"%F{176}"}%}"
 hotpink="%{${(%):-"%F{168}"}%}"
 limegreen="%{${(%):-"%F{143}"}%}"
 yellow="%{${(%):-"%F{215}"}%}"
+red="%{${(%):-"%F{196}"}%}"
 
 autoload -Uz vcs_info
 # enable VCS systems you use
@@ -74,5 +75,5 @@ ZSH_THEME_RVM_PROMPT_OPTIONS="v g"
 
 setopt prompt_subst
 
-PROMPT="┌─[${purple}%n%f@${yellow}%m%f] in ${limegreen}%~%f\$vcs_info_msg_0_%f
-└─[${orange}😺%f] "
+PROMPT="┌─[${purple}%n%f%(?.@.${red}@%f)${yellow}%m%f] in ${limegreen}%~%f\$vcs_info_msg_0_%f
+└─[${orange}󰄛%f] "

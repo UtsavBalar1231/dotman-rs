@@ -1,18 +1,24 @@
 #/usr/bin/env zsh
 
+# alias for ls
 alias ls='exa'
 alias ll='exa -l -g --icons'
 alias la='exa -la -g --icons'
 alias l='exa -l'
 
-alias grep='rg'
+# alias for bat
+alias b='bat'
+
+# alias for rg
 alias rg='rg --smart-case'
 alias rgf='rg --files'
 alias rgd='rg --files-with-matches'
+alias grep='rg'
 
 alias n='nvim'
-alias v='nvim'
+alias v='vim'
 
+# git aliases
 alias gc='git clone'
 alias gs='git status'
 alias gd='git diff'
@@ -24,6 +30,9 @@ alias gcp='git cherry-pick'
 alias gpl='git pull'
 alias gps='git push'
 alias gbr='git branch'
+alias grst='git reset'
+alias grsth='git reset --hard'
+alias grb='git rebase'
 
 # find using fzf and edit
 alias ffe='fzf-find-edit'

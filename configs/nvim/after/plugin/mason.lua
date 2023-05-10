@@ -3,7 +3,15 @@ if not status_ok then
 	return
 end
 
-mason.setup()
+mason.setup({
+	ui = {
+		icons = {
+			package_installed = "",
+			package_pending = "",
+			package_uninstalled = "",
+		},
+	},
+})
 
 local status_ok_mlsp, mason_lspconfig = pcall(require, "mason-lspconfig")
 

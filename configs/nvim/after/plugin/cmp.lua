@@ -1,30 +1,17 @@
 local status_ok, cmp = pcall(require, "cmp")
+local status_ok_lspkind, lspkind = pcall(require, "lspkind")
+local status_ok_luasnip, luasnip = pcall(require, "luasnip")
 
 if not status_ok then
 	return
 end
 
-local status_ok_lspkind, lspkind = pcall(require, "lspkind")
-
 if not status_ok_lspkind then
-	print("lspkind not found")
 	return
 end
-
-local status_ok_luasnip, luasnip = pcall(require, "luasnip")
 
 if not status_ok_luasnip then
-	print("Luasnip not found")
 	return
-end
-
-local window_opts = {
-	winhighlight = "Normal:Normal,FloatBorder:FloatBorder,CursorLine:Visual,Search:None",
-}
-
-local function has_words_before()
-	local line, col = table.unpack(vim.api.nvim_win_get_cursor(0))
-	return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
 end
 
 cmp.setup({
@@ -52,7 +39,6 @@ cmp.setup({
 	duplicates = {
 		nvim_lsp = 1,
 		luasnip = 1,
-		cmp_tabnine = 1,
 		buffer = 1,
 		path = 1,
 	},
@@ -71,8 +57,6 @@ cmp.setup({
 				cmp.select_next_item()
 			elseif luasnip.expand_or_jumpable() then
 				luasnip.expand_or_jump()
-			elseif has_words_before() then
-				cmp.complete()
 			else
 				fallback()
 			end
@@ -101,22 +85,11 @@ cmp.setup({
 		["<C-Down>"] = cmp.mapping(cmp.mapping.scroll_docs(4), { "i", "c" }),
 	}),
 
-	--[[
-	mapping = {
-		["<C-Down>"] = cmp.mapping(cmp.mapping.select_next_item(), { "i", "c" }),
-		["<C-Up>"] = cmp.mapping(cmp.mapping.select_prev_item(), { "i", "c" }),
-		-- Add tab support
-		["<S-Tab>"] = cmp.mapping.select_prev_item(),
-		["<Tab>"] = cmp.mapping.select_next_item(),
-		["<C-Space>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }),
-		["<C-e>"] = cmp.mapping({ i = cmp.mapping.close(), c = cmp.mapping.close() }),
-			},
- ]]
 	-- Installed sources
 	sources = {
 		{ name = "crates", priority = 250 },
 		{ name = "path", priority = 250 },
-		{ name = "buffer", keyword_length = 3, priority = 500 },
+		{ name = "buffer", keyword_length = 2, priority = 500 },
 		{ name = "luasnip", priority = 750 },
 		{ name = "nvim_lsp", priority = 1000 },
 	},
@@ -136,7 +109,7 @@ vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagn
 	update_in_insert = false,
 })
 
--- cmp highlights
+-- cmp highlights (gruvbox)
 vim.cmd([[ highlight! CmpItemAbbrDeprecated guibg=NONE gui=strikethrough guifg=#7c6f64 ]])
 vim.cmd([[ highlight! CmpItemAbbrMatch guibg=NONE guifg=#458588 ]])
 vim.cmd([[ highlight! link CmpItemAbbrMatchFuzzy CmpItemAbbrMatch ]])

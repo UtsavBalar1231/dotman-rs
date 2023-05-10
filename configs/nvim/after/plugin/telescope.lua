@@ -9,6 +9,15 @@ local builtin = require("telescope.builtin")
 
 vim.keymap.set("n", "<leader>fi", builtin.find_files, {})
 vim.keymap.set("n", "<leader>fg", builtin.live_grep, {})
+
+-- Grep in current directory
+local function telescope_buffer_dir()
+	return vim.fn.expand("%:p:h")
+end
+vim.keymap.set("n", "<leader>f ", function()
+	builtin.live_grep({ search_dirs = { telescope_buffer_dir() } })
+end, {})
+
 vim.keymap.set("n", "<leader>fb", builtin.buffers, {})
 vim.keymap.set("n", "<leader>fh", builtin.help_tags, {})
 vim.keymap.set("n", "<leader>fc", builtin.commands, {})
@@ -29,10 +38,6 @@ vim.keymap.set("n", "<leader>gc", builtin.git_commits, {})
 vim.keymap.set("n", "<leader>gC", builtin.git_bcommits, {})
 vim.keymap.set("n", "<leader>gf", builtin.git_files, {})
 vim.keymap.set("n", "<leader>gS", builtin.git_stash, {})
-
-local function telescope_buffer_dir()
-	return vim.fn.expand("%:p:h")
-end
 
 local fb_actions = require("telescope").extensions.file_browser.actions
 
@@ -72,6 +77,7 @@ telescope.setup({
 
 telescope.load_extension("file_browser")
 
+-- Thiis is aa verry wrog commant
 vim.keymap.set("n", "ff", function()
 	telescope.extensions.file_browser.file_browser({
 		path = "%:p:h",

@@ -20,9 +20,9 @@ comment.setup({
 	-- LHS of operator-pending mappings in NORMAL/VISUAL mode
 	opleader = {
 		-- Line-comment keymap
-		line = "ll",
+		line = "<leader>cc",
 		-- Block-comment keymap
-		block = "bb",
+		block = "<leader>cb",
 	},
 	pre_hook = require("ts_context_commentstring.integrations.comment_nvim").create_pre_hook(),
 })

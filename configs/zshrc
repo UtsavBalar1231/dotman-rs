@@ -65,3 +65,7 @@ source ~/.config/zsh/theme/cunt-theme.zsh-theme
 
 # Cargo environment
 source ~/.cargo/env
+
+# Gitlint
+GITLINT_CONFIG=/home/utsav/.gitlint
+export GITLINT_CONFIG

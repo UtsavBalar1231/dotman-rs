@@ -40,17 +40,6 @@ return require("packer").startup(function(use)
 	-- Tree Sitter plugin
 	use({ "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" })
 
-	use({
-		"nvim-neo-tree/neo-tree.nvim",
-		branch = "v2.x",
-		requires = {
-			"MunifTanjim/nui.nvim",
-		},
-	})
-
-	-- Async
-	use("kevinhwang91/promise-async")
-
 	--- Autocompletion and LSP {{{
 	use("neovim/nvim-lspconfig")
 
@@ -79,7 +68,6 @@ return require("packer").startup(function(use)
 
 	-- LSP UI
 	use("onsails/lspkind-nvim")
-	use("stevearc/dressing.nvim")
 	use("NvChad/nvim-colorizer.lua")
 
 	--- Autocompletion and LSP }}}
@@ -104,15 +92,6 @@ return require("packer").startup(function(use)
 					name = "crates.nvim",
 				},
 			})
-		end,
-	})
-
-	-- Markdown support
-	-- install without yarn or npm
-	use({
-		"iamcco/markdown-preview.nvim",
-		run = function()
-			vim.fn["mkdp#util#install"]()
 		end,
 	})
 

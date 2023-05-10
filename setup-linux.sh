@@ -2,73 +2,77 @@
 
 # Set local timezone
 export TZ="Asia/Kolkata"
+# Set dotfiles tool
+DOTFILES_TOOL="$(pwd)/sync-dotfiles-rs"
 
-DEBIAN_VER=$(cat /etc/debian_version)
+# Setup build environment: {{{
+echo "########## Setting up build environment ###########"
+bash "$(pwd)"/scripts/setup_git.sh
+bash "$(pwd)"/scripts/setup_env.sh
+# }}}
 
-if [ -e "/etc/debian_version" ]; then
-	echo -e "Debian ${DEBIAN_VER} detected"
-	if (( $(echo "${DEBIAN_VER}" -gt 10 |bc -l) )); then
-		exit 1
-	else
-		# Setup build environment
-		echo "############### Setting up build environment ###############"
-		bash "$(pwd)"/scripts/setup_git.sh
-		bash "$(pwd)"/scripts/setup_env.sh
-	fi
-fi
-
+# Install necessary packages: {{{
+echo "########## Installing necessary packages ###########"
 # Install necessary packages
-sudo apt-get update
+sudo apt-get update -y && sudo apt-get upgrade -y
 sudo apt-get install \
 	fd-find \
 	fzf \
-	neovim \
 	tmux \
 	btop \
 	zsh \
 	-y
+# }}}
 
-# Install bat
-echo "############### Installing bat ###############"
-arch=$(dpkg --print-architecture)
-
-function get_latest_release() {
-	curl --silent "https://api.github.com/repos/$1/releases/latest" | # Get latest release from GitHub api
-		grep '"tag_name":' |                                          # Get tag line
-		sed -E 's/.*"([^"]+)".*/\1/'                                  # Pluck JSON value
-	}
-
-function bat_install() {
-	VRELEASE=$(get_latest_release 'sharkdp/bat')
-	RELEASE=$(echo "${VRELEASE}" | sed 's/v0/0/g')
-	ARCHIVE=bat_${RELEASE}_${1}.deb
-	wget https://github.com/sharkdp/bat/releases/download/"${VRELEASE}"/"${ARCHIVE}"
-	sudo dpkg -i "${ARCHIVE}" && rm -f "${ARCHIVE}"
-}
-
-if [ -z "$(which bat)" ]; then
-	bat_install "${arch}"
-	$(which bat) --generate-config-file
-	cp batconfig ~/.config/bat/config
+# Check if $DISPLAY is set
+if [ -z "$DISPLAY" ]; then
+	# Configure polybar: {{{
+	echo "########## Configuring polybar ###########"
+	sudo pacman --noconfirm -S polybar
+	# }}}
 fi
 
-# Install diff-so-fancy
-echo "############### Installing diff-so-fancy ###############"
+# Sync dotfiles: {{{
+if [ ! -f "${DOTFILES_TOOL}" ]; then
+	echo "########## Installing dotfiles ###########"
+	${DOTFILES_TOOL} -F
+fi
+# }}}
 
-if [ -z "$(which diff-so-fancy)" ]; then
+# Install diff-so-fancy: {{{
+echo "########## Installing diff-so-fancy ###########"
+if [ ! "$(which diff-so-fancy)" ]; then
 	wget https://github.com/so-fancy/diff-so-fancy/releases/download/v1.4.3/diff-so-fancy
 	chmod +x "$(pwd)"/diff-so-fancy
 	sudo mv "$(pwd)"/diff-so-fancy /usr/local/bin/
 fi
+# }}}
 
-# VIM configuration
-echo "############### Setting up nvim configuration ###############"
-sudo ln -s ~/.config/nvim /root/.config/nvim
+# NVIM configuration: {{{
+echo "########## Configuring NVIM ###########"
+sudo apt-get install software-properties-common -y
+sudo add-apt-repository ppa:neovim-ppa/stable -y
+sudo apt-get update -y
+sudo apt-get install neovim -y
 
-# setup zsh
-echo "############### Setting up zsh configuration ###############"
-sudo chsh -s "$(which zsh)" "$(whoami)"
-sudo chsh -s "$(which zsh)" root
+sudo ln -s ~/.config/nvim/ /root/.config/nvim
+# }}}
+
+# Configure zsh: {{{
+if [ -f "${HOME}"/configs/zshrc ]; then
+	mv "${HOME}"/configs/zshrc "${HOME}"/.zshrc
+fi
+
+echo "########## Configuring zsh ###########"
+sudo chsh "$(whoami)" -s /bin/zsh
+sudo chsh -s /bin/zsh
 
 echo "DO!:"
 echo -e "\033[1;32msource ${HOME}/.zshrc\033[0m"
+# }}}
+
+# Setup gitlint: {{{
+if [ -f "${HOME}"/configs/gitlint ]; then
+	mv "${HOME}"/configs/gitlint "${HOME}"/.gitlint
+fi
+# }}}

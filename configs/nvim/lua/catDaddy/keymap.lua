@@ -70,11 +70,6 @@ keymap("v", "<C-h>", ":noh<CR>", default_options)
 keymap("n", "<C-l>", ":nohlsearch<CR>", default_options)
 keymap("v", "<C-l>", ":nohlsearch<CR>", default_options)
 
--- Suspend with Ctrl-f
-keymap("n", "<C-f>", ":suspend<CR>", default_options)
-keymap("i", "<C-f>", "<Esc>:suspend<CR>", default_options)
-keymap("v", "<C-f>", "<Esc>:suspend<CR>", default_options)
-
 -- Jump to the end of the line with L (like in vim-easymotion)
 keymap("n", "L", "$", default_options)
 

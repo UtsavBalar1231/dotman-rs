@@ -8,10 +8,6 @@ lspconfig.bashls.setup({
 	on_attach = function(client, _)
 		client.server_capabilities.documentFormattingProvider = false
 	end,
-
-	root_dir = function()
-		return vim.loop.cwd()
-	end,
 })
 
 lspconfig.lua_ls.setup({
@@ -31,16 +27,10 @@ lspconfig.rust_analyzer.setup({
 	on_attach = function(client, _)
 		client.server_capabilities.documentFormattingProvider = false
 	end,
-	root_dir = function()
-		return vim.loop.cwd()
-	end,
 })
 
 lspconfig.zls.setup({
 	on_attach = function(client, _)
 		client.server_capabilities.documentFormattingProvider = false
-	end,
-	root_dir = function()
-		return vim.loop.cwd()
 	end,
 })

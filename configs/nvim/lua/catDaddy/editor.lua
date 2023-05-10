@@ -120,11 +120,11 @@ opt.formatoptions:append("b") -- Auto indent after <C-o>
 -- Enable background buffers
 opt.hidden = true
 -- Remember N lines in history
-opt.history = 1000
+opt.history = 10000
 -- Faster scrolling
 opt.lazyredraw = true
 -- Max column for syntax highlight
-opt.synmaxcol = 500
+opt.synmaxcol = 200
 -- Disable swap files
 opt.swapfile = false
 
