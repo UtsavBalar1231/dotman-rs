@@ -2,8 +2,6 @@
 
 # Set local timezone
 export TZ="Asia/Kolkata"
-# Set dotfiles tool
-DOTFILES_TOOL="$(pwd)/sync-dotfiles-rs"
 
 # Setup build environment: {{{
 echo "########## Setting up build environment ###########"
@@ -33,13 +31,6 @@ if [ -z "$DISPLAY" ]; then
 	# }}}
 fi
 
-# Sync dotfiles: {{{
-if [ ! -f "${DOTFILES_TOOL}" ]; then
-	echo "########## Installing dotfiles ###########"
-	${DOTFILES_TOOL} -F
-fi
-# }}}
-
 # Install diff-so-fancy: {{{
 echo "########## Installing diff-so-fancy ###########"
 if [ ! "$(which diff-so-fancy)" ]; then
@@ -55,10 +46,6 @@ sudo ln -s ~/.config/nvim/ /root/.config/nvim
 # }}}
 
 # Configure zsh: {{{
-if [ -f "${HOME}"/configs/zshrc ]; then
-	mv "${HOME}"/configs/zshrc "${HOME}"/.zshrc
-fi
-
 echo "########## Configuring zsh ###########"
 sudo chsh "$(whoami)" -s /bin/zsh
 sudo chsh -s /bin/zsh
@@ -72,3 +59,5 @@ if [ -f "${HOME}"/configs/gitlint ]; then
 	mv "${HOME}"/configs/gitlint "${HOME}"/.gitlint
 fi
 # }}}
+
+zsh

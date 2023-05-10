@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-cp -av "$(pwd)"/configs/.clang-format ~/
-cp -av "$(pwd)"/configs/.zshrc ~/
 cp -avr "$(pwd)"/configs/* ~/.config/
+
+mv ~/.config/clang-format ~/.clang-format
+mv ~/.config/zshrc ~/.zshrc
 
 if [ ! -f /etc/arch-release ]; then
 	sudo apt update
