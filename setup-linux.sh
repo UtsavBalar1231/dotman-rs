@@ -13,7 +13,7 @@ bash "$(pwd)"/scripts/setup_env.sh
 echo "########## Installing necessary packages ###########"
 # Install necessary packages
 sudo apt-get update -y && sudo apt-get upgrade -y
-sudo apt-get install \
+sudo apt install \
 	fd-find \
 	fzf \
 	tmux \
@@ -43,8 +43,12 @@ fi
 echo "########## Configuring NVIM ###########"
 sudo apt-get install software-properties-common -y
 sudo add-apt-repository ppa:neovim-ppa/stable -y
+curl -s https://apt.dustinblackman.com/KEY.gpg | sudo apt-key add -
+curl -s https://apt.dustinblackman.com/dustinblackman.list >/tmp/dustinblackman.list && sudo mv /tmp/dustinblackman.list /etc/apt/sources.list.d/dustinblackman.list
 sudo apt-get update -y
-sudo apt-get install neovim -y
+sudo apt-get install neovim languagetool-code-comments -y
+
+sudo luarocks install luacheck
 
 sudo ln -s ~/.config/nvim/ /root/.config/nvim
 # }}}
@@ -59,9 +63,19 @@ echo -e "\033[1;32msource ${HOME}/.zshrc\033[0m"
 # }}}
 
 # Setup gitlint: {{{
+echo "########## Configuring gitlint ###########"
 if [ -f "${HOME}"/configs/gitlint ]; then
 	mv "${HOME}"/configs/gitlint "${HOME}"/.gitlint
 fi
+# }}}
+
+# Setup fonts: {{{
+echo "########## Configuring fonts ###########"
+if [ ! -d "${HOME}"/.local/share/fonts ]; then
+	mkdir -p "${HOME}"/.local/share/fonts
+fi
+unzip "$(pwd)"/ubuntu/FireCode.zip -d "${HOME}"/.local/share/fonts
+unzip "$(pwd)"/ubuntu/Twilio-Sans-Mono.zip -d "${HOME}"/.local/share/fonts
 # }}}
 
 zsh
