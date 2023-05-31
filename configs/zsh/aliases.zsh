@@ -33,6 +33,13 @@ alias gbr='git branch'
 alias grst='git reset'
 alias grsth='git reset --hard'
 alias grb='git rebase'
+alias gl='git log'
+alias gl1='git log --oneline'
+alias gr='git revert'
+alias grm='git remote'
+alias gcl='git clean'
 
 # find using fzf and edit
 alias ffe='fzf-find-edit'
+
+alias sudo='sudo '

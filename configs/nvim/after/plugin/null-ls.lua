@@ -136,7 +136,7 @@ local b = null_ls.builtins
 local sources = {
 	b.completion.luasnip,
 
-	-- python
+	-- Python
 	b.formatting.black,
 	b.diagnostics.flake8,
 
@@ -148,15 +148,11 @@ local sources = {
 	b.formatting.shfmt,
 	b.diagnostics.shellcheck,
 
-	-- c
+	-- C/CPP
 	b.formatting.clang_format,
 	b.diagnostics.clang_check,
 
-	-- CPP
-	b.formatting.clang_format,
-	b.diagnostics.clang_check,
-
-	-- Zsh
+	-- Z-shell
 	b.diagnostics.zsh,
 
 	-- TO-DO comments

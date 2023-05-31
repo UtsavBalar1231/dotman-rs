@@ -30,3 +30,18 @@ mason_lspconfig.setup({
 	},
 	automatic_installation = true,
 })
+
+require("mason-null-ls").setup({
+	automatic_setup = true,
+	ensure_installed = {
+		"black",
+		"clang_format",
+		"clang_check",
+		"flake8",
+		"luacheck",
+		"shfmt",
+		"stylua",
+		"gitlint",
+		"gitsigns",
+	},
+})

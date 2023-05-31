@@ -66,13 +66,21 @@ return require("packer").startup(function(use)
 		end,
 	})
 
+	use({
+		"jay-babu/mason-null-ls.nvim",
+		dependencies = {
+			"williamboman/mason.nvim",
+			"jose-elias-alvarez/null-ls.nvim",
+		},
+	})
+
 	-- LSP UI
 	use("onsails/lspkind-nvim")
 	use("NvChad/nvim-colorizer.lua")
 
 	--- Autocompletion and LSP }}}
 
-	-- Visualize lsp progress
+	-- Visualize LSP progress
 	use({
 		"j-hui/fidget.nvim",
 		config = function()
@@ -103,7 +111,7 @@ return require("packer").startup(function(use)
 		"nvim-telescope/telescope-file-browser.nvim",
 	})
 
-	-- Github
+	-- GitHub
 	use({
 		"github/copilot.vim",
 		"lewis6991/gitsigns.nvim",
@@ -115,8 +123,11 @@ return require("packer").startup(function(use)
 	-- Comments support
 	use({ "numToStr/Comment.nvim", requires = "JoosepAlviste/nvim-ts-context-commentstring" })
 
-	-- Buffer Line nvim
-	use({ "akinsho/bufferline.nvim", branch = "dev" })
+	-- Buffer Line
+	use({
+		"willothy/nvim-cokeline",
+		requires = "kyazdani42/nvim-web-devicons",
+	})
 
 	-- Automatically set up configuration after cloning packer.nvim
 	if packer_bootstrap then

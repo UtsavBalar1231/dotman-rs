@@ -82,23 +82,6 @@ autocmd("BufEnter", {
 	end,
 })
 
-autocmd("BufEnter", {
-	desc = "Open Neo-Tree on startup with directory",
-	group = augroup("neotree_start", { clear = true }),
-	callback = function()
-		if package.loaded["neo-tree"] then
-			vim.api.nvim_del_augroup_by_name("neotree_start")
-		else
-			local stats = vim.loop.fs_stat(vim.api.nvim_buf_get_name(0))
-			if stats and stats.type == "directory" then
-				require("neo-tree")
-				vim.api.nvim_del_augroup_by_name("neotree_start")
-				vim.api.nvim_exec_autocmds("BufEnter", {})
-			end
-		end
-	end,
-})
-
 -- Remove whitespace on save
 autocmd("BufWritePre", { pattern = "", command = ":%s/\\s\\+$//e" })
 
@@ -126,9 +109,3 @@ autocmd("BufNewFile,BufRead", { pattern = "*.s", command = "set filetype=asm" })
 autocmd("BufNewFile,BufRead", { pattern = "*.sh", command = "set filetype=bash" })
 autocmd("BufNewFile,BufRead", { pattern = "*.zsh", command = "set filetype=zsh" })
 autocmd("BufNewFile,BufRead", { pattern = "*.lua", command = "set filetype=lua" })
-
--- Enable auto formatting on save
-autocmd("BufWritePre", { pattern = "*.lua", command = "lua vim.lsp.buf.format { async = true }" })
-autocmd("BufWritePre", { pattern = "*.sh", command = "lua vim.lsp.buf.format { async = true }" })
-autocmd("BufWritePre", { pattern = "*.zsh", command = "lua vim.lsp.buf.format { async = true }" })
-autocmd("BufWritePre", { pattern = "*.rs", command = "lua vim.lsp.buf.format { async = true }" })

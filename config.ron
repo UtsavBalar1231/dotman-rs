@@ -1,0 +1,21 @@
+#![enable(implicit_some)]
+(
+    dotconfigs_path: "~/dotfiles/configs/",
+    configs: [
+        (name: "leftwm", path: "~/.config/leftwm/"),
+        (name: "nvim", path: "~/.config/nvim/"),
+        (name: "picom", path: "~/.config/picom/"),
+        (name: "polybar", path: "~/.config/polybar/"),
+        (name: "rofi", path: "~/.config/rofi/"),
+        (name: "zsh", path: "~/.config/zsh/"),
+        (name: "xorg", path: "~/.config/xorg/"),
+        (name: "dunst", path: "~/.config/dunst/"),
+        (name: "kitty", path: "~/.config/kitty/"),
+        (name: "hypr", path: "~/.config/hypr/"),
+        (name: "sync-dotfiles", path: "/home/vicharak/.config/sync-dotfiles/"),
+        (name: "clang-format", path: "/home/vicharak/.clang-format"),
+        (name: "zshrc", path: "/home/vicharak/.zshrc"),
+        (name: "xinitrc", path: "/home/vicharak/.xinitrc"),
+        (name: "gitlint", path: "/home/vicharak/.gitlint"),
+    ],
+)
