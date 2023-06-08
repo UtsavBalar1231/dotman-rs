@@ -1,0 +1,18 @@
+[submodule "F-Sy-H"]
+	path = F-Sy-H
+	url = https://github.com/z-shell/F-Sy-H
+[submodule "forgit"]
+	path = forgit
+	url = https://github.com/wfxr/forgit
+[submodule "fzf-zsh-plugin"]
+	path = fzf-zsh-plugin
+	url = https://github.com/unixorn/fzf-zsh-plugin
+[submodule "zsh-autosuggestions"]
+	path = zsh-autosuggestions
+	url = https://github.com/zsh-users/zsh-autosuggestions/
+[submodule "zsh-syntax-highlighting"]
+	path = zsh-syntax-highlighting
+	url = https://github.com/zsh-users/zsh-syntax-highlighting
+[submodule "zsh-z"]
+	path = zsh-z
+	url = https://github.com/agkozak/zsh-z

@@ -17,7 +17,6 @@ sudo apt install \
 	fd-find \
 	fzf \
 	tmux \
-	btop \
 	zsh \
 	-y
 # }}}
@@ -28,6 +27,19 @@ if [ -z "$DISPLAY" ]; then
 	echo "########## Configuring polybar ###########"
 	sudo pacman --noconfirm -S polybar
 	# }}}
+fi
+
+# Install btop
+echo "########## Installing btop ###########"
+ARCH=$(uname -m)
+if [ ! "$(which btop)" ]; then
+	if [ "${ARCH}" = "x86_64" ]; then
+		sudo cp "$(pwd)"/prebuilts/btop-x86_64 /usr/local/bin/btop
+	elif [ "${ARCH}" = "aarch64" ]; then
+		sudo cp "$(pwd)"/prebuilts/btop-aarch64 /usr/local/bin/btop
+	else
+		echo "btop not available for ${ARCH}"
+	fi
 fi
 
 # Install diff-so-fancy: {{{
@@ -41,16 +53,25 @@ fi
 
 # NVIM configuration: {{{
 echo "########## Configuring NVIM ###########"
-sudo apt-get install software-properties-common -y
-sudo add-apt-repository ppa:neovim-ppa/stable -y
-curl -s https://apt.dustinblackman.com/KEY.gpg | sudo apt-key add -
-curl -s https://apt.dustinblackman.com/dustinblackman.list >/tmp/dustinblackman.list && sudo mv /tmp/dustinblackman.list /etc/apt/sources.list.d/dustinblackman.list
-sudo apt-get update -y
-sudo apt-get install neovim languagetool-code-comments -y
+curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
+chmod u+x nvim.appimage
+sudo mv nvim.appimage /usr/local/bin/nvim
 
-sudo luarocks install luacheck
+set -u
+sudo update-alternatives --install /usr/bin/ex ex "${CUSTOM_NVIM_PATH}" 110
+sudo update-alternatives --install /usr/bin/vi vi "${CUSTOM_NVIM_PATH}" 110
+sudo update-alternatives --install /usr/bin/view view "${CUSTOM_NVIM_PATH}" 110
+sudo update-alternatives --install /usr/bin/vim vim "${CUSTOM_NVIM_PATH}" 110
+sudo update-alternatives --install /usr/bin/vimdiff vimdiff "${CUSTOM_NVIM_PATH}" 110
+
+if [ -x "$(command -v luarocks)" ]; then
+	sudo luarocks install luacheck
+fi
 
 sudo ln -s ~/.config/nvim/ /root/.config/nvim
+
+# run packersync
+nvim --headless +PackerSync +qa
 # }}}
 
 # Configure zsh: {{{

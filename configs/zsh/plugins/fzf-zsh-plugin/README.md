@@ -55,6 +55,7 @@ Note - while these scripts could all be ZSH functions instead of scripts in the 
 | `fzf-git-checkout` | Uses `fzf` to check out a branch in a `git` repository | From Mark Nielsen's [Fuzzy Git Checkout](https://polothy.github.io/post/2019-08-19-fzf-git-checkout/) article |
 | `fzf-grep-edit` | Uses `fzf` to select files (displaying previews) that contain a search term to edit with `$EDITOR` | [Boost Your Command-Line Productivity With Fuzzy Finder](https://betterprogramming.pub/boost-your-command-line-productivity-with-fuzzy-finder-985aa162ba5d) |
 | `fzf-kill` | Uses `fzf` to select processes to kill | [Boost Your Command-Line Productivity With Fuzzy Finder](https://betterprogramming.pub/boost-your-command-line-productivity-with-fuzzy-finder-985aa162ba5d) |
+| `fzf-vscode` | Uses `fzf` and `rg` to search for text and then open the file in vscode | Hangops post by Mark Carey |
 | `lessfilter-fzf` | A less pre-processor to nicely display a wide range of file formats, including images and directories that can be used to show fzf previews (see [Customization](#customization) section). | [Aloxaf/fzf-tab - Wiki/Preview](https://github.com/Aloxaf/fzf-tab/wiki/Preview) |
 | `pr-list` | Use `fzf` to select a PR using `gh` | ? |
 | `tm` | Uses `fzf` to search for a `tmux` session or create one if there are no matches. | From the [fzf wiki](https://github.com/junegunn/fzf/wiki/examples) |
@@ -78,12 +79,12 @@ Add `antigen bundle unixorn/fzf-zsh-plugin@main` to your `.zshrc`
 
 ### [Oh-My-Zsh](http://ohmyz.sh/)
 
-1. `git clone https://github.com/unixorn/fzf-zsh-plugin.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-plugin`
+1. `git clone --depth 1 https://github.com/unixorn/fzf-zsh-plugin.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-plugin`
 2. Add **fzf-zsh-plugin** to your plugin list - edit `~.zshrc` and change `plugins=(...)` to `plugins=(... fzf-zsh-plugin)`
 
 ### Without using a framework
 
-1. `git clone git@github.com:unixorn/fzf-zsh-plugin.git`, then add its `bin` directory to your `$PATH`.
+1. `git clone --depth 1 git@github.com:unixorn/fzf-zsh-plugin.git`, then add its `bin` directory to your `$PATH`.
 2. Add `source /path/to/repository/checkout/fzf-zsh-plugin.plugin.zsh` to your `.zshrc` file.
 
 The scripts in this collection don't actually require you to be using ZSH as your login shell, they're being distributed as an [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh)-compatible plugin because it's convenient for me.
@@ -95,7 +96,7 @@ Optionally, to make the most out of `fzf` preview (`?` toggle), install the foll
 - `bat` - a `cat` clone with syntax highlighting and Git integration,
 - `chafa` - show images (the image can look better or worse depending on the terminal app you use),
 - `exiftool` - also show image metadata,
-- `lesspipe.sh`, e.g. `brew install lesspipe` - and other optional tools `lesspipe.sh` relies on. See <https://github.com/wofr06/lesspipe>  
+- `lesspipe.sh`, e.g. `brew install lesspipe` - and other optional tools `lesspipe.sh` relies on. See <https://github.com/wofr06/lesspipe>
   ☝ **Note**: This is not the `lesspipe` already bundled in Ubuntu/Debian but an improved one (while package is called `lesspipe`, the binary is `lesspipe.sh`).
 
 ## Customization
@@ -123,3 +124,4 @@ Ultimately, `lesspipe.sh` (if present) will still honor your own `lessfilter` if
 - [Fuzzy Git Checkout](https://polothy.github.io/post/2019-08-19-fzf-git-checkout/) - Mark Nielsen wrote a good blog post showing how to use [fzf](https://github.com/junegunn/fzf) for `git` checkouts.
 - [fzf-pass](https://github.com/smeagol74/zsh-fzf-pass) - ZSH plugin that uses [fzf](https://github.com/junegunn/fzf) and [pass](https://www.passwordstore.org/) for better password handling.
 - [fzf-tab](https://github.com/Aloxaf/fzf-tab) - Replace ZSH's default completion with [fzf](https://github.com/junegunn/fzf)
+- [So you've installed `fzf`. Now what?](https://andrew-quinn.me/fzf/) - Good blog post by Andrew Quinn with more tricks you can do with `fzf`.

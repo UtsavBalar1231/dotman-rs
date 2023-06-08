@@ -52,6 +52,7 @@
 #   ZSHZ_CASE -> if `ignore', pattern matching is case-insensitive; if `smart',
 #     pattern matching is case-insensitive only when the pattern is all
 #     lowercase
+#   ZSHZ_CD -> the directory-changing command that is used (default: builtin cd)
 #   ZSHZ_CMD -> name of command (default: z)
 #   ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for
 #     alphabetic sorting)
@@ -129,6 +130,7 @@ is-at-least 5.3.0 && ZSHZ[PRINTV]=1
 # Globals:
 #   ZSHZ
 #   ZSHZ_CASE
+#   ZSHZ_CD
 #   ZSHZ_COMPLETION
 #   ZSHZ_DATA
 #   ZSHZ_DEBUG
@@ -630,7 +632,7 @@ zshz() {
         *)
           # Frecency routine
           (( dx = EPOCHSECONDS - time_field ))
-          rank=$(( 10000 * rank_field * (3.75/((0.0001 * dx + 1) + 0.25)) ))
+          rank=$(( 10000 * rank_field * (3.75/( (0.0001 * dx + 1) + 0.25)) ))
           ;;
       esac
 
@@ -767,6 +769,26 @@ zshz() {
   }
 
   #########################################################
+  # Allow the user to specify directory-changing command
+  # using $ZSHZ_CD (default: builtin cd).
+  #
+  # Globals:
+  #   ZSHZ_CD
+  #
+  # Arguments:
+  #   $* Path
+  #########################################################
+  zshz_cd() {
+    setopt LOCAL_OPTIONS NO_WARN_CREATE_GLOBAL
+
+    if [[ -z $ZSHZ_CD ]]; then
+      builtin cd "$*"
+    else
+      ${=ZSHZ_CD} "$*"
+    fi
+  }
+
+  #########################################################
   # If $ZSHZ_ECHO == 1, display paths as you jump to them.
   # If it is also the case that $ZSHZ_TILDE == 1, display
   # the home directory as a tilde.
@@ -783,7 +805,7 @@ zshz() {
 
   if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] && ! $+opts[-l] )); then
     # cd if possible; echo the new path if $ZSHZ_ECHO == 1
-    [[ -d ${@: -1} ]] && builtin cd ${@: -1} && _zshz_echo && return
+    [[ -d ${@: -1} ]] && zshz_cd ${@: -1} && _zshz_echo && return
   fi
 
   # With option -c, make sure query string matches beginning of matches;
@@ -840,12 +862,12 @@ zshz() {
       print -- "$cd"
     else
       # cd if possible; echo the new path if $ZSHZ_ECHO == 1
-      [[ -d $cd ]] && builtin cd "$cd" && _zshz_echo
+      [[ -d $cd ]] && zshz_cd "$cd" && _zshz_echo
     fi
   else
     # if $req is a valid path, cd to it; echo the new path if $ZSHZ_ECHO == 1
     if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $req ]]; then
-      builtin cd "$req" && _zshz_echo
+      zshz_cd "$req" && _zshz_echo
     else
       return $ret2
     fi

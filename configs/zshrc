@@ -29,10 +29,6 @@ autoload -Uz compinit && compinit
 zstyle ':completion:*' menu select
 # zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 
-# Enable aliases
-setopt aliases
-source ~/.config/zsh/aliases.zsh
-
 # Enable syntax highlighting
 source ~/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
@@ -40,14 +36,20 @@ source ~/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 source ~/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 # Enable FZF
-source ~/.config/zsh/plugins/fzf-git.sh/fzf-git.sh
 source ~/.config/zsh/plugins/fzf-zsh-plugin/fzf-zsh-plugin.plugin.zsh
+
+# Enable forgit
+source ~/.config/zsh/plugins/forgit/forgit.plugin.zsh
 
 # Enable zsh f-sy-h
 source ~/.config/zsh/plugins/F-Sy-H/F-Sy-H.plugin.zsh
 
 # zsh - z
 source ~/.config/zsh/plugins/zsh-z/zsh-z.plugin.zsh
+
+# Enable aliases
+setopt aliases
+source ~/.config/zsh/aliases.zsh
 
 # key bindings
 bindkey -v
@@ -64,8 +66,12 @@ bindkey '^[[3~' delete-char
 source ~/.config/zsh/theme/cunt-theme.zsh-theme
 
 # Cargo environment
+if [ -f "~/.cargo/env" ]; then
 source ~/.cargo/env
+fi
 
 # Gitlint
-GITLINT_CONFIG=/home/utsav/.gitlint
+if [ -f "~/.gitlint/" ]; then
+GITLINT_CONFIG=~/.gitlint
 export GITLINT_CONFIG
+fi

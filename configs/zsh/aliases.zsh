@@ -21,7 +21,7 @@ alias v='vim'
 # git aliases
 alias gc='git clone'
 alias gs='git status'
-alias gd='git diff'
+#alias gd='git diff'
 alias gdc='git diff --cached'
 alias gch='git checkout'
 alias gco='git commit'

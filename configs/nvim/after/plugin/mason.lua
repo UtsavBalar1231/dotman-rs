@@ -36,12 +36,11 @@ require("mason-null-ls").setup({
 	ensure_installed = {
 		"black",
 		"clang_format",
-		"clang_check",
+		"clang-check",
 		"flake8",
 		"luacheck",
 		"shfmt",
 		"stylua",
-		"gitlint",
 		"gitsigns",
 	},
 })
