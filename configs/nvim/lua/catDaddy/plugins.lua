@@ -40,6 +40,9 @@ return require("packer").startup(function(use)
 	-- Tree Sitter plugin
 	use({ "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" })
 
+	-- Sphinx
+	use({ "stsewd/sphinx.nvim", run = ":UpdateRemotePlugins" })
+
 	--- Autocompletion and LSP {{{
 	use("neovim/nvim-lspconfig")
 
@@ -83,6 +86,7 @@ return require("packer").startup(function(use)
 	-- Visualize LSP progress
 	use({
 		"j-hui/fidget.nvim",
+		branch = "legacy",
 		config = function()
 			require("fidget").setup()
 		end,
