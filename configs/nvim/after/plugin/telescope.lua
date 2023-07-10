@@ -27,6 +27,16 @@ vim.keymap.set("n", "<leader>f/", builtin.current_buffer_fuzzy_find, {})
 vim.keymap.set("n", "<leader>f?", builtin.current_buffer_tags, {})
 vim.keymap.set("n", "<leader>fe", builtin.diagnostics, {})
 
+-- Map <leader>f[ to goto previous diagnostic
+vim.keymap.set("n", "<leader>f[", function()
+	vim.diagnostic.goto_prev({ popup_opts = { border = "rounded" } })
+end, {})
+
+-- Map <leader>f] to goto next diagnostic
+vim.keymap.set("n", "<leader>f]", function()
+	vim.diagnostic.goto_next({ popup_opts = { border = "rounded" } })
+end, {})
+
 vim.keymap.set("n", "<leader>fd", builtin.lsp_definitions, {})
 vim.keymap.set("n", "<leader>fw", builtin.lsp_dynamic_workspace_symbols, {})
 vim.keymap.set("n", "<leader>fr", builtin.lsp_references, {})
@@ -77,7 +87,6 @@ telescope.setup({
 
 telescope.load_extension("file_browser")
 
--- Thiis is aa verry wrog commant
 vim.keymap.set("n", "ff", function()
 	telescope.extensions.file_browser.file_browser({
 		path = "%:p:h",

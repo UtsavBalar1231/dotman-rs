@@ -8,6 +8,7 @@
 #   https://clang.llvm.org/docs/ClangFormat.html
 #   https://clang.llvm.org/docs/ClangFormatStyleOptions.html
 #
+#
 ---
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align

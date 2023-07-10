@@ -21,6 +21,9 @@ end
 
 vim.g.copilot_assume_mapped = true
 
+-- Enable copilot for markdown
+vim.g.copilot_filetypes = { markdown = true }
+
 -- Map <C-Space> to trigger copilot
 vim.api.nvim_set_keymap("i", "<C-Space>", 'copilot#Accept("<CR>")', { silent = true, expr = true })
 

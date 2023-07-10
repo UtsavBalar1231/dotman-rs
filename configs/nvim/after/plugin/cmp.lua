@@ -28,7 +28,10 @@ cmp.setup({
 
 	formatting = {
 		fields = { "kind", "abbr", "menu" },
-		format = lspkind.cmp_format(),
+		format = lspkind.cmp_format({
+			with_text = true,
+			maxwidth = 50,
+		}),
 	},
 	preselect = cmp.PreselectMode.None,
 	snippet = {
@@ -104,7 +107,7 @@ vim.cmd([[ highlight! default link CmpItemKind CmpItemMenuDefault ]])
 
 -- Enable diagnostics
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
-	virtual_text = false,
+	virtual_text = true,
 	digns = true,
 	update_in_insert = false,
 })
@@ -123,4 +126,18 @@ vim.cmd([[ highlight! link CmpItemKindProperty CmpItemKindKeyword ]])
 vim.cmd([[ highlight! link CmpItemKindUnit CmpItemKindKeyword ]])
 
 --- Enable floating window for diagnostics
+--- Map to <C-e> to toggle
+vim.api.nvim_set_keymap(
+	"n",
+	"<leader>e",
+	"<cmd>lua vim.diagnostic.open_float(0, { focus=false })<CR>",
+	{ noremap = true, silent = true }
+)
+
 -- vim.cmd([[ autocmd! CursorHold,CursorHoldI * lua vim.diagnostic.open_float(nil, { focus=false }) ]])
+
+-- Diagnostic signs
+vim.fn.sign_define("LspDiagnosticsSignError", { text = "", texthl = "LspDiagnosticsSignError" })
+vim.fn.sign_define("LspDiagnosticsSignWarning", { text = "", texthl = "LspDiagnosticsSignWarning" })
+vim.fn.sign_define("LspDiagnosticsSignInformation", { text = "", texthl = "LspDiagnosticsSignInformation" })
+vim.fn.sign_define("LspDiagnosticsSignHint", { text = "", texthl = "LspDiagnosticsSignHint" })
