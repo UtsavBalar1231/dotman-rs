@@ -73,7 +73,7 @@ opt.showmatch = true
 -- Enable folding (default 'foldmarker')
 opt.foldmethod = "marker"
 -- Line length marker at 120 columns
-opt.colorcolumn = "120"
+opt.colorcolumn = "80"
 -- Vertical split to the right
 opt.splitright = true
 -- Horizontal split to the bottom

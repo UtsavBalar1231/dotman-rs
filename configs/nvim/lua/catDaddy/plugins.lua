@@ -83,15 +83,6 @@ return require("packer").startup(function(use)
 
 	--- Autocompletion and LSP }}}
 
-	-- Visualize LSP progress
-	use({
-		"j-hui/fidget.nvim",
-		branch = "legacy",
-		config = function()
-			require("fidget").setup()
-		end,
-	})
-
 	-- Adds extra functionality over rust analyzer
 	use("simrat39/rust-tools.nvim")
 	use("rust-lang/rust.vim")
