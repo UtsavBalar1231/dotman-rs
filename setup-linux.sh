@@ -3,55 +3,56 @@
 CMD=$(realpath "${0}")
 CUR_DIR=$(dirname "${CMD}")
 
-# Set local timezone
-export TZ="Asia/Kolkata"
-
-# Setup build environment: {{{
-bash "${CUR_DIR}"/scripts/setup_git.sh
-bash "${CUR_DIR}"/scripts/setup_env.sh
+# Install exa (ls replacement): {{{
+if command -v exa &>/dev/null; then
+	cargo install exa
+fi
 # }}}
 
-# Install necessary packages: {{{
-# Install necessary packages
-sudo apt-get update -y && sudo apt-get upgrade -y
-sudo apt install -y \
-	fd-find \
-	fzf \
-	tmux \
-	zsh
+# Install bat (cat replacement): {{{
+if command -v bat &>/dev/null; then
+	cargo install bat
+fi
 # }}}
+
+# Install fd (find replacement): {{{
+if command -v fd &>/dev/null; then
+	cargo install fd-find
+fi
+# }}}
+
+# Install ripgrep (grep replacement): {{{
+if command -v rg &>/dev/null; then
+	cargo install ripgrep
+fi
+# }}}
+
+get_ubuntu_version() {
+	lsb_release -ds | cut -d ' ' -f 2 | cut -d '.' -f 1
+}
 
 # Install btop
 ARCH=$(uname -m)
 if ! command -v btop &>/dev/null; then
-	if [ "${ARCH}" = "x86_64" ]; then
-		sudo cp -f "${CUR_DIR}"/prebuilts/btop-x86_64 /usr/local/bin/btop
-	elif [ "${ARCH}" = "aarch64" ]; then
-		sudo cp -f "${CUR_DIR}"/prebuilts/btop-aarch64 /usr/local/bin/btop
+	if [[ $(get_ubuntu_version) -lt 23 ]]; then
+		if [ "${ARCH}" = "x86_64" ]; then
+			sudo cp -f "${CUR_DIR}"/prebuilts/btop-x86_64 /usr/local/bin/btop
+		elif [ "${ARCH}" = "aarch64" ]; then
+			sudo cp -f "${CUR_DIR}"/prebuilts/btop-aarch64 /usr/local/bin/btop
+		else
+			echo "btop not available for ${ARCH}"
+		fi
 	else
-		echo "btop not available for ${ARCH}"
+		sudo apt install -y btop
 	fi
 fi
 
-get_git_version() {
-	local git_package="${1}"
-
-	curl --silent "https://api.github.com/repos/${git_package}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
-}
-
-# Install diff-so-fancy: {{{
-if ! command -v diff-so-fancy &>/dev/null; then
-	diff_so_fancy_version=$(get_git_version "so-fancy/diff-so-fancy")
-
-	curl -sLo /usr/local/bin/diff-so-fancy https://github.com/so-fancy/diff-so-fancy/releases/download/"${diff_so_fancy_version}"/diff-so-fancy
-
-	chmod a+x /usr/local/bin/diff-so-fancy
-fi
-# }}}
-
 # NVIM configuration: {{{
-curl -sLO /usr/local/bin/nvim https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
-chmod a+x /usr/local/bin/nvim
+curl -sLo ./nvim https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
+chmod a+x ./nvim
+
+CUSTOM_NVIM_PATH=/usr/local/bin/nvim
+sudo mv ./nvim ${CUSTOM_NVIM_PATH}
 
 set -u
 sudo update-alternatives --install /usr/bin/ex ex "${CUSTOM_NVIM_PATH}" 110
@@ -85,5 +86,13 @@ fi
 unzip "${CUR_DIR}"/ubuntu/FireCode.zip -d "${HOME}"/.local/share/fonts
 unzip "${CUR_DIR}"/ubuntu/Twilio-Sans-Mono.zip -d "${HOME}"/.local/share/fonts
 # }}}
+
+# Install nodejs
+if [[ $(get_ubuntu_version) -lt 22 ]]; then
+	curl -fsSL https://deb.nodesource.com/setup_19.x | sudo -E bash -
+	sudo apt-get install -y nodejs npm
+else
+	sudo apt-get install -y nodejs npm
+fi
 
 zsh

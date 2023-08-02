@@ -1,20 +1,8 @@
 #!/usr/bin/env bash
 
-if [ -f ~/.config/clang-format ]; then
-	cp -f ~/.config/clang-format ~/.clang-format
-fi
+debian_packages="bc bison build-essential bzip2 clang curl dwarves flex fzf gcc-multilib g++-multilib gnupg kitty lib32ncurses-dev libelf-dev libncurses5-dev libssl-dev libxml2-utils luarocks p7zip-full python3 python-is-python3 rsync shellcheck tmux unzip wget xclip xsel xsltproc zip zlib1g-dev zsh"
 
-if [ -f ~/.config/gitconfig ]; then
-	cp -f ~/.config/gitconfig ~/.gitconfig
-fi
-
-if [ -f ~/.config/zshrc ]; then
-	cp -f ~/.config/zshrc ~/.zshrc
-fi
-
-debian_packages="gnupg flex bc bison build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libncurses5 lib32ncurses-dev libssl-dev libelf-dev dwarves libxml2-utils xsltproc unzip rsync python3 python-is-python3 ripgrep exa curl wget nodejs npm kitty luarocks shellcheck"
-
-arch_packages="gnupg flex bison bc binutils bzip2 ed gcc-libs grep gzip inetutils libarchive libelf libtool linux-headers make pacman patch pkgconf sed sudo systemd systemd-libs texinfo util-linux which xz exa curl wget nodejs npm clang llvm llvm-libs kitty luarocks shellcheck"
+arch_packages="bat bc binutils bison btop bzip2 clang curl ed exa fd flex fzf gcc-libs gnupg gzip kitty libarchive libelf libtool llvm llvm-libs luarocks make neovim ncurses nodejs npm patch pkgconf ripgrep sed shellcheck sudo systemd systemd-libs texinfo tmux util-linux wget which xclip xsel xz zsh"
 
 if [ ! -f /etc/arch-release ]; then
 	sudo apt update -y
