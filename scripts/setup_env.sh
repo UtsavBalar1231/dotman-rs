@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 
-cp -avr "$(pwd)"/configs/* ~/.config/
-
 if [ -f ~/.config/clang-format ]; then
-	mv ~/.config/clang-format ~/.clang-format
+	cp -f ~/.config/clang-format ~/.clang-format
 fi
 
 if [ -f ~/.config/gitconfig ]; then
-	mv ~/.config/gitconfig ~/.gitconfig
+	cp -f ~/.config/gitconfig ~/.gitconfig
 fi
 
 if [ -f ~/.config/zshrc ]; then
-	mv ~/.config/zshrc ~/.zshrc
+	cp -f ~/.config/zshrc ~/.zshrc
 fi
 
 debian_packages="gnupg flex bc bison build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libncurses5 lib32ncurses-dev libssl-dev libelf-dev dwarves libxml2-utils xsltproc unzip rsync python3 python-is-python3 ripgrep exa curl wget nodejs npm kitty luarocks shellcheck"
