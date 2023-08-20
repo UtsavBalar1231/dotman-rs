@@ -125,11 +125,6 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/efmls-configs-nvim",
     url = "https://github.com/creativenull/efmls-configs-nvim"
   },
-  ["formatter.nvim"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/formatter.nvim",
-    url = "https://github.com/mhartington/formatter.nvim"
-  },
   ["friendly-snippets"] = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/friendly-snippets",
@@ -151,7 +146,6 @@ _G.packer_plugins = {
     url = "https://github.com/lukas-reineke/indent-blankline.nvim"
   },
   ["lsp-status.nvim"] = {
-    config = { "\27LJ\2\n�\1\0\0\3\0\4\0\a6\0\0\0'\2\1\0B\0\2\0029\0\2\0005\2\3\0B\0\2\1K\0\1\0\1\0\a\19indicator_hint\t \23indicator_warnings\t \17indicator_ok\t \21indicator_errors\t \21current_function\1\18status_symbol\t \19indicator_info\t \vconfig\15lsp-status\frequire\0" },
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/lsp-status.nvim",
     url = "https://github.com/nvim-lua/lsp-status.nvim"
@@ -192,11 +186,6 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/nvim-colorizer.lua",
     url = "https://github.com/NvChad/nvim-colorizer.lua"
   },
-  ["nvim-lint"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/nvim-lint",
-    url = "https://github.com/mfussenegger/nvim-lint"
-  },
   ["nvim-lspconfig"] = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/nvim-lspconfig",
@@ -206,6 +195,17 @@ _G.packer_plugins = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/nvim-treesitter",
     url = "https://github.com/nvim-treesitter/nvim-treesitter"
+  },
+  ["nvim-treesitter-context"] = {
+    config = { "\27LJ\2\n�\1\0\0\3\0\4\0\a6\0\0\0'\2\1\0B\0\2\0029\0\2\0005\2\3\0B\0\2\1K\0\1\0\1\0\b\15trim_scope\nouter\24multiline_threshold\3\20\14max_lines\3\0\17line_numbers\2\venable\2\vzindex\3\20\22min_window_height\3\0\tmode\vcursor\nsetup\23treesitter-context\frequire\0" },
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/nvim-treesitter-context",
+    url = "https://github.com/nvim-treesitter/nvim-treesitter-context"
+  },
+  ["nvim-treesitter-textobjects"] = {
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/nvim-treesitter-textobjects",
+    url = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects"
   },
   ["nvim-ts-context-commentstring"] = {
     loaded = true,
@@ -274,14 +274,14 @@ time([[Setup for vim-matchup]], false)
 time([[packadd for vim-matchup]], true)
 vim.cmd [[packadd vim-matchup]]
 time([[packadd for vim-matchup]], false)
+-- Config for: nvim-treesitter-context
+time([[Config for nvim-treesitter-context]], true)
+try_loadstring("\27LJ\2\n�\1\0\0\3\0\4\0\a6\0\0\0'\2\1\0B\0\2\0029\0\2\0005\2\3\0B\0\2\1K\0\1\0\1\0\b\15trim_scope\nouter\24multiline_threshold\3\20\14max_lines\3\0\17line_numbers\2\venable\2\vzindex\3\20\22min_window_height\3\0\tmode\vcursor\nsetup\23treesitter-context\frequire\0", "config", "nvim-treesitter-context")
+time([[Config for nvim-treesitter-context]], false)
 -- Config for: crates.nvim
 time([[Config for crates.nvim]], true)
 try_loadstring("\27LJ\2\n4\0\0\3\0\3\0\0066\0\0\0'\2\1\0B\0\2\0029\0\2\0B\0\1\1K\0\1\0\nsetup\vcrates\frequire\0", "config", "crates.nvim")
 time([[Config for crates.nvim]], false)
--- Config for: lsp-status.nvim
-time([[Config for lsp-status.nvim]], true)
-try_loadstring("\27LJ\2\n�\1\0\0\3\0\4\0\a6\0\0\0'\2\1\0B\0\2\0029\0\2\0005\2\3\0B\0\2\1K\0\1\0\1\0\a\19indicator_hint\t \23indicator_warnings\t \17indicator_ok\t \21indicator_errors\t \21current_function\1\18status_symbol\t \19indicator_info\t \vconfig\15lsp-status\frequire\0", "config", "lsp-status.nvim")
-time([[Config for lsp-status.nvim]], false)
 -- Config for: nvim-colorizer.lua
 time([[Config for nvim-colorizer.lua]], true)
 try_loadstring("\27LJ\2\n7\0\0\3\0\3\0\0066\0\0\0'\2\1\0B\0\2\0029\0\2\0B\0\1\1K\0\1\0\nsetup\14colorizer\frequire\0", "config", "nvim-colorizer.lua")

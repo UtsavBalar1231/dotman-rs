@@ -122,13 +122,6 @@ cmp.setup({
 		{ name = "nvim_lsp", priority = 1000 },
 	},
 
-	cmp.setup.cmdline("/", {
-		mapping = cmp.mapping.preset.cmdline(),
-		sources = {
-			{ name = "buffer" },
-		},
-	}),
-
 	cmp.setup.filetype({ "gitcommit" }, {
 		sources = {
 			{ name = "cmp_git" }, -- You can specify the `cmp_git` source if you were installed it.
