@@ -1,5 +1,6 @@
 local status_ok, mason = pcall(require, "mason")
 if not status_ok then
+	print("Cannot load mason.nvim")
 	return
 end
 
@@ -29,18 +30,4 @@ mason_lspconfig.setup({
 		"vimls",
 	},
 	automatic_installation = true,
-})
-
-require("mason-null-ls").setup({
-	automatic_setup = true,
-	ensure_installed = {
-		"black",
-		"clang_format",
-		"clang-check",
-		"flake8",
-		"luacheck",
-		"shfmt",
-		"stylua",
-		"gitsigns",
-	},
 })

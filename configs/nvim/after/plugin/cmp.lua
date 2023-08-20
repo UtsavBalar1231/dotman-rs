@@ -28,16 +28,41 @@ cmp.setup({
 
 	formatting = {
 		fields = { "kind", "abbr", "menu" },
-		format = lspkind.cmp_format({
-			with_text = true,
-			maxwidth = 50,
-		}),
+		format = function(entry, vim_item)
+			if entry.source.name == "copilot" then
+				vim_item.kind = "[] Copilot"
+				vim_item.kind_hl_group = "CmpItemKindCopilot"
+				return vim_item
+			end
+			-- fancy icons and a name of kind
+			vim_item.kind = lspkind.presets.default[vim_item.kind] .. " " .. vim_item.kind
+
+			-- set a name for each source
+			vim_item.menu = ({
+				path = "[Path]",
+				nvim_lsp = "[LSP]",
+				copilot = "[Copilot]",
+				spell = "[Spell]",
+				cmdline = "[CMD]",
+				cmp_git = "[GIT]",
+				luasnip = "[LuaSnip]",
+				nvim_lua = "[NLua]",
+				buffer = "[Buffer]",
+			})[entry.source.name]
+			return vim_item
+		end,
 	},
 	preselect = cmp.PreselectMode.None,
 	snippet = {
 		expand = function(args)
 			luasnip.lsp_expand(args.body)
 		end,
+	},
+	completion = {
+		keyword_length = 1,
+	},
+	experimental = {
+		ghost_text = true,
 	},
 	duplicates = {
 		nvim_lsp = 1,
@@ -96,6 +121,27 @@ cmp.setup({
 		{ name = "luasnip", priority = 750 },
 		{ name = "nvim_lsp", priority = 1000 },
 	},
+
+	cmp.setup.cmdline("/", {
+		mapping = cmp.mapping.preset.cmdline(),
+		sources = {
+			{ name = "buffer" },
+		},
+	}),
+
+	cmp.setup.filetype({ "gitcommit" }, {
+		sources = {
+			{ name = "cmp_git" }, -- You can specify the `cmp_git` source if you were installed it.
+			{ name = "buffer" },
+		},
+	}),
+
+	cmp.setup.filetype({ "toml", "rs" }, {
+		sources = {
+			{ name = "luasnip" },
+			{ name = "crates" },
+		},
+	})
 })
 
 -- have a fixed column for the diagnostics to appear in
@@ -104,13 +150,6 @@ vim.wo.signcolumn = "yes"
 vim.opt.shortmess = vim.opt.shortmess + { c = true }
 vim.api.nvim_set_option("updatetime", 200)
 vim.cmd([[ highlight! default link CmpItemKind CmpItemMenuDefault ]])
-
--- Enable diagnostics
-vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
-	virtual_text = true,
-	digns = true,
-	update_in_insert = false,
-})
 
 -- cmp highlights (gruvbox)
 vim.cmd([[ highlight! CmpItemAbbrDeprecated guibg=NONE gui=strikethrough guifg=#7c6f64 ]])
@@ -135,9 +174,3 @@ vim.api.nvim_set_keymap(
 )
 
 -- vim.cmd([[ autocmd! CursorHold,CursorHoldI * lua vim.diagnostic.open_float(nil, { focus=false }) ]])
-
--- Diagnostic signs
-vim.fn.sign_define("LspDiagnosticsSignError", { text = "", texthl = "LspDiagnosticsSignError" })
-vim.fn.sign_define("LspDiagnosticsSignWarning", { text = "", texthl = "LspDiagnosticsSignWarning" })
-vim.fn.sign_define("LspDiagnosticsSignInformation", { text = "", texthl = "LspDiagnosticsSignInformation" })
-vim.fn.sign_define("LspDiagnosticsSignHint", { text = "", texthl = "LspDiagnosticsSignHint" })

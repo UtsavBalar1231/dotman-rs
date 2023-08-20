@@ -6,12 +6,42 @@ end
 
 gitsigns.setup({
 	signs = {
-		add = { hl = "GitSignsAdd", text = "▎", numhl = "GitSignsAddNr", linehl = "GitSignsAddLn" },
-		change = { hl = "GitSignsChange", text = "▎", numhl = "GitSignsChangeNr", linehl = "GitSignsChangeLn" },
-		delete = { hl = "GitSignsDelete", text = "契", numhl = "GitSignsDeleteNr", linehl = "GitSignsDeleteLn" },
-		topdelete = { hl = "GitSignsDelete", text = "契", numhl = "GitSignsDeleteNr", linehl = "GitSignsDeleteLn" },
-		changedelete = { hl = "GitSignsChange", text = "契", numhl = "GitSignsChangeNr", linehl = "GitSignsChangeLn" },
-		untracked = { hl = "GitSignsAdd", text = "", numhl = "GitSignsAddNr", linehl = "GitSignsAddLn" },
+		add = {
+			hl = "GitSignsAdd",
+			text = "▎",
+			numhl = "GitSignsAddNr",
+			linehl = "GitSignsAddLn",
+		},
+		change = {
+			hl = "GitSignsChange",
+			text = "▎",
+			numhl = "GitSignsChangeNr",
+			linehl = "GitSignsChangeLn",
+		},
+		delete = {
+			hl = "GitSignsDelete",
+			text = "契",
+			numhl = "GitSignsDeleteNr",
+			linehl = "GitSignsDeleteLn",
+		},
+		topdelete = {
+			hl = "GitSignsDelete",
+			text = "契",
+			numhl = "GitSignsDeleteNr",
+			linehl = "GitSignsDeleteLn",
+		},
+		changedelete = {
+			hl = "GitSignsChange",
+			text = "契",
+			numhl = "GitSignsChangeNr",
+			linehl = "GitSignsChangeLn",
+		},
+		untracked = {
+			hl = "GitSignsAdd",
+			text = "",
+			numhl = "GitSignsAddNr",
+			linehl = "GitSignsAddLn",
+		},
 	},
 	numhl = true,
 	linehl = false,
@@ -60,7 +90,13 @@ gitsigns.setup({
     map('n', '<leader>td', gs.toggle_deleted)
 	map("n", "<leader>bl", gs.toggle_current_line_blame)
 
-    -- Text object
 	]]
 	end,
+	watch_gitdir = {
+		interval = 100,
+	},
+	current_line_blame = true,
+	sign_priority = 5,
+	update_debounce = 100,
+	status_formatter = nil,
 })

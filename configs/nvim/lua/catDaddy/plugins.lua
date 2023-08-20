@@ -27,7 +27,7 @@ return require("packer").startup(function(use)
 	-- A fucking fast status line
 	-- Requires nvim-web-devicons
 	use("nvim-lualine/lualine.nvim")
-	use("kyazdani42/nvim-web-devicons")
+	use("nvim-tree/nvim-web-devicons")
 
 	-- match-up is a plugin that lets you highlight, navigate, and operate on sets of matching text.
 	use({
@@ -63,23 +63,23 @@ return require("packer").startup(function(use)
 
 	-- LSP Formatting
 	use({
-		"jose-elias-alvarez/null-ls.nvim",
+		"creativenull/efmls-configs-nvim",
+		requires = { "neovim/nvim-lspconfig" },
+	})
+
+	-- LSP UI
+	use("onsails/lspkind-nvim")
+	use({
+		"NvChad/nvim-colorizer.lua",
 		config = function()
 			require("colorizer").setup()
 		end,
 	})
 
+	-- LSP status
 	use({
-		"jay-babu/mason-null-ls.nvim",
-		dependencies = {
-			"williamboman/mason.nvim",
-			"jose-elias-alvarez/null-ls.nvim",
-		},
+		"nvim-lua/lsp-status.nvim",
 	})
-
-	-- LSP UI
-	use("onsails/lspkind-nvim")
-	use("NvChad/nvim-colorizer.lua")
 
 	--- Autocompletion and LSP }}}
 
@@ -89,12 +89,7 @@ return require("packer").startup(function(use)
 	use({
 		"Saecki/crates.nvim",
 		config = function()
-			require("crates").setup({
-				null_ls = {
-					enabled = true,
-					name = "crates.nvim",
-				},
-			})
+			require("crates").setup()
 		end,
 	})
 
@@ -121,7 +116,7 @@ return require("packer").startup(function(use)
 	-- Buffer Line
 	use({
 		"willothy/nvim-cokeline",
-		requires = "kyazdani42/nvim-web-devicons",
+		requires = "nvim-tree/nvim-web-devicons",
 	})
 
 	-- Automatically set up configuration after cloning packer.nvim

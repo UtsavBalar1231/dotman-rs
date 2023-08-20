@@ -88,10 +88,6 @@ local branch = {
 	end,
 }
 
-local function starts_with(str, start)
-	return str:sub(1, #start) == start
-end
-
 local filename = {
 	"filename",
 	color = { fg = colors.bg, bg = colors.grey, gui = "bold" },
@@ -138,20 +134,58 @@ local encoding = {
 	end,
 }
 
-local lsp_name = function()
-	local msg = "No Active Lsp"
-	local buf_ft = vim.api.nvim_buf_get_option(0, "filetype")
-	local clients = vim.lsp.get_active_clients()
-	if next(clients) == nil then
-		return msg
-	end
-	for _, client in ipairs(clients) do
-		local filetypes = client.config.filetypes
-		if filetypes and vim.fn.index(filetypes, buf_ft) ~= -1 then
-			return client.name
+local status_lspstatus, lspstatus = pcall(require, "lsp-status")
+if status_lspstatus then
+	lspstatus.register_progress()
+else
+	vim.notify("lsp-status not found", vim.log.levels.WARN)
+	return
+end
+local messages = require("lsp-status/messaging").messages
+
+local function get_lsp_progress()
+	local buf_messages = messages()
+	local msgs = {}
+	local spinner_frames = { "⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷" }
+
+	for _, msg in ipairs(buf_messages) do
+		local name = msg.name
+		local client_name = "[" .. name .. "]"
+		local contents
+		if msg.progress then
+			contents = msg.title
+			if msg.message then
+				contents = contents .. " " .. msg.message
+			end
+
+			-- this percentage format string escapes a percent sign once to show a percentage and one more
+			-- time to prevent errors in vim statusline's because of it's treatment of % chars
+			if msg.percentage then
+				contents = contents .. string.format(" (%.0f%%%%)", msg.percentage)
+			end
+
+			if msg.spinner then
+				contents = spinner_frames[(msg.spinner % #spinner_frames) + 1] .. " " .. contents
+			end
+		elseif msg.status then
+			contents = msg.content
+			if msg.uri then
+				local urifilename = vim.uri_to_fname(msg.uri)
+				filename = vim.fn.fnamemodify(urifilename, ":~:.")
+				local space = math.min(60, math.floor(0.6 * vim.fn.winwidth(0)))
+				if #filename > space then
+					filename = vim.fn.pathshorten(filename)
+				end
+
+				contents = "(" .. filename .. ") " .. contents
+			end
+		else
+			contents = msg.content
 		end
+
+		table.insert(msgs, client_name .. " " .. contents)
 	end
-	return msg
+	return table.concat(msgs, " ")
 end
 
 lualine.setup({
@@ -167,12 +201,9 @@ lualine.setup({
 		lualine_a = { branch, diff },
 		lualine_b = { "mode" },
 		lualine_c = { filename, filesize, filetype, progress },
-		lualine_x = { diagnostics },
+		lualine_x = { get_lsp_progress },
 		lualine_y = {
-			{
-				lsp_name,
-				icon = " LSP:",
-			},
+			diagnostics,
 			encoding,
 		},
 		lualine_z = { "location" },
