@@ -14,20 +14,6 @@ vim.g.gruvbox_material_cursor = "red"
 vim.g.gruvbox_material_dim_inactive_windows = 1
 vim.cmd([[colorscheme gruvbox-material]])
 
--- gruvbox colors
-local colors = {
-	black = "#1d2021",
-	red = "#cc241d",
-	green = "#98971a",
-	yellow = "#d79921",
-	blue = "#458588",
-	purple = "#b16286",
-	cyan = "#689d6a",
-	white = "#a89984",
-	fg = "#ebdbb2",
-	bg = "#1d2021",
-}
-
 -- Set background to dark
 vim.opt.background = "dark"
 
