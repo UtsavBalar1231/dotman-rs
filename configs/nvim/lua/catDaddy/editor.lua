@@ -124,7 +124,7 @@ opt.history = 10000
 -- Faster scrolling
 opt.lazyredraw = true
 -- Max column for syntax highlight
-opt.synmaxcol = 200
+opt.synmaxcol = 300
 -- Disable swap files
 opt.swapfile = false
 
