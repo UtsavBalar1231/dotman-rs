@@ -1,6 +1,7 @@
 local status_ok, mason = pcall(require, "mason")
+
 if not status_ok then
-	print("Cannot load mason.nvim")
+	vim.notify("Missing mason.nvim dependency", vim.log.levels.ERROR)
 	return
 end
 
@@ -17,6 +18,7 @@ mason.setup({
 local status_ok_mlsp, mason_lspconfig = pcall(require, "mason-lspconfig")
 
 if not status_ok_mlsp then
+	vim.notify("Missing mason-lspconfig.nvim dependency", vim.log.levels.ERROR)
 	return
 end
 

@@ -86,3 +86,11 @@ if [ -f "~/.gitlint/" ]; then
 fi
 
 alias ssh="kitty +kitten ssh"
+
+if [ -d "/usr/local/go" ]; then
+	export GOARCH=amd64
+	export GOOS=linux
+	export GOROOT=/usr/local/go
+	export PATH=$GOROOT/bin:$PATH
+fi
+

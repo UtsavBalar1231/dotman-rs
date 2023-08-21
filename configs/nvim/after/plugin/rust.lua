@@ -1,6 +1,15 @@
--- convert a very long virtual text to multiple lines
-
 local function on_attach(client, buffer)
+	if client.server_capabilities.documentFormattingProvider then
+		local au_lsp = vim.api.nvim_create_augroup("rust_lsp", { clear = true })
+		vim.api.nvim_create_autocmd("BufWritePre", {
+			pattern = "*",
+			callback = function()
+				vim.lsp.buf.format({ async = false })
+			end,
+			group = au_lsp,
+		})
+	end
+
 	local keymap_opts = { buffer = buffer }
 	-- Code navigation and shortcuts
 	vim.keymap.set("n", "<c-]>", vim.lsp.buf.definition, keymap_opts)
@@ -44,19 +53,32 @@ local opts = {
 		},
 	},
 
-	-- all the opts to send to nvim-lspconfig
-	-- these override the defaults set by rust-tools.nvim
-	-- see https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#rust_analyzer
 	server = {
+		cmd = { "rustup", "run", "nightly", "rust-analyzer" },
+
 		-- on_attach is a callback called when the language server attachs to the buffer
 		on_attach = on_attach,
 		settings = {
-			-- to enable rust-analyzer settings visit:
-			-- https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/user/generated_config.adoc
 			["rust-analyzer"] = {
-				-- enable clippy on save
+				assist = {
+					importEnforceGranularity = true,
+					importPrefix = "crate",
+				},
+				inlayHints = {
+					lifetimeElisionHints = {
+						enable = true,
+						useParameterNames = true,
+					},
+				},
+				cargo = {
+					allFeatures = true,
+				},
 				checkOnSave = {
+					enable = true,
 					command = "clippy",
+				},
+				procMacro = {
+					enable = true,
 				},
 			},
 		},

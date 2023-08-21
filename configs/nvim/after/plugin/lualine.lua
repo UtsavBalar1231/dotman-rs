@@ -1,5 +1,7 @@
 local status_ok, lualine = pcall(require, "lualine")
+
 if not status_ok then
+	vim.notify("Missing lualine.nvim dependency", vim.log.levels.ERROR)
 	return
 end
 
@@ -143,6 +145,12 @@ else
 end
 local messages = require("lsp-status/messaging").messages
 
+LSP_NAME = "No Active LSP"
+local function lsp_client_name()
+	local lsp_symbol = "  "
+	return lsp_symbol .. LSP_NAME
+end
+
 local function get_lsp_progress()
 	local buf_messages = messages()
 	local msgs = {}
@@ -151,6 +159,7 @@ local function get_lsp_progress()
 	for _, msg in ipairs(buf_messages) do
 		local name = msg.name
 		local client_name = "[" .. name .. "]"
+		LSP_NAME = name
 		local contents
 		if msg.progress then
 			contents = msg.title
@@ -201,7 +210,7 @@ lualine.setup({
 		lualine_a = { branch, diff },
 		lualine_b = { "mode" },
 		lualine_c = { filename, filesize, filetype, progress },
-		lualine_x = { get_lsp_progress },
+		lualine_x = { lsp_client_name, get_lsp_progress },
 		lualine_y = {
 			diagnostics,
 			encoding,

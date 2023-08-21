@@ -1,11 +1,12 @@
 local status_ok, lspconfig = pcall(require, "lspconfig")
 
 if not status_ok then
+	vim.notify("Missing lspconfig dependency", vim.log.levels.ERROR)
 	return
 end
 
-local present, lsp_status = pcall(require, "lsp-status")
-if not present then
+local status_ok_lspstatus, lsp_status = pcall(require, "lsp-status")
+if not status_ok_lspstatus then
 	vim.notify("lsp-status not found", vim.log.levels.WARN)
 	return
 end
@@ -23,21 +24,27 @@ vim.fn.sign_define("LspDiagnosticsSignWarning", { text = "", texthl = "LspDia
 vim.fn.sign_define("LspDiagnosticsSignInformation", { text = "", texthl = "LspDiagnosticsSignInformation" })
 vim.fn.sign_define("LspDiagnosticsSignHint", { text = "", texthl = "LspDiagnosticsSignHint" })
 
-local capabilities = lsp_status.capabilities
-
-local efmls = require("efmls-configs")
-efmls.init({
-	on_attach = lsp_status.on_attach,
-	capabilities = capabilities,
-
+local languages = require('efmls-configs.defaults').languages()
+local efmls_config = {
+	filetypes = vim.tbl_keys(languages),
+	settings = {
+		rootMarkers = { '.git/' },
+		languages = languages,
+	},
 	init_options = {
-		documentFormatting = true,
-		documentSymbol = true,
-		completion = true,
 		codeAction = true,
+		completion = true,
+		documentFormatting = true,
+		documentRangeFormatting = true,
+		documentSymbol = true,
 		hover = true,
 	},
-})
+}
+
+require('lspconfig').efm.setup(vim.tbl_extend('force', efmls_config, {
+	on_attach = lsp_status.on_attach,
+	capabilities = lsp_status.capabilities,
+}))
 
 local black = require("efmls-configs.formatters.black")
 local clang_format = require("efmls-configs.formatters.clang_format")
@@ -69,7 +76,7 @@ local yamllint = require("efmls-configs.linters.yamllint")
 
 -- efm
 lspconfig.efm.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	root_dir = require("lspconfig/util").root_pattern(
 		".clang-format",
 		".eslintrc",
@@ -87,10 +94,11 @@ lspconfig.efm.setup({
 		"stylua.toml"
 	),
 	init_options = {
-		documentFormatting = true,
-		documentSymbol = true,
-		completion = true,
 		codeAction = true,
+		completion = true,
+		documentFormatting = true,
+		documentRangeFormatting = true,
+		documentSymbol = true,
 		hover = true,
 	},
 	settings = {
@@ -130,13 +138,13 @@ lspconfig.efm.setup({
 
 -- bash
 lspconfig.bashls.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
 
 -- lua
 lspconfig.lua_ls.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 	settings = {
 		Lua = {
@@ -153,89 +161,53 @@ lspconfig.lua_ls.setup({
 
 -- rust
 lspconfig.rust_analyzer.setup({
-	capabilities = capabilities,
-	on_attach = function(client, _)
-		if client.server_capabilities.documentFormattingProvider then
-			local au_lsp = vim.api.nvim_create_augroup("rust_lsp", { clear = true })
-			vim.api.nvim_create_autocmd("BufWritePre", {
-				pattern = "*",
-				callback = function()
-					vim.lsp.buf.format({ async = false })
-				end,
-				group = au_lsp,
-			})
-		end
-	end,
-	cmd = { "rustup", "run", "nightly", "rust-analyzer" },
-	settings = {
-		["rust-analyzer"] = {
-			assist = {
-				importEnforceGranularity = true,
-				importPrefix = "crate",
-			},
-			inlayHints = {
-				lifetimeElisionHints = {
-					enable = true,
-					useParameterNames = true,
-				},
-			},
-			cargo = {
-				allFeatures = true,
-			},
-			checkOnSave = {
-				enable = true,
-				command = "clippy",
-			},
-			procMacro = {
-				enable = true,
-			},
-		},
-	},
+	capabilities = lsp_status.capabilities,
+	-- on_attach is set from rust.lua
 })
 
 -- css
 lspconfig.cssls.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
 
 -- c/c++
 lspconfig.clangd.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
 
 lspconfig.ccls.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
 
 -- yaml
 lspconfig.yamlls.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
 
 -- json
 lspconfig.jsonls.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
 
 -- html
 lspconfig.html.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
 
 -- vim
 lspconfig.vimls.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
 
 -- python
 lspconfig.pyright.setup({
-	capabilities = capabilities,
+	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })

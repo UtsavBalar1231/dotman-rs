@@ -3,14 +3,17 @@ local status_ok_lspkind, lspkind = pcall(require, "lspkind")
 local status_ok_luasnip, luasnip = pcall(require, "luasnip")
 
 if not status_ok then
+	vim.notify("Cannot load `cmp`", vim.log.levels.ERROR)
 	return
 end
 
 if not status_ok_lspkind then
+	vim.notify("Cannot load `lspkind`", vim.log.levels.ERROR)
 	return
 end
 
 if not status_ok_luasnip then
+	vim.notify("Cannot load `luasnip`", vim.log.levels.ERROR)
 	return
 end
 
