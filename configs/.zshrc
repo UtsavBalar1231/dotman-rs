@@ -67,19 +67,22 @@ bindkey -M viins "^A" beginning-of-line
 bindkey -M viins "^P" up-history
 bindkey -M viins "^N" down-history
 
-
 # Theme
 source ~/.config/zsh/theme/cunt-theme.zsh-theme
 
 # Cargo environment
 if [ -f "~/.cargo/env" ]; then
-source ~/.cargo/env
+	source ~/.cargo/env
+fi
+
+if [ -d "~/.local/bin" ]; then
+	export PATH="~/.local/bin":${PATH}
 fi
 
 # Gitlint
 if [ -f "~/.gitlint/" ]; then
-GITLINT_CONFIG=~/.gitlint
-export GITLINT_CONFIG
+	GITLINT_CONFIG=~/.gitlint
+	export GITLINT_CONFIG
 fi
 
 alias ssh="kitty +kitten ssh"
