@@ -13,7 +13,6 @@ alias b='bat'
 alias rg='rg --smart-case'
 alias rgf='rg --files'
 alias rgd='rg --files-with-matches'
-alias grep='rg'
 alias fd='fdfind'
 
 alias n='nvim'
