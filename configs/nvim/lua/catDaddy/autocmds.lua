@@ -4,6 +4,7 @@ local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
 local utils = require("catDaddy.utils")
 
+-- URL Highlighting on startup
 vim.on_key(function(char)
 	if vim.fn.mode() == "n" then
 		local new_hlsearch = vim.tbl_contains({ "<CR>", "n", "N", "*", "#", "?", "/" }, vim.fn.keytrans(char))
@@ -22,6 +23,7 @@ autocmd({ "VimEnter", "FileType", "BufEnter", "WinEnter" }, {
 	end,
 })
 
+-- Close the HELP, MAN, QUICKFIX, DAP FLOATS with q
 autocmd("FileType", {
 	desc = "Make q close help, man, quickfix, dap floats",
 	group = augroup("q_close_windows", { clear = true }),
@@ -31,6 +33,7 @@ autocmd("FileType", {
 	end,
 })
 
+-- Unlist all the quickfix buffers
 autocmd("FileType", {
 	desc = "Unlist quickfist buffers",
 	group = augroup("unlist_quickfist", { clear = true }),
@@ -50,6 +53,7 @@ autocmd("TextYankPost", {
 	end,
 })
 
+-- Auto Close NVIM if only sidebars are open
 autocmd("BufEnter", {
 	desc = "Quit Nvim if more than one window is open and only sidebar windows are list",
 	group = augroup("auto_quit", { clear = true }),
