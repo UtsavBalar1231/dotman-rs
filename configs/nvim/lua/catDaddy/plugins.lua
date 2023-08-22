@@ -142,6 +142,9 @@ return require("packer").startup(function(use)
 		requires = "nvim-tree/nvim-web-devicons",
 	})
 
+	-- NVIM hop for better navigation
+	use({"phaazon/hop.nvim",})
+
 	-- Automatically set up configuration after cloning packer.nvim
 	if packer_bootstrap then
 		require("packer").sync()

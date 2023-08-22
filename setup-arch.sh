@@ -14,6 +14,8 @@ if ! command -v luarocks &>/dev/null; then
 	sudo luarocks install luacheck
 fi
 
+bash scripts/setup-nvim-lspservers.sh
+
 # }}}
 
 # Configure zsh: {{{
