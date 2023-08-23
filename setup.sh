@@ -5,6 +5,9 @@ set -euo pipefail
 CMD=$(realpath "${0}")
 CUR_DIR=$(dirname "${CMD}")
 
+# shellcheck disable=SC1090
+source "${CUR_DIR}"/scripts/utils.sh
+
 # Set local timezone
 export TZ="Asia/Kolkata"
 
@@ -18,12 +21,6 @@ if ! command -v rustup &>/dev/null; then
 	bash "${CUR_DIR}"/scripts/setup_rust.sh
 fi
 # }}}
-
-get_git_version() {
-	local git_package="${1}"
-
-	curl --silent "https://api.github.com/repos/${git_package}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
-}
 
 # Install diff-so-fancy: {{{
 if ! command -v diff-so-fancy &>/dev/null; then

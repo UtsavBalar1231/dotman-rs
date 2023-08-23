@@ -3,6 +3,9 @@
 CMD=$(realpath "${0}")
 CUR_DIR=$(dirname "${CMD}")
 
+# shellcheck disable=SC1090
+source "${CUR_DIR}"/scripts/utils.sh
+
 # Install exa (ls replacement): {{{
 if command -v exa &>/dev/null; then
 	cargo install exa
@@ -27,9 +30,17 @@ if command -v rg &>/dev/null; then
 fi
 # }}}
 
-get_ubuntu_version() {
-	lsb_release -ds | cut -d ' ' -f 2 | cut -d '.' -f 1
-}
+# Install dprint (code formatter): {{{
+if ! command -v dprint >/dev/null 2>&1; then
+	cargo install dprint
+fi
+# }}}
+
+# Install stylua (lua formatter): {{{
+if ! command -v stylua >/dev/null 2>&1; then
+	cargo install stylua
+fi
+# }}}
 
 # Install btop
 ARCH=$(uname -m)
@@ -61,11 +72,13 @@ sudo update-alternatives --install /usr/bin/view view "${CUSTOM_NVIM_PATH}" 110
 sudo update-alternatives --install /usr/bin/vim vim "${CUSTOM_NVIM_PATH}" 110
 sudo update-alternatives --install /usr/bin/vimdiff vimdiff "${CUSTOM_NVIM_PATH}" 110
 
-if ! command -v luarocks &>/dev/null; then
-	sudo luarocks install luacheck
+if [ ! -d /root/.config ]; then
+	sudo mkdir -p /root/.config
 fi
 
-sudo ln -s ~/.config/nvim/ /root/.config/nvim
+if [ ! -d /root/.config/nvim ]; then
+	sudo ln -s ~/.config/nvim/ /root/.config/nvim
+fi
 
 # run packersync
 nvim --headless +PackerSync +qa
@@ -74,6 +87,10 @@ nvim --headless +PackerSync +qa
 # Configure zsh: {{{
 sudo chsh "$(whoami)" -s /bin/zsh
 sudo chsh -s /bin/zsh
+
+if [ ! -d /root/.config/zsh ]; then
+	sudo ln -s ~/.config/zsh/ /root/.config/zsh
+fi
 
 echo "DO!:"
 echo -e "\033[1;32msource ${HOME}/.zshrc\033[0m"
@@ -85,6 +102,8 @@ if [ ! -d "${HOME}"/.local/share/fonts ]; then
 fi
 unzip "${CUR_DIR}"/ubuntu/FireCode.zip -d "${HOME}"/.local/share/fonts
 unzip "${CUR_DIR}"/ubuntu/Twilio-Sans-Mono.zip -d "${HOME}"/.local/share/fonts
+
+fc-cache -f -v
 # }}}
 
 # Install nodejs
