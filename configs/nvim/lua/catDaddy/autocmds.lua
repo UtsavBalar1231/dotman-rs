@@ -71,7 +71,7 @@ autocmd("BufEnter", {
 				-- If any visible windows are not sidebars, early return
 				if not sidebar_fts[filetype] then
 					return
-				-- If the visible window is a sidebar
+					-- If the visible window is a sidebar
 				else
 					-- only count filetypes once, so remove a found sidebar from the detection
 					sidebar_fts[filetype] = nil
@@ -105,11 +105,11 @@ autocmd("BufReadPost", {
 })
 
 -- Help with filetypes detection
+autocmd("BufNewFile,BufRead", { pattern = "*.sh", command = "set filetype=bash" })
 autocmd("BufNewFile,BufRead", { pattern = "*.gitignore", command = "set filetype=gitignore" })
 autocmd("BufNewFile,BufRead", { pattern = "*.md", command = "set filetype=markdown" })
 autocmd("BufNewFile,BufRead", { pattern = "*.S", command = "set filetype=asm" })
 autocmd("BufNewFile,BufRead", { pattern = "*.asm", command = "set filetype=asm" })
 autocmd("BufNewFile,BufRead", { pattern = "*.s", command = "set filetype=asm" })
-autocmd("BufNewFile,BufRead", { pattern = "*.sh", command = "set filetype=bash" })
 autocmd("BufNewFile,BufRead", { pattern = "*.zsh", command = "set filetype=zsh" })
 autocmd("BufNewFile,BufRead", { pattern = "*.lua", command = "set filetype=lua" })

@@ -145,10 +145,17 @@ else
 end
 local messages = require("lsp-status/messaging").messages
 
-LSP_NAME = "No Active LSP"
-local function lsp_client_name()
-	local lsp_symbol = "  "
-	return lsp_symbol .. LSP_NAME
+local lsp_client_name = function()
+	local clients = vim.lsp.get_active_clients()
+
+	if next(clients) == nil then
+		return "No Active LSP"
+	end
+
+	local client = clients[1].name
+	local lsp_symbol = " "
+
+	return lsp_symbol .. client
 end
 
 local function get_lsp_progress()
@@ -159,7 +166,6 @@ local function get_lsp_progress()
 	for _, msg in ipairs(buf_messages) do
 		local name = msg.name
 		local client_name = "[" .. name .. "]"
-		LSP_NAME = name
 		local contents
 		if msg.progress then
 			contents = msg.title
@@ -211,7 +217,7 @@ lualine.setup({
 		lualine_b = { "mode" },
 		lualine_c = { filename, filesize, filetype, progress },
 		lualine_x = { lsp_client_name, get_lsp_progress },
-		lualine_y = {
+	lualine_y = {
 			diagnostics,
 			encoding,
 		},

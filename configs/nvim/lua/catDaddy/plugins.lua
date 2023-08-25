@@ -22,7 +22,9 @@ return require("packer").startup(function(use)
 	use("wbthomason/packer.nvim")
 
 	-- Sexy gruvbox theme
-	use("sainnhe/gruvbox-material")
+	-- use("sainnhe/gruvbox-material")
+
+	use({ "catppuccin/nvim" })
 
 	-- A fucking fast status line
 	-- Requires nvim-web-devicons
@@ -92,7 +94,7 @@ return require("packer").startup(function(use)
 	use({
 		"NvChad/nvim-colorizer.lua",
 		config = function()
-			require("colorizer").setup()
+			require("colorizer").setup({})
 		end,
 	})
 
@@ -143,7 +145,7 @@ return require("packer").startup(function(use)
 	})
 
 	-- NVIM hop for better navigation
-	use({"phaazon/hop.nvim",})
+	use({ "phaazon/hop.nvim" })
 
 	-- Automatically set up configuration after cloning packer.nvim
 	if packer_bootstrap then

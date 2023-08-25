@@ -49,7 +49,7 @@
         (command: DecreaseMainWidth, value: "5", 					modifier: ["modkey"], key: "x"),
         (command: ToggleFloating, 									modifier: ["modkey", "Control"], key: "f"),
         (command: ToggleFullScreen, 								modifier: ["modkey"], key: "f"),
-        (command: Execute, 			value: "~/.config/rofi/launchers/type-1/launcher.sh", 			modifier: ["modkey"], key: "a"),
+        (command: Execute, 			value: "rofi -show drun", 			modifier: ["modkey"], key: "a"),
 		(command: Execute, 			value: "~/.config/rofi/powermenu/type-1/powermenu.sh", 		modifier: ["modkey"], 	  key: "p"),
         (command: Execute, 			value: "google-chrome-beta", 	modifier: ["modkey"], key: "b"),
         (command: Execute, 			value: "kitty", 			modifier: ["modkey"], key: "t"),

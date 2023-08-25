@@ -71,23 +71,23 @@ bindkey -M viins "^N" down-history
 source ~/.config/zsh/theme/cunt-theme.zsh-theme
 
 # Cargo environment
-if [ -f "~/.cargo/env" ]; then
+if [ -f ~/.cargo/env ]; then
 	source ~/.cargo/env
 fi
 
-if [ -d "~/.local/bin" ]; then
-	export PATH="~/.local/bin":${PATH}
+if [ -d ~/.local/bin/ ]; then
+	export PATH="${HOME}/.local/bin":${PATH}
 fi
 
 # Gitlint
-if [ -f "~/.gitlint/" ]; then
+if [ -f ~/.gitlint ]; then
 	GITLINT_CONFIG=~/.gitlint
 	export GITLINT_CONFIG
 fi
 
 alias ssh="kitty +kitten ssh"
 
-if [ -d "/usr/local/go" ]; then
+if [ -d /usr/local/go ]; then
 	export GOARCH=amd64
 	export GOOS=linux
 	export GOROOT=/usr/local/go

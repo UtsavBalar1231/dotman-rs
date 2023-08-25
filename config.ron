@@ -14,5 +14,6 @@
         (name: "xinitrc", path: "/home/utsav/.xinitrc", hash: "5f6439234e8466d82fab5c5e6fd8fae1ecbd922ccce3f7b99440f96517302423", conf_type: File),
         (name: "gitlint", path: "/home/utsav/.gitlint", hash: "c2dc4b3a5dacb422886e5f58e9557b13c459bbec514d2241c67f080ab67f7", conf_type: File),
         (name: "tmux", path: "/home/utsav/.tmux.conf", hash: "fee4dcadd26e3845961e2f225fc7767ce984ddf9e23fde04353591425bec27c", conf_type: File),
+        (name: "gtk-themes", path: "/home/vicharak/.themes", hash: "a5f1b5396b1395f86f5e03452e1dd684b29959b6bfae9c4f383dab3498cd1", conf_type: Dir),
     ],
 )

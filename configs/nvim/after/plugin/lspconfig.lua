@@ -24,11 +24,11 @@ vim.fn.sign_define("LspDiagnosticsSignWarning", { text = "", texthl = "LspDia
 vim.fn.sign_define("LspDiagnosticsSignInformation", { text = "", texthl = "LspDiagnosticsSignInformation" })
 vim.fn.sign_define("LspDiagnosticsSignHint", { text = "", texthl = "LspDiagnosticsSignHint" })
 
-local languages = require('efmls-configs.defaults').languages()
+local languages = require("efmls-configs.defaults").languages()
 local efmls_config = {
 	filetypes = vim.tbl_keys(languages),
 	settings = {
-		rootMarkers = { '.git/' },
+		rootMarkers = { ".git/" },
 		languages = languages,
 	},
 	init_options = {
@@ -41,7 +41,7 @@ local efmls_config = {
 	},
 }
 
-require('lspconfig').efm.setup(vim.tbl_extend('force', efmls_config, {
+require("lspconfig").efm.setup(vim.tbl_extend("force", efmls_config, {
 	on_attach = lsp_status.on_attach,
 	capabilities = lsp_status.capabilities,
 }))
@@ -136,6 +136,7 @@ lspconfig.efm.setup({
 	},
 })
 
+-- sh
 -- bash
 lspconfig.bashls.setup({
 	capabilities = lsp_status.capabilities,
@@ -208,6 +209,12 @@ lspconfig.vimls.setup({
 
 -- python
 lspconfig.pyright.setup({
+	capabilities = lsp_status.capabilities,
+	on_attach = lsp_status.on_attach,
+})
+
+-- marksman
+lspconfig.marksman.setup({
 	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
