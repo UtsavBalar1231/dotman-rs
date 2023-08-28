@@ -10,9 +10,8 @@ get_glibc_version() {
 }
 
 # check if glibc version is less than 2.32
-if (( $(echo "$(get_glibc_version) < 2.32" | bc -l) )); then
-	"${CUR_DIR}"/prebuilts/sync-dotfiles-rs-old $@
+if (($(echo "$(get_glibc_version) < 2.32" | bc -l))); then
+	"${CUR_DIR}"/prebuilts/sync-dotfiles-rs-old-glibc "$@"
 else
-	"${CUR_DIR}"/prebuilts/sync-dotfiles-rs $@
+	"${CUR_DIR}"/prebuilts/sync-dotfiles-rs "$@"
 fi
-

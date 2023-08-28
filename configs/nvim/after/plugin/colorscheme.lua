@@ -15,10 +15,10 @@
 -- vim.cmd([[colorscheme gruvbox-material]])
 
 require("catppuccin").setup({
-	flavour = "frappe", -- latte, frappe, macchiato, mocha
+	flavour = "mocha", -- latte, frappe, macchiato, mocha
 	background = {  -- :h background
 		light = "latte",
-		dark = "frappe",
+		dark = "mocha",
 	},
 	transparent_background = false, -- disables setting the background color.
 	show_end_of_buffer = false,  -- shows the '~' characters after the end of buffers
@@ -62,7 +62,7 @@ require("catppuccin").setup({
 			colored_indent_levels = true,
 			enabled = true,
 		},
-		mason = true,
+		mason = false,
 		mini = false,
 		notify = false,
 		nvimtree = true,
