@@ -68,6 +68,10 @@ Install `forgit` in just one click.
 
 [![Install with Fig](https://fig.io/badges/install-with-fig.svg)](https://fig.io/plugins/other/forgit)
 
+### Arch User Repository
+
+[AUR](https://wiki.archlinux.org/title/Arch_User_Repository) packages, maintained by the developers of forgit, are available. Install the [forgit](https://aur.archlinux.org/packages/forgit) package for the latest release or [forgit-git](https://aur.archlinux.org/packages/forgit-git) to stay up to date with the latest commits from the master branch of this repository.
+
 ### 📝 Features
 
 - **Interactive `git add` selector** (`ga`)
@@ -116,20 +120,21 @@ Install `forgit` in just one click.
 
 ### ⌨  Keybinds
 
-| Key                                           | Action                    |
-| :-------------------------------------------: | ------------------------- |
-| <kbd>Enter</kbd>                              | Confirm                   |
-| <kbd>Tab</kbd>                                | Toggle mark and move down |
-| <kbd>Shift</kbd> - <kbd>Tab</kbd>             | Toggle mark and move up   |
-| <kbd>?</kbd>                                  | Toggle preview window     |
-| <kbd>Alt</kbd> - <kbd>W</kbd>                 | Toggle preview wrap       |
-| <kbd>Ctrl</kbd> - <kbd>S</kbd>                | Toggle sort               |
-| <kbd>Ctrl</kbd> - <kbd>R</kbd>                | Toggle selection          |
-| <kbd>Ctrl</kbd> - <kbd>Y</kbd>                | Copy commit hash/stash ID*|
-| <kbd>Ctrl</kbd> - <kbd>K</kbd> / <kbd>P</kbd> | Selection move up         |
-| <kbd>Ctrl</kbd> - <kbd>J</kbd> / <kbd>N</kbd> | Selection move down       |
-| <kbd>Alt</kbd> - <kbd>K</kbd> / <kbd>P</kbd>  | Preview move up           |
-| <kbd>Alt</kbd> - <kbd>J</kbd> / <kbd>N</kbd>  | Preview move down         |
+| Key                                           | Action                                      |
+| :-------------------------------------------: | ------------------------------------------- |
+| <kbd>Enter</kbd>                              | Confirm                                     |
+| <kbd>Tab</kbd>                                | Toggle mark and move down                   |
+| <kbd>Shift</kbd> - <kbd>Tab</kbd>             | Toggle mark and move up                     |
+| <kbd>?</kbd>                                  | Toggle preview window                       |
+| <kbd>Alt</kbd> - <kbd>W</kbd>                 | Toggle preview wrap                         |
+| <kbd>Ctrl</kbd> - <kbd>S</kbd>                | Toggle sort                                 |
+| <kbd>Ctrl</kbd> - <kbd>R</kbd>                | Toggle selection                            |
+| <kbd>Ctrl</kbd> - <kbd>Y</kbd>                | Copy commit hash/stash ID*                  |
+| <kbd>Ctrl</kbd> - <kbd>K</kbd> / <kbd>P</kbd> | Selection move up                           |
+| <kbd>Ctrl</kbd> - <kbd>J</kbd> / <kbd>N</kbd> | Selection move down                         |
+| <kbd>Alt</kbd> - <kbd>K</kbd> / <kbd>P</kbd>  | Preview move up                             |
+| <kbd>Alt</kbd> - <kbd>J</kbd> / <kbd>N</kbd>  | Preview move down                           |
+| <kbd>Alt</kbd> - <kbd>E</kbd>                 | Open file in default editor (when possible) |
 
 \* Available when the selection contains a commit hash or a stash ID.
 For linux users `FORGIT_COPY_CMD` should be set to make copy work. Example: `FORGIT_COPY_CMD='xclip -selection clipboard'`.
@@ -138,6 +143,12 @@ For linux users `FORGIT_COPY_CMD` should be set to make copy work. Example: `FOR
 
 Options can be set via environment variables. They have to be **exported** in
 order to be recognized by `forgit`.
+
+For instance, if you want to order branches in `gcb` by the last committed date you could:
+
+```shell
+export FORGIT_CHECKOUT_BRANCH_BRANCH_GIT_OPTS='--sort=-committerdate'
+```
 
 #### shell aliases
 
@@ -314,16 +325,25 @@ export FORGIT_LOG_FZF_OPTS='
 
 - [`emoji-cli`](https://github.com/wfxr/emoji-cli): Emoji support for `git log`.
 
+### Completions
+
+#### Bash
+
+- Put [`completions/git-forgit.bash`](https://github.com/wfxr/forgit/blob/master/completions/git-forgit.bash) in
+  `~/.local/share/bash-completion/completions` to have bash tab completion for `git forgit` and configured git aliases.
+- Source [`completions/git-forgit.bash`](https://github.com/wfxr/forgit/blob/master/completions/git-forgit.bash) explicitly to have
+  bash tab completion for forgit shell functions and aliases (e.g. `gcb <tab>` completes branches).
+
+#### Zsh
+
+- Put [`completions/_git-forgit`](completions/_git-forgit) in a directory in your `$fpath` (e.g. `/usr/share/zsh/site-functions`) to have zsh tab completion for `git forgit` and configured git aliases.
+- Source [`completions/git-forgit.zsh`](completions/git-forgit.zsh) to have zsh tab completion for forgit shell functions and aliases (e.g. `gcb <tab>` completes branches).
+
 ### 💡 Tips
 
 - Most of the commands accept optional arguments (eg, `glo develop`, `glo f738479..188a849b -- main.go`, `gco master`).
 - `gd` supports specifying revision(eg, `gd HEAD~`, `gd v1.0 README.md`).
 - Call `gi` with arguments to get the wanted `.gitignore` contents directly(eg, `gi cmake c++`).
-- You can use the commands as sub-commands of `git`, see [#147](https://github.com/wfxr/forgit/issues/147) for details.
-- Put [`completions/git-forgit.bash`](https://github.com/wfxr/forgit/blob/master/completions/git-forgit.bash) in
-  `~/.local/share/bash-completion/completions` to have bash tab completion for `git forgit` and configured git aliases.
-- Source [`completions/git-forgit.bash`](https://github.com/wfxr/forgit/blob/master/completions/git-forgit.bash) explicitly to have
-  bash tab completion for forgit shell functions and aliases (e.g. `gcb <tab>` completes branches).
 
 ### 📃 License
 

@@ -98,7 +98,7 @@
 		(command: Execute, value: "pamixer --allow-boost -i 5", modifier: ["modkey"], key: "XF86XK_AudioRaiseVolume"),
 		(command: Execute, value: "pamixer --allow-boost -d 5", modifier: ["modkey"], key: "XF86XK_AudioLowerVolume"),
 		(command: Execute, value: "polybar-msg cmd toggle", modifier: ["modkey"], key: "F1"),
-        (command: Execute, value: "/usr/local/bin/capture_screenshot", modifier: ["modkey", "Shift"], key: "s"),
+        (command: Execute, value: "capture_screenshot", modifier: ["modkey", "Shift"], key: "s"),
     ],
     state_path: None,
 )

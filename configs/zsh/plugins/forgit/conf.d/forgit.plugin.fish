@@ -87,15 +87,15 @@ function forgit::checkout::commit -d "git checkout commit selector" --argument-n
     "$FORGIT" checkout_commit $argv
 end
 
-function forgit::branch::delete -d "git checkout branch deleter" --wraps "git branch --delete"
+function forgit::branch::delete -d "git branch deletion selector" --wraps "git branch --delete"
     "$FORGIT" branch_delete $argv
 end
 
-function forgit::revert::commit --argument-names 'commit_hash' --wraps "git revert --"
+function forgit::revert::commit -d "git revert commit selector" --argument-names 'commit_hash' --wraps "git revert --"
     "$FORGIT" revert_commit $argv
 end
 
-function forgit::blame
+function forgit::blame -d "git blame viewer"
     "$FORGIT" blame $argv
 end
 
@@ -190,7 +190,7 @@ if test -z "$FORGIT_NO_ALIASES"
     if test -n "$forgit_cherry_pick"
         alias $forgit_cherry_pick 'forgit::cherry::pick::from::branch'
     else
-        alias gcp 'forgit::cherry::pick'
+        alias gcp 'forgit::cherry::pick::from::branch'
     end
 
     if test -n "$forgit_rebase"
