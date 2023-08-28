@@ -22,7 +22,7 @@ setopt auto_cd
 setopt auto_pushd
 
 # fast typing
-xset r rate 300 60
+xset r rate 250 100
 
 zstyle :compinstall filename '~/.zshrc'
 autoload -Uz compinit && compinit
