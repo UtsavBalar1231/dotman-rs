@@ -22,6 +22,7 @@ local function on_attach(client, buffer)
 	vim.keymap.set("n", "gW", vim.lsp.buf.workspace_symbol, keymap_opts)
 	vim.keymap.set("n", "gd", vim.lsp.buf.definition, keymap_opts)
 	vim.keymap.set("n", "ga", vim.lsp.buf.code_action, keymap_opts)
+	vim.keymap.set("n", "gR", "<CMD>RustRunnables<CR>", keymap_opts)
 
 	-- Show diagnostic popup on cursor hover
 	local diag_float_grp = vim.api.nvim_create_augroup("DiagnosticFloat", { clear = true })
@@ -42,7 +43,11 @@ end
 -- See https://github.com/simrat39/rust-tools.nvim#configuration
 local opts = {
 	tools = {
+		autoSetHints = true,
 		runnables = {
+			use_telescope = true,
+		},
+		debuggables = {
 			use_telescope = true,
 		},
 		inlay_hints = {
@@ -50,6 +55,19 @@ local opts = {
 			show_parameter_hints = false,
 			parameter_hints_prefix = "",
 			other_hints_prefix = "",
+		},
+		hover_actions = {
+			border = {
+				{ "╭", "FloatBorder" },
+				{ "─", "FloatBorder" },
+				{ "╮", "FloatBorder" },
+				{ "│", "FloatBorder" },
+				{ "╯", "FloatBorder" },
+				{ "─", "FloatBorder" },
+				{ "╰", "FloatBorder" },
+				{ "│", "FloatBorder" },
+			},
+			auto_focus = true,
 		},
 	},
 

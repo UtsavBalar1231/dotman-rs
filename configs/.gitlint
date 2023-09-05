@@ -3,7 +3,7 @@
 # ignore=title-trailing-punctuation, T3
 
 # verbosity should be a value between 1 and 3, the commandline -v flags take precedence over this
-verbosity = 2
+verbosity = 1
 
 # By default gitlint will ignore merge, revert, fixup and squash commits.
 ignore-merge-commits=true

@@ -21,19 +21,19 @@ gitsigns.setup({
 		},
 		delete = {
 			hl = "GitSignsDelete",
-			text = "契",
+			text = "",
 			numhl = "GitSignsDeleteNr",
 			linehl = "GitSignsDeleteLn",
 		},
 		topdelete = {
 			hl = "GitSignsDelete",
-			text = "契",
+			text = "",
 			numhl = "GitSignsDeleteNr",
 			linehl = "GitSignsDeleteLn",
 		},
 		changedelete = {
 			hl = "GitSignsChange",
-			text = "契",
+			text = "",
 			numhl = "GitSignsChangeNr",
 			linehl = "GitSignsChangeLn",
 		},
@@ -80,7 +80,7 @@ gitsigns.setup({
 		map("n", "<leader>gU", gs.undo_stage_hunk)
 		map("n", "<leader>gS", gs.stage_buffer)
 		map("n", "<leader>gR", gs.reset_buffer)
-		map("n", "<leader>g", gs.reset_hunk)
+		map("n", "<leader>gu", gs.reset_hunk)
 		map({ "o", "x" }, "ih", ":<C-U>Gitsigns select_hunk<CR>")
 		map("v", "<leader>hr", function()
 			gs.reset_hunk({ vim.fn.line("."), vim.fn.line("v") })

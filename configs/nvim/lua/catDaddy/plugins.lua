@@ -105,6 +105,9 @@ return require("packer").startup(function(use)
 
 	--- Autocompletion and LSP }}}
 
+	-- Debugging
+	use("mfussenegger/nvim-dap")
+
 	-- Adds extra functionality over rust analyzer
 	use("simrat39/rust-tools.nvim")
 	use("rust-lang/rust.vim")
@@ -124,11 +127,13 @@ return require("packer").startup(function(use)
 			build = "make",
 		},
 		"nvim-telescope/telescope-file-browser.nvim",
+		"nvim-telescope/telescope-ui-select.nvim",
 	})
 
 	-- GitHub
 	use({
-		"github/copilot.vim",
+		-- "github/copilot.vim",
+		"Exafunction/codeium.vim",
 		"lewis6991/gitsigns.nvim",
 	})
 
