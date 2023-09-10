@@ -6,9 +6,9 @@ CUR_DIR=$(dirname "${CMD}")
 # shellcheck disable=SC1090
 source "${CUR_DIR}"/scripts/utils.sh
 
-# Install exa (ls replacement): {{{
-if command -v exa &>/dev/null; then
-	cargo install exa
+# Install eza (ls replacement): {{{
+if command -v eza &>/dev/null; then
+	cargo install eza
 fi
 # }}}
 

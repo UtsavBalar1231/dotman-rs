@@ -1,10 +1,10 @@
 #/usr/bin/env zsh
 
 # alias for ls
-alias ls='exa'
-alias ll='exa -l -g --icons'
-alias la='exa -la -g --icons'
-alias l='exa -l'
+alias ls='eza'
+alias ll='eza -l -g --icons'
+alias la='eza -la -g --icons'
+alias l='eza -l'
 
 # alias for bat
 alias b='bat'
@@ -19,19 +19,19 @@ alias n='nvim'
 alias v='vim'
 
 # git aliases
-alias gbr='git branch'
+alias gb='git branch'
 alias gc='git clone'
 alias gca='git commit --amend'
 alias gch='git checkout'
 alias gcl='git clean'
-alias gco='git commit'
+alias gcm='git commit'
 alias gcp='git cherry-pick'
 alias gd='git diff'
 alias gdc='git diff --cached'
 alias gf='git fetch'
 alias gl1='git log --oneline'
 alias gl='git log'
-alias gpl='git pull'
+alias gp='git pull'
 alias gps='git push'
 alias gr='git revert'
 alias grb='git rebase'
