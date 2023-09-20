@@ -21,10 +21,10 @@ local packer_bootstrap = ensure_packer()
 return require("packer").startup(function(use)
 	use("wbthomason/packer.nvim")
 
-	-- Sexy gruvbox theme
-	-- use("sainnhe/gruvbox-material")
-
-	use({ "catppuccin/nvim" })
+	-- Themes
+	-- use({ "catppuccin/nvim" })
+	use("rebelot/kanagawa.nvim")
+	-- use("ellisonleao/gruvbox.nvim")
 
 	-- A fucking fast status line
 	-- Requires nvim-web-devicons
@@ -135,6 +135,7 @@ return require("packer").startup(function(use)
 		-- "github/copilot.vim",
 		"Exafunction/codeium.vim",
 		"lewis6991/gitsigns.nvim",
+		"tpope/vim-fugitive",
 	})
 
 	-- Identline for better indent

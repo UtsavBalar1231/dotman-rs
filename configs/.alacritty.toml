@@ -35,10 +35,6 @@ magenta = "#F5C2E7" # pink
 cyan = "#94E2D5" # teal
 white = "#BAC2DE" # subtext1
 
-[colors.indexed]
-color = "#FAB387"
-index = 16
-
 [colors.primary]
 background = "0x1d2021"
 foreground = "0xd5c4a1"
@@ -176,7 +172,9 @@ decorations = "full"
 dynamic_padding = true
 dynamic_title = true
 startup_mode = "windowed"
+opacity = 0.8
 
 [window.dimensions]
 columns = 140
 lines = 38
+

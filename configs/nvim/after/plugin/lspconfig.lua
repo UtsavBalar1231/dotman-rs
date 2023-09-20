@@ -46,7 +46,12 @@ require("lspconfig").efm.setup(vim.tbl_extend("force", efmls_config, {
 	capabilities = lsp_status.capabilities,
 }))
 
-local black = require("efmls-configs.formatters.black")
+local black = {
+	lintCommand = "black",
+	lintStdin = true,
+	formatCommand = "black",
+	formatStdin = true,
+}
 local clang_format = require("efmls-configs.formatters.clang_format")
 local clang_tidy = require("efmls-configs.linters.clang_tidy")
 local cpplint = require("efmls-configs.linters.cpplint")
@@ -215,6 +220,12 @@ lspconfig.pyright.setup({
 
 -- marksman
 lspconfig.marksman.setup({
+	capabilities = lsp_status.capabilities,
+	on_attach = lsp_status.on_attach,
+})
+
+-- SystemVerilog
+lspconfig.svls.setup({
 	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })

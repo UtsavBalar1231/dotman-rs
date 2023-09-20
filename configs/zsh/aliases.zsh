@@ -15,6 +15,7 @@ alias rgf='rg --files'
 alias rgd='rg --files-with-matches'
 alias fd='fdfind'
 
+# alias for vim
 alias n='nvim'
 alias v='vim'
 
@@ -44,5 +45,8 @@ alias gs='git status'
 # find using fzf and edit
 alias ffe='fzf-find-edit'
 
+# alias for sudo
 alias sudo='sudo '
-alias tvmc='python3 -m tvm.driver.tvmc'
+
+# alias for ssh
+alias ssh="TERM=xterm-256color ssh"

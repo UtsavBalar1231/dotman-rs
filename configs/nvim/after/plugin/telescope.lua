@@ -24,6 +24,7 @@ vim.keymap.set("n", "<leader>ft", builtin.tags, {})
 vim.keymap.set("n", "<leader>f/", builtin.current_buffer_fuzzy_find, {})
 vim.keymap.set("n", "<leader>f?", builtin.current_buffer_tags, {})
 vim.keymap.set("n", "<leader>fe", builtin.diagnostics, {})
+vim.keymap.set("n", "<leader>fq", builtin.quickfix, {})
 
 -- Map <leader>f[ to goto previous diagnostic
 vim.keymap.set("n", "<leader>f[", function()

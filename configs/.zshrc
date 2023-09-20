@@ -22,12 +22,16 @@ setopt auto_cd
 setopt auto_pushd
 
 # fast typing
-xset r rate 300 60
+xset r rate 250 100
 
 zstyle :compinstall filename '~/.zshrc'
 autoload -Uz compinit && compinit
 zstyle ':completion:*' menu select
 # zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+# Theme
+export STARSHIP_CONFIG=~/.config/starship.toml
+eval "$(starship init zsh)"
 
 # Enable syntax highlighting
 source ~/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
@@ -38,17 +42,11 @@ source ~/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 # Enable FZF
 source ~/.config/zsh/plugins/fzf-zsh-plugin/fzf-zsh-plugin.plugin.zsh
 
-# Enable forgit
-#source ~/.config/zsh/plugins/forgit/forgit.plugin.zsh
-
 # Enable zsh f-sy-h
 source ~/.config/zsh/plugins/F-Sy-H/F-Sy-H.plugin.zsh
 
 # zsh - z
 source ~/.config/zsh/plugins/zsh-z/zsh-z.plugin.zsh
-
-# Theme
-source ~/.config/zsh/plugins/agkozak-zsh-prompt/agkozak-zsh-prompt.plugin.zsh
 
 # Enable aliases
 setopt aliases
@@ -85,8 +83,6 @@ if [ -f ~/.gitlint ]; then
 	export GITLINT_CONFIG
 fi
 
-# alias ssh="kitty +kitten ssh"
-
 if [ -d /usr/local/go ]; then
 	export GOARCH=amd64
 	export GOOS=linux
@@ -94,30 +90,13 @@ if [ -d /usr/local/go ]; then
 	export PATH=$GOROOT/bin:$PATH
 fi
 
-AGKOZAK_CMD_EXEC_TIME_CHARS=( '[' ']' )
-AGKOZAK_PROMPT_DIRTRIM=6
-# AGKOZAK_PROMPT_DIRTRIM_STRING=$'\u2026'
-AGKOZAK_VIRTUALENV_CHARS=( '(' ')' )
-
-AGKOZAK_COLORS_EXIT_STATUS=red
-AGKOZAK_COLORS_USER_HOST=green
-AGKOZAK_COLORS_PATH=blue
-AGKOZAK_COLORS_BRANCH_STATUS=yellow
-AGKOZAK_COLORS_PROMPT_CHAR=default
-AGKOZAK_COLORS_CMD_EXEC_TIME=blue
-AGKOZAK_COLORS_VIRTUALENV=green
-AGKOZAK_COLORS_BG_STRING=magenta
-
-# For single line prompt
-# AGKOZAK_MULTILINE=1
-
-AGKOZAK_PROMPT_CHAR=( '%F{magenta}❯%f' '%F{magenta}❯%f' '%F{magenta}❮%f' )
-
-AGKOZAK_CUSTOM_SYMBOLS=( '⇣⇡' '⇣' '⇡' '+' 'x' '!' '>' '?' 'S')
-
 autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey '^X^E' edit-command-line
 fpath+=${ZDOTDIR:-~}/.zsh_functions
 
-EDITOR=nvim
+if command -v nvim >/dev/null 2>&1; then
+	export EDITOR=nvim
+fi
+
+source /home/vicharak/.config/broot/launcher/bash/br
