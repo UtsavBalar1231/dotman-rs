@@ -50,3 +50,5 @@ alias sudo='sudo '
 
 # alias for ssh
 alias ssh="TERM=xterm-256color ssh"
+
+alias alacritty="wmctrl -x -a "tabbed" || tabbed alacritty --embed&"

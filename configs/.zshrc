@@ -99,4 +99,4 @@ if command -v nvim >/dev/null 2>&1; then
 	export EDITOR=nvim
 fi
 
-source /home/vicharak/.config/broot/launcher/bash/br
+source ~/.config/broot/launcher/bash/br

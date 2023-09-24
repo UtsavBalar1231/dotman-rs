@@ -2,5 +2,14 @@
 
 leftwm-command "UnloadTheme"
 
-pkill picom
-pkill polybar
+if command -v picom >/dev/null 2>&1; then
+	pkill picom
+fi
+
+if command -v polybar >/dev/null 2>&1; then
+	pkill polybar
+fi
+
+if command -v lxpolkit >/dev/null 2>&1; then
+	pkill lxpolkit
+fi

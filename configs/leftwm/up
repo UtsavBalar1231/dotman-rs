@@ -9,14 +9,11 @@ elif [ -f /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
 	/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 fi
 
-# Mount the drives
-udisksctl mount -b /dev/sda1 --no-user-interaction &
-
 # make keyboard smooth
 xset r rate 250 100
 
 # Set the background
-ps ax back4.sh | awk '{print $1}' | xargs kill
+# ps ax back4.sh | awk '{print $1}' | xargs kill
 
 # back4.sh auto ~/.config/leftwm/grave-of-the-fireflies.gif &
 feh --fullscreen --bg-scale ~/.config/leftwm/grave-of-the-fireflies.jpg
