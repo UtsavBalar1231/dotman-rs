@@ -4,27 +4,27 @@ if not status_ok then
 	return
 end
 
-local get_hex = require('cokeline.hlgroups').get_hl_attr
+local hlgroups = require("cokeline.hlgroups")
 
 cokeline.setup({
 	default_hl = {
 		fg = function(buffer)
 			return
 				buffer.is_focused
-				and get_hex('Normal', 'fg')
-				or get_hex('Comment', 'fg')
+				and hlgroups.get_hl_attr('Normal', 'fg')
+				or hlgroups.get_hl_attr('Comment', 'fg')
 		end,
-		bg = get_hex('ColorColumn', 'bg'),
+		bg = hlgroups.get_hl_attr('ColorColumn', 'bg'),
 	},
 
 	components = {
 		{
 			text = ' ',
-			bg = get_hex('Normal', 'bg'),
+			bg = hlgroups.get_hl_attr('Normal', 'bg'),
 		},
 		{
-			fg = get_hex('ColorColumn', 'bg'),
-			bg = get_hex('Normal', 'bg'),
+			fg = hlgroups.get_hl_attr('ColorColumn', 'bg'),
+			bg = hlgroups.get_hl_attr('Normal', 'bg'),
 		},
 		{
 			text = function(buffer)
@@ -48,8 +48,8 @@ cokeline.setup({
 			delete_buffer_on_left_click = true,
 		},
 		{
-			fg = get_hex('ColorColumn', 'bg'),
-			bg = get_hex('Normal', 'bg'),
+			fg = hlgroups.get_hl_attr('ColorColumn', 'bg'),
+			bg = hlgroups.get_hl_attr('Normal', 'bg'),
 		},
 	},
 })

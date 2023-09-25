@@ -7,15 +7,38 @@ if not status_ok then
 	return
 end
 
-if not status_ok_lspkind then
-	vim.notify("Cannot load `lspkind`", vim.log.levels.ERROR)
-	return
-end
-
 if not status_ok_luasnip then
 	vim.notify("Cannot load `luasnip`", vim.log.levels.ERROR)
 	return
 end
+
+local kind_icons = {
+	Class = "󰠱",
+	Color = "󰏘",
+	Constant = "󰏿",
+	Constructor = "",
+	Enum = "",
+	EnumMember = "",
+	Event = "",
+	Field = "󰇽",
+	File = "󰈙",
+	Folder = "󰉋",
+	Function = "󰊕",
+	Interface = "",
+	Keyword = "󰌋",
+	Method = "󰆧",
+	Module = "",
+	Operator = "󰆕",
+	Property = "󰜢",
+	Reference = "",
+	Snippet = "",
+	Struct = "",
+	Text = "",
+	TypeParameter = "󰅲",
+	Unit = "",
+	Value = "󰎠",
+	Variable = "󰂡",
+}
 
 cmp.setup({
 	enabled = function()
@@ -32,27 +55,12 @@ cmp.setup({
 	formatting = {
 		fields = { "kind", "abbr", "menu" },
 		format = function(entry, vim_item)
-			if entry.source.name == "copilot" then
-				vim_item.kind = "[] Copilot"
-				vim_item.kind_hl_group = "CmpItemKindCopilot"
+			local icon, hl_group = require("nvim-web-devicons").get_icon(entry:get_completion_item().label)
+			if icon then
+				vim_item.kind = icon
+				vim_item.kind_hl_group = hl_group
 				return vim_item
 			end
-			-- fancy icons and a name of kind
-			vim_item.kind = lspkind.presets.default[vim_item.kind] .. " " .. vim_item.kind
-
-			-- set a name for each source
-			vim_item.menu = ({
-				path = "[Path]",
-				nvim_lsp = "[LSP]",
-				copilot = "[Copilot]",
-				spell = "[Spell]",
-				cmdline = "[CMD]",
-				cmp_git = "[GIT]",
-				luasnip = "[LuaSnip]",
-				nvim_lua = "[NLua]",
-				buffer = "[Buffer]",
-			})[entry.source.name]
-			return vim_item
 		end,
 	},
 	preselect = cmp.PreselectMode.None,
@@ -122,12 +130,12 @@ cmp.setup({
 		{ name = "path", priority = 250 },
 		{ name = "buffer", keyword_length = 2, priority = 500 },
 		{ name = "luasnip", priority = 750 },
-		{ name = "nvim_lsp", priority = 1000 },
+		{ name = "nvim_lsp", priority = 750 },
 	},
 
 	cmp.setup.filetype({ "gitcommit" }, {
 		sources = {
-			{ name = "cmp_git" }, -- You can specify the `cmp_git` source if you were installed it.
+			{ name = "cmp_git" },
 			{ name = "buffer" },
 		},
 	}),
@@ -137,7 +145,7 @@ cmp.setup({
 			{ name = "luasnip" },
 			{ name = "crates" },
 		},
-	})
+	}),
 })
 
 -- have a fixed column for the diagnostics to appear in
@@ -148,17 +156,22 @@ vim.api.nvim_set_option("updatetime", 200)
 vim.cmd([[ highlight! default link CmpItemKind CmpItemMenuDefault ]])
 
 -- cmp highlights (gruvbox)
--- vim.cmd([[ highlight! CmpItemAbbrDeprecated guibg=NONE gui=strikethrough guifg=#7c6f64 ]])
--- vim.cmd([[ highlight! CmpItemAbbrMatch guibg=NONE guifg=#458588 ]])
--- vim.cmd([[ highlight! link CmpItemAbbrMatchFuzzy CmpItemAbbrMatch ]])
--- vim.cmd([[ highlight! CmpItemKindVariable guibg=NONE guifg=#83A598 ]])
--- vim.cmd([[ highlight! link CmpItemKindInterface CmpItemKindVariable ]])
--- vim.cmd([[ highlight! link CmpItemKindText CmpItemKindVariable ]])
--- vim.cmd([[ highlight! CmpItemKindFunction guibg=NONE guifg=#D3869B ]])
--- vim.cmd([[ highlight! link CmpItemKindMethod CmpItemKindFunction ]])
--- vim.cmd([[ highlight! CmpItemKindKeyword guibg=NONE guifg=#EBDBB2 ]])
--- vim.cmd([[ highlight! link CmpItemKindProperty CmpItemKindKeyword ]])
--- vim.cmd([[ highlight! link CmpItemKindUnit CmpItemKindKeyword ]])
+-- gray
+vim.api.nvim_set_hl(0, "CmpItemAbbrDeprecated", { bg = "NONE", strikethrough = true, fg = "#7c6f64" })
+-- blue
+vim.api.nvim_set_hl(0, "CmpItemAbbrMatch", { bg = "NONE", fg = "#7daea3" })
+vim.api.nvim_set_hl(0, "CmpItemAbbrMatchFuzzy", { link = "CmpIntemAbbrMatch" })
+-- aqua
+vim.api.nvim_set_hl(0, "CmpItemKindVariable", { bg = "NONE", fg = "#89b482" })
+vim.api.nvim_set_hl(0, "CmpItemKindInterface", { link = "CmpItemKindVariable" })
+vim.api.nvim_set_hl(0, "CmpItemKindText", { link = "CmpItemKindVariable" })
+-- pink
+vim.api.nvim_set_hl(0, "CmpItemKindFunction", { bg = "NONE", fg = "#d3869b" })
+vim.api.nvim_set_hl(0, "CmpItemKindMethod", { link = "CmpItemKindFunction" })
+-- front
+vim.api.nvim_set_hl(0, "CmpItemKindKeyword", { bg = "NONE", fg = "#ddc7a1" })
+vim.api.nvim_set_hl(0, "CmpItemKindProperty", { link = "CmpItemKindKeyword" })
+vim.api.nvim_set_hl(0, "CmpItemKindUnit", { link = "CmpItemKindKeyword" })
 
 --- Enable floating window for diagnostics
 --- Map to <C-e> to toggle
@@ -168,5 +181,3 @@ vim.api.nvim_set_keymap(
 	"<cmd>lua vim.diagnostic.open_float(0, { focus=false })<CR>",
 	{ noremap = true, silent = true }
 )
-
--- vim.cmd([[ autocmd! CursorHold,CursorHoldI * lua vim.diagnostic.open_float(nil, { focus=false }) ]])

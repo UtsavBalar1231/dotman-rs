@@ -6,41 +6,61 @@ CUR_DIR=$(dirname "${CMD}")
 # shellcheck disable=SC1090
 source "${CUR_DIR}"/scripts/utils.sh
 
-# Install eza (ls replacement): {{{
 if command -v eza &>/dev/null; then
 	cargo install eza
 fi
-# }}}
 
-# Install bat (cat replacement): {{{
 if command -v bat &>/dev/null; then
 	cargo install bat
 fi
-# }}}
 
-# Install fd (find replacement): {{{
 if command -v fd &>/dev/null; then
 	cargo install fd-find
 fi
-# }}}
 
-# Install ripgrep (grep replacement): {{{
 if command -v rg &>/dev/null; then
 	cargo install ripgrep
 fi
-# }}}
 
-# Install dprint (code formatter): {{{
 if ! command -v dprint >/dev/null 2>&1; then
 	cargo install dprint
 fi
-# }}}
 
-# Install stylua (lua formatter): {{{
 if ! command -v stylua >/dev/null 2>&1; then
 	cargo install stylua
 fi
-# }}}
+
+if ! command -v git-delta >/dev/null 2>&1; then
+	cargo install git-delta
+fi
+
+if ! command -v cargo-bloat >/dev/null 2>&1; then
+	cargo install cargo-bloat
+fi
+
+if ! command -v cargo-bump >/dev/null 2>&1; then
+	cargo install cargo-bump
+fi
+
+if ! command -v cargo-update >/dev/null 2>&1; then
+	cargo install cargo-update
+fi
+
+if ! command -v dysk >/dev/null 2>&1; then
+	cargo install dysk
+fi
+
+if ! command -v fcp >/dev/null 2>&1; then
+	cargo install fcp
+fi
+
+if ! command -v broot >/dev/null 2>&1; then
+	cargo install broot
+fi
+
+if ! command -v svls >/dev/null 2>&1; then
+	cargo install svls
+fi
 
 # Install btop
 ARCH=$(uname -m)
