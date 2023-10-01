@@ -2,10 +2,10 @@
 (
     dotconfigs_path: Local("~/dotfiles/configs/"),
     configs: [
-        (name: "leftwm", path: "/home/utsav/.config/leftwm/", hash: "5d401bd5e8e50c70b0925013888998f6712d5c8e", conf_type: Dir),
-        (name: "nvim", path: "/home/utsav/.config/nvim/", hash: "3d35c07a9b61df8584f2857544cc5fdc56ca939e", conf_type: Dir),
+        (name: "leftwm", path: "/home/utsav/.config/leftwm/", hash: "8ffd1fbd8acf3460edf7c0c16af90799b6e68855", conf_type: Dir),
+        (name: "nvim", path: "/home/utsav/.config/nvim/", hash: "793f5cfc8fba3bd061849d966885d5c04f41bab4", conf_type: Dir),
         (name: "polybar", path: "/home/utsav/.config/polybar/", hash: "a1b32ea5e28df49c640b292221113d95f196ae0e", conf_type: Dir),
-        (name: "rofi", path: "/home/utsav/.config/rofi/", hash: "b03b7bd29de48ba2d0ba4d95ae7f5b585f8e0053", conf_type: Dir),
+        (name: "rofi", path: "/home/utsav/.config/rofi/", hash: "aa1b9ccc938590238f38a0f1904378796ce378f2", conf_type: Dir),
         (name: "zsh", path: "/home/utsav/.config/zsh/", hash: "a232a32a17df3b442a5cffd3a287ce76c5223bc0", conf_type: Dir),
         (name: "kitty", path: "/home/utsav/.config/kitty/", hash: "16b222d53b605d7fc083f18717853cca31ddc6de", conf_type: Dir),
         (name: "sync-dotfiles", path: "/home/utsav/.config/sync-dotfiles/", hash: "04eeef852430041f84f59cc43593af3c4b08ae38", conf_type: Dir),

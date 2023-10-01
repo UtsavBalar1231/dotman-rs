@@ -1,14 +1,13 @@
 * {
-    bg-col:  #1d2021;
+    bg-col:  #000000;
     bg-col-light: #1d2021;
-    border-col: #1d2021;
-    selected-col: #1d2021;
+    selected-col: #282828;
     blue: #b8bb26;
     fg-col: #fbf1c7;
     fg-col2: #ebdbb2;
     grey: #928374;
 
-    width: 600;
+    width: 800;
     font: "JetBrainsMono Nerd Font 14";
 }
 
@@ -18,9 +17,7 @@ element-text, element-icon , mode-switcher {
 }
 
 window {
-    height: 480px;
-    border: 3px;
-    border-color: @border-col;
+    height: 600px;
     background-color: @bg-col;
 }
 
@@ -81,7 +78,7 @@ element selected {
 
 mode-switcher {
     spacing: 0;
-  }
+}
 
 button {
     padding: 10px;
@@ -109,4 +106,3 @@ textbox {
     text-color: @blue;
     background-color: @bg-col-light;
 }
-

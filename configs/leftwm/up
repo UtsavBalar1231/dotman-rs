@@ -13,7 +13,8 @@ fi
 xset r rate 250 100
 
 # Set the background
-# ps ax back4.sh | awk '{print $1}' | xargs kill
+ps ax back4.sh | awk '{print $1}' | xargs kill
 
-# back4.sh auto ~/.config/leftwm/grave-of-the-fireflies.gif &
-feh --fullscreen --bg-scale ~/.config/leftwm/grave-of-the-fireflies.jpg
+back4.sh auto ~/.config/leftwm/wallpaper.gif &
+
+#feh --fullscreen --bg-scale ~/.config/leftwm/grave-of-the-fireflies.jpg

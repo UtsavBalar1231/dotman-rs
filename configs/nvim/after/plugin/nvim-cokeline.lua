@@ -4,7 +4,7 @@ if not status_ok then
 	return
 end
 
-local get_hex = require('cokeline/utils').get_hex
+local get_hex = require('cokeline.hlgroups').get_hl_attr
 
 cokeline.setup({
 	default_hl = {
