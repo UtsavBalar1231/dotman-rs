@@ -23,13 +23,17 @@ return require("packer").startup(function(use)
 
 	-- Themes
 	-- use({ "catppuccin/nvim" })
-	use("rebelot/kanagawa.nvim")
-	-- use("ellisonleao/gruvbox.nvim")
+	-- use("rebelot/kanagawa.nvim")
+	use("ellisonleao/gruvbox.nvim")
 
 	-- A fucking fast status line
 	-- Requires nvim-web-devicons
-	use("nvim-lualine/lualine.nvim")
-	use("nvim-tree/nvim-web-devicons")
+	use({
+		"nvim-lualine/lualine.nvim",
+		requires = {
+			"nvim-tree/nvim-web-devicons",
+		},
+	})
 
 	-- match-up is a plugin that lets you highlight, navigate, and operate on sets of matching text.
 	use({
@@ -42,36 +46,15 @@ return require("packer").startup(function(use)
 	-- Tree Sitter plugin
 	use({ "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" })
 	use({ "nvim-treesitter/nvim-treesitter-textobjects" })
-	use({
-		"nvim-treesitter/nvim-treesitter-context",
-		config = function()
-			require("treesitter-context").setup({
-				enable = true, -- Enable this plugin (Can be enabled/disabled later via commands)
-				max_lines = 0, -- How many lines the window should span. Values <= 0 mean no limit.
-				min_window_height = 0, -- Minimum editor window height to enable context. Values <= 0 mean no limit.
-				line_numbers = true,
-				multiline_threshold = 20, -- Maximum number of lines to collapse for a single context line
-				trim_scope = "outer", -- Which context lines to discard if `max_lines` is exceeded. Choices: 'inner', 'outer'
-				mode = "cursor", -- Line used to calculate context. Choices: 'cursor', 'topline'
-				-- Separator between context and content. Should be a single character string, like '-'.
-				-- When separator is set, the context will only show up when there are at least 2 lines above cursorline.
-				separator = nil,
-				zindex = 20, -- The Z-index of the context window
-				on_attach = nil, -- (fun(buf: integer): boolean) return false to disable attaching
-			})
-		end,
-	})
+	use({ "nvim-treesitter/nvim-treesitter-context" })
 
 	-- Sphinx
-	use({ "stsewd/sphinx.nvim", run = ":UpdateRemotePlugins" })
+	-- use({ "stsewd/sphinx.nvim", run = ":UpdateRemotePlugins" })
 
 	--- Autocompletion and LSP {{{
 	use("neovim/nvim-lspconfig")
 
 	-- LSP Manager
-	use("williamboman/mason.nvim")
-	use("williamboman/mason-lspconfig.nvim") -- Autocompletion
-
 	use("hrsh7th/nvim-cmp")
 	use("hrsh7th/cmp-buffer")
 	use("hrsh7th/cmp-path")
@@ -90,7 +73,6 @@ return require("packer").startup(function(use)
 	})
 
 	-- LSP UI
-	use("onsails/lspkind-nvim")
 	use({
 		"NvChad/nvim-colorizer.lua",
 		config = function()
