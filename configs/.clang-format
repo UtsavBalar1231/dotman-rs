@@ -8,7 +8,6 @@
 #   https://clang.llvm.org/docs/ClangFormat.html
 #   https://clang.llvm.org/docs/ClangFormatStyleOptions.html
 #
-#
 ---
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
@@ -64,7 +63,6 @@ DerivePointerAlignment: false
 DisableFormat: false
 ExperimentalAutoDetectBinPacking: false
 FixNamespaceComments: false
-
 IncludeBlocks: Preserve
 IncludeCategories:
   - Regex: '.*'

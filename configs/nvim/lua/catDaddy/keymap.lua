@@ -100,11 +100,23 @@ keymap("n", "<leader>,", ":set list!<CR>", default_options)
 -- <leader>x to chmod +x the current file
 keymap("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
 
--- Move lines in visual line mode
-keymap("v", "J", ":m '>+1<CR>gv=gv", default_options)
-keymap("v", "K", ":m '<-2<CR>gv=gv", default_options)
-keymap("v", "<leader><Down>", ":m '>+1<CR>gv=gv", default_options)
-keymap("v", "<leader><Up>", ":m '<-2<CR>gv=gv", default_options)
+-- Keybindings for moving lines in normal mode
+keymap("n", "<A-j>", ":m .+1<CR>==", default_options)
+keymap("n", "<A-k>", ":m .-2<CR>==", default_options)
+keymap("n", "<A-Down>", ":m .+1<CR>==", default_options)
+keymap("n", "<A-Up>", ":m .-2<CR>==", default_options)
+
+-- Keybindings for moving lines in insert mode
+keymap("i", "<A-j>", "<Esc>:m .+1<CR>==gi", default_options)
+keymap("i", "<A-k>", "<Esc>:m .-2<CR>==gi", default_options)
+keymap("i", "<A-Down>", "<Esc>:m .+1<CR>==gi", default_options)
+keymap("i", "<A-Up>", "<Esc>:m .-2<CR>==gi", default_options)
+
+-- Keybindings for moving lines in visual mode
+keymap("x", "<A-j>", ":m '>+1<CR>gv=gv", default_options)
+keymap("x", "<A-k>", ":m '<-2<CR>gv=gv", default_options)
+keymap("x", "<A-Down>", ":m '>+1<CR>gv=gv", default_options)
+keymap("x", "<A-Up>", ":m '<-2<CR>gv=gv", default_options)
 
 -- Update and install plugins
 keymap("n", "<leader>uu", ":PackerSync<CR>", default_options)

@@ -114,23 +114,6 @@ opt.formatoptions:append("t") -- Auto indent after <C-t>
 opt.formatoptions:append("c") -- Auto indent comment lines
 opt.formatoptions:append("b") -- Auto indent after <C-o>
 
----------------------------
---- Editor Optimization ---
----------------------------
--- Enable background buffers
-opt.hidden = true
--- Remember N lines in history
-opt.history = 10000
--- Faster scrolling
-opt.lazyredraw = true
--- Max column for syntax highlight
-opt.synmaxcol = 300
--- Disable swap files
-opt.swapfile = false
-
--- remove toolbar from guioptions
-vim.cmd("set guioptions-=T")
-
 --- Make diffing better: https://vimways.org/2018/the-power-of-diff/
 opt.diffopt:append("iwhite")
 opt.diffopt:append("algorithm:patience")

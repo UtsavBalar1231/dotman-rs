@@ -102,3 +102,7 @@ fi
 if command -v broot >/dev/null 2>&1; then
 	source ~/.config/broot/launcher/bash/br
 fi
+
+export ACE_INSTALL_DIR=/home/vicharak/hdd/achronix/ACE/Achronix-linux
+export PATH=${PATH}:/home/vicharak/hdd/achronix/SNPS/linux64/bin
+

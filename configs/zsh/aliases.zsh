@@ -52,3 +52,6 @@ alias sudo='sudo '
 alias ssh="TERM=xterm-256color ssh"
 
 alias alacritty="wmctrl -x -a "tabbed" || tabbed alacritty --embed&"
+
+alias micro="nvim"
+alias nano="nvim"

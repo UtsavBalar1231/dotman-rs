@@ -3,11 +3,7 @@
 autorandr -c
 
 # Polkit agent
-if command -v lxpolkit >/dev/null 2>&1; then
-	/usr/bin/lxpolkit &
-elif [ -f /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
-	/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
-fi
+lxpolkit &
 
 # make keyboard smooth
 xset r rate 250 100

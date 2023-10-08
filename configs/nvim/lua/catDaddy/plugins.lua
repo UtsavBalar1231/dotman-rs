@@ -66,17 +66,23 @@ return require("packer").startup(function(use)
 	use("L3MON4D3/LuaSnip")
 	use("rafamadriz/friendly-snippets")
 
-	-- LSP Formatting
-	use({
-		"creativenull/efmls-configs-nvim",
-		requires = { "neovim/nvim-lspconfig" },
-	})
+	-- LSP Linting and Formatting
+	use("mfussenegger/nvim-lint")
+	use("stevearc/conform.nvim")
+
+	-- LSP Manager
+	use("williamboman/mason.nvim")
+	use("williamboman/mason-lspconfig.nvim")
 
 	-- LSP UI
 	use({
 		"NvChad/nvim-colorizer.lua",
 		config = function()
 			require("colorizer").setup({})
+			-- execute colorizer as soon as possible
+			vim.defer_fn(function()
+				require("colorizer").attach_to_buffer(0)
+			end, 0)
 		end,
 	})
 
@@ -87,14 +93,12 @@ return require("packer").startup(function(use)
 
 	--- Autocompletion and LSP }}}
 
-	-- Debugging
-	use("mfussenegger/nvim-dap")
-
 	-- Adds extra functionality over rust analyzer
 	use("simrat39/rust-tools.nvim")
 	use("rust-lang/rust.vim")
 	use({
 		"Saecki/crates.nvim",
+
 		config = function()
 			require("crates").setup()
 		end,

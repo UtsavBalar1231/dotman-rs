@@ -1,5 +1,4 @@
 local status_ok, cmp = pcall(require, "cmp")
-local status_ok_lspkind, lspkind = pcall(require, "lspkind")
 local status_ok_luasnip, luasnip = pcall(require, "luasnip")
 
 if not status_ok then
@@ -61,6 +60,22 @@ cmp.setup({
 				vim_item.kind_hl_group = hl_group
 				return vim_item
 			end
+			-- fancy icons and a name of kind
+			vim_item.kind = string.format("%s %s", kind_icons[vim_item.kind], vim_item.kind)
+
+			-- set a name for each source
+			vim_item.menu = ({
+				path = "[Path]",
+				nvim_lsp = "[LSP]",
+				copilot = "[Copilot]",
+				spell = "[Spell]",
+				cmdline = "[CMD]",
+				cmp_git = "[GIT]",
+				luasnip = "[LuaSnip]",
+				nvim_lua = "[NLua]",
+				buffer = "[Buffer]",
+			})[entry.source.name]
+			return vim_item
 		end,
 	},
 	preselect = cmp.PreselectMode.None,
@@ -128,9 +143,9 @@ cmp.setup({
 	sources = {
 		{ name = "crates", priority = 250 },
 		{ name = "path", priority = 250 },
-		{ name = "buffer", keyword_length = 2, priority = 500 },
-		{ name = "luasnip", priority = 750 },
-		{ name = "nvim_lsp", priority = 750 },
+		{ name = "buffer", keyword_length = 3, priority = 500 },
+		{ name = "nvim_lsp", keyword_length = 1, priority = 650 },
+		{ name = "luasnip", keyword_length = 2, priority = 750 },
 	},
 
 	cmp.setup.filetype({ "gitcommit" }, {
