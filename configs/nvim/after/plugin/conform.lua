@@ -27,14 +27,14 @@ conform.setup({
 	-- This can also be a function that returns the table.
 	format_on_save = {
 		-- I recommend these options. See :help conform.format for details.
-		lsp_fallback = true,
+		lsp_fallback = false,
 		timeout_ms = 500,
 	},
 	-- If this is set, Conform will run the formatter asynchronously after save.
 	-- It will pass the table to conform.format().
 	-- This can also be a function that returns the table.
 	format_after_save = {
-		lsp_fallback = true,
+		lsp_fallback = false,
 	},
 	-- Set the log level. Use `:ConformInfo` to see the location of the log file.
 	log_level = vim.log.levels.ERROR,

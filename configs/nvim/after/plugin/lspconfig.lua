@@ -90,7 +90,7 @@ local shfmt = {
 	formatStdin = true,
 }
 
-local css_format = {
+local prettier = {
 	formatCommand = "prettier",
 	formatStdin = true,
 }
@@ -134,7 +134,8 @@ lspconfig.efm.setup({
 		languages = {
 			bash = { shellcheck, shfmt },
 			sh = { shellcheck, shfmt },
-			css = { css_format },
+			css = { prettier },
+			yaml = { prettier },
 		},
 	},
 })

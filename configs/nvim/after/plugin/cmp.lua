@@ -144,6 +144,7 @@ cmp.setup({
 		{ name = "crates", priority = 250 },
 		{ name = "path", priority = 250 },
 		{ name = "buffer", keyword_length = 3, priority = 500 },
+		{ name = "nvim_lua", keyword_length = 1, priority = 650 },
 		{ name = "nvim_lsp", keyword_length = 1, priority = 650 },
 		{ name = "luasnip", keyword_length = 2, priority = 750 },
 	},

@@ -28,7 +28,7 @@ treesitter_configs.setup({
 		"vim",
 		"yaml",
 	},
-	matchup = { enable = true },
+	matchup = { enable = false },
 	auto_install = true,
 	auto_tag = {
 		enable = true,
