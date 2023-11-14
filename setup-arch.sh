@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # Check if $DISPLAY is set
-if [ -z "$DISPLAY" ]; then
+active_monitors=$(xrandr | grep -c " connected")
+if [ -n "$active_monitors" ]; then
 	# Configure polybar: {{{
 	sudo pacman --noconfirm -S polybar
 	# }}}
@@ -13,25 +14,22 @@ if [ ! -d /root/.config ]; then
 fi
 
 if [ ! -d /root/.config/nvim ]; then
-	sudo ln -s ~/.config/nvim/ /root/.config/nvim
+	sudo cp -afr ~/.config/nvim/ /root/.config/nvim
 fi
 
 nvim --headless +PackerSync +qa
-
-bash scripts/setup-nvim-lspservers.sh
-
 # }}}
 
 # Configure zsh: {{{
-sudo chsh "$(whoami)" -s /bin/zsh
-sudo chsh -s /bin/zsh
+sudo chsh "$(whoami)" -s "$(which zsh)"
+sudo chsh -s "$(which zsh)"
 
 if [ ! -d /root/.config/zsh ]; then
-	sudo ln -s ~/.config/zsh/ /root/.config/zsh
+	sudo cp -afr ~/.config/zsh/ /root/.config/zsh
 fi
 
-echo "DO!:"
-echo -e "\033[1;32msource ${HOME}/.zshrc\033[0m"
+# shellcheck disable=SC1090
+source ~/.zshrc
 # }}}
 
-zsh
+exec $(which zsh)

@@ -3,7 +3,7 @@
 CMD=$(realpath "${0}")
 CUR_DIR=$(dirname "${CMD}")
 
-# shellcheck disable=SC1090
+# shellcheck source=scripts/utils.sh
 source "${CUR_DIR}"/scripts/utils.sh
 
 if command -v eza &>/dev/null; then
@@ -97,7 +97,7 @@ if [ ! -d /root/.config ]; then
 fi
 
 if [ ! -d /root/.config/nvim ]; then
-	sudo ln -s ~/.config/nvim/ /root/.config/nvim
+	sudo cp -afr ~/.config/nvim/ /root/.config/nvim
 fi
 
 # run packersync
@@ -105,15 +105,15 @@ nvim --headless +PackerSync +qa
 # }}}
 
 # Configure zsh: {{{
-sudo chsh "$(whoami)" -s /bin/zsh
-sudo chsh -s /bin/zsh
+sudo chsh "$(whoami)" -s "$(which zsh)"
+sudo chsh -s "$(which zsh)"
 
 if [ ! -d /root/.config/zsh ]; then
-	sudo ln -s ~/.config/zsh/ /root/.config/zsh
+	sudo cp -afr ~/.config/zsh/ /root/.config/zsh
 fi
 
-echo "DO!:"
-echo -e "\033[1;32msource ${HOME}/.zshrc\033[0m"
+# shellcheck disable=SC1090
+source ~/.zshrc
 # }}}
 
 # Setup fonts: {{{
@@ -134,4 +134,4 @@ else
 	sudo apt-get install -y nodejs npm
 fi
 
-zsh
+exec $(which zsh)
