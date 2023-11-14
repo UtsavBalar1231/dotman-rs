@@ -130,6 +130,16 @@ return require("packer").startup(function(use)
 	-- Comments support
 	use({ "numToStr/Comment.nvim", requires = "JoosepAlviste/nvim-ts-context-commentstring" })
 
+	use({
+		"mikesmithgh/kitty-scrollback.nvim",
+		disable = false,
+		opt = true,
+		cmd = { "KittyScrollbackGenerateKittens", "KittyScrollbackCheckHealth" },
+		config = function()
+			require("kitty-scrollback").setup()
+		end,
+	})
+
 	-- Buffer Line
 	use({
 		"willothy/nvim-cokeline",

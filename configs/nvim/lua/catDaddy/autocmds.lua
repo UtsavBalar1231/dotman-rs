@@ -70,13 +70,3 @@ autocmd("BufReadPost", {
 	pattern = "",
 	command = [[if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif]],
 })
-
--- Help with filetypes detection
-autocmd("BufNewFile,BufRead", { pattern = "*.sh", command = "set filetype=bash" })
-autocmd("BufNewFile,BufRead", { pattern = "*.gitignore", command = "set filetype=gitignore" })
-autocmd("BufNewFile,BufRead", { pattern = "*.md", command = "set filetype=markdown" })
-autocmd("BufNewFile,BufRead", { pattern = "*.S", command = "set filetype=asm" })
-autocmd("BufNewFile,BufRead", { pattern = "*.asm", command = "set filetype=asm" })
-autocmd("BufNewFile,BufRead", { pattern = "*.s", command = "set filetype=asm" })
-autocmd("BufNewFile,BufRead", { pattern = "*.zsh", command = "set filetype=zsh" })
-autocmd("BufNewFile,BufRead", { pattern = "*.lua", command = "set filetype=lua" })
