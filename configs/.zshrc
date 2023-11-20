@@ -108,8 +108,11 @@ export PATH=${PATH}:/home/vicharak/hdd/achronix/SNPS/linux64/bin
 
 export EFINITY_HOME=$HOME/hdd/shreeyash/efinity/2023.1/
 export EFXPT_HOME=$EFINITY_HOME/pt
+export EFXPGM_HOME=$EFINITY_HOME/pgm
 export PYTHON_PATH=$EFINITY_HOME/bin
 export PATH=$PYTHON_PATH:$EFINITY_HOME/scripts:$PATH
 
 export DEBFULLNAME="UtsavBalar1231"
 export DEBEMAIL="utsavbalar1231@gmail.com"
+
+export TERM=xterm-256color

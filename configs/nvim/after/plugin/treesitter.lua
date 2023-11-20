@@ -5,12 +5,11 @@ if not status_ok then
 	return
 end
 
+require('ts_context_commentstring').setup()
+vim.g.skip_ts_context_commentstring_module = true
+
 -- Treesitter Plugin Setup Start --
 treesitter_configs.setup({
-	context_commentstring = {
-		enable = true,
-		enable_autocmd = true,
-	},
 	ensure_installed = {
 		"bash",
 		"c",

@@ -19,6 +19,7 @@ conform.setup({
 		python = { "black" },
 		rust = { "rustfmt" },
 		yaml = { "yamlfmt" },
+		yml = { "yamlfmt" },
 		["*"] = { "codespell" },
 		["_"] = { "trim_whitespace" },
 	},

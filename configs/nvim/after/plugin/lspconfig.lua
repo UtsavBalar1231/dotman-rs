@@ -95,6 +95,16 @@ local prettier = {
 	formatStdin = true,
 }
 
+local yamlfmt = {
+	formatCommand = "yamlfmt",
+	formatStdin = true,
+}
+
+local rst_pandoc = {
+	formatCommand = "pandoc -f rst -t rst -s --columns=79",
+	formatStdin = true,
+}
+
 lspconfig.efm.setup({
 	on_attach = lsp_status.on_attach,
 	capabilities = lsp_status.capabilities,
@@ -135,7 +145,9 @@ lspconfig.efm.setup({
 			bash = { shellcheck, shfmt },
 			sh = { shellcheck, shfmt },
 			css = { prettier },
-			yaml = { prettier },
+			yaml = { prettier, yamlfmt },
+			rst = { rst_pandoc },
+			restructuredtext = { rst_pandoc },
 		},
 	},
 })
@@ -217,8 +229,13 @@ lspconfig.vimls.setup({
 	on_attach = lsp_status.on_attach,
 })
 
--- yaml
-lspconfig.yamlls.setup({
+lspconfig.lemminx.setup({
 	capabilities = lsp_status.capabilities,
 	on_attach = lsp_status.on_attach,
 })
+
+-- yaml
+-- lspconfig.yamlls.setup({
+-- 	capabilities = lsp_status.capabilities,
+-- 	on_attach = lsp_status.on_attach,
+-- })

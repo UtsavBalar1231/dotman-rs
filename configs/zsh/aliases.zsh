@@ -8,6 +8,7 @@ alias l='eza -l'
 
 # alias for bat
 alias b='bat'
+alias cat='bat'
 
 # alias for rg
 alias rg='rg --smart-case'
