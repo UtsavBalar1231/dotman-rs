@@ -1,7 +1,7 @@
 local status_ok, nvimlint = pcall(require, "lint")
 
 if not status_ok then
-	vim.notify("Missing nvim-lint", vim.log.levels.ERROR)
+	vim.notify("Missing nvim-lint plugin", vim.log.levels.WARNING)
 	return
 end
 

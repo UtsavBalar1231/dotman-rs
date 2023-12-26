@@ -20,3 +20,4 @@
         (name: "i3wm", path: "/home/vicharak/.config/i3", hash: "c56bcb88d5c50a6cdd5ebd2ae030af3100c9ffa5", conf_type: Dir),
     ],
 )
+

@@ -1,7 +1,7 @@
 local status_ok, telescope = pcall(require, "telescope")
 
 if not status_ok then
-	vim.notify("Missing telescope.nvim", vim.log.levels.ERROR)
+	vim.notify("Missing telescope.nvim plugin", vim.log.levels.WARNING)
 	return
 end
 

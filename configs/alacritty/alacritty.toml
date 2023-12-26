@@ -58,10 +58,10 @@ thickness = 0.24
 unfocused_hollow = false
 
 [cursor.vi_mode_style]
-shape = "Block"
+shape = "Beam"
 
 [cursor.style]
-shape = "Beam"
+shape = "Block"
 
 [env]
 TERM = "xterm-256color"

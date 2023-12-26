@@ -1,7 +1,7 @@
 local status_ok, comment = pcall(require, "Comment")
 
 if not status_ok then
-	vim.notify("Missing Comment.nvim dependency", vim.log.levels.ERROR)
+	vim.notify("Missing Comment.nvim dependency", vim.log.levels.WARNING)
 	return
 end
 

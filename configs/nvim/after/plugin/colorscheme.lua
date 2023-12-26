@@ -114,12 +114,21 @@
 -- }}}
 
 -- gruvbox: {{{
-require("gruvbox").setup({
+local status_ok, gruvbox = pcall(require, "gruvbox")
+
+if not status_ok then
+	vim.notify("Missing gruvbox theme plugin", vim.log.levels.WARNING)
+	return
+end
+
+gruvbox.setup({
+	terminal_colors = true,
 	undercurl = true,
 	underline = true,
 	bold = true,
 	italic = {
 		strings = true,
+		emphasis = true,
 		comments = true,
 		operators = false,
 		folds = true,
@@ -155,8 +164,3 @@ vim.cmd.colorscheme("gruvbox")
 
 -- Set background to dark
 vim.opt.background = "dark"
-
--- Enable filetype plugin support
-vim.opt.filetype:append("plugin")
-
-vim.opt.syntax = "on"

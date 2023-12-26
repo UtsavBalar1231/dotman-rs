@@ -1,7 +1,7 @@
 local status_ok, gitsigns = pcall(require, "gitsigns")
 
 if not status_ok then
-	vim.notify("Missing gitsigns.nvim dependency", vim.log.levels.ERROR)
+	vim.notify("Missing gitsigns.nvim plugin", vim.log.levels.WARNING)
 	return
 end
 

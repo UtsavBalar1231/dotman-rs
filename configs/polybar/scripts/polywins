@@ -1,23 +1,22 @@
 #!/usr/bin/env bash
 
-# Forked from: https://github.com/tam-carre/polywins
 
 # SETTINGS {{{ ---
 
-active_text_color="#dfdfdf"
+active_text_color="#ddc7a1"
 active_bg=
-active_underline="#fabd2f"
+active_underline="#a9b665"
 
-inactive_text_color="#555"
+inactive_text_color="#504945"
 inactive_bg=
 inactive_underline=
 
-separator=" | "
+separator="  "
 show="icon" # options: window_title, window_classname, icon
 forbidden_names="Polybar Conky Gmrun"
-empty_desktop_message=""
+empty_desktop_message="Desktop"
 
-char_limit=20
+char_limit=15
 max_windows=15
 char_case="normal" # normal, upper, lower
 add_spaces="true"
@@ -47,36 +46,44 @@ main() {
 get_icon_by_name()
 {
 	name=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+
 	declare -A ICON_MAP=(
-		[alacritty]=
-		[kitty]=
-		[vim]=
-		[nvim]=
-		[firefox]=
-		[firefox-beta]=
-		[chromium]=
-		[google-chrome-beta]=
-		[vivaldi-stable]=
-		[tor]=
-		[gnome-calculator]=
-		[gnome-calendar]=
-		[gnome-control-center]=
-		[gnome-terminal]=
-		[gpaste-ui]=
-		[eog]=
-		[evince]=
-		[10]=
-		[nautilus]=
-		[file-roller]=
-		[mailspring]=
-		[keepassxc]=
-		[steam]=
-		[skype]=
-		[slack]=
-		[spotify]=
-		[telegramdesktop]=
-		[xterm]=
-		[tilix]=
+		["alacritty"]=
+		["chromium"]=
+		["code"]=󰨞
+		["codium"]=󰨞
+		["codeinsiders"]=󰨞
+		["eog"]=
+		["evince"]=
+		["fileroller"]=
+		["firefox"]=
+		["firefoxbeta"]=
+		["firefoxdeveloperedition"]=
+		["galculator"]=
+		["gnomecalculator"]=
+		["gnomecalendar"]=
+		["gnomecontrolcenter"]=
+		["gnometerminal"]=
+		["googlechrome"]=
+		["googlechromeunstable"]=
+		["googlechromebeta"]=
+		["gpasteui"]=
+		["keepassxc"]=
+		["kitty"]=
+		["mailspring"]=
+		["nautilus"]=
+		["nvim"]=
+		["pcmanfm"]=󰉋
+		["skype"]=
+		["slack"]=
+		["spotify"]=
+		["steam"]=
+		["telegramdesktop"]=
+		["tilix"]=
+		["tor"]=
+		["vim"]=
+		["vivaldistable"]=
+		["xterm"]=
 	)
 
 	if [ ${ICON_MAP[$name]+_} ]; then
@@ -135,8 +142,6 @@ decrement_size() {
 }
 
 # --- }}}
-
-
 
 # WINDOW LIST SETUP {{{ ---
 

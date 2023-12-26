@@ -1,6 +1,6 @@
 local status_ok, cokeline = pcall(require, 'cokeline')
 if not status_ok then
-	vim.notify('Cannot load `cokeline`', vim.log.levels.ERROR)
+	vim.notify('Missing nvim-cokeline plugin', vim.log.levels.WARNING)
 	return
 end
 

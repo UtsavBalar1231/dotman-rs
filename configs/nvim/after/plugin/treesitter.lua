@@ -1,12 +1,9 @@
 local status_ok, treesitter_configs = pcall(require, "nvim-treesitter.configs")
 
 if not status_ok then
-	vim.notify("Missing nvim-treesitter.configs", vim.log.levels.ERROR)
+	vim.notify("Missing nvim-treesitter.configs plugin", vim.log.levels.WARNING)
 	return
 end
-
-require('ts_context_commentstring').setup()
-vim.g.skip_ts_context_commentstring_module = true
 
 -- Treesitter Plugin Setup Start --
 treesitter_configs.setup({
@@ -113,15 +110,34 @@ treesitter_configs.setup({
 	},
 })
 
-require("treesitter-context").setup({
-	enable = true,
-	max_lines = 0,
-	min_window_height = 0,
-	line_numbers = true,
-	multiline_threshold = 20,
-	trim_scope = "outer",
-	mode = "cursor",
-	separator = nil,
-	zindex = 20,
-	on_attach = nil,
-})
+local status_treesitter_context, treesitter_context = pcall(require, "treesitter-context")
+
+if not status_treesitter_context then
+	vim.notify("Missing treesitter context plugin", vim.log.levels.WARNING)
+else
+	treesitter_context.setup({
+		enable = true,
+		max_lines = 0,
+		min_window_height = 0,
+		line_numbers = true,
+		multiline_threshold = 20,
+		trim_scope = "outer",
+		mode = "cursor",
+		separator = nil,
+		zindex = 20,
+		on_attach = nil,
+	})
+end
+
+local status_ts_context_commentstring, ts_context_commentstring = pcall(require, "ts_context_commentstring")
+
+if not status_ts_context_commentstring then
+	vim.notify("Missing ts_context_commentstring plugin", vim.log.levels.WARNING)
+else
+	ts_context_commentstring.setup({
+		enable_autocmd = true,
+	})
+
+	vim.g.skip_ts_context_comment = true
+end
+

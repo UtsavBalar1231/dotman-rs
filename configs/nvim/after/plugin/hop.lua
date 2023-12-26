@@ -1,7 +1,7 @@
 local status_ok, hop = pcall(require, "hop")
 
 if not status_ok then
-	vim.notify("Missing hop dependency", vim.log.levels.ERROR)
+	vim.notify("Missing hop plugin", vim.log.levels.WARNING)
 	return
 end
 

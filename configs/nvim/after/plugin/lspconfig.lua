@@ -1,13 +1,13 @@
 local status_ok, lspconfig = pcall(require, "lspconfig")
 
 if not status_ok then
-	vim.notify("Missing lspconfig dependency", vim.log.levels.ERROR)
+	vim.notify("Missing lspconfig plugin", vim.log.levels.WARNING)
 	return
 end
 
 local status_ok_lspstatus, lsp_status = pcall(require, "lsp-status")
 if not status_ok_lspstatus then
-	vim.notify("lsp-status not found", vim.log.levels.WARN)
+	vim.notify("Missing lsp-status plugin", vim.log.levels.WARN)
 	return
 end
 

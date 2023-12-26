@@ -8,13 +8,15 @@ alias l='eza -l'
 
 # alias for bat
 alias b='bat'
-alias cat='bat'
 
 # alias for rg
 alias rg='rg --smart-case'
 alias rgf='rg --files'
 alias rgd='rg --files-with-matches'
-alias fd='fdfind'
+
+if command -v fdfind >/dev/null; then
+	alias fd='fdfind'
+fi
 
 # alias for vim
 alias n='nvim'
@@ -53,6 +55,3 @@ alias sudo='sudo '
 alias ssh="TERM=xterm-256color ssh"
 
 alias alacritty="wmctrl -x -a "tabbed" || tabbed alacritty --embed&"
-
-alias micro="nvim"
-alias nano="nvim"

@@ -54,7 +54,7 @@ autocmd("TextYankPost", {
 })
 
 -- Remove whitespace on save
-autocmd("BufWritePre", { pattern = "", command = ":%s/\\s\\+$//e" })
+-- autocmd("BufWritePre", { pattern = "", command = ":%s/\\s\\+$//e" })
 
 -- Set completeopt to have a better completion experience
 autocmd("InsertEnter", { pattern = "", command = "setlocal completeopt=menuone,noselect" })

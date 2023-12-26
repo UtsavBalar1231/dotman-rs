@@ -152,3 +152,6 @@ keymap("n", "sj", "<C-w>j", default_options)
 -- Disable :help on <F1>
 keymap("n", "<F1>", "<ESC>", default_options)
 keymap("i", "<F1>", "<ESC>", default_options)
+
+-- Set w!! to write the file with sudo permissions
+keymap("c", "w!!", "w !sudo tee > /dev/null %", default_options)

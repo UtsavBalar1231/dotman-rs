@@ -1,7 +1,7 @@
 local status_ok, lualine = pcall(require, "lualine")
 
 if not status_ok then
-	vim.notify("Missing lualine.nvim dependency", vim.log.levels.ERROR)
+	vim.notify("Missing lualine.nvim plugin", vim.log.levels.WARNING)
 	return
 end
 

@@ -13,7 +13,7 @@
     mousekey: "Mod4",
     workspaces: [
 		( output: "eDP-1", y: 0, x: 0, height: 1080, width: 1920, id: 0 ),
-		( output: "HDMI-A-1", y: 0, x: 0, height: 1080, width: 1920, id: 1 ),
+		( output: "HDMI-1-1", y: 0, x: 0, height: 1080, width: 1920, id: 1 ),
 	],
     tags: [
         "󰆍",

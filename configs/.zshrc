@@ -4,9 +4,9 @@ setopt histignoredups
 setopt sharehistory
 setopt incappendhistory
 
-HISTSIZE=10000
+HISTSIZE=100000
 SAVEHIST=10000
-HISTFILE=~/.zsh_history
+HISTFILE=${HOME}/.zsh_history
 
 # Enable auto completion
 setopt auto_menu
@@ -14,43 +14,38 @@ setopt auto_list
 setopt auto_param_keys
 setopt auto_param_slash
 setopt auto_remove_slash
-
-# Enable auto cd
-setopt auto_cd
-
-# Enable auto pushd
+setopt autocd
 setopt auto_pushd
 
-# fast typing
-xset r rate 250 100
-
-zstyle :compinstall filename '~/.zshrc'
+zstyle :compinstall filename '${HOME}/.zshrc'
 autoload -Uz compinit && compinit
 zstyle ':completion:*' menu select
 # zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 
 # Theme
-export STARSHIP_CONFIG=~/.config/starship.toml
-eval "$(starship init zsh)"
+if command -v starship >/dev/null; then
+	export STARSHIP_CONFIG=${HOME}/.config/starship.toml
+	eval "$(starship init zsh)"
+fi
 
 # Enable syntax highlighting
-source ~/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source ${HOME}/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # Enable auto suggestions
-source ~/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+source ${HOME}/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 # Enable FZF
-source ~/.config/zsh/plugins/fzf-zsh-plugin/fzf-zsh-plugin.plugin.zsh
+source ${HOME}/.config/zsh/plugins/fzf-zsh-plugin/fzf-zsh-plugin.plugin.zsh
 
 # Enable zsh f-sy-h
-source ~/.config/zsh/plugins/F-Sy-H/F-Sy-H.plugin.zsh
+source ${HOME}/.config/zsh/plugins/F-Sy-H/F-Sy-H.plugin.zsh
 
 # zsh - z
-source ~/.config/zsh/plugins/zsh-z/zsh-z.plugin.zsh
+source ${HOME}/.config/zsh/plugins/zsh-z/zsh-z.plugin.zsh
 
 # Enable aliases
 setopt aliases
-source ~/.config/zsh/aliases.zsh
+source ${HOME}/.config/zsh/aliases.zsh
 
 # key bindings
 bindkey -v
@@ -69,21 +64,32 @@ bindkey -M viins "^P" up-history
 bindkey -M viins "^N" down-history
 
 # Cargo environment
-if [ -f ~/.cargo/env ]; then
-	source ~/.cargo/env
+if command -v rustup >/dev/null; then
+	if [ -f ${HOME}/.cargo/env ]; then
+		source ${HOME}/.cargo/env
+	else
+		export PATH="${HOME}/.cargo/bin:${PATH}"
+	fi
 fi
 
-if [ -d ~/.local/bin/ ]; then
+# Python binaries
+if [ -d ${HOME}/.local/bin ]; then
 	export PATH="${HOME}/.local/bin":${PATH}
 fi
 
+# Mason binaries
+if [ -d ${HOME}/.local/share/nvim/mason/bin ]; then
+	export PATH="${HOME}/.local/share/nvim/mason/bin":${PATH}
+fi
+
 # Gitlint
-if [ -f ~/.gitlint ]; then
-	GITLINT_CONFIG=~/.gitlint
+if [ -f ${HOME}/.gitlint ]; then
+	GITLINT_CONFIG=${HOME}/.gitlint
 	export GITLINT_CONFIG
 fi
 
-if [ -d /usr/local/go ]; then
+# custom Golang
+if [ -d "/usr/local/go" ]; then
 	export GOARCH=amd64
 	export GOOS=linux
 	export GOROOT=/usr/local/go
@@ -93,26 +99,12 @@ fi
 autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey '^X^E' edit-command-line
-fpath+=${ZDOTDIR:-~}/.zsh_functions
+fpath+=${ZDOTDIR:-${HOME}}/.zsh_functions
 
 if command -v nvim >/dev/null 2>&1; then
 	export EDITOR=nvim
 fi
 
 if command -v broot >/dev/null 2>&1; then
-	source ~/.config/broot/launcher/bash/br
+	source ${HOME}/.config/broot/launcher/bash/br
 fi
-
-export ACE_INSTALL_DIR=/home/vicharak/hdd/achronix/ACE/Achronix-linux
-export PATH=${PATH}:/home/vicharak/hdd/achronix/SNPS/linux64/bin
-
-export EFINITY_HOME=$HOME/hdd/shreeyash/efinity/2023.1/
-export EFXPT_HOME=$EFINITY_HOME/pt
-export EFXPGM_HOME=$EFINITY_HOME/pgm
-export PYTHON_PATH=$EFINITY_HOME/bin
-export PATH=$PYTHON_PATH:$EFINITY_HOME/scripts:$PATH
-
-export DEBFULLNAME="UtsavBalar1231"
-export DEBEMAIL="utsavbalar1231@gmail.com"
-
-export TERM=xterm-256color

@@ -1,7 +1,7 @@
 local status_ok, conform = pcall(require, "conform")
 
 if not status_ok then
-	vim.notify("Cannot load `cmp`", vim.log.levels.ERROR)
+	vim.notify("Missing conform plugin", vim.log.levels.WARNING)
 	return
 end
 
@@ -20,7 +20,6 @@ conform.setup({
 		rust = { "rustfmt" },
 		yaml = { "yamlfmt" },
 		yml = { "yamlfmt" },
-		["*"] = { "codespell" },
 		["_"] = { "trim_whitespace" },
 	},
 	-- If this is set, Conform will run the formatter on save.
@@ -38,7 +37,7 @@ conform.setup({
 		lsp_fallback = false,
 	},
 	-- Set the log level. Use `:ConformInfo` to see the location of the log file.
-	log_level = vim.log.levels.ERROR,
+	log_level = vim.log.levels.WARNING,
 	-- Conform will notify you when a formatter errors
 	notify_on_error = true,
 })
