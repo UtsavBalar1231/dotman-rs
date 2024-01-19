@@ -35,6 +35,14 @@ return require("packer").startup(function(use)
 		},
 	})
 
+	-- LSP progress
+	use({
+		"j-hui/fidget.nvim",
+		config = function()
+			require("fidget").setup()
+		end,
+	})
+
 	-- match-up is a plugin that lets you highlight, navigate, and operate on sets of matching text.
 	use({
 		"andymass/vim-matchup",
@@ -66,9 +74,8 @@ return require("packer").startup(function(use)
 	use("L3MON4D3/LuaSnip")
 	use("rafamadriz/friendly-snippets")
 
-	-- LSP Linting and Formatting
-	use("mfussenegger/nvim-lint")
-	use("stevearc/conform.nvim")
+	-- LSP Linting, Diagnostics, Code-Completions and Formatting
+	use("nvimtools/none-ls.nvim")
 
 	-- LSP Manager
 	use("williamboman/mason.nvim")
@@ -84,11 +91,6 @@ return require("packer").startup(function(use)
 				require("colorizer").attach_to_buffer(0)
 			end, 0)
 		end,
-	})
-
-	-- LSP status
-	use({
-		"nvim-lua/lsp-status.nvim",
 	})
 
 	--- Autocompletion and LSP }}}
@@ -108,10 +110,7 @@ return require("packer").startup(function(use)
 	use({
 		"nvim-lua/plenary.nvim",
 		"nvim-telescope/telescope.nvim",
-		{
-			"nvim-telescope/telescope-fzf-native.nvim",
-			build = "make",
-		},
+		"nvim-telescope/telescope-frecency.nvim",
 		"nvim-telescope/telescope-file-browser.nvim",
 		"nvim-telescope/telescope-ui-select.nvim",
 	})

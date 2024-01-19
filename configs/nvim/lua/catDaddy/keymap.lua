@@ -126,6 +126,7 @@ keymap("n", "<leader>dd", ":bd<CR>", default_options)
 
 -- LSP code formatting
 keymap("n", "<leader>F", "<cmd>lua vim.lsp.buf.format { async = true } <CR>", default_options)
+keymap("v", "<Leader>1f", "<cmd>lua vim.lsp.buf.format { async = true } <CR>", default_options)
 
 --- Window navigation {{{
 

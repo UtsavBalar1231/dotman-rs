@@ -49,8 +49,8 @@ local function save_profiles(threshold)
 end
 
 time([[Luarocks path setup]], true)
-local package_path_str = "/home/utsav/.cache/nvim/packer_hererocks/2.1.1702233742/share/lua/5.1/?.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1702233742/share/lua/5.1/?/init.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1702233742/lib/luarocks/rocks-5.1/?.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1702233742/lib/luarocks/rocks-5.1/?/init.lua"
-local install_cpath_pattern = "/home/utsav/.cache/nvim/packer_hererocks/2.1.1702233742/lib/lua/5.1/?.so"
+local package_path_str = "/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/share/lua/5.1/?.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/share/lua/5.1/?/init.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/lib/luarocks/rocks-5.1/?.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/lib/luarocks/rocks-5.1/?/init.lua"
+local install_cpath_pattern = "/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/lib/lua/5.1/?.so"
 if not string.find(package.path, package_path_str, 1, true) then
   package.path = package.path .. ';' .. package_path_str
 end
@@ -114,16 +114,17 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/codeium.vim",
     url = "https://github.com/Exafunction/codeium.vim"
   },
-  ["conform.nvim"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/conform.nvim",
-    url = "https://github.com/stevearc/conform.nvim"
-  },
   ["crates.nvim"] = {
     config = { "\27LJ\2\n4\0\0\3\0\3\0\0066\0\0\0'\2\1\0B\0\2\0029\0\2\0B\0\1\1K\0\1\0\nsetup\vcrates\frequire\0" },
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/crates.nvim",
     url = "https://github.com/Saecki/crates.nvim"
+  },
+  ["fidget.nvim"] = {
+    config = { "\27LJ\2\n4\0\0\3\0\3\0\0066\0\0\0'\2\1\0B\0\2\0029\0\2\0B\0\1\1K\0\1\0\nsetup\vfidget\frequire\0" },
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/fidget.nvim",
+    url = "https://github.com/j-hui/fidget.nvim"
   },
   ["friendly-snippets"] = {
     loaded = true,
@@ -159,11 +160,6 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/opt/kitty-scrollback.nvim",
     url = "https://github.com/mikesmithgh/kitty-scrollback.nvim"
   },
-  ["lsp-status.nvim"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/lsp-status.nvim",
-    url = "https://github.com/nvim-lua/lsp-status.nvim"
-  },
   ["lualine.nvim"] = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/lualine.nvim",
@@ -178,6 +174,11 @@ _G.packer_plugins = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/mason.nvim",
     url = "https://github.com/williamboman/mason.nvim"
+  },
+  ["none-ls.nvim"] = {
+    loaded = true,
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/none-ls.nvim",
+    url = "https://github.com/nvimtools/none-ls.nvim"
   },
   ["nvim-cmp"] = {
     loaded = true,
@@ -194,11 +195,6 @@ _G.packer_plugins = {
     loaded = true,
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/nvim-colorizer.lua",
     url = "https://github.com/NvChad/nvim-colorizer.lua"
-  },
-  ["nvim-lint"] = {
-    loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/nvim-lint",
-    url = "https://github.com/mfussenegger/nvim-lint"
   },
   ["nvim-lspconfig"] = {
     loaded = true,
@@ -255,10 +251,10 @@ _G.packer_plugins = {
     path = "/home/utsav/.local/share/nvim/site/pack/packer/start/telescope-file-browser.nvim",
     url = "https://github.com/nvim-telescope/telescope-file-browser.nvim"
   },
-  ["telescope-fzf-native.nvim"] = {
+  ["telescope-frecency.nvim"] = {
     loaded = true,
-    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/telescope-fzf-native.nvim",
-    url = "https://github.com/nvim-telescope/telescope-fzf-native.nvim"
+    path = "/home/utsav/.local/share/nvim/site/pack/packer/start/telescope-frecency.nvim",
+    url = "https://github.com/nvim-telescope/telescope-frecency.nvim"
   },
   ["telescope-ui-select.nvim"] = {
     loaded = true,
@@ -300,6 +296,10 @@ time([[Config for crates.nvim]], false)
 time([[Config for nvim-colorizer.lua]], true)
 try_loadstring("\27LJ\2\nF\0\0\3\0\3\0\a6\0\0\0'\2\1\0B\0\2\0029\0\2\0)\2\0\0B\0\2\1K\0\1\0\21attach_to_buffer\14colorizer\frequire]\1\0\4\0\6\0\f6\0\0\0'\2\1\0B\0\2\0029\0\2\0004\2\0\0B\0\2\0016\0\3\0009\0\4\0003\2\5\0)\3\0\0B\0\3\1K\0\1\0\0\rdefer_fn\bvim\nsetup\14colorizer\frequire\0", "config", "nvim-colorizer.lua")
 time([[Config for nvim-colorizer.lua]], false)
+-- Config for: fidget.nvim
+time([[Config for fidget.nvim]], true)
+try_loadstring("\27LJ\2\n4\0\0\3\0\3\0\0066\0\0\0'\2\1\0B\0\2\0029\0\2\0B\0\1\1K\0\1\0\nsetup\vfidget\frequire\0", "config", "fidget.nvim")
+time([[Config for fidget.nvim]], false)
 
 -- Command lazy-loads
 time([[Defining lazy-load commands]], true)

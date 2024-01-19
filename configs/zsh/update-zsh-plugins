@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+declare -g plugins=(
+	"z-shell/F-Sy-H:main"
+	"zsh-users/zsh-autosuggestions:develop"
+	"zsh-users/zsh-completions:master"
+	"zsh-users/zsh-history-substring-search:master"
+	"zsh-users/zsh-syntax-highlighting:master"
+)
+
+for plugin in "${plugins[@]}"; do
+	plugin_name="${plugin%%:*}"
+	plugin_branch="${plugin#*:}"
+	rm -rf "$HOME/.config/zsh/plugins/$plugin_name"
+	git clone "https://github.com/$plugin_name" "$HOME/.config/zsh/plugins/$plugin_name" -b "$plugin_branch"
+done

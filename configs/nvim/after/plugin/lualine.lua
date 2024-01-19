@@ -27,7 +27,7 @@ local diagnostics = {
 	symbols = { error = " ", warn = " ", info = " " },
 	diagnostics_color = {
 		error = { fg = colors.red },
-		warn = { fg = colors.yellow },
+		warn = { fg = colors.orange },
 		info = { fg = colors.blue },
 	},
 	update_in_insert = false,
@@ -38,7 +38,7 @@ local diff = {
 	"diff",
 	colored = false,
 	symbols = {
-		modified = "柳",
+		modified = " ",
 		added = " ",
 		removed = " ",
 	},
@@ -76,7 +76,7 @@ local branch = {
 			elseif mode == "V" then
 				return ":V"
 			elseif mode == "" then
-				return "^ V ^"
+				return "[:o]"
 			elseif mode == "R" then
 				return "-_-"
 			elseif mode == "t" then
@@ -136,73 +136,6 @@ local encoding = {
 	end,
 }
 
-local status_lspstatus, lspstatus = pcall(require, "lsp-status")
-if status_lspstatus then
-	lspstatus.register_progress()
-else
-	vim.notify("lsp-status not found", vim.log.levels.WARN)
-	return
-end
-local messages = require("lsp-status/messaging").messages
-
-local lsp_client_name = function()
-	local clients = vim.lsp.get_active_clients()
-
-	if next(clients) == nil then
-		return "No Active LSP"
-	end
-
-	local client = clients[1].name
-	local lsp_symbol = " "
-
-	return lsp_symbol .. client
-end
-
-local function get_lsp_progress()
-	local buf_messages = messages()
-	local msgs = {}
-	local spinner_frames = { "⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷" }
-
-	for _, msg in ipairs(buf_messages) do
-		local name = msg.name
-		local client_name = "[" .. name .. "]"
-		local contents
-		if msg.progress then
-			contents = msg.title
-			if msg.message then
-				contents = contents .. " " .. msg.message
-			end
-
-			-- this percentage format string escapes a percent sign once to show a percentage and one more
-			-- time to prevent errors in vim statusline's because of it's treatment of % chars
-			if msg.percentage then
-				contents = contents .. string.format(" (%.0f%%%%)", msg.percentage)
-			end
-
-			if msg.spinner then
-				contents = spinner_frames[(msg.spinner % #spinner_frames) + 1] .. " " .. contents
-			end
-		elseif msg.status then
-			contents = msg.content
-			if msg.uri then
-				local urifilename = vim.uri_to_fname(msg.uri)
-				filename = vim.fn.fnamemodify(urifilename, ":~:.")
-				local space = math.min(60, math.floor(0.6 * vim.fn.winwidth(0)))
-				if #filename > space then
-					filename = vim.fn.pathshorten(filename)
-				end
-
-				contents = "(" .. filename .. ") " .. contents
-			end
-		else
-			contents = msg.content
-		end
-
-		table.insert(msgs, client_name .. " " .. contents)
-	end
-	return table.concat(msgs, " ")
-end
-
 lualine.setup({
 	options = {
 		icons_enabled = true,
@@ -216,8 +149,8 @@ lualine.setup({
 		lualine_a = { branch, diff },
 		lualine_b = { "mode" },
 		lualine_c = { filename, filesize, filetype, progress },
-		lualine_x = { lsp_client_name, get_lsp_progress },
-	lualine_y = {
+		lualine_x = {},
+		lualine_y = {
 			diagnostics,
 			encoding,
 		},

@@ -24,7 +24,10 @@ treesitter_configs.setup({
 		"vim",
 		"yaml",
 	},
-	matchup = { enable = false },
+	matchup = {
+		enable = true,
+		disable = { "latex" },
+	},
 	auto_install = true,
 	auto_tag = {
 		enable = true,
@@ -140,4 +143,3 @@ else
 
 	vim.g.skip_ts_context_comment = true
 end
-

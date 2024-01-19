@@ -66,6 +66,7 @@ telescope.setup({
 	pickers = {
 		find_files = {
 			hidden = true,
+			theme = "dropdown",
 		},
 	},
 	defaults = {
@@ -126,16 +127,10 @@ telescope.setup({
 		ui_select = {
 			require("telescope.themes").get_dropdown({}),
 		},
-		fzf = {
-			fuzzy = true,
-			override_generic_sorter = true,
-			override_file_sorter = true,
-			case_mode = "smart_case",
-		},
 		file_browser = {
 			hijack_netrw = true,
 			mappings = {
-				i = {
+				["i"] = {
 					["<C-w>"] = function()
 						vim.cmd("normal vbd")
 					end,
@@ -156,6 +151,7 @@ telescope.setup({
 		},
 	},
 })
-telescope.load_extension("file_browser")
-telescope.load_extension("ui-select")
 
+telescope.load_extension("file_browser")
+telescope.load_extension("frecency")
+telescope.load_extension("ui-select")

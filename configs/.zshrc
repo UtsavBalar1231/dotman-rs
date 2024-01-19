@@ -28,20 +28,28 @@ if command -v starship >/dev/null; then
 	eval "$(starship init zsh)"
 fi
 
-# Enable syntax highlighting
-source ${HOME}/.config/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# Zoxide
+if command -v zoxide >/dev/null; then
+	eval "$(zoxide init zsh)"
+fi
 
-# Enable auto suggestions
-source ${HOME}/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+# Plugins
+declare -g plugins=(
+	"z-shell/F-Sy-H:main"
+	"zsh-users/zsh-autosuggestions:develop"
+	"zsh-users/zsh-completions:master"
+	"zsh-users/zsh-history-substring-search:master"
+	"zsh-users/zsh-syntax-highlighting:master"
+)
 
-# Enable FZF
-source ${HOME}/.config/zsh/plugins/fzf-zsh-plugin/fzf-zsh-plugin.plugin.zsh
+for plugin in "${plugins[@]}"; do
+	plugin_name="${plugin%%:*}"
 
-# Enable zsh f-sy-h
-source ${HOME}/.config/zsh/plugins/F-Sy-H/F-Sy-H.plugin.zsh
-
-# zsh - z
-source ${HOME}/.config/zsh/plugins/zsh-z/zsh-z.plugin.zsh
+	if [ -d ${HOME}/.config/zsh/plugins/${plugin_name} ]; then
+		zsh_file=$(find ${HOME}/.config/zsh/plugins/${plugin_name} -maxdepth 1 -type f -name "*.zsh" | head -n 1)
+		source ${zsh_file}
+	fi
+done
 
 # Enable aliases
 setopt aliases
@@ -96,15 +104,43 @@ if [ -d "/usr/local/go" ]; then
 	export PATH=$GOROOT/bin:$PATH
 fi
 
+# Edit command line
 autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey '^X^E' edit-command-line
 fpath+=${ZDOTDIR:-${HOME}}/.zsh_functions
 
+# Set default editor
 if command -v nvim >/dev/null 2>&1; then
 	export EDITOR=nvim
 fi
 
+# Broot
 if command -v broot >/dev/null 2>&1; then
 	source ${HOME}/.config/broot/launcher/bash/br
 fi
+
+# ZSH plugins
+function update_zsh_plugins() {
+	for plugin in "${plugins[@]}"; do
+		plugin_name="${plugin%%:*}"
+		plugin_branch="${plugin#*:}"
+		echo "Updating $plugin_name" >&2
+		rm -rf "$HOME/.config/zsh/plugins/$plugin_name"
+		git clone "https://github.com/$plugin_name" "$HOME/.config/zsh/plugins/$plugin_name" -b "$plugin_branch"
+	done
+}
+
+# FZF
+if [ -f ~/.fzf.zsh ]; then
+	source ~/.fzf.zsh
+else
+	git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+	~/.fzf/install
+fi
+
+
+# Pyenv
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"

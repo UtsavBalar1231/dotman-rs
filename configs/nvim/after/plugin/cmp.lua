@@ -143,10 +143,10 @@ cmp.setup({
 	sources = {
 		{ name = "crates", priority = 250 },
 		{ name = "path", priority = 250 },
-		{ name = "buffer", keyword_length = 3, priority = 500 },
-		{ name = "nvim_lua", keyword_length = 1, priority = 650 },
-		{ name = "nvim_lsp", keyword_length = 1, priority = 650 },
-		{ name = "luasnip", keyword_length = 2, priority = 750 },
+		{ name = "buffer", keyword_length = 3, priority = 550 },
+		{ name = "nvim_lua", keyword_length = 1, priority = 600 },
+		{ name = "nvim_lsp", keyword_length = 1, priority = 500 },
+		{ name = "luasnip", keyword_length = 2, priority = 650 },
 	},
 
 	cmp.setup.filetype({ "gitcommit" }, {
@@ -188,12 +188,3 @@ vim.api.nvim_set_hl(0, "CmpItemKindMethod", { link = "CmpItemKindFunction" })
 vim.api.nvim_set_hl(0, "CmpItemKindKeyword", { bg = "NONE", fg = "#ddc7a1" })
 vim.api.nvim_set_hl(0, "CmpItemKindProperty", { link = "CmpItemKindKeyword" })
 vim.api.nvim_set_hl(0, "CmpItemKindUnit", { link = "CmpItemKindKeyword" })
-
---- Enable floating window for diagnostics
---- Map to <C-e> to toggle
-vim.api.nvim_set_keymap(
-	"n",
-	"<leader>e",
-	"<cmd>lua vim.diagnostic.open_float(0, { focus=false })<CR>",
-	{ noremap = true, silent = true }
-)
