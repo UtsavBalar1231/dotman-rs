@@ -18,15 +18,37 @@ setopt autocd
 setopt auto_pushd
 
 zstyle :compinstall filename '${HOME}/.zshrc'
-autoload -Uz compinit && compinit
+autoload -Uz +X bashcompinit && bashcompinit
+autoload -Uz +X compinit && compinit
 zstyle ':completion:*' menu select
 # zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 
+# Enable aliases
+setopt aliases
+source ${HOME}/.config/zsh/aliases.zsh
+
+# key bindings
+bindkey -v
+
+bindkey '^[[1;5C' forward-word
+bindkey '^[[1;5D' backward-word
+bindkey '^[[F' end-of-line
+bindkey '^[[H' beginning-of-line
+bindkey '^[[3~' delete-word
+bindkey '^[[2~' kill-line
+bindkey '^[[3~' delete-char
+
+bindkey -M viins "^E" end-of-line
+bindkey -M viins "^A" beginning-of-line
+bindkey -M viins "^P" up-history
+bindkey -M viins "^N" down-history
+
 # Theme
-if command -v starship >/dev/null; then
-	export STARSHIP_CONFIG=${HOME}/.config/starship.toml
-	eval "$(starship init zsh)"
+if ! command -v starship >/dev/null; then
+	curl -sS https://starship.rs/install.sh | sh
 fi
+export STARSHIP_CONFIG=${HOME}/.config/starship.toml
+eval "$(starship init zsh)"
 
 # Zoxide
 if command -v zoxide >/dev/null; then
@@ -51,33 +73,18 @@ for plugin in "${plugins[@]}"; do
 	fi
 done
 
-# Enable aliases
-setopt aliases
-source ${HOME}/.config/zsh/aliases.zsh
-
-# key bindings
-bindkey -v
-
-bindkey '^[[1;5C' forward-word
-bindkey '^[[1;5D' backward-word
-bindkey '^[[F' end-of-line
-bindkey '^[[H' beginning-of-line
-bindkey '^[[3~' delete-word
-bindkey '^[[2~' kill-line
-bindkey '^[[3~' delete-char
-
-bindkey -M viins "^E" end-of-line
-bindkey -M viins "^A" beginning-of-line
-bindkey -M viins "^P" up-history
-bindkey -M viins "^N" down-history
-
 # Cargo environment
-if command -v rustup >/dev/null; then
-	if [ -f ${HOME}/.cargo/env ]; then
-		source ${HOME}/.cargo/env
-	else
+if [ -f ${HOME}/.cargo/env ]; then
+	source ${HOME}/.cargo/env
+else
+	if [ -d ${HOME}/.cargo/bin ]; then
 		export PATH="${HOME}/.cargo/bin:${PATH}"
 	fi
+fi
+
+# Rust
+if ! command -v rustc >/dev/null; then
+	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
 fi
 
 # Python binaries
@@ -132,15 +139,17 @@ function update_zsh_plugins() {
 }
 
 # FZF
-if [ -f ~/.fzf.zsh ]; then
-	source ~/.fzf.zsh
+if [ -f ${HOME}/.fzf.zsh ]; then
+	source ${HOME}/.fzf.zsh
 else
-	git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-	~/.fzf/install
+	git clone --depth 1 https://github.com/junegunn/fzf.git ${HOME}/.fzf
+	${HOME}/.fzf/install
 fi
 
-
 # Pyenv
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
+if [ -d ${HOME}/.pyenv ]; then
+	export PYENV_ROOT="$HOME/.pyenv"
+	[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+	eval "$(pyenv init -)"
+	eval "$(pyenv virtualenv-init -)"
+fi

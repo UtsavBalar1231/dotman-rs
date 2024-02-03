@@ -1,24 +1,39 @@
 #/usr/bin/env zsh
 
 # alias for ls
-eza_params=('--git' '--icons' '--classify' '--group-directories-first' '--time-style=long-iso' '--group' '--color-scale')
+if command -v eza >/dev/null 2>&1; then
+	eza_params=('--git' '--icons' '--classify' '--group-directories-first' '--time-style=long-iso' '--group' '--color-scale')
 
-alias ls='eza $eza_params'
-alias l='eza --git-ignore $eza_params'
-alias ll='eza --all --header --long $eza_params'
-alias llm='eza --all --header --long --sort=modified $eza_params'
-alias la='eza -lbhHigUmuSa'
-alias lx='eza -lbhHigUmuSa@'
-alias lt='eza --tree $eza_params'
-alias tree='eza --tree $eza_params'
+	alias ls='eza $eza_params'
+	alias l='eza --git-ignore $eza_params'
+	alias ll='eza --all --header --long $eza_params'
+	alias llm='eza --all --header --long --sort=modified $eza_params'
+	alias la='eza -lbhHigUmuSa'
+	alias lx='eza -lbhHigUmuSa@'
+	alias lt='eza --tree $eza_params'
+	alias tree='eza --tree $eza_params'
+else
+	echo "install eza" >&2
+fi
 
 # alias for bat
-alias b='bat'
+if command -v bat >/dev/null 2>&1; then
+	alias b='bat'
+elif command -v batcat >/dev/null 2>&1; then
+	alias bat='batcat'
+	alias b='bat'
+else
+	echo "install bat" >&2
+fi
 
 # alias for rg
-alias rg='rg --smart-case'
-alias rgf='rg --files'
-alias rgd='rg --files-with-matches'
+if command -v rg >/dev/null 2>&1; then
+	alias rg='rg --smart-case'
+	alias rgf='rg --files'
+	alias rgd='rg --files-with-matches'
+else
+	echo "install ripgrep" >&2
+fi
 
 if command -v fdfind >/dev/null; then
 	alias fd='fdfind'
