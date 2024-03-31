@@ -2,7 +2,7 @@
 
 # alias for ls
 if command -v eza >/dev/null 2>&1; then
-	eza_params=('--git' '--icons' '--classify' '--group-directories-first' '--time-style=long-iso' '--group' '--color-scale')
+	eza_params=('--icons' '--classify' '--group-directories-first' '--time-style=long-iso' '--group' '--color-scale')
 
 	alias ls='eza $eza_params'
 	alias l='eza --git-ignore $eza_params'
