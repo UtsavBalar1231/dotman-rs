@@ -151,5 +151,9 @@ if [ -d ${HOME}/.pyenv ]; then
 	export PYENV_ROOT="$HOME/.pyenv"
 	[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 	eval "$(pyenv init -)"
-	eval "$(pyenv virtualenv-init -)"
+	if ! command -v pyenv-virtualenv-init >/dev/null; then
+		echo "pyenv-virtualenv-init not found" >&2
+	else
+		eval "$(pyenv virtualenv-init -)"
+	fi
 fi

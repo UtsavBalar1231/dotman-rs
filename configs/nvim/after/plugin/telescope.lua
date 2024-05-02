@@ -124,9 +124,9 @@ telescope.setup({
 		buffer_previewer_maker = require("telescope.previewers").buffer_previewer_maker,
 	},
 	extensions = {
-		ui_select = {
-			require("telescope.themes").get_dropdown({}),
-		},
+		-- ui_select = {
+		-- 	require("telescope.themes").get_dropdown({}),
+		-- },
 		file_browser = {
 			hijack_netrw = true,
 			mappings = {
@@ -154,4 +154,4 @@ telescope.setup({
 
 telescope.load_extension("file_browser")
 telescope.load_extension("frecency")
-telescope.load_extension("ui-select")
+-- telescope.load_extension("ui-select")
