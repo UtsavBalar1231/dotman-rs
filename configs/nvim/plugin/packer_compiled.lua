@@ -49,8 +49,8 @@ local function save_profiles(threshold)
 end
 
 time([[Luarocks path setup]], true)
-local package_path_str = "/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/share/lua/5.1/?.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/share/lua/5.1/?/init.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/lib/luarocks/rocks-5.1/?.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/lib/luarocks/rocks-5.1/?/init.lua"
-local install_cpath_pattern = "/home/utsav/.cache/nvim/packer_hererocks/2.1.1703358377/lib/lua/5.1/?.so"
+local package_path_str = "/home/utsav/.cache/nvim/packer_hererocks/2.1.1706708390/share/lua/5.1/?.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1706708390/share/lua/5.1/?/init.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1706708390/lib/luarocks/rocks-5.1/?.lua;/home/utsav/.cache/nvim/packer_hererocks/2.1.1706708390/lib/luarocks/rocks-5.1/?/init.lua"
+local install_cpath_pattern = "/home/utsav/.cache/nvim/packer_hererocks/2.1.1706708390/lib/lua/5.1/?.so"
 if not string.find(package.path, package_path_str, 1, true) then
   package.path = package.path .. ';' .. package_path_str
 end
@@ -303,19 +303,19 @@ time([[Config for fidget.nvim]], false)
 
 -- Command lazy-loads
 time([[Defining lazy-load commands]], true)
-pcall(vim.api.nvim_create_user_command, 'KittyScrollbackCheckHealth', function(cmdargs)
-          require('packer.load')({'kitty-scrollback.nvim'}, { cmd = 'KittyScrollbackCheckHealth', l1 = cmdargs.line1, l2 = cmdargs.line2, bang = cmdargs.bang, args = cmdargs.args, mods = cmdargs.mods }, _G.packer_plugins)
-        end,
-        {nargs = '*', range = true, bang = true, complete = function()
-          require('packer.load')({'kitty-scrollback.nvim'}, {}, _G.packer_plugins)
-          return vim.fn.getcompletion('KittyScrollbackCheckHealth ', 'cmdline')
-      end})
 pcall(vim.api.nvim_create_user_command, 'KittyScrollbackGenerateKittens', function(cmdargs)
           require('packer.load')({'kitty-scrollback.nvim'}, { cmd = 'KittyScrollbackGenerateKittens', l1 = cmdargs.line1, l2 = cmdargs.line2, bang = cmdargs.bang, args = cmdargs.args, mods = cmdargs.mods }, _G.packer_plugins)
         end,
         {nargs = '*', range = true, bang = true, complete = function()
           require('packer.load')({'kitty-scrollback.nvim'}, {}, _G.packer_plugins)
           return vim.fn.getcompletion('KittyScrollbackGenerateKittens ', 'cmdline')
+      end})
+pcall(vim.api.nvim_create_user_command, 'KittyScrollbackCheckHealth', function(cmdargs)
+          require('packer.load')({'kitty-scrollback.nvim'}, { cmd = 'KittyScrollbackCheckHealth', l1 = cmdargs.line1, l2 = cmdargs.line2, bang = cmdargs.bang, args = cmdargs.args, mods = cmdargs.mods }, _G.packer_plugins)
+        end,
+        {nargs = '*', range = true, bang = true, complete = function()
+          require('packer.load')({'kitty-scrollback.nvim'}, {}, _G.packer_plugins)
+          return vim.fn.getcompletion('KittyScrollbackCheckHealth ', 'cmdline')
       end})
 time([[Defining lazy-load commands]], false)
 
