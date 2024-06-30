@@ -43,14 +43,6 @@ return require("packer").startup(function(use)
 		end,
 	})
 
-	-- match-up is a plugin that lets you highlight, navigate, and operate on sets of matching text.
-	use({
-		"andymass/vim-matchup",
-		setup = function()
-			vim.g.matchup_matchparen_offscreen = { method = "popup" }
-		end,
-	})
-
 	-- Tree Sitter plugin
 	use({ "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" })
 	use({ "nvim-treesitter/nvim-treesitter-textobjects" })
@@ -112,22 +104,27 @@ return require("packer").startup(function(use)
 		"nvim-telescope/telescope.nvim",
 		"nvim-telescope/telescope-frecency.nvim",
 		"nvim-telescope/telescope-file-browser.nvim",
-		"nvim-telescope/telescope-ui-select.nvim",
 	})
 
 	-- GitHub
 	use({
 		-- "github/copilot.vim",
-		"Exafunction/codeium.vim",
 		"lewis6991/gitsigns.nvim",
 		"tpope/vim-fugitive",
 	})
+
+	-- Codeium
+	use({
+		"Exafunction/codeium.vim",
+	})
+
+	use({ "junegunn/fzf.vim" })
 
 	-- Identline for better indent
 	use("lukas-reineke/indent-blankline.nvim")
 
 	-- Comments support
-	use({ "numToStr/Comment.nvim", requires = "JoosepAlviste/nvim-ts-context-commentstring" })
+	use({ "JoosepAlviste/nvim-ts-context-commentstring" })
 
 	use({
 		"mikesmithgh/kitty-scrollback.nvim",

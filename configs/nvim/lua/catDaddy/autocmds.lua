@@ -24,24 +24,24 @@ autocmd({ "VimEnter", "FileType", "BufEnter", "WinEnter" }, {
 })
 
 -- Close the HELP, MAN, QUICKFIX, DAP FLOATS with q
-autocmd("FileType", {
-	desc = "Make q close help, man, quickfix, dap floats",
-	group = augroup("q_close_windows", { clear = true }),
-	pattern = { "qf", "help", "man", "dap-float" },
-	callback = function(event)
-		vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true, nowait = true })
-	end,
-})
+-- autocmd("FileType", {
+-- 	desc = "Make q close help, man, quickfix, dap floats",
+-- 	group = augroup("q_close_windows", { clear = true }),
+-- 	pattern = { "qf", "help", "man", "dap-float" },
+-- 	callback = function(event)
+-- 		vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true, nowait = true })
+-- 	end,
+-- })
 
 -- Unlist all the quickfix buffers
-autocmd("FileType", {
-	desc = "Unlist quickfist buffers",
-	group = augroup("unlist_quickfist", { clear = true }),
-	pattern = "qf",
-	callback = function()
-		vim.opt_local.buflisted = false
-	end,
-})
+-- autocmd("FileType", {
+-- 	desc = "Unlist quickfist buffers",
+-- 	group = augroup("unlist_quickfist", { clear = true }),
+-- 	pattern = "qf",
+-- 	callback = function()
+-- 		vim.opt_local.buflisted = false
+-- 	end,
+-- })
 
 -- Highlight on yank
 augroup("YankHighlight", { clear = true })
@@ -60,10 +60,10 @@ autocmd("TextYankPost", {
 autocmd("InsertEnter", { pattern = "", command = "setlocal completeopt=menuone,noselect" })
 
 -- Avoid accidental writes to buffer that shouldn't be written
-autocmd("BufReadPre", { pattern = "*.swp", command = "set noreadonly" })
-autocmd("BufReadPre", { pattern = "*.bak", command = "set noreadonly" })
-autocmd("BufReadPre", { pattern = "*.tmp", command = "set noreadonly" })
-autocmd("BufReadPre", { pattern = "*.orig", command = "set noreadonly" })
+-- autocmd("BufReadPre", { pattern = "*.swp", command = "set noreadonly" })
+-- autocmd("BufReadPre", { pattern = "*.bak", command = "set noreadonly" })
+-- autocmd("BufReadPre", { pattern = "*.tmp", command = "set noreadonly" })
+-- autocmd("BufReadPre", { pattern = "*.orig", command = "set noreadonly" })
 
 -- Jump to last position when opening files
 autocmd("BufReadPost", {

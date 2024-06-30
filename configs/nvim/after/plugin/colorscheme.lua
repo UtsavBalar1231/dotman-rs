@@ -154,9 +154,11 @@ gruvbox.setup({
 		IndentBlanklineSpaceChar = { link = "GruvboxBg3" },
 		IndentBlanklineSpaceCharBlankline = { link = "GruvboxBg3" },
 		IndentBlanklineContextChar = { link = "GruvboxGray" },
+		["@lsp.type.method"] = { bg = "#49503b" },
+        ["@comment.lua"] = { bg = "#000000" },
 	},
-	dim_inactive = false,
-	transparent_mode = true,
+	dim_inactive = true,
+	transparent_mode = false,
 })
 -- }}}
 

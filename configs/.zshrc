@@ -138,6 +138,17 @@ function update_zsh_plugins() {
 	done
 }
 
+# Update archlinux mirrors
+function update_mirrors() {
+	if [ -d "/etc/pacman.d" ]; then
+		if ! command -v reflector >/dev/null; then
+			echo "Install reflector using pacman!"
+			exit 1
+		fi
+		sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak && sudo reflector --latest 20 --protocol https --sort age --save /etc/pacman.d/mirrorlist
+	fi
+}
+
 # FZF
 if [ -f ${HOME}/.fzf.zsh ]; then
 	source ${HOME}/.fzf.zsh
@@ -151,9 +162,9 @@ if [ -d ${HOME}/.pyenv ]; then
 	export PYENV_ROOT="$HOME/.pyenv"
 	[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 	eval "$(pyenv init -)"
-	if ! command -v pyenv-virtualenv-init >/dev/null; then
-		echo "pyenv-virtualenv-init not found" >&2
-	else
-		eval "$(pyenv virtualenv-init -)"
-	fi
+	eval "$(pyenv virtualenv-init -)"
+fi
+
+if [ -f ${HOME}/dev/toolchains/.env ]; then
+	source ${HOME}/dev/toolchains/.env
 fi

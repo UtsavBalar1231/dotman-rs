@@ -31,13 +31,28 @@ treesitter_configs.setup({
 	auto_install = true,
 	auto_tag = {
 		enable = true,
-		filetypes = { "html", "xml", "rust" },
+		filetypes = {
+			"html",
+			"xml",
+			"rust",
+			"htmldjango",
+			"javascript",
+			"javascriptreact",
+			"typescriptreact",
+			"tsx",
+			"jsx",
+			"svelte",
+			"vue",
+			"eruby",
+			"erb",
+			"html.erb"
+		},
 	},
 	highlight = {
 		enable = true,
-		additional_vim_regex_highlighting = { "latex" },
+		-- additional_vim_regex_highlighting = { "latex" },
 	},
-	ident = { enable = true },
+	ident = { enable = false },
 	rainbow = {
 		enable = true,
 		extended_mode = true,
@@ -141,5 +156,5 @@ else
 		enable_autocmd = true,
 	})
 
-	vim.g.skip_ts_context_comment = true
+	vim.g.skip_ts_context_commentstring_module = true
 end

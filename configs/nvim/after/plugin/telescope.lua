@@ -70,35 +70,35 @@ telescope.setup({
 		},
 	},
 	defaults = {
-		vimgrep_arguments = {
-			"rg",
-			"--color=never",
-			"--no-heading",
-			"--with-filename",
-			"--line-number",
-			"--column",
-			"--smart-case",
-		},
-		prompt_prefix = "   ",
-		selection_caret = "  ",
-		entry_prefix = "  ",
-		initial_mode = "insert",
-		selection_strategy = "reset",
-		sorting_strategy = "ascending",
-		layout_strategy = "horizontal",
-		layout_config = {
-			horizontal = {
-				prompt_position = "top",
-				preview_width = 0.4,
-				results_width = 0.8,
-			},
-			vertical = {
-				mirror = false,
-			},
-			width = 0.87,
-			height = 0.80,
-			preview_cutoff = 160,
-		},
+	-- 	vimgrep_arguments = {
+	-- 		"rg",
+	-- 		"--color=never",
+	-- 		"--no-heading",
+	-- 		"--with-filename",
+	-- 		"--line-number",
+	-- 		"--column",
+	-- 		"--smart-case",
+	-- 	},
+	-- 	prompt_prefix = "   ",
+	-- 	selection_caret = "  ",
+	-- 	entry_prefix = "  ",
+	-- 	initial_mode = "insert",
+	-- 	selection_strategy = "reset",
+	-- 	sorting_strategy = "ascending",
+	-- 	layout_strategy = "horizontal",
+	-- 	layout_config = {
+	-- 		horizontal = {
+	-- 			prompt_position = "top",
+	-- 			preview_width = 0.4,
+	-- 			results_width = 0.8,
+	-- 		},
+	-- 		vertical = {
+	-- 			mirror = false,
+	-- 		},
+	-- 		width = 0.87,
+	-- 		height = 0.80,
+	-- 		preview_cutoff = 160,
+	-- 	},
 		mappings = {
 			i = {
 				["<esc>"] = require("telescope.actions").close,
@@ -113,7 +113,7 @@ telescope.setup({
 		path_display = { "truncate" },
 		winblend = 0,
 		border = {},
-		borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
+		-- borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
 		color_devicons = true,
 		use_less = true,
 		set_env = { ["COLORTERM"] = "truecolor" }, -- default = nil,
@@ -124,9 +124,6 @@ telescope.setup({
 		buffer_previewer_maker = require("telescope.previewers").buffer_previewer_maker,
 	},
 	extensions = {
-		-- ui_select = {
-		-- 	require("telescope.themes").get_dropdown({}),
-		-- },
 		file_browser = {
 			hijack_netrw = true,
 			mappings = {
@@ -150,8 +147,10 @@ telescope.setup({
 			file_ignore_patterns = {},
 		},
 	},
+	frecency = {
+		auto_validate = true,
+	},
 })
 
 telescope.load_extension("file_browser")
 telescope.load_extension("frecency")
--- telescope.load_extension("ui-select")

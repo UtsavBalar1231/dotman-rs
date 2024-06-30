@@ -22,7 +22,10 @@ for monitor in $available_monitors; do
 		polybar edp1 2>&1 | tee -a /tmp/polybar1.log &
 		disown
 		;;
-	*) ;;
+	*)
+		polybar main 2>&1 | tee -a /tmp/polybar1.log &
+		disown
+		;;
 	esac
 done
 

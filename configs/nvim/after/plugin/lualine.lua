@@ -136,6 +136,21 @@ local encoding = {
 	end,
 }
 
+local codeium = {
+	"codeium",
+	color = { fg = colors.green, gui = "bold" },
+	fmt = function(_)
+		local cstr = vim.fn["codeium#GetStatusString"]()
+		if cstr == " ON" or cstr == " 0 " then
+			return "codeium: on"
+		elseif cstr == " * " then
+			return " 󰔟 "
+		else
+			return cstr
+		end
+	end,
+}
+
 lualine.setup({
 	options = {
 		icons_enabled = true,
@@ -149,7 +164,9 @@ lualine.setup({
 		lualine_a = { branch, diff },
 		lualine_b = { "mode" },
 		lualine_c = { filename, filesize, filetype, progress },
-		lualine_x = {},
+		lualine_x = {
+			codeium,
+		},
 		lualine_y = {
 			diagnostics,
 			encoding,

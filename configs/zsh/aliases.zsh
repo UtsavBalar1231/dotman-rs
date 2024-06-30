@@ -28,7 +28,7 @@ fi
 
 # alias for rg
 if command -v rg >/dev/null 2>&1; then
-	alias rg='rg --smart-case'
+	# alias rg='rg --smart-case'
 	alias rgf='rg --files'
 	alias rgd='rg --files-with-matches'
 else
@@ -72,4 +72,28 @@ alias sudo='sudo '
 # alias for ssh
 alias ssh="TERM=xterm-256color ssh"
 
-alias alacritty="wmctrl -x -a "tabbed" || tabbed alacritty --embed&"
+if command -v gdrive >/dev/null 2>&1; then
+	function gdr() {
+		case $1 in
+			'upload'|'-u')
+				shift
+				echo "Uploading... $@"
+				output=$(gdrive files upload "$@" 2>&1)
+				id=$(echo "$output" | grep 'Id:' | awk '{print $2}')
+				url=$(echo "$output" | grep 'ViewUrl:' | awk '{print $2}')
+				if [[ ! -z $id ]]; then
+					echo "ID: $id"
+					gdrive permissions share "$id"
+				fi
+					echo "URL: $url"
+				;;
+			'list'|'-l')
+				shift
+				gdrive list $@
+				;;
+			*)
+				gdrive $@
+				;;
+		esac
+	}
+fi

@@ -32,17 +32,26 @@ if ! pgrep -u "$USER" dunst >/dev/null; then
 	log "Started dunst" >> ${LOG_FILE}
 fi
 
+# Notification-daemon
+if ! pgrep -u "$USER" /usr/lib/notification-daemon-1.0/notification-daemon >/dev/null; then
+	/usr/lib/notification-daemon-1.0/notification-daemon &
+
+	log "Started notification-daemon" >> ${LOG_FILE}
+fi
+
 # Auto set monitor
-available_monitors="$(xrandr -q | grep -w connected | awk '{print $1}' | wc -l)"
-if [[ $available_monitors -eq 2 ]]; then
+available_monitors="$(xrandr -q | grep -w connected | awk '{print $1}')"
+if [[ $(echo "${available_monitors}" | wc -l) -eq 2 ]]; then
 	autorandr dual-monitors
 
 	log "Started autorandr dual-monitors" >> ${LOG_FILE}
+else
+	autorandr single-monitor
 fi
 
 # make keyboard smooth
-xset r rate 250 120
-log "set Keyboard repeat rate 250 120" >> ${LOG_FILE}
+xset r rate 250 60
+log "set Keyboard repeat rate 250 60" >> ${LOG_FILE}
 
 # Set the background
 if [[ -f "${HOME}"/.config/i3/wallpaper-slideshow.sh ]]; then
@@ -63,6 +72,11 @@ elif [[ -f /usr/lib/polkit-kde/polkit-kde-authentication-agent-1 ]]; then
 	disown
 
 	log "Started polkit-kde-authentication-agent-1" >> ${LOG_FILE}
+elif [[ -f /usr/lib/xfce-polkit/xfce-polkit ]]; then
+	/usr/lib/xfce-polkit/xfce-polkit &
+	disown
+
+	log "Started xfce-polkit" >> ${LOG_FILE}
 elif command -v "polkit-dumb-agent" &>/dev/null; then
 	polkit-dumb-agent &
 	disown
@@ -73,4 +87,10 @@ elif command -v "lxqt-policykit-agent" &>/dev/null; then
 	disown
 
 	log "Started lxqt-policykit-agent" >> ${LOG_FILE}
+fi
+
+if command -v udiskie &>/dev/null; then
+	udiskie &
+
+	log "Started udiskie" >> ${LOG_FILE}
 fi

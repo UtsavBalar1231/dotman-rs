@@ -8,6 +8,7 @@ set $mod Mod4
 # Default fonts
 font pango:Iosevka Nerd Font 12
 font pango:Fira Code Nerd Font 12
+font pango:JetBrainsMono Nerd Font 12
 
 # Improve borders
 default_border none
@@ -16,10 +17,6 @@ hide_edge_borders smart
 smart_borders on
 smart_gaps on
 
-# Workspaces
-workspace 1 output eDP1
-workspace 2 output HDMI-1-0
-
 # Startup script
 exec --no-startup-id ~/.config/i3/i3-startup.sh
 
@@ -27,18 +24,24 @@ exec --no-startup-id ~/.config/i3/i3-startup.sh
 # https://wiki.archlinux.org/index.php/XDG_Autostart
 exec --no-startup-id dex --autostart --environment i3
 
+# polybar
+exec_always --no-startup-id ~/.config/polybar/launch.sh
+
 # xss-lock grabs a logind suspend inhibit lock and will use i3lock to lock the
 # screen before suspend. Use loginctl lock-session to lock your screen.
 exec --no-startup-id xss-lock -n /usr/lib/xsecurelock/dimmer -l -- xsecurelock
+
+exec --no-startup-id /usr/lib/kdeconnectd
+exec --no-startup-id sleep 2 && kdeconnect-indicator
+
+for_window [class=kdeconnect.app] floating enable
+for_window [class=Indicator-kdeconnect] floating enable
 
 # NetworkManager
 exec --no-startup-id nm-applet
 
 # kitty terminal
 exec --no-startup-id kitty
-
-# polybar
-exec_always --no-startup-id ~/.config/polybar/launch.sh
 
 # Xfce4 Power Manager
 exec_always --no-startup-id xfce4-power-manager
@@ -84,7 +87,7 @@ bindsym $mod+Shift+q kill
 bindcode $mod+40 exec "rofi -show drun"
 
 # Power menu
-bindsym $mod+Shift+p exec "rofi -show p -modi p:'rofi-power-menu'"
+bindsym $mod+Shift+p exec "rofi -show p -modi p:'rofi-power-menu' -theme-str 'window {width: 16em; height: 12em;} listview {lines: 6;}'"
 
 # bindcode $mod+40 exec --no-startup-id i3-dmenu-desktop
 

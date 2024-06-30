@@ -5,12 +5,41 @@ if not status_ok then
 	return
 end
 
--- Enable diagnostics
-local signs = { Error = " ", Warn = " ", Hint = " ", Info = " " }
-for type, icon in pairs(signs) do
-	local hl = "DiagnosticSign" .. type
-	vim.fn.sign_define(hl, { text = icon, texthl = hl })
-end
+local config = {
+	virtual_text = false, -- use trouble instead, or [d, ]d keymap
+	signs = {
+		text = {
+			[vim.diagnostic.severity.ERROR] = '',
+			[vim.diagnostic.severity.WARN] = '',
+			[vim.diagnostic.severity.HINT] = '',
+			[vim.diagnostic.severity.INFO] = '',
+		},
+		texthl = {
+			[vim.diagnostic.severity.ERROR] = 'DiagnosticSignError',
+			[vim.diagnostic.severity.WARN] = 'DiagnosticSignWarn',
+			[vim.diagnostic.severity.HINT] = 'DiagnosticSignHint',
+			[vim.diagnostic.severity.INFO] = 'DiagnosticSignInfo',
+		},
+		numhl = {
+			[vim.diagnostic.severity.ERROR] = '',
+			[vim.diagnostic.severity.WARN] = '',
+			[vim.diagnostic.severity.HINT] = '',
+			[vim.diagnostic.severity.INFO] = '',
+		},
+	},
+	update_in_insert = true,
+	underline = true,
+	severity_sort = true,
+	float = {
+		focusable = true,
+		style = 'minimal',
+		border = nil,
+		source = 'always',
+		header = '',
+		prefix = '',
+	},
+}
+vim.diagnostic.config(config)
 
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
 	virtual_text = true,
@@ -62,7 +91,7 @@ local on_attach = function(_, bufnr)
 	vim.keymap.set("n", "<space>ca", vim.lsp.buf.code_action, bufopts)
 	vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts)
 
-	vim.keymap.set("n", "<space>F", function()
+	vim.keymap.set("n", "F", function()
 		vim.lsp.buf.format({ async = true })
 	end, bufopts)
 end
