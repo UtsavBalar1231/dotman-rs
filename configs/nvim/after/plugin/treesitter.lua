@@ -153,8 +153,15 @@ if not status_ts_context_commentstring then
 	vim.notify("Missing ts_context_commentstring plugin", vim.log.levels.WARNING)
 else
 	ts_context_commentstring.setup({
-		enable_autocmd = true,
+		enable_autocmd = false,
 	})
 
 	vim.g.skip_ts_context_commentstring_module = true
+end
+
+local get_option = vim.filetype.get_option
+vim.filetype.get_option = function(filetype, option)
+	return option == "commentstring"
+		and require("ts_context_commentstring.internal").calculate_commentstring()
+		or get_option(filetype, option)
 end

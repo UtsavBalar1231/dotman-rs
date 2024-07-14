@@ -67,7 +67,7 @@ return require("packer").startup(function(use)
 	use("rafamadriz/friendly-snippets")
 
 	-- LSP Linting, Diagnostics, Code-Completions and Formatting
-	use("nvimtools/none-ls.nvim")
+	-- use("nvimtools/none-ls.nvim")
 
 	-- LSP Manager
 	use("williamboman/mason.nvim")
@@ -108,9 +108,7 @@ return require("packer").startup(function(use)
 
 	-- GitHub
 	use({
-		-- "github/copilot.vim",
 		"lewis6991/gitsigns.nvim",
-		"tpope/vim-fugitive",
 	})
 
 	-- Codeium
@@ -125,6 +123,12 @@ return require("packer").startup(function(use)
 
 	-- Comments support
 	use({ "JoosepAlviste/nvim-ts-context-commentstring" })
+	use {
+		'numToStr/Comment.nvim',
+		config = function()
+			require('Comment').setup()
+		end
+	}
 
 	use({
 		"mikesmithgh/kitty-scrollback.nvim",
