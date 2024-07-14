@@ -1,158 +1,174 @@
 local keymap = vim.api.nvim_set_keymap
-local default_options = { noremap = true, silent = true }
 
 -- Map <leader>w to quick save
-keymap("n", "<leader>w", ":w<CR>", default_options)
+keymap("n", "<leader>w", "<cmd>:w<cr><esc>", { noremap = true, silent = true, desc = "Quick Save" })
 
 -- Map <leader>Q to quick quit all
-keymap("n", "<leader>Q", ":qa<CR>", default_options)
+keymap("n", "<leader>Q", "<cmd>:qa<cr>", { noremap = true, silent = true, desc = "Quick Quit All" })
 
--- Map <leader>ss to save and source
-keymap("n", "<leader>ss", ":w<CR>:source %<CR>", default_options)
+-- Map <leader>sw to save and source
+keymap("n", "<leader>ss", "<cmd>:w<cr>:source %<cr>", { noremap = true, silent = true, desc = "Save and Source" })
 
 -- Map <leader>tt to open a new tab
-keymap("n", "<leader>tt", ":tabnew<CR>", default_options)
+keymap("n", "<leader>tt", "<cmd>:tabnew<cr>", { noremap = true, silent = true, desc = "Open New Tab" })
+
 -- Map <leader>tn to go to next tab
-keymap("n", "<leader>tn", ":tabnext<CR>", default_options)
+keymap("n", "<leader>tn", "<cmd>:tabnext<cr>", { noremap = true, silent = true, desc = "Next Tab" })
+
 -- Map <leader>tp to go to previous tab
-keymap("n", "<leader>tp", ":tabprevious<CR>", default_options)
--- Map <leader>tc to close current tab
-keymap("n", "<leader>tw", ":tabclose<CR>", default_options)
+keymap("n", "<leader>tp", "<cmd>:tabprevious<cr>", { noremap = true, silent = true, desc = "Previous Tab" })
+
+-- Map <leader>tw to close current tab
+keymap("n", "<leader>tw", "<cmd>:tabclose<cr>", { noremap = true, silent = true, desc = "Close Current Tab" })
+
 -- Map <leader>to to close all other tabs
-keymap("n", "<leader>to", ":tabonly<CR>", default_options)
+keymap("n", "<leader>to", "<cmd>:tabonly<cr>", { noremap = true, silent = true, desc = "Close Other Tabs" })
 
 -- Use Q to quit bang
-keymap("n", "Q", ":q<CR>", default_options)
+keymap("n", "Q", "<cmd>:q<cr>", { noremap = true, silent = true, desc = "Quit" })
+
 -- Use W to write bang
-keymap("n", "W", ":w<CR>", default_options)
+keymap("n", "W", "<cmd>:w<cr>", { noremap = true, silent = true, desc = "Write" })
 
 -- Centered search results
-keymap("n", "n", "nzz", default_options)
-keymap("n", "N", "Nzz", default_options)
-keymap("n", "*", "*zz", default_options)
-keymap("n", "#", "#zz", default_options)
-keymap("n", "g*", "g*zz", default_options)
-keymap("n", "g#", "g#zz", default_options)
+keymap("n", "n", "nzz", { noremap = true, silent = true, desc = "Centered Search Next" })
+keymap("n", "N", "Nzz", { noremap = true, silent = true, desc = "Centered Search Previous" })
+keymap("n", "*", "*zz", { noremap = true, silent = true, desc = "Centered Search *" })
+keymap("n", "#", "#zz", { noremap = true, silent = true, desc = "Centered Search #" })
+keymap("n", "g*", "g*zz", { noremap = true, silent = true, desc = "Centered Search g*" })
+keymap("n", "g#", "g#zz", { noremap = true, silent = true, desc = "Centered Search g#" })
+
+-- Saner behavior of n and N
+keymap("n", "n", "'Nn'[v:searchforward].'zv'", { expr = true, desc = "Next Search Result" })
+keymap("x", "n", "'Nn'[v:searchforward]", { expr = true, desc = "Next Search Result" })
+keymap("o", "n", "'Nn'[v:searchforward]", { expr = true, desc = "Next Search Result" })
+keymap("n", "N", "'nN'[v:searchforward].'zv'", { expr = true, desc = "Previous Search Result" })
+keymap("x", "N", "'nN'[v:searchforward]", { expr = true, desc = "Previous Search Result" })
+keymap("o", "N", "'nN'[v:searchforward]", { expr = true, desc = "Previous Search Result" })
 
 -- Ctrl+j and Ctrl+k as Esc
--- Ctrl-j is a little awkward unfortunately:
--- https://github.com/neovim/neovim/issues/5916
--- So we also map Ctrl+k
-keymap("n", "<C-j>", "<Esc>", default_options)
-keymap("n", "<C-j>", "<Esc>", default_options)
+keymap("n", "<C-j>", "<Esc>", { noremap = true, silent = true, desc = "Escape" })
+keymap("i", "<C-k>", "<Esc>", { noremap = true, silent = true, desc = "Escape" })
+keymap("v", "<C-j>", "<Esc>", { noremap = true, silent = true, desc = "Escape" })
+keymap("s", "<C-k>", "<Esc>", { noremap = true, silent = true, desc = "Escape" })
+keymap("x", "<C-j>", "<Esc>", { noremap = true, silent = true, desc = "Escape" })
+keymap("c", "<C-j>", "<Esc>", { noremap = true, silent = true, desc = "Escape" })
+keymap("o", "<C-j>", "<Esc>", { noremap = true, silent = true, desc = "Escape" })
+keymap("t", "<C-k>", "<Esc>", { noremap = true, silent = true, desc = "Escape" })
 
-keymap("i", "<C-k>", "<Esc>", default_options)
-keymap("i", "<C-k>", "<Esc>", default_options)
+-- Clear search with <esc>
+keymap("i", "<esc>", "<cmd>noh<cr><esc>", { noremap = true, silent = true, desc = "Clear Search" })
+keymap("n", "<esc>", "<cmd>noh<cr><esc>", { noremap = true, silent = true, desc = "Clear Search" })
 
-keymap("v", "<C-j>", "<Esc>", default_options)
-keymap("v", "<C-j>", "<Esc>", default_options)
+-- Clear search, diff update and redraw
+keymap("n", "<leader>ur", "<Cmd>nohlsearch<Bar>diffupdate<Bar>normal! <C-L><CR>",
+	{ noremap = true, silent = true, desc = "Redraw / Clear Search / Diff Update" })
 
-keymap("s", "<C-k>", "<Esc>", default_options)
-keymap("s", "<C-k>", "<Esc>", default_options)
+-- Jump to the end of the line with L
+keymap("n", "L", "$", { noremap = true, silent = true, desc = "Jump to End of Line" })
 
-keymap("x", "<C-j>", "<Esc>", default_options)
-keymap("x", "<C-k>", "<Esc>", default_options)
-
-keymap("c", "<C-j>", "<Esc>", default_options)
-keymap("c", "<C-j>", "<Esc>", default_options)
-
-keymap("o", "<C-j>", "<Esc>", default_options)
-keymap("o", "<C-k>", "<Esc>", default_options)
-
-keymap("t", "<C-k>", "<Esc>", default_options)
-keymap("t", "<C-k>", "<Esc>", default_options)
-
--- Remap <C-h> to stop highlighting search results
-keymap("n", "<C-h>", ":noh<CR>", default_options)
-keymap("v", "<C-h>", ":noh<CR>", default_options)
-
--- Remap <C-l> to clear search results
-keymap("n", "<C-l>", ":nohlsearch<CR>", default_options)
-keymap("v", "<C-l>", ":nohlsearch<CR>", default_options)
-
--- Jump to the end of the line with L (like in vim-easymotion)
-keymap("n", "L", "$", default_options)
-
--- Jump to the beginning of the line with H (like in vim-easymotion)
-keymap("n", "H", "^", default_options)
+-- Jump to the beginning of the line with H
+keymap("n", "H", "^", { noremap = true, silent = true, desc = "Jump to Beginning of Line" })
 
 -- Remap <C-a> to select all
-keymap("n", "<C-a>", "ggVG", default_options)
+keymap("n", "<C-a>", "ggVG", { noremap = true, silent = true, desc = "Select All" })
 
 -- Proper X clipboard support
--- <leader>y to copy to clipboard
--- <space>p to paste from clipboard
-keymap("n", "<leader>y", '"+y', default_options)
-keymap("v", "<leader>y", '"+y', default_options)
-keymap("n", "<space>p", '"+p', default_options)
-keymap("v", "<space>p", '"+p', default_options)
+keymap("n", "<leader>y", '"+y', { noremap = true, silent = true, desc = "Copy to Clipboard" })
+keymap("v", "<leader>y", '"+y', { noremap = true, silent = true, desc = "Copy to Clipboard" })
+keymap("n", "<space>p", '"+p', { noremap = true, silent = true, desc = "Paste from Clipboard" })
+keymap("v", "<space>p", '"+p', { noremap = true, silent = true, desc = "Paste from Clipboard" })
 
 -- Left and right arrow keys to move between buffers
-keymap("n", "<Left>", ":bprevious<CR>", default_options)
-keymap("n", "<Right>", ":bnext<CR>", default_options)
-
+keymap("n", "<Left>", "<cmd>:bprevious<cr>", { noremap = true, silent = true, desc = "Previous Buffer" })
+keymap("n", "<Right>", "<cmd>:bnext<cr>", { noremap = true, silent = true, desc = "Next Buffer" })
 -- Swift navigation between buffers with leader + leader
-keymap("n", "<leader><leader>", ":b#<CR>", default_options)
+keymap("n", "<leader><leader>", "<cmd>:b#<cr>", { noremap = true, silent = true, desc = "Previous Buffer" })
 
 -- Hide or Show the invisible characters
-keymap("n", "<leader>,", ":set list!<CR>", default_options)
+keymap("n", "<leader>,", "<cmd>:set list!<cr>", { noremap = true, silent = true, desc = "Toggle Invisible Characters" })
 
 -- <leader>x to chmod +x the current file
-keymap("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
+keymap("n", "<leader>x", "<cmd>!chmod +x %<cr>", { noremap = true, silent = true, desc = "Make File Executable" })
 
 -- Keybindings for moving lines in normal mode
-keymap("n", "<A-j>", ":m .+1<CR>==", default_options)
-keymap("n", "<A-k>", ":m .-2<CR>==", default_options)
-keymap("n", "<A-Down>", ":m .+1<CR>==", default_options)
-keymap("n", "<A-Up>", ":m .-2<CR>==", default_options)
+keymap("n", "<A-j>", "<cmd>:m .+1<cr>==", { noremap = true, silent = true, desc = "Move Line Down" })
+keymap("n", "<A-k>", "<cmd>:m .-2<cr>==", { noremap = true, silent = true, desc = "Move Line Up" })
+keymap("n", "<A-Down>", "<cmd>:m .+1<cr>==", { noremap = true, silent = true, desc = "Move Line Down" })
+keymap("n", "<A-Up>", "<cmd>:m .-2<cr>==", { noremap = true, silent = true, desc = "Move Line Up" })
 
 -- Keybindings for moving lines in insert mode
-keymap("i", "<A-j>", "<Esc>:m .+1<CR>==gi", default_options)
-keymap("i", "<A-k>", "<Esc>:m .-2<CR>==gi", default_options)
-keymap("i", "<A-Down>", "<Esc>:m .+1<CR>==gi", default_options)
-keymap("i", "<A-Up>", "<Esc>:m .-2<CR>==gi", default_options)
+keymap("i", "<A-j>", "<Esc>:m .+1<cr>==gi", { noremap = true, silent = true, desc = "Move Line Down" })
+keymap("i", "<A-k>", "<Esc>:m .-2<cr>==gi", { noremap = true, silent = true, desc = "Move Line Up" })
+keymap("i", "<A-Down>", "<Esc>:m .+1<cr>==gi", { noremap = true, silent = true, desc = "Move Line Down" })
+keymap("i", "<A-Up>", "<Esc>:m .-2<cr>==gi", { noremap = true, silent = true, desc = "Move Line Up" })
 
 -- Keybindings for moving lines in visual mode
-keymap("x", "<A-j>", ":m '>+1<CR>gv=gv", default_options)
-keymap("x", "<A-k>", ":m '<-2<CR>gv=gv", default_options)
-keymap("x", "<A-Down>", ":m '>+1<CR>gv=gv", default_options)
-keymap("x", "<A-Up>", ":m '<-2<CR>gv=gv", default_options)
+keymap("x", "<A-j>", "<cmd>:m '>+1<cr>gv=gv", { noremap = true, silent = true, desc = "Move Line Down" })
+keymap("x", "<A-k>", "<cmd>:m '<-2<cr>gv=gv", { noremap = true, silent = true, desc = "Move Line Up" })
+keymap("x", "<A-Down>", "<cmd>:m '>+1<cr>gv=gv", { noremap = true, silent = true, desc = "Move Line Down" })
+keymap("x", "<A-Up>", "<cmd>:m '<-2<cr>gv=gv", { noremap = true, silent = true, desc = "Move Line Up" })
 
 -- Update and install plugins
-keymap("n", "<leader>uu", ":PackerSync<CR>", default_options)
+keymap("n", "<leader>uu", "<cmd>:PackerSync<cr>", { noremap = true, silent = true, desc = "Packer Sync" })
 
--- Delete a buffer without closing the window
-keymap("n", "<leader>dd", ":bd<CR>", default_options)
+-- Delete a buffer with the window
+keymap("n", "<leader>dd", "<cmd>:bd<cr>", { noremap = true, silent = true, desc = "Delete Buffer" })
 
 -- LSP code formatting
-keymap("n", "<leader>F", "<cmd>lua vim.lsp.buf.format { async = true } <CR>", default_options)
-keymap("v", "<Leader>1f", "<cmd>lua vim.lsp.buf.format { async = true } <CR>", default_options)
-
---- Window navigation {{{
+keymap("n", "<leader>F", "<cmd>lua vim.lsp.buf.format { async = true } <cr>",
+	{ noremap = true, silent = true, desc = "LSP Format" })
+keymap("v", "<Leader>1f", "<cmd>lua vim.lsp.buf.format { async = true } <cr>",
+	{ noremap = true, silent = true, desc = "LSP Format" })
 
 -- Map ss to split the current window horizontally
-keymap("n", "ss", ":split<CR><C-w>w", default_options)
-
+keymap("n", "sw", "<cmd>:split<cr><C-w>w", { noremap = true, silent = true, desc = "Horizontal Split" })
 -- Map sv to split the current window vertically
-keymap("n", "sv", ":vsplit<CR><C-w>w", default_options)
-
+keymap("n", "sv", "<cmd>:vsplit<cr><C-w>w", { noremap = true, silent = true, desc = "Vertical Split" })
 -- Map sh to move to the left window
-keymap("n", "sh", "<C-w>h", default_options)
-
+keymap("n", "sh", "<C-w>h", { noremap = true, silent = true, desc = "Move Left" })
 -- Map sl to move to the right window
-keymap("n", "sl", "<C-w>l", default_options)
-
+keymap("n", "sl", "<C-w>l", { noremap = true, silent = true, desc = "Move Right" })
 -- Map sk to move to the top window
-keymap("n", "sk", "<C-w>k", default_options)
-
+keymap("n", "sk", "<C-w>k", { noremap = true, silent = true, desc = "Move Up" })
 -- Map sj to move to the bottom window
-keymap("n", "sj", "<C-w>j", default_options)
-
---- Window navigation }}}
+keymap("n", "sj", "<C-w>j", { noremap = true, silent = true, desc = "Move Down" })
 
 -- Disable :help on <F1>
-keymap("n", "<F1>", "<ESC>", default_options)
-keymap("i", "<F1>", "<ESC>", default_options)
+keymap("n", "<F1>", "<ESC>", { noremap = true, silent = true, desc = "Disable Help" })
+keymap("i", "<F1>", "<ESC>", { noremap = true, silent = true, desc = "Disable Help" })
 
 -- Set w!! to write the file with sudo permissions
-keymap("c", "w!!", "w !sudo tee > /dev/null %", default_options)
+keymap("c", "w!!", "w !sudo tee > /dev/null %", { noremap = true, silent = true, desc = "Write with Sudo" })
+
+-- better indenting
+keymap("v", "<", "<gv", { noremap = true, silent = true, desc = "Better Indent" })
+keymap("v", ">", ">gv", { noremap = true, silent = true, desc = "Better Indent" })
+
+-- keymap to open lazy nvim
+keymap("n", "<leader>l", "<cmd>Lazy<cr>", { noremap = true, silent = true, desc = "Lazy" })
+
+-- keymap to open new file
+keymap("n", "<leader>fn", "<cmd>enew<cr>", { noremap = true, silent = true, desc = "New File" })
+
+-- keymaps for quickfix list
+keymap("n", "<leader>xl", "<cmd>lopen<cr>", { desc = "Location List" })
+keymap("n", "<leader>xq", "<cmd>copen<cr>", { desc = "Quickfix List" })
+keymap("n", "[q", "lua vim.cmd.cprev()<cr>", { desc = "Previous Quickfix" })
+keymap("n", "]q", "lua vim.cmd.cnext()<cr>", { desc = "Next Quickfix" })
+
+-- diagnostic
+local diagnostic_goto = function(next, severity)
+	local go = next and vim.diagnostic.goto_next or vim.diagnostic.goto_prev
+	severity = severity and vim.diagnostic.severity[severity] or nil
+	return function()
+		go({ severity = severity })
+	end
+end
+keymap("n", "<leader>cd", "lua vim.diagnostic.open_float()<cr>", { desc = "Line Diagnostics" })
+keymap("n", "]d", "diagnostic_goto(true)", { desc = "Next Diagnostic" })
+keymap("n", "[d", "diagnostic_goto(false)", { desc = "Prev Diagnostic" })
+keymap("n", "]e", "diagnostic_goto(true, 'ERROR')", { desc = "Next Error" })
+keymap("n", "[e", "diagnostic_goto(false, 'ERROR')", { desc = "Prev Error" })
+keymap("n", "]w", "diagnostic_goto(true, 'WARN')", { desc = "Next Warning" })
+keymap("n", "[w", "diagnostic_goto(false, 'WARN')", { desc = "Prev Warning" })

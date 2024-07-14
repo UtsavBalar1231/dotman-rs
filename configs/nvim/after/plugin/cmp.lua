@@ -40,18 +40,25 @@ local kind_icons = {
 	Variable      = "󰂡",
 }
 
+vim.api.nvim_set_hl(0, "CmpGhostText", { link = "Comment", default = true })
+
+local check_backspace = function()
+	local col = vim.fn.col "." - 1
+	return col == 0 or vim.fn.getline("."):sub(col, col):match "%s"
+end
+
 cmp.setup({
 	enabled = function()
 		-- disable completion in comments
 		local context = require("cmp.config.context")
 		-- keep command mode completion enabled when cursor is in a comment
-		if vim.api.nvim_get_mode().mode == "c" then
+		local mode = vim.api.nvim_get_mode()
+		if string.sub(mode.mode, 1, 1) == "c" then
 			return true
 		else
 			return not context.in_treesitter_capture("comment") and not context.in_syntax_group("Comment")
 		end
 	end,
-
 	formatting = {
 		fields = { "kind", "abbr", "menu" },
 		format = function(entry, vim_item)
@@ -90,7 +97,7 @@ cmp.setup({
 		keyword_length = 1,
 	},
 	experimental = {
-		ghost_text = true,
+		ghost_text = false,
 	},
 	duplicates = {
 		nvim_lsp = 1,
@@ -113,6 +120,8 @@ cmp.setup({
 				cmp.select_next_item()
 			elseif luasnip.expand_or_jumpable() then
 				luasnip.expand_or_jump()
+			elseif check_backspace() then
+				fallback()
 			else
 				fallback()
 			end
@@ -146,8 +155,8 @@ cmp.setup({
 		{ name = "crates",   priority = 250 },
 		{ name = "path",     priority = 450 },
 		{ name = "buffer",   keyword_length = 2, priority = 550 },
-		{ name = "nvim_lua", keyword_length = 1, priority = 600 },
-		{ name = "nvim_lsp", keyword_length = 1, priority = 500 },
+		{ name = "nvim_lua", keyword_length = 2, priority = 600 },
+		{ name = "nvim_lsp", keyword_length = 2, priority = 500 },
 		{ name = "luasnip",  keyword_length = 2, priority = 650 },
 		{ name = "codeium",  keyword_length = 1, priority = 700 },
 	},
