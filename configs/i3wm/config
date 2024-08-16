@@ -31,11 +31,11 @@ exec_always --no-startup-id ~/.config/polybar/launch.sh
 # screen before suspend. Use loginctl lock-session to lock your screen.
 exec --no-startup-id xss-lock -n /usr/lib/xsecurelock/dimmer -l -- xsecurelock
 
-exec --no-startup-id /usr/lib/kdeconnectd
-exec --no-startup-id sleep 2 && kdeconnect-indicator
-
-for_window [class=kdeconnect.app] floating enable
-for_window [class=Indicator-kdeconnect] floating enable
+# exec --no-startup-id /usr/lib/kdeconnectd
+# exec --no-startup-id sleep 2 && kdeconnect-indicator
+#
+# for_window [class=kdeconnect.app] floating enable
+# for_window [class=Indicator-kdeconnect] floating enable
 
 # NetworkManager
 exec --no-startup-id nm-applet

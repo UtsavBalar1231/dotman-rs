@@ -9,6 +9,10 @@ g.shell = "/usr/bin/zsh"
 ---@diagnostic disable-next-line: inject-field
 g.mapleader = " "
 
+-- Set bigfile size
+---@diagnostic disable-next-line: inject-field
+g.bigfile_size = 1024 * 256
+
 -- Enable undo dir setup
 opt.undodir = vim.fn.stdpath("config") .. "/../../.vimdid"
 opt.undofile = true
@@ -28,6 +32,10 @@ opt.autoindent = true
 opt.smartindent = true
 -- Smart tab
 opt.smarttab = true
+-- Copy indent from current line
+opt.copyindent = true
+-- Preserve indent on next line
+opt.preserveindent = true
 
 ---------------------------
 --- Better search setup ---
@@ -45,6 +53,8 @@ opt.gdefault = true
 --- Grep setup
 opt.grepformat = "%f:%l:%c:%m"
 opt.grepprg = "rg --vimgrep"
+-- infer cases in keyword completion
+opt.infercase = true
 
 -------------------------------
 --- General editor settings ---
@@ -62,13 +72,15 @@ opt.mouse = "a"
 -- Copy/paste to system clipboard
 opt.clipboard = vim.env.SSH_TTY and "" or "unnamedplus"
 -- Autocomplete options
-opt.completeopt = "menu,menuone,noinsert,noselect"
+opt.completeopt = { "menu", "menuone", "noselect" }
 -- Hide * markup for bold and italic, but not markers with substitutions
 opt.conceallevel = 2
 --- Jump options
 opt.jumpoptions = "view"
 -- Save swap file and trigger CursorHold
-opt.updatetime = 250
+opt.updatetime = 150
+-- Do not save backup
+opt.writebackup = false
 
 -------------------------------
 --- General editor UI setup ---

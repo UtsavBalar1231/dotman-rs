@@ -56,7 +56,7 @@ treesitter_configs.setup({
 	rainbow = {
 		enable = true,
 		extended_mode = true,
-		max_file_lines = nil,
+		max_file_lines = 8000,
 	},
 	incremental_selection = {
 		enable = true,
@@ -152,16 +152,23 @@ local status_ts_context_commentstring, ts_context_commentstring = pcall(require,
 if not status_ts_context_commentstring then
 	vim.notify("Missing ts_context_commentstring plugin", vim.log.levels.WARNING)
 else
+	---@diagnostic disable-next-line: inject-field
+	vim.g.skip_ts_context_commentstring_module = true
+
 	ts_context_commentstring.setup({
 		enable_autocmd = false,
 	})
 
-	vim.g.skip_ts_context_commentstring_module = true
-end
-
-local get_option = vim.filetype.get_option
-vim.filetype.get_option = function(filetype, option)
-	return option == "commentstring"
-		and require("ts_context_commentstring.internal").calculate_commentstring()
-		or get_option(filetype, option)
+	if vim.fn.has "nvim-0.10" == 1 then
+		-- HACK: add workaround for native comments: https://github.com/JoosepAlviste/nvim-ts-context-commentstring/issues/109
+		vim.schedule(function()
+			local get_option = vim.filetype.get_option
+			---@diagnostic disable-next-line: duplicate-set-field
+			vim.filetype.get_option = function(filetype, option)
+				if option ~= "commentstring" then return get_option(filetype, option) end
+				return ts_context_commentstring.internal.calculate_commentstring()
+					or get_option(filetype, option)
+			end
+		end)
+	end
 end

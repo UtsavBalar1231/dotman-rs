@@ -141,6 +141,9 @@ keymap("i", "<F1>", "<ESC>", { noremap = true, silent = true, desc = "Disable He
 -- Set w!! to write the file with sudo permissions
 keymap("c", "w!!", "w !sudo tee > /dev/null %", { noremap = true, silent = true, desc = "Write with Sudo" })
 
+-- Set wq!! to write and quit with sudo permissions
+keymap("c", "wq!!", "wq! !sudo tee > /dev/null %", { noremap = true, silent = true, desc = "Write and Quit with Sudo" })
+
 -- better indenting
 keymap("v", "<", "<gv", { noremap = true, silent = true, desc = "Better Indent" })
 keymap("v", ">", ">gv", { noremap = true, silent = true, desc = "Better Indent" })
@@ -156,19 +159,3 @@ keymap("n", "<leader>xl", "<cmd>lopen<cr>", { desc = "Location List" })
 keymap("n", "<leader>xq", "<cmd>copen<cr>", { desc = "Quickfix List" })
 keymap("n", "[q", "lua vim.cmd.cprev()<cr>", { desc = "Previous Quickfix" })
 keymap("n", "]q", "lua vim.cmd.cnext()<cr>", { desc = "Next Quickfix" })
-
--- diagnostic
-local diagnostic_goto = function(next, severity)
-	local go = next and vim.diagnostic.goto_next or vim.diagnostic.goto_prev
-	severity = severity and vim.diagnostic.severity[severity] or nil
-	return function()
-		go({ severity = severity })
-	end
-end
-keymap("n", "<leader>cd", "lua vim.diagnostic.open_float()<cr>", { desc = "Line Diagnostics" })
-keymap("n", "]d", "diagnostic_goto(true)", { desc = "Next Diagnostic" })
-keymap("n", "[d", "diagnostic_goto(false)", { desc = "Prev Diagnostic" })
-keymap("n", "]e", "diagnostic_goto(true, 'ERROR')", { desc = "Next Error" })
-keymap("n", "[e", "diagnostic_goto(false, 'ERROR')", { desc = "Prev Error" })
-keymap("n", "]w", "diagnostic_goto(true, 'WARN')", { desc = "Next Warning" })
-keymap("n", "[w", "diagnostic_goto(false, 'WARN')", { desc = "Prev Warning" })

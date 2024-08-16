@@ -67,23 +67,27 @@ return require("packer").startup(function(use)
 	use("rafamadriz/friendly-snippets")
 
 	-- LSP Linting, Diagnostics, Code-Completions and Formatting
-	-- use("nvimtools/none-ls.nvim")
+	use({
+		"nvimtools/none-ls.nvim",
+		requires = {
+			"nvim-lua/plenary.nvim",
+		},
+	})
 
 	-- LSP Manager
 	use("williamboman/mason.nvim")
 	use("williamboman/mason-lspconfig.nvim")
+	use({
+		"jay-babu/mason-null-ls.nvim",
+
+		requires = {
+			"williamboman/mason.nvim",
+			"nvimtools/none-ls.nvim",
+		},
+	})
 
 	-- LSP UI
-	use({
-		"NvChad/nvim-colorizer.lua",
-		config = function()
-			require("colorizer").setup({})
-			-- execute colorizer as soon as possible
-			vim.defer_fn(function()
-				require("colorizer").attach_to_buffer(0)
-			end, 0)
-		end,
-	})
+	use("brenoprata10/nvim-highlight-colors")
 
 	--- Autocompletion and LSP }}}
 
@@ -130,6 +134,7 @@ return require("packer").startup(function(use)
 		end
 	}
 
+	-- Kitty Scrollback
 	use({
 		"mikesmithgh/kitty-scrollback.nvim",
 		disable = false,
@@ -148,6 +153,14 @@ return require("packer").startup(function(use)
 
 	-- NVIM hop for better navigation
 	use({ "phaazon/hop.nvim" })
+
+	-- Aerial code navigation
+	use({
+		"stevearc/aerial.nvim",
+		config = function()
+			require("aerial").setup()
+		end,
+	})
 
 	-- Automatically set up configuration after cloning packer.nvim
 	if packer_bootstrap then

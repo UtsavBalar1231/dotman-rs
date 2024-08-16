@@ -28,19 +28,27 @@ autocmd("FileType", {
 	desc = "Make q close help, man, quickfix, dap floats",
 	group = augroup("q_close_windows", { clear = true }),
 	pattern = {
-		"dap-float",
+		"DressingSelect",
+		"Jaq",
 		"PlenaryTestPopup",
 		"checkhealth",
+		"dap-float",
 		"dbout",
+		"floaterm",
 		"gitsigns.blame",
 		"help",
+		"lir",
+		"lsp-installer",
 		"lspinfo",
+		"man",
 		"notify",
+		"null-ls-info",
 		"qf",
 		"tsplayground",
 	},
 	callback = function(event)
 		vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true, nowait = true })
+		vim.opt_local.buflisted = false
 	end,
 })
 
@@ -58,6 +66,7 @@ augroup("YankHighlight", { clear = true })
 autocmd("TextYankPost", {
 	desc = "Highlight on yank",
 	group = "YankHighlight",
+	pattern = "*",
 	callback = function()
 		vim.highlight.on_yank({ timeout = "400" })
 	end,
@@ -79,6 +88,7 @@ autocmd("BufReadPost", {
 autocmd({ "FocusGained", "TermClose", "TermLeave" }, {
 	desc = "Reload file if changed",
 	group = augroup("checktime", { clear = true }),
+	pattern = "*",
 	callback = function()
 		if vim.o.buftype ~= "nofile" then
 			vim.cmd("checktime")
@@ -90,6 +100,7 @@ autocmd({ "FocusGained", "TermClose", "TermLeave" }, {
 autocmd({ "VimResized" }, {
 	desc = "Resize splits if window got resized",
 	group = augroup("resize_splits", { clear = true }),
+	pattern = "*",
 	callback = function()
 		local current_tab = vim.fn.tabpagenr()
 		vim.cmd("tabdo wincmd =")
@@ -107,8 +118,16 @@ autocmd("FileType", {
 	end,
 })
 
+-- Auto create parent directory if needed
+autocmd({ "BufWritePre" }, {
+	group = augroup("auto_create_dirs", { clear = true }),
+	pattern = "*",
+	callback = function(event)
+		vim.fn.mkdir(vim.fn.fnamemodify(vim.loop.fs_realpath(event.match) or event.match, ":p:h"), "p")
+	end,
+})
+
 -- Auto create dir when saving a file, in case some intermediate directory does not exist
-vim.g.bigfile_size = 1024 * 1024 * 15
 autocmd({ "BufWritePre" }, {
 	group = augroup("auto_create_dir", { clear = true }),
 	callback = function(event)
@@ -140,11 +159,29 @@ vim.filetype.add({
 autocmd({ "FileType" }, {
 	group = augroup("bigfile", { clear = true }),
 	pattern = "bigfile",
-	callback = function(ev)
-		---@diagnostic disable-next-line: inject-field
-		vim.b.minianimate_disable = true
+	callback = function(event)
+		vim.b[event.buf].minianimate_disable = true
+		vim.b[event.buf].cmp_enabled = false
+		vim.b[event.buf].miniindentscope_disable = true
+		vim.b[event.buf].matchup_matchparen_enabled = 0
+		vim.opt_local.wrap = true
+		vim.opt_local.list = false
 		vim.schedule(function()
-			vim.bo[ev.buf].syntax = vim.filetype.match({ buf = ev.buf }) or ""
+			vim.bo[event.buf].syntax = vim.filetype.match({ buf = event.buf }) or ""
 		end)
 	end,
 })
+
+-- Configure some editor settings for terminal buffer
+autocmd({ "TermOpen" }, {
+	group = augroup("terminal", { clear = true }),
+	callback = function()
+		vim.opt_local.number = false
+		vim.opt_local.relativenumber = false
+		vim.opt_local.signcolumn = "no"
+		vim.opt_local.spell = false
+		vim.opt_local.wrap = true
+		vim.opt_local.foldcolumn = "0"
+	end,
+})
+

@@ -53,6 +53,7 @@ cmp.setup({
 		local context = require("cmp.config.context")
 		-- keep command mode completion enabled when cursor is in a comment
 		local mode = vim.api.nvim_get_mode()
+		---@diagnostic disable-next-line: undefined-field
 		if string.sub(mode.mode, 1, 1) == "c" then
 			return true
 		else
@@ -84,7 +85,8 @@ cmp.setup({
 				nvim_lua = "[NLua]",
 				buffer = "[Buffer]",
 			})[entry.source.name]
-			return vim_item
+
+			return require("nvim-highlight-colors").format(entry, vim_item)
 		end,
 	},
 	preselect = cmp.PreselectMode.None,
@@ -100,6 +102,7 @@ cmp.setup({
 		ghost_text = false,
 	},
 	duplicates = {
+		codeium = 1,
 		nvim_lsp = 1,
 		luasnip = 1,
 		buffer = 1,
@@ -152,13 +155,13 @@ cmp.setup({
 
 	-- Installed sources
 	sources = {
+		{ name = "buffer",   priority = 550 },
+		{ name = "codeium",  priority = 1000 },
 		{ name = "crates",   priority = 250 },
-		{ name = "path",     priority = 450 },
-		{ name = "buffer",   keyword_length = 2, priority = 550 },
-		{ name = "nvim_lua", keyword_length = 2, priority = 600 },
-		{ name = "nvim_lsp", keyword_length = 2, priority = 500 },
-		{ name = "luasnip",  keyword_length = 2, priority = 650 },
-		{ name = "codeium",  keyword_length = 1, priority = 700 },
+		{ name = "luasnip",  priority = 850 },
+		{ name = "nvim_lsp", priority = 700 },
+		{ name = "nvim_lua", priority = 600 },
+		{ name = "path",     priority = 350 },
 	},
 
 	cmp.setup.filetype({ "gitcommit" }, {
@@ -176,11 +179,13 @@ cmp.setup({
 	}),
 })
 
--- have a fixed column for the diagnostics to appear in
--- this removes the jitter when warnings/errors flow in
-vim.wo.signcolumn = "yes"
-vim.opt.shortmess = vim.opt.shortmess + { c = true }
-vim.api.nvim_set_option("updatetime", 200)
+luasnip.setup({
+	region_check_events = 'CursorMoved,CursorMovedI',
+	delete_check_events = 'TextChanged,TextChangedI',
+	enable_autosnippets = true,
+	history = true,
+})
+
 vim.cmd([[ highlight! default link CmpItemKind CmpItemMenuDefault ]])
 
 -- cmp highlights (gruvbox)

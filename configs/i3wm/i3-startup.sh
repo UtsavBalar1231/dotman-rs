@@ -40,14 +40,14 @@ if ! pgrep -u "$USER" /usr/lib/notification-daemon-1.0/notification-daemon >/dev
 fi
 
 # Auto set monitor
-available_monitors="$(xrandr -q | grep -w connected | awk '{print $1}')"
-if [[ $(echo "${available_monitors}" | wc -l) -eq 2 ]]; then
-	autorandr dual-monitors
-
-	log "Started autorandr dual-monitors" >> ${LOG_FILE}
-else
+# available_monitors="$(xrandr -q | grep -w connected | awk '{print $1}')"
+# if [[ $(echo "${available_monitors}" | wc -l) -eq 2 ]]; then
+# 	autorandr dual-monitors
+#
+# 	log "Started autorandr dual-monitors" >> ${LOG_FILE}
+# else
 	autorandr single-monitor
-fi
+# fi
 
 # make keyboard smooth
 xset r rate 250 60

@@ -168,3 +168,10 @@ fi
 if [ -f ${HOME}/dev/toolchains/.env ]; then
 	source ${HOME}/dev/toolchains/.env
 fi
+
+# bun completions
+[ -s "/home/utsav/.bun/_bun" ] && source "/home/utsav/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
