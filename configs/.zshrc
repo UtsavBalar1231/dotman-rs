@@ -1,27 +1,54 @@
-# Enable history
-setopt histignorespace
-setopt histignoredups
-setopt sharehistory
-setopt incappendhistory
+#zmodload zsh/zprof
 
+# Theme
+if ! command -v starship >/dev/null; then
+	curl -sS https://starship.rs/install.sh | sh
+fi
+export STARSHIP_CONFIG=${HOME}/.config/starship.toml
+eval "$(starship init zsh)"
+
+# Enable history
 HISTSIZE=100000
-SAVEHIST=10000
+SAVEHIST=$HISTSIZE
 HISTFILE=${HOME}/.zsh_history
+HISTDUP=erase
+
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
 
 # Enable auto completion
-setopt auto_menu
-setopt auto_list
-setopt auto_param_keys
-setopt auto_param_slash
-setopt auto_remove_slash
-setopt autocd
-setopt auto_pushd
+#setopt auto_menu
+#setopt auto_list
+#setopt auto_param_keys
+#setopt auto_param_slash
+#setopt auto_remove_slash
+#setopt autocd
+#setopt auto_pushd
 
-zstyle :compinstall filename '${HOME}/.zshrc'
+setopt correct
+
+autoload -Uz compinit && compinit
 autoload -Uz +X bashcompinit && bashcompinit
-autoload -Uz +X compinit && compinit
-zstyle ':completion:*' menu select
-# zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle :compinstall filename '${HOME}/.zshrc'
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+# disable sort when completing `git checkout`
+zstyle ':completion:*:git-checkout:*' sort false
+# set descriptions format to enable group support
+# NOTE: don't use escape sequences here, fzf-tab will ignore them
+zstyle ':completion:*:descriptions' format '[%d]'
+# set list-colors to enable filename colorizing
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+# force zsh not to show completion menu, which allows fzf-tab to capture the unambiguous prefix
+zstyle ':completion:*' menu no
+# preview directory's content with eza when completing cd
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
+# switch group using `<` and `>`
+zstyle ':fzf-tab:*' switch-group '<' '>'
 
 # Enable aliases
 setopt aliases
@@ -40,38 +67,79 @@ bindkey '^[[3~' delete-char
 
 bindkey -M viins "^E" end-of-line
 bindkey -M viins "^A" beginning-of-line
-bindkey -M viins "^P" up-history
-bindkey -M viins "^N" down-history
+bindkey -M viins "^P" history-search-backward
+bindkey -M viins "^N" history-search-forward
 
-# Theme
-if ! command -v starship >/dev/null; then
-	curl -sS https://starship.rs/install.sh | sh
-fi
-export STARSHIP_CONFIG=${HOME}/.config/starship.toml
-eval "$(starship init zsh)"
-
-# Zoxide
 if command -v zoxide >/dev/null; then
 	eval "$(zoxide init zsh)"
 fi
 
-# Plugins
+
+# List of plugins with optional third parameter for specific source file
 declare -g plugins=(
-	"z-shell/F-Sy-H:main"
-	"zsh-users/zsh-autosuggestions:develop"
-	"zsh-users/zsh-completions:master"
-	"zsh-users/zsh-history-substring-search:master"
-	"zsh-users/zsh-syntax-highlighting:master"
+    "z-shell/F-Sy-H:main"
+    "zsh-users/zsh-autosuggestions:develop"
+    "zsh-users/zsh-completions:master"
+    "zsh-users/zsh-history-substring-search:master"
+    "zsh-users/zsh-syntax-highlighting:master"
+    "Aloxaf/fzf-tab:master:fzf-tab.plugin"
 )
 
+# Loop through each plugin entry
 for plugin in "${plugins[@]}"; do
-	plugin_name="${plugin%%:*}"
+    plugin_name="${plugin%%:*}"
+    rest="${plugin#*:}"
+    plugin_branch="${rest%%:*}"
+    plugin_file="${rest#*:}"
 
-	if [ -d ${HOME}/.config/zsh/plugins/${plugin_name} ]; then
-		zsh_file=$(find ${HOME}/.config/zsh/plugins/${plugin_name} -maxdepth 1 -type f -name "*.zsh" | head -n 1)
-		source ${zsh_file}
-	fi
+    # echo "Loading $plugin_name, branch: $plugin_branch, file: $plugin_file"
+    
+    # Determine the plugin directory
+    plugin_dir="${HOME}/.config/zsh/plugins/${plugin_name}"
+
+    # Clone the plugin if it doesn't exist
+    if [ ! -d "${plugin_dir}" ]; then
+        git clone --depth=1 -b "$plugin_branch" "https://github.com/${plugin_name}" "${plugin_dir}"
+    fi
+
+    # Determine the file to source
+    if [ "$plugin_file" != "$plugin_branch" ]; then
+        # If a specific source file is provided, use it
+        zsh_file="${plugin_dir}/${plugin_file}.zsh"
+    else
+        # Otherwise, find the first .zsh file in the plugin directory
+        zsh_file=$(find "${plugin_dir}" -maxdepth 1 -type f -name "*.zsh" | head -n 1)
+    fi
+
+    # Source the file if it exists
+    if [ -f "${zsh_file}" ]; then
+        source "${zsh_file}"
+    else
+        echo "Warning: No .zsh file found for plugin ${plugin_name}"
+    fi
 done
+
+# zsh-autosuggestions
+
+# Disable automatic widget re-binding on each precmd. This can be set when
+# zsh-users/zsh-autosuggestions is the last module in your ~/.zimrc.
+ZSH_AUTOSUGGEST_MANUAL_REBIND=1
+
+# Customize the style that the suggestions are shown with.
+# See https://github.com/zsh-users/zsh-autosuggestions/blob/master/README.md#suggestion-highlight-style
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='bold'
+
+
+# zsh-syntax-highlighting
+
+# Set what highlighters will be used.
+# See https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters.md
+ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)
+
+# Customize the main highlighter styles.
+# See https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters/main.md#how-to-tweak-it
+typeset -A ZSH_HIGHLIGHT_STYLES
+ZSH_HIGHLIGHT_STYLES[comment]='fg=242'
 
 # Cargo environment
 if [ -f ${HOME}/.cargo/env ]; then
@@ -131,10 +199,13 @@ fi
 function update_zsh_plugins() {
 	for plugin in "${plugins[@]}"; do
 		plugin_name="${plugin%%:*}"
-		plugin_branch="${plugin#*:}"
+    	rest="${plugin#*:}"
+    	plugin_branch="${rest%%:*}"
+    	plugin_file="${rest#*:}"
+
 		echo "Updating $plugin_name" >&2
 		rm -rf "$HOME/.config/zsh/plugins/$plugin_name"
-		git clone "https://github.com/$plugin_name" "$HOME/.config/zsh/plugins/$plugin_name" -b "$plugin_branch"
+		git clone --depth=1 -q "https://github.com/$plugin_name" "$HOME/.config/zsh/plugins/$plugin_name" -b "$plugin_branch"
 	done
 }
 
@@ -150,12 +221,11 @@ function update_mirrors() {
 }
 
 # FZF
-if [ -f ${HOME}/.fzf.zsh ]; then
-	source ${HOME}/.fzf.zsh
-else
+if [ ! -f ${HOME}/.fzf.zsh ]; then
 	git clone --depth 1 https://github.com/junegunn/fzf.git ${HOME}/.fzf
 	${HOME}/.fzf/install
 fi
+eval "$(fzf --zsh)"
 
 # Pyenv
 if [ -d ${HOME}/.pyenv ]; then
@@ -175,3 +245,5 @@ fi
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+
+#zprof

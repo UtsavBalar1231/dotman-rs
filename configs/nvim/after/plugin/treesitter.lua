@@ -5,6 +5,23 @@ if not status_ok then
 	return
 end
 
+vim.filetype.add({
+	extension = {
+		c3 = "c3",
+		c3i = "c3",
+		c3t = "c3",
+	},
+})
+
+local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
+parser_config.c3 = {
+	install_info = {
+		url = "https://github.com/c3lang/tree-sitter-c3",
+		files = { "src/parser.c", "src/scanner.c" },
+		branch = "main",
+	},
+}
+
 -- Treesitter Plugin Setup Start --
 treesitter_configs.setup({
 	ensure_installed = {
@@ -45,7 +62,8 @@ treesitter_configs.setup({
 			"vue",
 			"eruby",
 			"erb",
-			"html.erb"
+			"html.erb",
+			"c3",
 		},
 	},
 	highlight = {
@@ -159,15 +177,16 @@ else
 		enable_autocmd = false,
 	})
 
-	if vim.fn.has "nvim-0.10" == 1 then
+	if vim.fn.has("nvim-0.10") == 1 then
 		-- HACK: add workaround for native comments: https://github.com/JoosepAlviste/nvim-ts-context-commentstring/issues/109
 		vim.schedule(function()
 			local get_option = vim.filetype.get_option
 			---@diagnostic disable-next-line: duplicate-set-field
 			vim.filetype.get_option = function(filetype, option)
-				if option ~= "commentstring" then return get_option(filetype, option) end
-				return ts_context_commentstring.internal.calculate_commentstring()
-					or get_option(filetype, option)
+				if option ~= "commentstring" then
+					return get_option(filetype, option)
+				end
+				return ts_context_commentstring.internal.calculate_commentstring() or get_option(filetype, option)
 			end
 		end)
 	end

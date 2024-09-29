@@ -9,22 +9,22 @@ local config = {
 	virtual_text = false, -- use trouble instead, or [d, ]d keymap
 	signs = {
 		text = {
-			[vim.diagnostic.severity.ERROR] = '',
-			[vim.diagnostic.severity.WARN] = '',
-			[vim.diagnostic.severity.HINT] = '',
-			[vim.diagnostic.severity.INFO] = '',
+			[vim.diagnostic.severity.ERROR] = "",
+			[vim.diagnostic.severity.WARN] = "",
+			[vim.diagnostic.severity.HINT] = "",
+			[vim.diagnostic.severity.INFO] = "",
 		},
 		texthl = {
-			[vim.diagnostic.severity.ERROR] = 'DiagnosticSignError',
-			[vim.diagnostic.severity.WARN] = 'DiagnosticSignWarn',
-			[vim.diagnostic.severity.HINT] = 'DiagnosticSignHint',
-			[vim.diagnostic.severity.INFO] = 'DiagnosticSignInfo',
+			[vim.diagnostic.severity.ERROR] = "DiagnosticSignError",
+			[vim.diagnostic.severity.WARN] = "DiagnosticSignWarn",
+			[vim.diagnostic.severity.HINT] = "DiagnosticSignHint",
+			[vim.diagnostic.severity.INFO] = "DiagnosticSignInfo",
 		},
 		numhl = {
-			[vim.diagnostic.severity.ERROR] = '',
-			[vim.diagnostic.severity.WARN] = '',
-			[vim.diagnostic.severity.HINT] = '',
-			[vim.diagnostic.severity.INFO] = '',
+			[vim.diagnostic.severity.ERROR] = "",
+			[vim.diagnostic.severity.WARN] = "",
+			[vim.diagnostic.severity.HINT] = "",
+			[vim.diagnostic.severity.INFO] = "",
 		},
 	},
 	update_in_insert = true,
@@ -32,11 +32,11 @@ local config = {
 	severity_sort = true,
 	float = {
 		focusable = true,
-		style = 'minimal',
+		style = "minimal",
 		border = nil,
-		source = 'always',
-		header = '',
-		prefix = '',
+		source = "always",
+		header = "",
+		prefix = "",
 	},
 }
 vim.diagnostic.config(config)
@@ -186,7 +186,7 @@ lspconfig.svls.setup({
 })
 
 -- typescript
-lspconfig.tsserver.setup({
+lspconfig.ts_ls.setup({
 	capabilities = capabilities,
 	on_attach = on_attach,
 })
@@ -205,6 +205,27 @@ lspconfig.lemminx.setup({
 
 -- yaml
 lspconfig.yamlls.setup({
+	capabilities = capabilities,
+	on_attach = on_attach,
+})
+
+-- c3 lsp
+local lsp_configurations = require("lspconfig.configs")
+
+if not lsp_configurations.c3_lsp then
+	lsp_configurations.c3_lsp = {
+		default_config = {
+			name = "c3_lsp",
+			cmd = {
+				"/usr/local/bin/c3-lsp",
+			},
+			filetypes = { "c3" },
+			root_dir = require("lspconfig.util").root_pattern(".git", "CMakeLists.txt"),
+		},
+	}
+end
+
+lspconfig.c3_lsp.setup({
 	capabilities = capabilities,
 	on_attach = on_attach,
 })

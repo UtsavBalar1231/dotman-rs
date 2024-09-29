@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 # SETTINGS {{{ ---
 
 active_text_color="#ddc7a1"
@@ -25,7 +24,6 @@ wm_border_width=1 # setting this might be required for accurate resize position
 
 # --- }}}
 
-
 main() {
 	# If no argument passed...
 	if [ -z "$2" ]; then
@@ -43,8 +41,7 @@ main() {
 	fi
 }
 
-get_icon_by_name()
-{
+get_icon_by_name() {
 	name=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 
 	declare -A ICON_MAP=(
@@ -116,12 +113,12 @@ slop_resize() {
 increment_size() {
 	while IFS="[ .]" read -r wid ws wx wy ww wh _; do
 		test "$wid" != "$1" && continue
-		x=$(( wx - wm_border_width * 2 - resize_increment / 2 ))
-		y=$(( wy - wm_border_width * 2 - resize_increment / 2 ))
-		w=$(( ww + resize_increment ))
-		h=$(( wh + resize_increment ))
+		x=$((wx - wm_border_width * 2 - resize_increment / 2))
+		y=$((wy - wm_border_width * 2 - resize_increment / 2))
+		w=$((ww + resize_increment))
+		h=$((wh + resize_increment))
 	done <<-EOF
-	$(wmctrl -lG)
+		$(wmctrl -lG)
 	EOF
 
 	wmctrl -ir "$1" -e "0,$x,$y,$w,$h"
@@ -130,12 +127,12 @@ increment_size() {
 decrement_size() {
 	while IFS="[ .]" read -r wid ws wx wy ww wh _; do
 		test "$wid" != "$1" && continue
-		x=$(( wx - wm_border_width * 2 + resize_increment / 2 ))
-		y=$(( wy - wm_border_width * 2 + resize_increment / 2 ))
-		w=$(( ww - resize_increment ))
-		h=$(( wh - resize_increment ))
+		x=$((wx - wm_border_width * 2 + resize_increment / 2))
+		y=$((wy - wm_border_width * 2 + resize_increment / 2))
+		w=$((ww - resize_increment))
+		h=$((wh - resize_increment))
 	done <<-EOF
-	$(wmctrl -lG)
+		$(wmctrl -lG)
 	EOF
 
 	wmctrl -ir "$1" -e "0,$x,$y,$w,$h"
@@ -206,36 +203,36 @@ generate_window_list() {
 
 		# Don't show the window if its class is forbidden
 		case "$forbidden_names" in
-			*$cname*) continue ;;
+		*$cname*) continue ;;
 		esac
 
 		# If max number of windows reached, just increment
 		# the windows counter
 		if [ "$window_count" -ge "$max_windows" ]; then
-			window_count=$(( window_count + 1 ))
+			window_count=$((window_count + 1))
 			continue
 		fi
 
 		# Show the user-selected window property
 		case "$show" in
-			"window_classname") w_name="$cname" ;;
-			"window_title") w_name="$title" ;;
-			"icon") w_name=$(get_icon_by_name "$cname") ;;
+		"window_classname") w_name="$cname" ;;
+		"window_title") w_name="$title" ;;
+		"icon") w_name=$(get_icon_by_name "$cname") ;;
 		esac
 
 		# Use user-selected character case
 		case "$char_case" in
-			"lower") w_name=$(
-				echo "$w_name" | tr '[:upper:]' '[:lower:]'
-				) ;;
-			"upper") w_name=$(
-				echo "$w_name" | tr '[:lower:]' '[:upper:]'
-				) ;;
+		"lower") w_name=$(
+			echo "$w_name" | tr '[:upper:]' '[:lower:]'
+		) ;;
+		"upper") w_name=$(
+			echo "$w_name" | tr '[:lower:]' '[:upper:]'
+		) ;;
 		esac
 
 		# Truncate displayed name to user-selected limit
 		if [ "${#w_name}" -gt "$char_limit" ]; then
-			w_name="$(echo "$w_name" | cut -c1-$((char_limit-1)))…"
+			w_name="$(echo "$w_name" | cut -c1-$((char_limit - 1)))…"
 		fi
 
 		# Apply add-spaces setting
@@ -269,15 +266,15 @@ generate_window_list() {
 		printf "%s" "%{T6}$w_name%{T-}"
 		printf "%s" "%{A}%{A}%{A}%{A}%{A}"
 
-		window_count=$(( window_count + 1 ))
+		window_count=$((window_count + 1))
 	done <<-EOF
-	$(wmctrl -lx | sort -k3)
+		$(wmctrl -lx | sort -k3)
 	EOF
 
 	# After printing all the windows,
 	# print number of hidden windows
 	if [ "$window_count" -gt "$max_windows" ]; then
-		printf "%s" "+$(( window_count - max_windows ))"
+		printf "%s" "+$((window_count - max_windows))"
 	# Print empty desktop message if no windows are open
 	elif [ "$window_count" = 0 ]; then
 		printf "%s" "$empty_desktop_message"

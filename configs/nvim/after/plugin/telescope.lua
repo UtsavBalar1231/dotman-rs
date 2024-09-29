@@ -147,10 +147,10 @@ telescope.setup({
 			file_ignore_patterns = {},
 		},
 	},
-	frecency = {
-		auto_validate = true,
-	},
+	-- frecency = {
+	-- 	auto_validate = true,
+	-- },
 })
 
 telescope.load_extension("file_browser")
-telescope.load_extension("frecency")
+-- telescope.load_extension("frecency")

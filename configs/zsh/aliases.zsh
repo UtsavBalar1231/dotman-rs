@@ -97,3 +97,11 @@ if command -v gdrive >/dev/null 2>&1; then
 		esac
 	}
 fi
+
+alias x="xdg-open"
+
+alias rm='printf "\033[1;31m" && rm -rv'
+alias cp='printf "\033[1;32m" && cp -rv'
+alias mv='printf "\033[1;34m" && mv -v'
+alias mkdir='printf "\033[1;33m" && mkdir -v'
+alias rmdir='printf "\033[1;35m" && rmdir -v'
