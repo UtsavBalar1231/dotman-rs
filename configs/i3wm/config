@@ -91,16 +91,16 @@ bindsym $mod+Return exec kitty
 bindsym $mod+Shift+q kill
 
 # start dmenu
-bindcode $mod+40 exec "rofi -show drun"
+bindcode $mod+40 exec launcher_t5
 
 # rofi open windows
-bindcode $mod+Shift+40 exec "rofi -show window"
+# bindcode $mod+Shift+40 exec "rofi -show window"
 
 # rofi run
-bindcode $mod+Ctrl+40 exec "rofi -show run"
+# bindcode $mod+Ctrl+40 exec "rofi -show run"
 
 # Power menu
-bindsym $mod+Shift+p exec "rofi -show p -modi p:'rofi-power-menu' -theme-str 'window {width: 16em; height: 12em;} listview {lines: 6;}'"
+bindsym $mod+Shift+p exec powermenu_t3
 
 # bindcode $mod+40 exec --no-startup-id i3-dmenu-desktop
 
@@ -207,7 +207,7 @@ bindsym $mod+Shift+r restart
 # exit i3 (logs you out of your X session)
 bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
 # xsecurelock
-bindsym $mod+Shift+x exec --no-startup-id xsecurelock
+bindsym $mod+Shift+x exec --no-startup-id powermenu_t3
 
 # resize window (you can also use the mouse for that)
 mode "resize" {

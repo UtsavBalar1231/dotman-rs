@@ -246,4 +246,7 @@ fi
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+# rofi
+export PATH=$HOME/.config/rofi/scripts:$PATH
+
 #zprof
