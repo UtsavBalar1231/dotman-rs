@@ -52,9 +52,7 @@ zstyle ':fzf-tab:*' switch-group '<' '>'
 
 # Enable aliases
 setopt aliases
-if [ -f ${HOME}/.config/zsh/aliases.zsh ]; then
-	source ${HOME}/.config/zsh/aliases.zsh
-fi
+source ${HOME}/.config/zsh/aliases.zsh
 
 # key bindings
 bindkey -v
@@ -194,9 +192,7 @@ fi
 
 # Broot
 if command -v broot >/dev/null 2>&1; then
-	if [ -f ${HOME}/.config/broot/launcher/bash/br ]; then
-		source ${HOME}/.config/broot/launcher/bash/br
-	fi
+	source ${HOME}/.config/broot/launcher/bash/br
 fi
 
 # ZSH plugins
@@ -211,17 +207,6 @@ function update_zsh_plugins() {
 		rm -rf "$HOME/.config/zsh/plugins/$plugin_name"
 		git clone --depth=1 -q "https://github.com/$plugin_name" "$HOME/.config/zsh/plugins/$plugin_name" -b "$plugin_branch"
 	done
-}
-
-# Update archlinux mirrors
-function update_mirrors() {
-	if [ -d "/etc/pacman.d" ]; then
-		if ! command -v reflector >/dev/null; then
-			echo "Install reflector using pacman!"
-			exit 1
-		fi
-		sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak && sudo reflector --latest 20 --protocol https --sort age --save /etc/pacman.d/mirrorlist
-	fi
 }
 
 # FZF
@@ -254,5 +239,3 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH=$HOME/.config/rofi/scripts:$PATH
 
 #zprof
-
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
