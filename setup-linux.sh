@@ -6,6 +6,9 @@ CUR_DIR=$(dirname "${CMD}")
 # shellcheck source=scripts/utils.sh
 source "${CUR_DIR}"/scripts/utils.sh
 
+# shellcheck source=scripts/setup_shell.sh
+source "${CUR_DIR}"/scripts/setup_shell.sh
+
 if command -v eza &>/dev/null; then
 	cargo install eza
 fi

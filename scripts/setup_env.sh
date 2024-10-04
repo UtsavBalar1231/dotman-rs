@@ -25,6 +25,7 @@ python-is-python3
 python3
 rsync
 shellcheck
+stow
 svls
 tmux
 unzip
@@ -71,6 +72,7 @@ pkgconf
 ripgrep
 sed
 shellcheck
+stow
 sudo
 systemd
 systemd-libs
@@ -88,7 +90,7 @@ zsh
 if [ ! -f /etc/arch-release ]; then
 	sudo apt update -y
 
-	IFS=' ' read -r -a packages <<< "$debian_packages"
+	IFS=$'\n' read -rd ' ' -a packages <<<"$debian_packages"
 	for package in "${packages[@]}"; do
 		if ! dpkg -s "$package" >/dev/null 2>&1; then
 			sudo apt install -y "$package"
@@ -99,7 +101,7 @@ if [ ! -f /etc/arch-release ]; then
 else
 	sudo pacman -Syu --noconfirm
 
-	IFS=' ' read -r -a packages <<< "$arch_packages"
+	IFS=$'\n' read -rd ' ' -a packages <<<"$arch_packages"
 	for package in "${packages[@]}"; do
 		if ! pacman -Qi "$package" >/dev/null 2>&1; then
 			sudo pacman -S --noconfirm "$package"

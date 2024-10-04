@@ -52,7 +52,9 @@ zstyle ':fzf-tab:*' switch-group '<' '>'
 
 # Enable aliases
 setopt aliases
-source ${HOME}/.config/zsh/aliases.zsh
+if [ -f ${HOME}/.config/zsh/aliases.zsh ]; then
+	source ${HOME}/.config/zsh/aliases.zsh
+fi
 
 # key bindings
 bindkey -v
@@ -192,7 +194,9 @@ fi
 
 # Broot
 if command -v broot >/dev/null 2>&1; then
-	source ${HOME}/.config/broot/launcher/bash/br
+	if [ -f ${HOME}/.config/broot/launcher/bash/br ]; then
+		source ${HOME}/.config/broot/launcher/bash/br
+	fi
 fi
 
 # ZSH plugins
@@ -250,3 +254,5 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH=$HOME/.config/rofi/scripts:$PATH
 
 #zprof
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

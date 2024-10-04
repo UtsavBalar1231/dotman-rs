@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 CMD=$(realpath "${0}")
 CUR_DIR=$(dirname "${CMD}")
 
@@ -12,18 +10,22 @@ source "${CUR_DIR}"/scripts/utils.sh
 export TZ="Asia/Kolkata"
 
 # Setup build environment: {{{
-bash "${CUR_DIR}"/scripts/setup_git.sh
-bash "${CUR_DIR}"/scripts/setup_env.sh
+echo "Setting up git..."
+source "${CUR_DIR}"/scripts/setup_git.sh
+echo "Setting up environment..."
+source "${CUR_DIR}"/scripts/setup_env.sh
 # }}}
 
 # Install rust: {{{
 if ! command -v rustup &>/dev/null; then
-	bash "${CUR_DIR}"/scripts/setup_rust.sh
+	echo "Setting up rust..."
+	source "${CUR_DIR}"/scripts/setup_rust.sh
 fi
 # }}}
 
 # Install diff-so-fancy: {{{
 if ! command -v diff-so-fancy &>/dev/null; then
+	echo "Setting up diff-so-fancy..."
 	diff_so_fancy_version=$(get_git_version "so-fancy/diff-so-fancy")
 
 	curl -sLo ./diff-so-fancy https://github.com/so-fancy/diff-so-fancy/releases/download/"${diff_so_fancy_version}"/diff-so-fancy
@@ -56,18 +58,20 @@ OPTIONS=("${@}")
 for option in "${OPTIONS[@]}"; do
 	echo "processing option: $option"
 	case ${option} in
-		*arch)
-			./setup-arch.sh
-			;;
-		*ubuntu|*debian)
-			./setup-linux.sh
-			;;
-		help|-h)
-			usage
-			;;
-		*)
-			echo "unknown option: $option"
-			usage
-			;;
+	*arch)
+		echo "Setting up Arch..."
+		./setup-arch.sh
+		;;
+	*ubuntu | *debian)
+		echo "Setting up Ubuntu/Debian..."
+		./setup-linux.sh
+		;;
+	help | -h)
+		usage
+		;;
+	*)
+		echo "unknown option: $option"
+		usage
+		;;
 	esac
 done
