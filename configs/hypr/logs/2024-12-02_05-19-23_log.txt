@@ -1,0 +1,803 @@
+[LOG] arrangeMonitors: eDP-1 explicit [0, 0]
+[LOG] arrangeMonitors: eDP-1 xwayland [0, 0]
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] Executing systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash dbus-update-activation-environment 2>/dev/null && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS
+[LOG] Process Created with pid 242762
+[LOG] Executing tail -f /run/user/1000/hypr/d26439a0fe5594fb26d5a3c01571f9490a9a2d2c_1733096962_1577100932/hyprland.log &> ~/.config/hypr/logs/$(date '+%F_%H-%M-%S_log.txt')
+[LOG] Process Created with pid 242764
+[LOG] Executing ~/.config/hypr/scripts/xdg-portal-hyprland.sh
+[LOG] Process Created with pid 242767
+[LOG] Executing dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=hyprland
+[LOG] Process Created with pid 242771
+[LOG] Executing dbus-update-activation-environment --systemd --all
+[LOG] Process Created with pid 242774
+[LOG] Executing systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+[LOG] Process Created with pid 242777
+[LOG] Executing /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+[LOG] Process Created with pid 242779
+[LOG] Executing systemctl --user start hyprpolkitagent
+[LOG] Process Created with pid 242781
+[LOG] Executing hyprpaper
+[LOG] Process Created with pid 242783
+[LOG] Executing hypridle
+[LOG] Process Created with pid 242785
+[LOG] Executing hyprsunset
+[LOG] Process Created with pid 242787
+[LOG] Executing hyprswitch init --show-title
+[LOG] Process Created with pid 242789
+[LOG] Executing waybar
+[LOG] Process Created with pid 242791
+[LOG] Executing swaync
+[LOG] Process Created with pid 242796
+[LOG] Executing ~/.config/hypr/scripts/wallpaper-slideshow.sh
+[LOG] Process Created with pid 242800
+[LOG] Executing blueman-applet
+[LOG] Process Created with pid 242802
+[LOG] Executing udiskie
+[LOG] Process Created with pid 242804
+[LOG] Executing eww daemon
+[LOG] Process Created with pid 242812
+[LOG] Executing swayosd-server
+[LOG] Process Created with pid 242815
+[LOG] Executing wl-paste --type text --watch cliphist store
+[LOG] Process Created with pid 242819
+[LOG] Executing hyprswitch init --show-title --size-factor 5 &
+[LOG] Process Created with pid 242822
+[LOG] Applying monitor rule for eDP-1
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 12000] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 12000] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] Swapchain: Reconfigured a swapchain to [Vector2D: x: 1920, y: 12000] XR24 of length 2
+[LOG] [AQ] atomic drm request: failed to commit: Invalid argument, flags: ATOMIC_ALLOW_MODESET ATOMIC_TEST_ONLY 
+[ERR] Custom resolution FAILED, falling back to preferred
+[ERR] Monitor eDP-1 got an invalid requested mode: 1920x12000@144.000000, using the preferred one instead: 1920x1200@144.001007
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 1200] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 1200] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] Swapchain: Reconfigured a swapchain to [Vector2D: x: 1920, y: 1200] XR24 of length 2
+[LOG] output eDP-1 succeeded basic test on format DRM_FORMAT_XRGB8888
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[ERR] [AQ] drm: Cannot commit when a page-flip is awaiting
+[ERR] Couldn't commit output named eDP-1
+[LOG] arrangeMonitors: 1 to arrange
+[LOG] arrangeMonitors: eDP-1 explicit [0, 0]
+[LOG] arrangeMonitors: eDP-1 xwayland [0, 0]
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] Monitor eDP-1 data dump: res 1920x1200@144.00Hz, scale 1.00, transform 0, pos 0x0, 10b 0
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] [hookSystem] New hook event registered: render
+[LOG] Monitor eDP-1 -> destroyed all render data
+[LOG] Shaders initialized successfully.
+[LOG] Framebuffer created, status 36053
+[LOG] Framebuffer created, status 36053
+[LOG] Framebuffer created, status 36053
+[LOG] Framebuffer created, status 36053
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[ERR] [AQ] drm: Cannot commit when a page-flip is awaiting
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[ERR] [AQ] drm: Cannot commit when a page-flip is awaiting
+[WARN] Failed to change process scheduling strategy
+[LOG] Hyprland init finished.
+[LOG] Executing systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash dbus-update-activation-environment 2>/dev/null && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS
+[LOG] Process Created with pid 242839
+[LOG] Running on WAYLAND_DISPLAY: wayland-1
+[LOG] New aquamarine output with name HEADLESS-1
+[LOG] New output with name FALLBACK
+[LOG] Hyprland is ready, running the event loop!
+[LOG] [AQ] backend: poll fd 11 for implementation headless
+[LOG] [AQ] backend: poll fd 30 for implementation drm
+[LOG] [AQ] backend: poll fd 12 for session
+[LOG] [AQ] backend: poll fd 14 for session
+[LOG] [AQ] backend: poll fd 15 for session
+[LOG] [AQ] backend: poll fd 18 for idle
+[LOG] [AQ] libinput: New device Video Bus: 0-6
+[LOG] New aquamarine keyboard with name Video Bus
+[LOG] ApplyConfigToKeyboard for "video-bus", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 5576988377d0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 72
+[LOG] [hookSystem] New hook event registered: activeLayout
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus"
+[LOG] New keyboard created, pointers Hypr: 5576988377d0 and AQ: 5576987dd890
+[LOG] [AQ] libinput: New device Video Bus: 0-6
+[LOG] New aquamarine keyboard with name Video Bus
+[LOG] ApplyConfigToKeyboard for "video-bus-1", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 5576999c08f0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 73
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus-1"
+[LOG] New keyboard created, pointers Hypr: 5576999c08f0 and AQ: 557698a25210
+[LOG] [AQ] libinput: New device Lid Switch: 0-5
+[LOG] New aquamarine switch with name Lid Switch
+[LOG] New switch with name "Lid Switch" added
+[LOG] [AQ] libinput: New device Power Button: 0-1
+[LOG] New aquamarine keyboard with name Power Button
+[LOG] ApplyConfigToKeyboard for "power-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 5576999c99a0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Power Button
+[LOG] Updated keymap fd to 74
+[LOG] Set the keyboard layout to us and variant to  for keyboard "power-button"
+[LOG] New keyboard created, pointers Hypr: 5576999c99a0 and AQ: 5576999df880
+[LOG] [AQ] libinput: New device Sleep Button: 0-3
+[LOG] New aquamarine keyboard with name Sleep Button
+[LOG] ApplyConfigToKeyboard for "sleep-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 557699a046b0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Sleep Button
+[LOG] Updated keymap fd to 75
+[LOG] Set the keyboard layout to us and variant to  for keyboard "sleep-button"
+[LOG] New keyboard created, pointers Hypr: 557699a046b0 and AQ: 557699a1b1c0
+[LOG] [AQ] libinput: New device MSNB0001:00 04CA:2642 Touchpad: 1226-9794
+[LOG] New aquamarine pointer with name MSNB0001:00 04CA:2642 Touchpad
+[LOG] New mouse has libinput sens 0.00 (0.00) with accel profile 2 (2)
+[LOG] Attached pointer msnb0001:00-04ca:2642-touchpad to global
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-touchpad, sens 0.00
+[LOG] New mouse created, pointer AQ: 55769795b4a0
+[LOG] [AQ] libinput: New device MSNB0001:00 04CA:2642 Mouse: 1226-9794
+[LOG] New aquamarine pointer with name MSNB0001:00 04CA:2642 Mouse
+[LOG] New mouse has libinput sens 0.00 (0.00) with accel profile 2 (2)
+[LOG] Attached pointer msnb0001:00-04ca:2642-mouse to global
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-touchpad, sens 0.00
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-mouse, sens 0.00
+[LOG] New mouse created, pointer AQ: 557697983b10
+[LOG] [AQ] libinput: New device Intel HID events: 0-0
+[LOG] New aquamarine keyboard with name Intel HID events
+[LOG] ApplyConfigToKeyboard for "intel-hid-events", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 557699aa4920's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID events
+[LOG] Updated keymap fd to 76
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-events"
+[LOG] New keyboard created, pointers Hypr: 557699aa4920 and AQ: 557699a564d0
+[LOG] [AQ] libinput: New device Intel HID 5 button array: 0-0
+[LOG] New aquamarine keyboard with name Intel HID 5 button array
+[LOG] ApplyConfigToKeyboard for "intel-hid-5-button-array", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 557699ae19b0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID 5 button array
+[LOG] Updated keymap fd to 77
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-5-button-array"
+[LOG] New keyboard created, pointers Hypr: 557699ae19b0 and AQ: 557699a917c0
+[LOG] [AQ] libinput: New device AT Translated Set 2 keyboard: 1-1
+[LOG] New aquamarine keyboard with name AT Translated Set 2 keyboard
+[LOG] ApplyConfigToKeyboard for "at-translated-set-2-keyboard", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 557699b1cc40's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard AT Translated Set 2 keyboard
+[LOG] Updated keymap fd to 78
+[LOG] Set the keyboard layout to us and variant to  for keyboard "at-translated-set-2-keyboard"
+[LOG] New keyboard created, pointers Hypr: 557699b1cc40 and AQ: 557699abbfb0
+[LOG] [AQ] libinput: New device MSI WMI hotkeys: 0-0
+[LOG] New aquamarine keyboard with name MSI WMI hotkeys
+[LOG] ApplyConfigToKeyboard for "msi-wmi-hotkeys", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 557699b56a00's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard MSI WMI hotkeys
+[LOG] Updated keymap fd to 79
+[LOG] Set the keyboard layout to us and variant to  for keyboard "msi-wmi-hotkeys"
+[LOG] New keyboard created, pointers Hypr: 557699b56a00 and AQ: 557699af6f30
+[LOG] [hookSystem] New hook event registered: tick
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[LOG] Starting XWayland with "Xwayland :1 -rootless -core -listenfd 55 -listenfd 56 -displayfd 85 -wm 82", bon voyage!
+[LOG] [CWLSeatProtocol] New seat resource bound at 5576999caaa0
+[LOG] [CExtIdleNotification] Registered idle-notification for 150000ms
+[LOG] [CExtIdleNotification] Registered idle-notification for 300000ms
+[LOG] [CExtIdleNotification] Registered idle-notification for 330000ms
+[LOG] [CExtIdleNotification] Registered idle-notification for 1800000ms
+[LOG] [CHyprlandCTMControlProtocol] New CTM Manager at 0x557699b83310
+[LOG] [CHyprlandCTMControlResource] CTM set for output eDP-1: [mat3x3: 1, 0, 0, 0, 0.96484375, 0, 0, 0, 0.92578125]
+[LOG] [CHyprlandCTMControlResource] Committing ctms to outputs
+[LOG] [CWLSeatProtocol] New seat resource bound at 5576999b1900
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699ba9240
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699ba9500
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699b198a0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b83420
+[LOG] [CDataDeviceWLRProtocol] New wlr_data_control_manager at 557699b22240
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699b20620
+[LOG] [CWLRDataControlManagerResource] New wlr data device bound at 557699b46d70
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699b469b0
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699b48440
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699b7fb80 (not xwayland)
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699bdeaa0
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 5576999e3580
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699a6e270
+[LOG] [CWLCompositorResource] New wl_surface with id 30 at 557699a7bba0
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699b47010
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699b0ec40
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699bde740 (not xwayland)
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699be3e70
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 557699b47560
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699b47bc0
+[LOG] [CWLCompositorResource] New wl_surface with id 30 at 55769798ba10
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699b0cdf0
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699ae67d0
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699b7fd60 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699be4b40
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 557699be4e90
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 557699bdde50
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699be38d0
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 557699be5460
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699ae7430
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699b5cda0
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699b7fe50 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699be5f30
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 557699be6280
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 557699ad0e20
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699b20de0
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 557699be6850
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699af7230
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699ae7c10
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699b7fa90 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699be7320
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 557699be7670
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 557699b58000
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699b20bc0
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 557699be7e00
+[LOG] [CWLCompositorResource] New wl_surface with id 3 at 557699be8390
+[LOG] CWLSurface 557699be7ba0 called init()
+[LOG] LayerSurface 557698ea5060 (namespace notifications layer 3) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 557698ea5060
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699be8840
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699b47810
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699b92130 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699be9070
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 557699be9580
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 557699b17940
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699b17920
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 557699be9d10
+[LOG] [CWLCompositorResource] New wl_region with id 15 at 557699b31740
+[LOG] LayerSurface 557698ea5060 mapped
+[LOG] [hookSystem] New hook event registered: openLayer
+[LOG] [CWLCompositorResource] New wl_region with id 16 at 557699b46820
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b80ef0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b81660
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b80450
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b81ee0
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699b8b0d0 (xwayland)
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b80670
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699ae08d0
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699a946d0
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699b92040 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699ba7df0
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 557699be7e00
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 557699be7000
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699be6da0
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 557699be7670
+[LOG] [CDRMLeaseDeviceResource] Sending DRMFD 110 to new lease device
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699ba8240
+[LOG] [CWLCompositorResource] New wl_surface with id 22 at 557699bcadc0
+[LOG] XWayland is ready
+[LOG] xfixes version: 6.0
+[LOG] xres version: 1.2
+[LOG] [seatmgr] Rejecting a setCursor because the client ain't in focus
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b82fe0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b81770
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b834b0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b805f0
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699b7fe50 (not xwayland)
+[LOG] Socket2 accepted a new client at FD 110
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b6c3f0
+[LOG] [CWLCompositorResource] New wl_surface with id 35 at 557699c65a10
+[LOG] CWLSurface 557699c65590 called init()
+[LOG] LayerSurface 557698a35900 (namespace waybar layer 2) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 557698a35900
+[LOG] [CWLCompositorResource] New wl_surface with id 37 at 557699c66150
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699b821c0
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699b6d1c0
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 557699c515e0 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699c66ec0
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 557699c672f0
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 557699a2e8f0
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699b6cb80
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 557699c67a80
+[LOG] CWLSurface 557699c67820 called init()
+[LOG] LayerSurface 5576979c43f0 (namespace gtk4-layer-shell layer 3) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 5576979c43f0
+[LOG] [CXDGActivationToken] assigned new xdg-activation token e3ed128e-85f8-4782-af92-29935ae5cf04
+[WARN] [../src/protocols/XDGActivation.cpp:85] activate event for non-window or gone surface with token e3ed128e-85f8-4782-af92-29935ae5cf04, ignoring
+[LOG] LayerSurface 5576979c43f0 destroyed
+[LOG] Removing LayerSurface that wasn't mapped.
+[LOG] CWLSurface 557699c67820 called destroy()
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b81cc0
+[LOG] [CWLCompositorResource] New wl_surface with id 46 at 557699c785b0
+[LOG] CWLSurface 557699c67f30 called init()
+[LOG] LayerSurface 5576979c43f0 (namespace gtk4-layer-shell layer 3) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 5576979c43f0
+[LOG] [CXDGActivationToken] assigned new xdg-activation token f038456a-7d9b-45ee-9721-536c2e39c7f6
+[WARN] [../src/protocols/XDGActivation.cpp:85] activate event for non-window or gone surface with token f038456a-7d9b-45ee-9721-536c2e39c7f6, ignoring
+[LOG] LayerSurface 5576979c43f0 destroyed
+[LOG] Removing LayerSurface that wasn't mapped.
+[LOG] CWLSurface 557699c67f30 called destroy()
+[LOG] LayerSurface 557698a35900 mapped
+[LOG] [CScreencopyProtocol] Bound client successfully!
+[LOG] [CToplevelExportProtocol] Bound client successfully!
+[LOG] Cleanup: destroyed a layersurface
+[LOG] Cleanup: destroyed a layersurface
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [CPrimarySelectionProtocol] CPrimarySelectionProtocol::updateSelection: cannot send selection to a client without a data_device
+[LOG] cursorImage request: shape 1 -> default
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_TOUCH → TAP_EVENT_RELEASE → TAP_STATE_1FGTAP_TAPPED
+
+[LOG] [hookSystem] New hook event registered: mouseButton
+[LOG] LayerSurface 557698ea5060 destroyed
+[LOG] Forcing an unmap of a LS that did a straight destroy!
+[LOG] LayerSurface 557698ea5060 unmapped
+[LOG] [hookSystem] New hook event registered: closeLayer
+[LOG] Framebuffer created, status 36053
+[LOG] CWLSurface 557699be7ba0 called destroy()
+[LOG] [AQ] [libinput] event10 - tap: touch -1 (), tap state TAP_STATE_1FGTAP_TAPPED → TAP_EVENT_TIMEOUT → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] Cleanup: destroyed a layersurface
+[LOG] Keybind triggered, calling dispatcher (64, , 50)
+[LOG] [hookSystem] New hook event registered: workspace
+[LOG] Destroying workspace ID 1
+[LOG] [hookSystem] New hook event registered: destroyWorkspace
+[LOG] Keybind triggered, calling dispatcher (64, , 49)
+[LOG] Destroying workspace ID 2
+[LOG] Keybind triggered, calling dispatcher (64, , 100)
+[LOG] Executing wofi
+[LOG] Process Created with pid 243216
+[LOG] Keybind triggered, calling dispatcher (64, , 100)
+[LOG] Executing ~/.config/rofi/launchers/type-2/launcher.sh
+[LOG] Process Created with pid 243218
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699be7ba0
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699adb3b0
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699c8f670
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699b473d0
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 557699b6a560
+[LOG] [CWLCompositorResource] New wl_surface with id 3 at 557699be8390
+[LOG] CWLSurface 557698d55890 called init()
+[LOG] LayerSurface 557698ea5060 (namespace rofi layer 3) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 557698ea5060
+[LOG] LayerSurface 557698ea5060 mapped
+[LOG] Set keyboard focus to surface 557699be8390
+[LOG] cursorImage request: shape 1 -> default
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (edge)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_R to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (edge)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_R to BUTTON_STATE_BOTTOM 
+
+[LOG] LayerSurface 557698ea5060 destroyed
+[LOG] Forcing an unmap of a LS that did a straight destroy!
+[LOG] LayerSurface 557698ea5060 unmapped
+[LOG] Framebuffer created, status 36053
+[LOG] CWLSurface 557698d55890 called destroy()
+[LOG] [CForeignToplevelWlrManager] CForeignToplevelWlrManager: finished
+[ERR] [AQ] atomic drm request: failed to commit: Device or resource busy, flags: ATOMIC_NONBLOCK PAGE_FLIP_EVENT 
+[ERR] [AQ] atomic drm request: failed to commit: Device or resource busy, flags: ATOMIC_NONBLOCK PAGE_FLIP_EVENT 
+[LOG] [CWLSeatProtocol] New seat resource bound at 557699c67820
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 557699b94d50
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 557699a2e8d0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 557699b49d40
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 557699b27440
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 557699b567f0
+[LOG] [CTextInputV3] New tiv3 at 00005576987e8970
+[LOG] [CWLCompositorResource] New wl_surface with id 25 at 557699be8390
+[LOG] [CWLCompositorResource] New wl_surface with id 29 at 557699c9cda0
+[LOG] [CWLCompositorResource] New wl_region with id 32 at 5576999deef0
+[LOG] [CXDGWMBase] New xdg_surface at 557699cad030
+[LOG] [CXDGSurfaceResource] xdg_surface 557699b49d40 gets a toplevel 557699c78f80
+[LOG] CWLSurface 557699c78a20 called init()
+[LOG] Window 557699ca60c0 set class to kitty
+[LOG] Searching for matching rules for kitty (title: )
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: ""]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: ""]
+[LOG] [hookSystem] New hook event registered: windowUpdateRules
+[LOG] Window 557699ca60c0 set title to kitty
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] [CXDGDecoration] setMode: MODE_CLIENT_SIDE. Ignoring and sending MODE_SERVER_SIDE as reply.
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] Layout predicts size [Vector2D: x: 1920, y: 1200] for [Window 557699ca60c0: title: "kitty"]
+[LOG] [CWLCompositorResource] New wl_region with id 32 at 557699b86ba0
+[LOG] [CWLCompositorResource] New wl_region with id 36 at 557699b86ba0
+[LOG] [CXDGSurfaceResource] xdg_surface 557699cad030 requests geometry 0x0 1920x1200
+[LOG] [CSinglePixelBuffer] New single-pixel buffer with color 0xff000000
+[LOG] New window contains HL_INITIAL_WORKSPACE_TOKEN: a821dbfb-c898-4af0-bbd6-b24692faa565
+[LOG] HL_INITIAL_WORKSPACE_TOKEN a821dbfb-c898-4af0-bbd6-b24692faa565 -> 1
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] OPENINGON: [Node nullptr], Monitor: 0
+[LOG] Set keyboard focus to surface 557699c9cda0, with [Window 557699ca60c0: title: "kitty"]
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] Map request dispatched, monitor eDP-1, window pos: [4.00000, 64.00000], window size: [1912.00000, 1132.00000]
+[LOG] [CForeignToplevelWlrManager] Newly mapped window 0000557699ca60c0
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "kitty"]
+[LOG] Framebuffer created, status 36053
+[LOG] [CWLCompositorResource] New wl_region with id 36 at 557699b96130
+[LOG] cursorImage request: shape 1 -> default
+[LOG] [CWLCompositorResource] New wl_region with id 38 at 5576999de2b0
+[LOG] [CXDGSurfaceResource] xdg_surface 557699cad030 requests geometry 0x0 1908x1128
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 41: size [Vector2D: x: 1908, y: 1128], fmt AR24, planes 3
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 72057594037927944 fd 122 stride 7680 offset 0
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 1: mod 72057594037927944 fd 123 stride 960 offset 8847360
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 2: mod 72057594037927944 fd 124 stride 64 offset 8884224
+[LOG] cursorImage request: shape 9 -> text
+[LOG] Window 557699ca60c0 set title to zsh
+[LOG] Searching for matching rules for kitty (title: zsh)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "zsh"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "zsh"]
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 42: size [Vector2D: x: 1908, y: 1128], fmt AR24, planes 3
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 72057594037927944 fd 125 stride 7680 offset 0
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 1: mod 72057594037927944 fd 126 stride 960 offset 8847360
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 2: mod 72057594037927944 fd 127 stride 64 offset 8884224
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (edge)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (edge)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_R to BUTTON_STATE_BOTTOM 
+
+[LOG] Cleanup: destroyed a layersurface
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 44: size [Vector2D: x: 1908, y: 1128], fmt AR24, planes 3
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 72057594037927944 fd 128 stride 7680 offset 0
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 1: mod 72057594037927944 fd 129 stride 960 offset 8847360
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 2: mod 72057594037927944 fd 130 stride 64 offset 8884224
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_JAILED → THUMB_STATE_FINGER
+
+[LOG] Window 557699ca60c0 set title to ~
+[LOG] Searching for matching rules for kitty (title: ~)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "~"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "~"]
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_R to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_R to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_R to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_R to BUTTON_STATE_BOTTOM 
+
+[LOG] cursorImage request: surface 0
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_R to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 released, timeout after typing
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_JAILED → THUMB_STATE_FINGER
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 557699ca60c0 set title to paru -Rcns mako
+[LOG] Searching for matching rules for kitty (title: paru -Rcns mako)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "paru -Rcns mako"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "paru -Rcns mako"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 557699ca60c0 set title to ~
+[LOG] Searching for matching rules for kitty (title: ~)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "~"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "~"]
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (edge)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_R to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 released, out of edge zone
+
+[LOG] cursorImage request: surface 0
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_JAILED → THUMB_STATE_FINGER
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] Window 557699ca60c0 set title to sudo systemctl restart display-manager
+[LOG] Searching for matching rules for kitty (title: sudo systemctl restart display-manager)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 557699ca60c0: title: "sudo systemctl restart display-manager"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 557699ca60c0: title: "sudo systemctl restart display-manager"]
+[LOG] Hyprland received signal 15
+[LOG] Hyprland is stopping!
+[LOG] Kicked off the event loop! :(

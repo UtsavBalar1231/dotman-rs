@@ -16,6 +16,17 @@ end
 vim.keymap.set("n", "<leader>fi", builtin.find_files, {})
 vim.keymap.set("n", "<leader>fg", builtin.live_grep, {})
 
+
+-- Live Grep in parent directory of the current buffer
+local function parent_directory_of_current_file()
+	local current_file = vim.fn.expand("%:p")     -- Get the full path of the current file
+	return vim.fn.fnamemodify(current_file, ":h") -- Get the parent directory of the current file
+end
+
+vim.keymap.set("n", "<leader>fG", function()
+	require('telescope.builtin').live_grep({ cwd = parent_directory_of_current_file() })
+end, {})
+
 vim.keymap.set("n", "<leader>fb", builtin.buffers, {})
 vim.keymap.set("n", "<leader>fh", builtin.help_tags, {})
 vim.keymap.set("n", "<leader>fc", builtin.commands, {})
@@ -70,35 +81,35 @@ telescope.setup({
 		},
 	},
 	defaults = {
-	-- 	vimgrep_arguments = {
-	-- 		"rg",
-	-- 		"--color=never",
-	-- 		"--no-heading",
-	-- 		"--with-filename",
-	-- 		"--line-number",
-	-- 		"--column",
-	-- 		"--smart-case",
-	-- 	},
-	-- 	prompt_prefix = "   ",
-	-- 	selection_caret = "  ",
-	-- 	entry_prefix = "  ",
-	-- 	initial_mode = "insert",
-	-- 	selection_strategy = "reset",
-	-- 	sorting_strategy = "ascending",
-	-- 	layout_strategy = "horizontal",
-	-- 	layout_config = {
-	-- 		horizontal = {
-	-- 			prompt_position = "top",
-	-- 			preview_width = 0.4,
-	-- 			results_width = 0.8,
-	-- 		},
-	-- 		vertical = {
-	-- 			mirror = false,
-	-- 		},
-	-- 		width = 0.87,
-	-- 		height = 0.80,
-	-- 		preview_cutoff = 160,
-	-- 	},
+		-- 	vimgrep_arguments = {
+		-- 		"rg",
+		-- 		"--color=never",
+		-- 		"--no-heading",
+		-- 		"--with-filename",
+		-- 		"--line-number",
+		-- 		"--column",
+		-- 		"--smart-case",
+		-- 	},
+		-- 	prompt_prefix = "   ",
+		-- 	selection_caret = "  ",
+		-- 	entry_prefix = "  ",
+		-- 	initial_mode = "insert",
+		-- 	selection_strategy = "reset",
+		-- 	sorting_strategy = "ascending",
+		-- 	layout_strategy = "horizontal",
+		-- 	layout_config = {
+		-- 		horizontal = {
+		-- 			prompt_position = "top",
+		-- 			preview_width = 0.4,
+		-- 			results_width = 0.8,
+		-- 		},
+		-- 		vertical = {
+		-- 			mirror = false,
+		-- 		},
+		-- 		width = 0.87,
+		-- 		height = 0.80,
+		-- 		preview_cutoff = 160,
+		-- 	},
 		mappings = {
 			i = {
 				["<esc>"] = require("telescope.actions").close,
@@ -124,6 +135,9 @@ telescope.setup({
 		buffer_previewer_maker = require("telescope.previewers").buffer_previewer_maker,
 	},
 	extensions = {
+		["ui-select"] = {
+			require("telescope.themes").get_dropdown {}
+		},
 		file_browser = {
 			hijack_netrw = true,
 			mappings = {
@@ -153,4 +167,5 @@ telescope.setup({
 })
 
 telescope.load_extension("file_browser")
+telescope.load_extension("ui-select")
 -- telescope.load_extension("frecency")

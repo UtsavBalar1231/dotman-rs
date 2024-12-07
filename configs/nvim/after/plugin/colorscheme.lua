@@ -114,55 +114,67 @@
 -- }}}
 
 -- gruvbox: {{{
-local status_ok, gruvbox = pcall(require, "gruvbox")
-
-if not status_ok then
-	vim.notify("Missing gruvbox theme plugin", vim.log.levels.WARNING)
-	return
-end
-
-gruvbox.setup({
-	terminal_colors = true,
-	undercurl = true,
-	underline = true,
-	bold = true,
-	italic = {
-		strings = true,
-		emphasis = true,
-		comments = true,
-		operators = false,
-		folds = true,
-	},
-	strikethrough = true,
-	invert_selection = false,
-	invert_signs = false,
-	invert_tabline = false,
-	invert_intend_guides = false,
-	inverse = true,
-	contrast = "hard",
-	palette_overrides = {
-		dark0_hard = "#000000",
-		dark0 = "#1d2021",
-		dark1 = "#282828",
-		dark2 = "#3c3836",
-		dark3 = "#504945",
-		dark4 = "#665c54",
-		dark5 = "#7c6f64",
-	},
-	overrides = {
-		IndentBlanklineChar = { link = "GruvboxBg3" },
-		IndentBlanklineSpaceChar = { link = "GruvboxBg3" },
-		IndentBlanklineSpaceCharBlankline = { link = "GruvboxBg3" },
-		IndentBlanklineContextChar = { link = "GruvboxGray" },
-		["@lsp.type.method"] = { bg = "#49503b" },
-        ["@comment.lua"] = { bg = "#000000" },
-	},
-	dim_inactive = true,
-	transparent_mode = false,
-})
+-- local status_ok, gruvbox = pcall(require, "gruvbox")
+-- 
+-- if not status_ok then
+-- 	vim.notify("Missing gruvbox theme plugin", vim.log.levels.WARNING)
+-- 	return
+-- end
+-- 
+-- gruvbox.setup({
+-- 	terminal_colors = true,
+-- 	undercurl = true,
+-- 	underline = true,
+-- 	bold = true,
+-- 	italic = {
+-- 		strings = true,
+-- 		emphasis = true,
+-- 		comments = true,
+-- 		operators = false,
+-- 		folds = true,
+-- 	},
+-- 	strikethrough = true,
+-- 	invert_selection = false,
+-- 	invert_signs = false,
+-- 	invert_tabline = false,
+-- 	invert_intend_guides = false,
+-- 	inverse = true,
+-- 	contrast = "hard",
+-- 	palette_overrides = {
+-- 		dark0_hard = "#000000",
+-- 		dark0 = "#1d2021",
+-- 		dark1 = "#282828",
+-- 		dark2 = "#3c3836",
+-- 		dark3 = "#504945",
+-- 		dark4 = "#665c54",
+-- 		dark5 = "#7c6f64",
+-- 	},
+-- 	overrides = {
+-- 		IndentBlanklineChar = { link = "GruvboxBg3" },
+-- 		IndentBlanklineSpaceChar = { link = "GruvboxBg3" },
+-- 		IndentBlanklineSpaceCharBlankline = { link = "GruvboxBg3" },
+-- 		IndentBlanklineContextChar = { link = "GruvboxGray" },
+-- 		["@lsp.type.method"] = { bg = "#49503b" },
+--         ["@comment.lua"] = { bg = "#000000" },
+-- 	},
+-- 	dim_inactive = true,
+-- 	transparent_mode = false,
+-- })
 -- }}}
 
-vim.cmd.colorscheme("gruvbox")
+-- Example config in Lua
+vim.g.gruvbox_italic_functions = true
+vim.g.gruvbox_sidebars = { "qf", "vista_kind", "terminal", "packer" }
+
+-- Change the "hint" color to the "orange" color, and make the "error" color bright red
+vim.g.gruvbox_colors = { hint = "orange", error = "#ff0000" }
+
+-- Change the TabLineSel highlight group (used by barbar.nvim) to the "orange" color
+vim.g.gruvbox_theme = { TabLineSel = { bg = "orange" } }
+
+vim.g.gruvbox_flat_style = "hard"
+
+vim.cmd.colorscheme("gruvbox-flat")
 
 -- Set background to dark
 vim.opt.background = "dark"

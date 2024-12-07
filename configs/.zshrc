@@ -238,4 +238,21 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # rofi
 export PATH=$HOME/.config/rofi/scripts:$PATH
 
+# Local binaries
+if [ -d $HOME/.local/bin ]; then
+	export PATH=$HOME/.local/bin:$PATH
+fi
+
 #zprof
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+export QT_QPA_PLATFORMTHEME="qt6ct"
+
+if command -v nvim >/dev/null; then
+	export SUDO_EDITOR=$(which nvim)
+fi
+
+if command -v wal >/dev/null; then
+	(cat ~/.cache/wal/sequences &)
+fi

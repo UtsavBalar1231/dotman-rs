@@ -9,6 +9,10 @@ g.shell = "/usr/bin/zsh"
 ---@diagnostic disable-next-line: inject-field
 g.mapleader = " "
 
+---@diagnostic disable-next-line: inject-field
+g.maplocalleader = ","
+
+
 -- Set bigfile size
 ---@diagnostic disable-next-line: inject-field
 g.bigfile_size = 1024 * 256
@@ -140,8 +144,8 @@ opt.sidescrolloff = 8
 opt.signcolumn = "yes"
 -- Allow cursor to move where there is no text in visual block mode
 opt.virtualedit = "block"
--- Disable line wrap
-opt.wrap = false
+-- Enable line wrap
+opt.wrap = true
 
 ----------------------------
 --- Format options setup ---

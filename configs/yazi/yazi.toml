@@ -1,0 +1,47 @@
+[manager]
+show_hidden = true
+sort_by = "modified"
+sort_dir_first = true
+show_symlink = true
+
+[preview]
+wrap = "yes"
+tab_size = 4
+
+[opener]
+play = [
+	{ run = 'mpv "$@"', orphan = true, for = "unix" }
+]
+edit = [
+	{ run = 'nvim "$@"', block = true, for = "unix" },
+]
+open = [
+	{ run = 'xdg-open "$@"', desc = "Open with the default application", orphan = true, for = "unix" },
+]
+
+[open]
+prepend_rules = [
+	{ mime = "text/*", use = "edit" },
+	{ mime = "video/*", use = "play" },
+	{ name = "*.json", use = "edit" },
+	{ name = "*.html", use = [ "open", "edit" ] },
+]
+
+[plugin]
+prepend_previewers = [
+	# HEIC previewer
+	{ mime = "image/heic", run = "heic" },
+]
+
+append_previewers = [
+	# My fallback previewer
+	{ name = "*" , run = "binary" },
+]
+
+prepend_preloaders = [
+	# HEIC preloader
+	{ mime = "image/heic", run = "heic" },
+]
+
+[editor]
+line_number = "relative"

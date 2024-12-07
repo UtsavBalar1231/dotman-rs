@@ -22,9 +22,8 @@ return require("packer").startup(function(use)
 	use("wbthomason/packer.nvim")
 
 	-- Themes
-	-- use({ "catppuccin/nvim" })
 	-- use("rebelot/kanagawa.nvim")
-	use("ellisonleao/gruvbox.nvim")
+	use("eddyekofo94/gruvbox-flat.nvim")
 
 	-- A fucking fast status line
 	-- Requires nvim-web-devicons
@@ -108,6 +107,7 @@ return require("packer").startup(function(use)
 		"nvim-telescope/telescope.nvim",
 		"nvim-telescope/telescope-frecency.nvim",
 		"nvim-telescope/telescope-file-browser.nvim",
+		"nvim-telescope/telescope-ui-select.nvim"
 	})
 
 	-- GitHub
@@ -136,12 +136,13 @@ return require("packer").startup(function(use)
 
 	-- Kitty Scrollback
 	use({
-		"mikesmithgh/kitty-scrollback.nvim",
+		'mikesmithgh/kitty-scrollback.nvim',
 		disable = false,
 		opt = true,
-		cmd = { "KittyScrollbackGenerateKittens", "KittyScrollbackCheckHealth" },
+		cmd = { 'KittyScrollbackGenerateKittens', 'KittyScrollbackCheckHealth' },
+		event = { 'User KittyScrollbackLaunch' },
 		config = function()
-			require("kitty-scrollback").setup()
+			require('kitty-scrollback').setup()
 		end,
 	})
 
@@ -161,6 +162,8 @@ return require("packer").startup(function(use)
 			require("aerial").setup()
 		end,
 	})
+
+	use 'lervag/vimtex'
 
 	-- Automatically set up configuration after cloning packer.nvim
 	if packer_bootstrap then

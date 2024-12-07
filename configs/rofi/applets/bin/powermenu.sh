@@ -8,37 +8,47 @@
 # Import Current Theme
 source "$HOME"/.config/rofi/applets/shared/theme.bash
 theme="$type/$style"
-
+background_image=$(cat "$HOME/.cache/swww/cache.txt")
 # Theme Elements
-prompt="`hostname`"
-mesg="Uptime : `uptime -p | sed -e 's/up //g'`"
+prompt="$(hostname)"
+mesg="Uptime : $(uptime -p | sed -e 's/up //g')"
 
-if [[ ( "$theme" == *'type-1'* ) || ( "$theme" == *'type-3'* ) || ( "$theme" == *'type-5'* ) ]]; then
+if [[ ("$theme" == *'type-1'*) || ("$theme" == *'type-3'*) || ("$theme" == *'type-5'*) ]]; then
 	list_col='1'
 	list_row='6'
-elif [[ ( "$theme" == *'type-2'* ) || ( "$theme" == *'type-4'* ) ]]; then
+elif [[ ("$theme" == *'type-2'*) || ("$theme" == *'type-4'*) ]]; then
 	list_col='6'
 	list_row='1'
 fi
 
+declare -A icons
+icons[lockscreen]="\Uf033e"
+icons[switchuser]="\Uf0019"
+icons[logout]="\Uf0343"
+icons[suspend]="\Uf04b2"
+icons[hibernate]="\Uf02ca"
+icons[reboot]="\Uf0709"
+icons[shutdown]="\Uf0425"
+icons[cancel]="\Uf0156"
+
 # Options
-layout=`cat ${theme} | grep 'USE_ICON' | cut -d'=' -f2`
+layout=$(cat ${theme} | grep 'USE_ICON' | cut -d'=' -f2)
 if [[ "$layout" == 'NO' ]]; then
-	option_1=" Lock"
-	option_2=" Logout"
-	option_3=" Suspend"
-	option_4=" Hibernate"
-	option_5=" Reboot"
-	option_6=" Shutdown"
-	yes=' Yes'
-	no=' No'
+	option_1="${icons[lockscreen]}  Lock"
+	option_2="${icons[logout]} Logout"
+	option_3="${icons[suspend]}  Suspend"
+	option_4="${icons[hibernate]} Hibernate"
+	option_5="${icons[reboot]}   Reboot"
+	option_6="${icons[shutdown]} Shutdown"
+	yes=' Yes'
+	no=' No'
 else
-	option_1=""
-	option_2=""
-	option_3=""
-	option_4=""
-	option_5=""
-	option_6=""
+	option_1="${icons[lockscreen]}"
+	option_2="${icons[logout]}"
+	option_3="${icons[suspend]}"
+	option_4="${icons[hibernate]}"
+	option_5="${icons[reboot]}"
+	option_6="${icons[shutdown]}"
 	yes=''
 	no=''
 fi
@@ -47,6 +57,7 @@ fi
 rofi_cmd() {
 	rofi -theme-str "listview {columns: $list_col; lines: $list_row;}" \
 		-theme-str 'textbox-prompt-colon {str: "";}' \
+		-theme-str 'inputbar {background-image: url("'$background_image'", width);}' \
 		-dmenu \
 		-p "$prompt" \
 		-mesg "$mesg" \
@@ -78,23 +89,23 @@ confirm_exit() {
 }
 
 # Confirm and execute
-confirm_run () {	
+confirm_run() {
 	selected="$(confirm_exit)"
 	if [[ "$selected" == "$yes" ]]; then
-        ${1} && ${2} && ${3}
-    else
-        exit
-    fi	
+		${1} && ${2} && ${3}
+	else
+		exit
+	fi
 }
 
 # Execute Command
 run_cmd() {
 	if [[ "$1" == '--opt1' ]]; then
-		betterlockscreen -l
+		sleep 0.3 && swaylock
 	elif [[ "$1" == '--opt2' ]]; then
-		confirm_run 'kill -9 -1'
+		confirm_run 'hyprctl dispatch exit 1'
 	elif [[ "$1" == '--opt3' ]]; then
-		confirm_run 'mpc -q pause' 'amixer set Master mute' 'systemctl suspend'
+		confirm_run 'systemctl suspend'
 	elif [[ "$1" == '--opt4' ]]; then
 		confirm_run 'systemctl hibernate'
 	elif [[ "$1" == '--opt5' ]]; then
@@ -107,23 +118,22 @@ run_cmd() {
 # Actions
 chosen="$(run_rofi)"
 case ${chosen} in
-    $option_1)
-		run_cmd --opt1
-        ;;
-    $option_2)
-		run_cmd --opt2
-        ;;
-    $option_3)
-		run_cmd --opt3
-        ;;
-    $option_4)
-		run_cmd --opt4
-        ;;
-    $option_5)
-		run_cmd --opt5
-        ;;
-    $option_6)
-		run_cmd --opt6
-        ;;
+$option_1)
+	run_cmd --opt1
+	;;
+$option_2)
+	run_cmd --opt2
+	;;
+$option_3)
+	run_cmd --opt3
+	;;
+$option_4)
+	run_cmd --opt4
+	;;
+$option_5)
+	run_cmd --opt5
+	;;
+$option_6)
+	run_cmd --opt6
+	;;
 esac
-

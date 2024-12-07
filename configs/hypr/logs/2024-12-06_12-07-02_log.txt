@@ -1,0 +1,756 @@
+[LOG] arrangeMonitors: eDP-1 explicit [0, 0]
+[LOG] arrangeMonitors: eDP-1 xwayland [0, 0]
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] Executing systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash dbus-update-activation-environment 2>/dev/null && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS
+[LOG] Process Created with pid 1147
+[LOG] Executing tail -f /run/user/1000/hypr/a7a6eedc2139564abc1fe09feee1ff32b53e1081_1733467020_1892713653/hyprland.log &> ~/.config/hypr/logs/$(date '+%F_%H-%M-%S_log.txt')
+[LOG] Process Created with pid 1149
+[LOG] Executing ~/.config/hypr/scripts/xdg-portal-hyprland.sh
+[LOG] Process Created with pid 1152
+[LOG] Executing dbus-update-activation-environment --systemd WAYLAND_DISPLAY
+[LOG] Process Created with pid 1156
+[LOG] Executing dbus-update-activation-environment --systemd XDG_CURRENT_DESKTOP=hyprland
+[LOG] Process Created with pid 1159
+[LOG] Executing dbus-update-activation-environment --systemd HYPRLAND_INSTANCE_SIGNATURE
+[LOG] Process Created with pid 1161
+[LOG] Executing dbus-update-activation-environment --systemd --all
+[LOG] Process Created with pid 1164
+[LOG] Executing systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+[LOG] Process Created with pid 1166
+[LOG] Executing /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+[LOG] Process Created with pid 1169
+[LOG] Executing systemctl --user start hyprpolkitagent
+[LOG] Process Created with pid 1172
+[LOG] Executing hyprpaper
+[LOG] Process Created with pid 1174
+[LOG] Executing hypridle
+[LOG] Process Created with pid 1177
+[LOG] Executing hyprshade auto
+[LOG] Process Created with pid 1180
+[LOG] Executing hyprswitch init --show-title
+[LOG] Process Created with pid 1182
+[LOG] Executing waybar
+[LOG] Process Created with pid 1185
+[LOG] Executing swaync
+[LOG] Process Created with pid 1187
+[LOG] Executing swww-daemon
+[LOG] Process Created with pid 1191
+[LOG] Executing ~/.config/hypr/scripts/wallpaper-slideshow.sh
+[LOG] Process Created with pid 1193
+[LOG] Executing blueman-applet
+[LOG] Process Created with pid 1195
+[LOG] Executing udiskie
+[LOG] Process Created with pid 1197
+[LOG] Executing eww daemon
+[LOG] Process Created with pid 1215
+[LOG] Executing swayosd-server
+[LOG] Process Created with pid 1235
+[LOG] Executing wl-paste --type text --watch cliphist store
+[LOG] Process Created with pid 1237
+[LOG] Executing hyprswitch init --show-title &
+[LOG] Process Created with pid 1241
+[LOG] Applying monitor rule for eDP-1
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 12000] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 12000] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] Swapchain: Reconfigured a swapchain to [Vector2D: x: 1920, y: 12000] XR24 of length 2
+[LOG] [AQ] atomic drm request: failed to commit: Invalid argument, flags: ATOMIC_ALLOW_MODESET ATOMIC_TEST_ONLY 
+[ERR] Custom resolution FAILED, falling back to preferred
+[ERR] Monitor eDP-1 got an invalid requested mode: 1920x12000@144.000000, using the preferred one instead: 1920x1200@144.001007
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 1200] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 1200] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] Swapchain: Reconfigured a swapchain to [Vector2D: x: 1920, y: 1200] XR24 of length 2
+[LOG] output eDP-1 succeeded basic test on format DRM_FORMAT_XRGB8888
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[ERR] [AQ] drm: Cannot commit when a page-flip is awaiting
+[ERR] Couldn't commit output named eDP-1
+[LOG] arrangeMonitors: 1 to arrange
+[LOG] arrangeMonitors: eDP-1 explicit [0, 0]
+[LOG] arrangeMonitors: eDP-1 xwayland [0, 0]
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] Monitor eDP-1 data dump: res 1920x1200@144.00Hz, scale 1.00, transform 0, pos 0x0, 10b 0
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] [hookSystem] New hook event registered: render
+[LOG] Monitor eDP-1 -> destroyed all render data
+[LOG] Shaders initialized successfully.
+[LOG] Framebuffer created, status 36053
+[LOG] Framebuffer created, status 36053
+[LOG] Framebuffer created, status 36053
+[LOG] Framebuffer created, status 36053
+[LOG] Renderer: checking for explicit KMS support for nvidia
+[LOG] Renderer: Nvidia version file exists
+[LOG] Renderer: Read nvidia version 565.77
+
+[LOG] Renderer: Parsed nvidia major version: 565
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[ERR] [AQ] drm: Cannot commit when a page-flip is awaiting
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[ERR] [AQ] drm: Cannot commit when a page-flip is awaiting
+[WARN] Failed to change process scheduling strategy
+[LOG] Hyprland init finished.
+[LOG] Executing systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash dbus-update-activation-environment 2>/dev/null && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS
+[LOG] Process Created with pid 1250
+[LOG] Running on WAYLAND_DISPLAY: wayland-1
+[LOG] New aquamarine output with name HEADLESS-1
+[LOG] New output with name FALLBACK
+[LOG] Hyprland is ready, running the event loop!
+[LOG] [AQ] backend: poll fd 11 for implementation headless
+[LOG] [AQ] backend: poll fd 31 for implementation drm
+[LOG] [AQ] backend: poll fd 30 for implementation drm
+[LOG] [AQ] backend: poll fd 12 for session
+[LOG] [AQ] backend: poll fd 14 for session
+[LOG] [AQ] backend: poll fd 15 for session
+[LOG] [AQ] backend: poll fd 18 for idle
+[LOG] [AQ] libinput: New device Video Bus: 0-6
+[LOG] New aquamarine keyboard with name Video Bus
+[LOG] ApplyConfigToKeyboard for "video-bus", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181e90c9b0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 97
+[LOG] [hookSystem] New hook event registered: activeLayout
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus"
+[LOG] New keyboard created, pointers Hypr: 64181e90c9b0 and AQ: 64181fac1ab0
+[LOG] [AQ] libinput: New device Video Bus: 0-6
+[LOG] New aquamarine keyboard with name Video Bus
+[LOG] ApplyConfigToKeyboard for "video-bus-1", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fab70e0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 98
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus-1"
+[LOG] New keyboard created, pointers Hypr: 64181fab70e0 and AQ: 64181e8ae630
+[LOG] [AQ] libinput: New device Lid Switch: 0-5
+[LOG] New aquamarine switch with name Lid Switch
+[LOG] New switch with name "Lid Switch" added
+[LOG] [AQ] libinput: New device Power Button: 0-1
+[LOG] New aquamarine keyboard with name Power Button
+[LOG] ApplyConfigToKeyboard for "power-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fafbb40's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Power Button
+[LOG] Updated keymap fd to 99
+[LOG] Set the keyboard layout to us and variant to  for keyboard "power-button"
+[LOG] New keyboard created, pointers Hypr: 64181fafbb40 and AQ: 64181fad8490
+[LOG] [AQ] libinput: New device Sleep Button: 0-3
+[LOG] New aquamarine keyboard with name Sleep Button
+[LOG] ApplyConfigToKeyboard for "sleep-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fb62740's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Sleep Button
+[LOG] Updated keymap fd to 100
+[LOG] Set the keyboard layout to us and variant to  for keyboard "sleep-button"
+[LOG] New keyboard created, pointers Hypr: 64181fb62740 and AQ: 64181fb14ce0
+[LOG] [AQ] libinput: New device MSNB0001:00 04CA:2642 Touchpad: 1226-9794
+[LOG] New aquamarine pointer with name MSNB0001:00 04CA:2642 Touchpad
+[LOG] New mouse has libinput sens 0.00 (0.00) with accel profile 2 (2)
+[LOG] Attached pointer msnb0001:00-04ca:2642-touchpad to global
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-touchpad, sens 0.00
+[LOG] New mouse created, pointer AQ: 64181faabd00
+[LOG] [AQ] libinput: New device MSNB0001:00 04CA:2642 Mouse: 1226-9794
+[LOG] New aquamarine pointer with name MSNB0001:00 04CA:2642 Mouse
+[LOG] New mouse has libinput sens 0.00 (0.00) with accel profile 2 (2)
+[LOG] Attached pointer msnb0001:00-04ca:2642-mouse to global
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-touchpad, sens 0.00
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-mouse, sens 0.00
+[LOG] New mouse created, pointer AQ: 64181fabf530
+[LOG] [AQ] libinput: New device Intel HID events: 0-0
+[LOG] New aquamarine keyboard with name Intel HID events
+[LOG] ApplyConfigToKeyboard for "intel-hid-events", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fb9ddb0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID events
+[LOG] Updated keymap fd to 101
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-events"
+[LOG] New keyboard created, pointers Hypr: 64181fb9ddb0 and AQ: 64181fb4f9e0
+[LOG] [AQ] libinput: New device Intel HID 5 button array: 0-0
+[LOG] New aquamarine keyboard with name Intel HID 5 button array
+[LOG] ApplyConfigToKeyboard for "intel-hid-5-button-array", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fbda3d0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID 5 button array
+[LOG] Updated keymap fd to 102
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-5-button-array"
+[LOG] New keyboard created, pointers Hypr: 64181fbda3d0 and AQ: 64181fad85a0
+[LOG] [AQ] libinput: New device AT Translated Set 2 keyboard: 1-1
+[LOG] New aquamarine keyboard with name AT Translated Set 2 keyboard
+[LOG] ApplyConfigToKeyboard for "at-translated-set-2-keyboard", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fc149a0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard AT Translated Set 2 keyboard
+[LOG] Updated keymap fd to 103
+[LOG] Set the keyboard layout to us and variant to  for keyboard "at-translated-set-2-keyboard"
+[LOG] New keyboard created, pointers Hypr: 64181fc149a0 and AQ: 64181fbc62f0
+[LOG] [AQ] libinput: New device MSI WMI hotkeys: 0-0
+[LOG] New aquamarine keyboard with name MSI WMI hotkeys
+[LOG] ApplyConfigToKeyboard for "msi-wmi-hotkeys", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fc4ec80's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard MSI WMI hotkeys
+[LOG] Updated keymap fd to 104
+[LOG] Set the keyboard layout to us and variant to  for keyboard "msi-wmi-hotkeys"
+[LOG] New keyboard created, pointers Hypr: 64181fc4ec80 and AQ: 64181fbc7670
+[LOG] [hookSystem] New hook event registered: tick
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[LOG] Starting XWayland with "Xwayland :1 -rootless -core -listenfd 79 -listenfd 80 -displayfd 110 -wm 107", bon voyage!
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181d6db710
+[LOG] [CExtIdleNotification] Registered idle-notification for 150000ms
+[LOG] [CExtIdleNotification] Registered idle-notification for 300000ms
+[LOG] [CExtIdleNotification] Registered idle-notification for 330000ms
+[LOG] [CExtIdleNotification] Registered idle-notification for 1800000ms
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181fabc750
+[LOG] [CWLCompositorResource] New wl_surface with id 9 at 64181fbe2d50
+[LOG] [CWLCompositorResource] New wl_region with id 10 at 64181fb93500
+[LOG] CWLSurface 64181fca0fb0 called init()
+[LOG] LayerSurface 64181fad5990 (namespace swww-daemon layer 0) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 64181fad5990
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181fca0eb0
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 64181fc197e0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fbd4790
+[LOG] [CDataDeviceWLRProtocol] New wlr_data_control_manager at 64181fba46f0
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 64181fc15220
+[LOG] [CScreencopyProtocol] Bound client successfully!
+[LOG] [CToplevelExportProtocol] Bound client successfully!
+[LOG] [CWLRDataControlManagerResource] New wlr data device bound at 64181fbcb530
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 64181eab5e10
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 64181fc138c0
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 64181fc782d0 (not xwayland)
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181fcd2c00
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 64181fbefb40
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 64181fc2b800
+[LOG] [CWLCompositorResource] New wl_surface with id 30 at 64181d7534b0
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 64181fc095f0
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 64181fc066f0
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 64181fcd28a0 (not xwayland)
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181fcd7fd0
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 64181fbb34e0
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 64181fcd29a0
+[LOG] [CWLCompositorResource] New wl_surface with id 30 at 64181fcd8350
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 64181fcd7a20
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 64181fbcf030
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 64181fca0dc0 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181fcd9050
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 64181fcd92c0
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 64181fc0ba90
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 64181fbcbfb0
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 64181fcd9890
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 64181fc06ad0
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 64181fcda110
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 64181fca0780 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181fcda4d0
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 64181fcda820
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 64181fc043a0
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 64181fb8ef10
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 64181fcdadf0
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 64181fcda480
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 64181fbef650
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 64181fc77fe0 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181fcdb950
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 64181fcdbd80
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 64181eab2640
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 64181fbe0300
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 64181fcdc510
+[LOG] Hyprctl: keyword decoration:screen_shader : /home/utsav/.config/hypr/shaders/vibrance.glsl
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fc103e0
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 64181fc829c0 (xwayland)
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fc420a0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fc52520
+[LOG] [CDRMLeaseDeviceResource] Sending DRMFD 136 to new lease device
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181fcdcf80
+[LOG] [CWLCompositorResource] New wl_surface with id 22 at 64181fcdea90
+[LOG] XWayland is ready
+[LOG] xfixes version: 6.0
+[LOG] xres version: 1.2
+[LOG] [seatmgr] Rejecting a setCursor because the client ain't in focus
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fc49dc0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fc114c0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fc0fd20
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fc40e10
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 64181fca0dc0 (not xwayland)
+[LOG] Socket2 accepted a new client at FD 136
+[LOG] [CWLCompositorResource] New wl_surface with id 35 at 64181fd3e7a0
+[LOG] CWLSurface 64181fd3e450 called init()
+[LOG] LayerSurface 64181ef90080 (namespace waybar layer 2) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 64181ef90080
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fc41250
+[LOG] [CWLCompositorResource] New wl_surface with id 37 at 64181fda9cc0
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 64181fc03b60
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 64181fc64630
+[LOG] [CXDGOutputProtocol] New xdg_output for eDP-1: client 64181fd3e4f0 (not xwayland)
+[LOG] [CSHMPool] Resizing a SHM pool from 2304 to 6912
+[LOG] [CSHMPool] Resizing a SHM pool from 6912 to 16128
+[LOG] [CSHMPool] Resizing a SHM pool from 16128 to 34560
+[LOG] [CSHMPool] Resizing a SHM pool from 34560 to 71424
+[LOG] [CSHMPool] Resizing a SHM pool from 71424 to 145152
+[LOG] [CSHMPool] Resizing a SHM pool from 145152 to 292608
+[LOG] [CSHMPool] Resizing a SHM pool from 292608 to 587520
+[LOG] [CSHMPool] Resizing a SHM pool from 587520 to 1177344
+[LOG] [CSHMPool] Resizing a SHM pool from 1177344 to 2356992
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181fdaa940
+[LOG] [CWLCompositorResource] New wl_surface with id 20 at 64181fdaad70
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 64181fc40d30
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 64181fc79130
+[LOG] [CWLCompositorResource] New wl_surface with id 23 at 64181fdab500
+[LOG] [CDRMSyncobjManagerResource] New linux_syncobj at 64181fc4ff00 for surface 64181fda9cc0
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 52: size [Vector2D: x: 1, y: 1], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 141 stride 256 offset 0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fbdd040
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 55: size [Vector2D: x: 1, y: 1], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 143 stride 256 offset 0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fc7b510
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 58: size [Vector2D: x: 1, y: 1], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 145 stride 256 offset 0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fc7a660
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 61: size [Vector2D: x: 1, y: 1], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 147 stride 256 offset 0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fc79ab0
+[LOG] CWLSurface 64181fdab2a0 called init()
+[LOG] LayerSurface 64181d6a3b90 (namespace gtk4-layer-shell layer 3) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 64181d6a3b90
+[LOG] [CXDGActivationToken] assigned new xdg-activation token ceb72f5d-526f-4e28-8723-59f6e767a8c9
+[WARN] [../src/protocols/XDGActivation.cpp:85] activate event for non-window or gone surface with token ceb72f5d-526f-4e28-8723-59f6e767a8c9, ignoring
+[LOG] LayerSurface 64181d6a3b90 destroyed
+[LOG] Removing LayerSurface that wasn't mapped.
+[LOG] CWLSurface 64181fdab2a0 called destroy()
+[LOG] [CWLCompositorResource] New wl_surface with id 60 at 64181fdae5f0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181fc46e40
+[LOG] [CSHMPool] Resizing a SHM pool from 262144 to 9216000
+[LOG] LayerSurface 64181fad5990 mapped
+[LOG] [hookSystem] New hook event registered: openLayer
+[LOG] LayerSurface 64181ef90080 mapped
+[LOG] [CDRMSyncobjManagerResource] New linux_syncobj at 64181d6c6d00 for surface 64181fdae5f0
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 72: size [Vector2D: x: 1, y: 1], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 150 stride 256 offset 0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fc52640
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 75: size [Vector2D: x: 1, y: 1], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 152 stride 256 offset 0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fc0e940
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 78: size [Vector2D: x: 1, y: 1], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 154 stride 256 offset 0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fc0d450
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 81: size [Vector2D: x: 1, y: 1], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 156 stride 256 offset 0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fc7fe40
+[LOG] CWLSurface 64181fdbf620 called init()
+[LOG] LayerSurface 64181d6a3b90 (namespace gtk4-layer-shell layer 3) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 64181d6a3b90
+[LOG] [CXDGActivationToken] assigned new xdg-activation token 16e1591c-b14c-450b-8489-8e9a880cc355
+[WARN] [../src/protocols/XDGActivation.cpp:85] activate event for non-window or gone surface with token 16e1591c-b14c-450b-8489-8e9a880cc355, ignoring
+[LOG] LayerSurface 64181d6a3b90 destroyed
+[LOG] Removing LayerSurface that wasn't mapped.
+[LOG] CWLSurface 64181fdbf620 called destroy()
+[LOG] Cleanup: destroyed a layersurface
+[LOG] Cleanup: destroyed a layersurface
+[LOG] Created a bezier curve, baked 255 points, mem usage: 4.08kB, time to bake: 1.34µs. Estimated average calc time: 0.04µs.
+[LOG] Using config: /home/utsav/.config/hypr/hyprland.conf
+[LOG] ApplyConfigToKeyboard for "video-bus", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181e90c9b0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 158
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus"
+[LOG] ApplyConfigToKeyboard for "video-bus-1", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fab70e0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 98
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus-1"
+[LOG] ApplyConfigToKeyboard for "power-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fafbb40's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Power Button
+[LOG] Updated keymap fd to 99
+[LOG] Set the keyboard layout to us and variant to  for keyboard "power-button"
+[LOG] ApplyConfigToKeyboard for "sleep-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fb62740's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Sleep Button
+[LOG] Updated keymap fd to 100
+[LOG] Set the keyboard layout to us and variant to  for keyboard "sleep-button"
+[LOG] ApplyConfigToKeyboard for "intel-hid-events", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fb9ddb0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID events
+[LOG] Updated keymap fd to 101
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-events"
+[LOG] ApplyConfigToKeyboard for "intel-hid-5-button-array", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fbda3d0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID 5 button array
+[LOG] Updated keymap fd to 102
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-5-button-array"
+[LOG] ApplyConfigToKeyboard for "at-translated-set-2-keyboard", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fc149a0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard AT Translated Set 2 keyboard
+[LOG] Updated keymap fd to 103
+[LOG] Set the keyboard layout to us and variant to  for keyboard "at-translated-set-2-keyboard"
+[LOG] ApplyConfigToKeyboard for "msi-wmi-hotkeys", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 64181fc4ec80's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard MSI WMI hotkeys
+[LOG] Updated keymap fd to 104
+[LOG] Set the keyboard layout to us and variant to  for keyboard "msi-wmi-hotkeys"
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-touchpad, sens 0.00
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-mouse, sens 0.00
+[LOG] Applying monitor rule for eDP-1
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 12000] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 12000] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] Swapchain: Reconfigured a swapchain to [Vector2D: x: 1920, y: 12000] XR24 of length 2
+[LOG] [AQ] atomic drm request: failed to commit: Invalid argument, flags: ATOMIC_ALLOW_MODESET ATOMIC_TEST_ONLY 
+[ERR] Custom resolution FAILED, falling back to preferred
+[ERR] Monitor eDP-1 got an invalid requested mode: 1920x12000@144.000000, using the preferred one instead: 1920x1200@144.001007
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 1200] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] GBM: Allocated a new buffer with size [Vector2D: x: 1920, y: 1200] and format XR24 with modifier 72057594037927944 aka Y_TILED_GEN12_RC_CCS_CC
+[LOG] [AQ] Swapchain: Reconfigured a swapchain to [Vector2D: x: 1920, y: 1200] XR24 of length 2
+[LOG] output eDP-1 succeeded basic test on format DRM_FORMAT_XRGB8888
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[LOG] arrangeMonitors: 1 to arrange
+[LOG] arrangeMonitors: eDP-1 explicit [0, 0]
+[LOG] arrangeMonitors: eDP-1 xwayland [0, 0]
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] Monitor eDP-1 data dump: res 1920x1200@144.00Hz, scale 1.00, transform 0, pos 0x0, 10b 0
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] [CSHMPool] Resizing a SHM pool from 9216000 to 18432000
+[LOG] Keybind triggered, calling dispatcher (64, , 100)
+[LOG] Executing wofi
+[LOG] Process Created with pid 1701
+[LOG] Keybind triggered, calling dispatcher (64, , 100)
+[LOG] Executing ~/.config/rofi/launchers/type-2/launcher.sh
+[LOG] Process Created with pid 1703
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181d6c75c0
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 64181fb5ad40
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 64181fb39dc0
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 64181d5fd9d0
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 64181fc06890
+[LOG] [CWLCompositorResource] New wl_surface with id 3 at 64181fc3e7e0
+[LOG] CWLSurface 64181fc04dc0 called init()
+[LOG] LayerSurface 64181d6a3b90 (namespace rofi layer 3) created on monitor eDP-1
+[LOG] [CLayerShellProtocol] New wlr_layer_surface 64181d6a3b90
+[LOG] LayerSurface 64181d6a3b90 mapped
+[LOG] Set keyboard focus to surface 64181fc3e7e0
+[LOG] cursorImage request: shape 1 -> default
+[ERR] [AQ] atomic drm request: failed to commit: Device or resource busy, flags: ATOMIC_NONBLOCK PAGE_FLIP_EVENT 
+[LOG] [AQ] [libinput] event14 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event14 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event14 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] LayerSurface 64181d6a3b90 destroyed
+[LOG] Forcing an unmap of a LS that did a straight destroy!
+[LOG] LayerSurface 64181d6a3b90 unmapped
+[LOG] [hookSystem] New hook event registered: closeLayer
+[LOG] Framebuffer created, status 36053
+[LOG] CWLSurface 64181fc04dc0 called destroy()
+[LOG] [CForeignToplevelWlrManager] CForeignToplevelWlrManager: finished
+[LOG] [CWLSeatProtocol] New seat resource bound at 64181d6063c0
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 64181fc89100
+[LOG] [CWLDataDeviceManagerResource] New data device bound at 64181fc06890
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 64181eb67eb0
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 64181fb53170
+[LOG] [CPrimarySelectionManager] New primary selection data device bound at 64181fc45d20
+[LOG] [CTextInputV3] New tiv3 at 000064181fbf1d00
+[LOG] [CWLCompositorResource] New wl_surface with id 25 at 64181fc3e7e0
+[LOG] [CWLCompositorResource] New wl_surface with id 29 at 64181fc56ad0
+[LOG] [CWLCompositorResource] New wl_region with id 32 at 64181fe18360
+[LOG] [CXDGWMBase] New xdg_surface at 64181fdf0fa0
+[LOG] [CXDGSurfaceResource] xdg_surface 64181eb67eb0 gets a toplevel 64181facf320
+[LOG] CWLSurface 64181d622f70 called init()
+[LOG] Window 64181fce15c0 set class to kitty
+[LOG] Searching for matching rules for kitty (title: )
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 64181fce15c0: title: ""]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 64181fce15c0: title: ""]
+[LOG] [hookSystem] New hook event registered: windowUpdateRules
+[LOG] Window 64181fce15c0 set title to kitty
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] [CXDGDecoration] setMode: MODE_CLIENT_SIDE. Ignoring and sending MODE_SERVER_SIDE as reply.
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] Layout predicts size [Vector2D: x: 1920, y: 1200] for [Window 64181fce15c0: title: "kitty"]
+[LOG] [CWLCompositorResource] New wl_region with id 32 at 64181fc07460
+[LOG] [CWLCompositorResource] New wl_region with id 36 at 64181fc07460
+[LOG] [CXDGSurfaceResource] xdg_surface 64181fdf0fa0 requests geometry 0x0 1920x1200
+[LOG] [CSinglePixelBuffer] New single-pixel buffer with color 0xff1c1915
+[LOG] New window contains HL_INITIAL_WORKSPACE_TOKEN: efb4441b-edc0-4b12-ace3-f4d135e71340
+[LOG] HL_INITIAL_WORKSPACE_TOKEN efb4441b-edc0-4b12-ace3-f4d135e71340 -> 1
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] OPENINGON: [Node nullptr], Monitor: 0
+[LOG] Set keyboard focus to surface 64181fc56ad0, with [Window 64181fce15c0: title: "kitty"]
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] Map request dispatched, monitor eDP-1, window pos: [4.00000, 64.00000], window size: [1912.00000, 1132.00000]
+[LOG] [CForeignToplevelWlrManager] Newly mapped window 000064181fce15c0
+[LOG] Searching for matching rules for kitty (title: kitty)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 64181fce15c0: title: "kitty"]
+[LOG] Framebuffer created, status 36053
+[LOG] [CWLCompositorResource] New wl_region with id 36 at 64181fc2b8c0
+[LOG] cursorImage request: shape 1 -> default
+[LOG] [CWLCompositorResource] New wl_region with id 38 at 64181fbd1ae0
+[LOG] [CXDGSurfaceResource] xdg_surface 64181fdf0fa0 requests geometry 0x0 1908x1128
+[LOG] [CDRMSyncobjManagerResource] New linux_syncobj at 64181fbd6850 for surface 64181fc56ad0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fb95af0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fb990e0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fafbaf0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fadabb0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 64181fb58650
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 51: size [Vector2D: x: 1908, y: 1128], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 165 stride 7680 offset 0
+[LOG] cursorImage request: shape 9 -> text
+[LOG] Window 64181fce15c0 set title to zsh
+[LOG] Searching for matching rules for kitty (title: zsh)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 64181fce15c0: title: "zsh"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 64181fce15c0: title: "zsh"]
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 53: size [Vector2D: x: 1908, y: 1128], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 168 stride 7680 offset 0
+[LOG] Cleanup: destroyed a layersurface
+[LOG] [AQ] [libinput] event14 - palm: keyboard timeout
+
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 54: size [Vector2D: x: 1908, y: 1128], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 166 stride 7680 offset 0
+[LOG] Window 64181fce15c0 set title to ~
+[LOG] Searching for matching rules for kitty (title: ~)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 64181fce15c0: title: "~"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 64181fce15c0: title: "~"]
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 52: size [Vector2D: x: 1908, y: 1128], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 170 stride 7680 offset 0
+[LOG] [AQ] [libinput] event14 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event14 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event14 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event14 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event14 - palm: keyboard timeout
+
+[LOG] cursorImage request: surface 0
+[LOG] Window 64181fce15c0 set title to sudo systemctl restart display-manager
+[LOG] Searching for matching rules for kitty (title: sudo systemctl restart display-manager)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 64181fce15c0: title: "sudo systemctl restart display-manager"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 64181fce15c0: title: "sudo systemctl restart display-manager"]
+[LOG] [AQ] [libinput] event14 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event14 - palm: keyboard timeout refresh
+
+[LOG] [AQ] [libinput] event14 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event14 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event14 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] Hyprland received signal 15
+[LOG] Hyprland is stopping!
+[LOG] Kicked off the event loop! :(

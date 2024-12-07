@@ -21,7 +21,7 @@ configuration {
 
 /*****----- Global Properties -----*****/
 * {
-    font:                        "Iosevka Nerd Font 12";
+    font:                        "Iosevka Nerd Font 10";
 }
 
 /*****----- Main Window -----*****/
@@ -41,7 +41,7 @@ window {
     padding:                     0px;
     border-radius:               20px;
     cursor:                      "default";
-    background-color:            #1d2021;
+    background-color:            #162022;
     background-image:            url("~/.config/rofi/images/flowers-1.png", width);
 }
 

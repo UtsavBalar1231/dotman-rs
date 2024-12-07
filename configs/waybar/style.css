@@ -1,0 +1,191 @@
+@import '/home/utsav/.cache/wal/colors-waybar.css';
+
+* {
+	font-family: 'JetBrainsMono Nerd Font';
+	font-size: 16px;
+	/* font-weight: bold; */
+	border-radius: 0px;
+	margin: 0;
+}
+
+window#waybar {
+	background-color: transparent;
+	border-radius: 10px;
+	padding-top: 0px;
+	margin-top: 0;
+}
+
+.modules-right {
+	font-size: 10px;
+	background-color: @background;
+	border-radius: 10px;
+	padding: 0;
+	margin: 5px 0 5px 0;
+}
+
+.modules-left {
+	margin-left: 0.1rem;
+	background-color: @background;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	padding: 1px 0px;
+	border-radius: 10px;
+}
+
+.modules-center {
+	padding: 0px;
+	margin: 5px 0 5px 0;
+}
+
+tooltip {
+	background: @background;
+	border-radius: 10px;
+}
+
+tooltip label {
+	color: @foreground;
+	background-color: @background;
+	border-radius: 10px;
+}
+
+
+tooltip * {
+	border-radius: 10px;
+}
+
+#window {
+	color: @foreground;
+	background-color: @background;
+}
+
+/* make window module transparent when no windows present */
+window#waybar.empty #window {
+	background-color: transparent;
+}
+
+#workspaces {
+	margin: 1px;
+	margin-right: 0.3rem;
+	margin-left: 0.3rem;
+}
+
+#workspaces button {
+	margin: 0;
+	color: @color15;
+	font-weight: bolder;
+	font-style: normal;
+	margin: 0.2em 0.1rem;
+	border-radius: 20px;
+}
+
+#workspaces button:hover {
+	box-shadow: inherit;
+	text-shadow: inherit;
+	background-color: @color15;
+	color: @background;
+	border-radius: 10px;
+}
+
+#workspaces button.active {
+	color: @foreground;
+	background-color: @color3;
+	text-shadow: 0 0 5px rgba(0, 0, 0, 0.818);
+	transition: all 0.1s ease-in-out;
+	border-radius: 20px;
+}
+
+#clock,
+#custom-weather,
+#custom-swaync,
+#custom-hyprshade,
+#custom-updates {
+	font-family: 'Iosevka Nerd Font';
+	font-weight: bolder;
+	text-shadow: 0 0 5px rgb(0, 0, 0);
+	color: @color15;
+	background-color: @background;
+}
+
+#clock {
+	padding: 0 1rem 0 1.5rem;
+	border-radius: 10px 0 0 10px;
+}
+
+#hyprland-window,
+#custom-weather,
+#custom-swaync,
+#custom-updates {
+	padding-right: 1.5rem;
+	border-radius: 0 10px 10px 0;
+}
+
+#custom-swaync,
+#custom-hyprshade {
+	padding-right: 1.5rem;
+}
+
+#memory {
+	color: @color5;
+	padding: 0 0.4em 0 0.5rem;
+	padding-left: 1.5rem;
+	border-radius: 10px 0 0 10px;
+}
+
+#backlight,
+#pulseaudio {
+	margin: 0;
+	padding: 0 0.4em 0 0.5rem;
+	color: @color12;
+}
+
+#cpu {
+	margin: 0;
+	padding: 0 0.4em 0 0.5rem;
+	color: @color5;
+}
+
+#tray {
+	margin: 0;
+	padding-right: 1.5rem;
+	color: @color6;
+	border-radius: 0 10px 10px 0;
+}
+
+#disk,
+#battery {
+	margin: 0;
+	padding: 0 0.4em 0 0.5rem;
+	color: @color5;
+}
+
+#window {
+	color: @foreground;
+	margin-left: 0rem;
+	margin-right: 1rem;
+	text-shadow: 0 0 5px rgba(0, 0, 0, 0.818);
+	transition: all 0.1s ease-in-out;
+	border-radius: 0px;
+	font-size: 16px;
+}
+
+#bluetooth {
+	margin: 0;
+	padding: 0 0 0 0.5rem;
+	color: @color9;
+}
+
+#bluetooth.disabled,
+#bluetooth.offline {
+	color: @foreground;
+}
+
+#network {
+	margin: 0;
+	padding: 0 1.5em 0 0.5rem;
+	color: @color6;
+}
+
+#network.disabled,
+#network.offline {
+	color: @foreground;
+}

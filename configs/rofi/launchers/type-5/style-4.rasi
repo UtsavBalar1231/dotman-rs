@@ -9,7 +9,6 @@
 
 /*****----- Configuration -----*****/
 configuration {
-    icon-theme: "Gruvbox-Material-Dark";
 	modi:                       "drun,run,filebrowser,window";
     show-icons:                 true;
     display-drun:               "";
@@ -22,7 +21,7 @@ configuration {
 
 /*****----- Global Properties -----*****/
 * {
-    font:                        "Iosevka Nerd Font 14";
+    font:                        "Iosevka Nerd Font 10";
 }
 
 /*****----- Main Window -----*****/
@@ -40,9 +39,9 @@ window {
     enabled:                     true;
     margin:                      0px;
     padding:                     0px;
-    border-radius:               16px;
+    border-radius:               20px;
     cursor:                      "default";
-    background-color:            #1d2021;
+    background-color:            #22272C;
 }
 
 /*****----- Main Box -----*****/
@@ -59,10 +58,10 @@ inputbar {
     enabled:                     true;
     spacing:                     0px;
     margin:                      0px 200px;
-    padding:                     4px;
-    border:                      2px;
+    padding:                     5px;
+    border:                      1px;
     border-radius:               100%;
-    border-color:                #282828;
+    border-color:                gray/25%;
     background-color:            transparent;
     children:                    [ "textbox-prompt-colon", "entry" ];
 }
@@ -70,18 +69,18 @@ inputbar {
 textbox-prompt-colon {
     enabled:                     true;
     expand:                      false;
-    padding:                     8px 16px;
+    padding:                     8px 11px;
     border-radius:               100%;
-    background-color:            #1d2021;
-    text-color:                  #ebdbb2;
+    background-color:            white;
+    text-color:                  black;
     str:                         "";
 }
 entry {
     enabled:                     true;
-    padding:                     0px 12px;
+    padding:                     8px 12px;
     border:                      0px;
     background-color:            transparent;
-    text-color:                  #ebdbb2;
+    text-color:                  white;
     cursor:                      text;
     placeholder:                 "Search...";
     placeholder-color:           inherit;
@@ -115,30 +114,28 @@ element {
     padding:                     5px;
     border:                      0px;
     border-radius:               100%;
-    border-color:                #a89984;
+    border-color:                gray/15%;
     background-color:            transparent;
-    text-color:                  #a89984;
+    text-color:                  gray;
     cursor:                      pointer;
 }
 element normal.active {
-    background-image:            linear-gradient(to right, #4C4F52, #32302f);
-    text-color:                  #b8bb26;
+    background-image:            linear-gradient(to right, #4C4F52, #2E343B);
+    text-color:                  #19B466;
 }
 element selected.normal {
-    background-image:            linear-gradient(to right, #4C4F52, #32302f);
-    text-color:                  #fe8019;
+    background-image:            linear-gradient(to right, #4C4F52, #2E343B);
+    text-color:                  #FF9030;
 }
 element selected.active {
-    background-image:            linear-gradient(to right, #4C4F52, #32302f);
-    text-color:                  #fb4934;
+    background-image:            linear-gradient(to right, #4C4F52, #2E343B);
+    text-color:                  #EA5553;
 }
-
 element-icon {
     background-color:            transparent;
     size:                        24px;
     cursor:                      inherit;
 }
-
 element-text {
     background-color:            inherit;
     text-color:                  inherit;
@@ -155,32 +152,29 @@ mode-switcher{
     margin:                      0px 200px;
     padding:                     12px;
     border-radius:               100%;
-    background-color:            #32302f;
+    background-color:            #2E343B;
 }
-
 button {
     background-color:            inherit;
-    text-color:                  #ebdbb2;
+    text-color:                  white;
     cursor:                      pointer;
 }
 button selected {
     background-color:            inherit;
-    text-color:                  #fe8019;
+    text-color:                  #FF9030;
 }
 
 /*****----- Message -----*****/
 error-message {
     padding:                     20px;
-    background-color:            #1d2021;
-    text-color:                  #ebdbb2;
+    background-color:            #22272C;
+    text-color:                  white;
 }
-
 message {
     padding:                     0px;
     background-color:            inherit;
-    text-color:                  #fe8019;
+    text-color:                  #FF9030;
 }
-
 textbox {
     padding:                     0px;
     border-radius:               0px;

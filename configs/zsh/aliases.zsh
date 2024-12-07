@@ -1,8 +1,55 @@
 #/usr/bin/env zsh
 
+function get_package_manager() {
+	# Check /etc/os-release
+	ID=$(grep '^ID=' /etc/os-release | cut -d'=' -f2)
+
+	case $ID in
+		'arch')
+			if command -v paru >/dev/null 2>&1; then
+				echo 'paru'
+			elif command -v yay >/dev/null 2>&1; then
+				echo 'yay'
+			else
+				echo 'pacman'
+			fi
+			;;
+		'fedora')
+			echo 'dnf'
+			;;
+		'debian' | 'ubuntu')
+			echo 'apt'
+			;;
+		*)
+			echo 'unknown'
+			;;
+	esac
+}
+
+# $1: package name in fedora, $2: package name in arch, $3: package name in apt
+function install_package() {
+	echo "installing $1 using $package_manager"
+	case $package_manager in
+		'dnf')
+			sudo dnf install $1
+			;;
+		'apt')
+			sudo apt install $3
+			;;
+		'pacman')
+			sudo pacman -S --noconfirm $2
+			;;
+		*)
+			echo "Please install $2" >&2
+			;;
+	esac
+}
+
+package_manager=$(get_package_manager)
+
 # alias for ls
 if command -v eza >/dev/null 2>&1; then
-	eza_params=('--icons' '--classify' '--group-directories-first' '--time-style=long-iso' '--group' '--color-scale')
+	eza_params=('--icons' '--classify' '--group-directories-first' '--time-style=long-iso' '--group' '--color-scale' '--sort=modified')
 
 	alias ls='eza $eza_params'
 	alias l='eza --git-ignore $eza_params'
@@ -13,7 +60,7 @@ if command -v eza >/dev/null 2>&1; then
 	alias lt='eza --tree $eza_params'
 	alias tree='eza --tree $eza_params'
 else
-	echo "install eza" >&2
+	install_package 'eza' 'eza' 'eza'
 fi
 
 # alias for bat
@@ -23,7 +70,7 @@ elif command -v batcat >/dev/null 2>&1; then
 	alias bat='batcat'
 	alias b='bat'
 else
-	echo "install bat" >&2
+	install_package 'bat' 'bat' 'bat'
 fi
 
 # alias for rg
@@ -32,11 +79,15 @@ if command -v rg >/dev/null 2>&1; then
 	alias rgf='rg --files'
 	alias rgd='rg --files-with-matches'
 else
-	echo "install ripgrep" >&2
+	install_package 'ripgrep' 'ripgrep' 'ripgrep'
 fi
 
-if command -v fdfind >/dev/null; then
-	alias fd='fdfind'
+if command -v fd >/dev/null 2>&1; then
+	alias fd='fd --color=always'
+else
+	if command -v fdfind >/dev/null; then
+		alias fd='fdfind --color=always'
+	fi
 fi
 
 # alias for vim
@@ -98,10 +149,11 @@ if command -v gdrive >/dev/null 2>&1; then
 	}
 fi
 
+# alias for xdg
 alias x="xdg-open"
 
-# alias rm='printf "\033[1;31m" && rm -rv'
-# alias cp='printf "\033[1;32m" && cp -rv'
-# alias mv='printf "\033[1;34m" && mv -v'
-# alias mkdir='printf "\033[1;33m" && mkdir -v'
-# alias rmdir='printf "\033[1;35m" && rmdir -v'
+# alias for kitty graph visualization
+alias idot="dot -T png | kitty +kitten icat"
+
+# alias for xclip clipboard
+alias clip='xclip -selection clipboard'

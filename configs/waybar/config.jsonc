@@ -1,0 +1,262 @@
+{
+	"layer": "top", // Waybar at top layer
+	"position": "top", // Waybar position (top|bottom|left|right)
+	"height": 24,
+	"width": 1900,
+	"margin-bottom": 4,
+	"spacing": 0,
+	"fixed-center": true,
+	"exclusive": true,
+	"passthrough": false,
+	"gtk-layer-shell": true,
+	"modules-left": [
+		"hyprland/workspaces",
+		"hyprland/window"
+		// "custom/updates"
+	],
+	"modules-right": [
+		"memory",
+		"cpu",
+		"disk",
+		"battery",
+		"pulseaudio",
+		"backlight",
+		"bluetooth",
+		"network",
+		"custom/hyprshade",
+		"custom/swaync",
+		"tray"
+	],
+	"modules-center": [
+		"clock",
+		"custom/weather"
+	],
+	"image#sprite1": {
+		"path": "~/.config/waybar/Rectangle1.svg",
+		"size": 24
+	},
+	"custom/updates": {
+		"format": " ",
+		"return-type": "json",
+		"exec": "~/.config/waybar/updates.sh",
+		"interval": 3600,
+		"on-click": "exec kitty --class calendar -e paru -Syu",
+		"on-click-right": "exec ~/.config/waybar/updates.sh",
+		"tooltip": true
+	},
+	"custom/media": {
+		"format": "{icon} {}",
+		"escape": true,
+		"return-type": "json",
+		"max-length": 40,
+		"on-click": "playerctl play-pause",
+		"on-click-right": "playerctl stop",
+		"smooth-scrolling-threshold": 1, // This value was tested using a trackpad, it should be lowered if using a mouse.
+		"on-scroll-up": "playerctl next",
+		"on-scroll-down": "playerctl previous",
+		"exec": "$HOME/.config/waybar/mediaplayer.py 2> /dev/null" // Script in resources/custom_modules folder
+	},
+	"custom/weather": {
+		"format": " {}",
+		"tooltip": true,
+		"interval": 3600,
+		"on-click": "wttrbar --location Shillong --nerd --custom-indicator \"{ICON}  {FeelsLikeC}°C\"  && notify-send 'Updated weather!'",
+		"exec": "wttrbar --location Shillong --nerd --custom-indicator \"{ICON}  {FeelsLikeC}°C\"",
+		"return-type": "json"
+	},
+	"hyprland/workspaces": {
+		"format": "{icon}",
+		"on-click": "activate",
+		"on-scroll-up": "hyprctl dispatch workspace e+1",
+		"on-scroll-down": "hyprctl dispatch workspace e-1",
+		"sort-by-number": true
+	},
+	"hyprland/window": {
+		"format": " {} ",
+		"rewrite": {
+			"(.*) — Mozilla Firefox": "🌎 $1",
+			"(.*) — Google Chrome": "🌎 $1",
+			"(.*) — Zen": "🌎 $1",
+			"(.*) - fish": "> [$1]",
+			"(.*) - zsh": "> [$1]"
+		},
+		"separate-outputs": true,
+		"max-length": 64
+	},
+	"tray": {
+		"icon-size": 16,
+		"spacing": 4,
+		"show-passive-items": false,
+		"max-length": 6,
+		"min-length": 6
+	},
+	"clock": {
+		"format": "  {:%H:%M}",
+		"format-alt": "  {:%A, %B %d, %Y (%R)}",
+		"tooltip-format": "<tt><small>{calendar}</small></tt>",
+		"calendar": {
+			"mode": "year",
+			"mode-mon-col": 3,
+			"weeks-pos": "right",
+			"on-scroll": 1,
+			"format": {
+				"months": "<span color='#ebdbb2'><b>{}</b></span>",
+				"days": "<span color='#d3869b'><b>{}</b></span>",
+				"weeks": "<span color='#83a698'><b>W{}</b></span>",
+				"weekdays": "<span color='#fabd2f'><b>{}</b></span>",
+				"today": "<span color='#8ec07c'><b><u>{}</u></b></span>"
+			}
+		},
+		"actions": {
+			"on-click-right": "mode",
+			"on-scroll-up": "tz_up",
+			"on-scroll-down": "tz_down"
+		}
+	},
+	"cpu": {
+		// "format": "\uF201 {usage}%",
+		"format-critical": "<span color='#fb4934'><b>\uF201 {usage}%</b></span>",
+		"format-high": "<span color='#fe8019'>\uF201 {usage}%</span>",
+		"format-medium": "<span color='#b8bb26'>\uF201 {usage}%</span>",
+		"format-low": "<span color='#83a598'>\uF201 {usage}%</span>",
+		"tooltip": false,
+		"interval": 2,
+		"states": {
+			"critical": 80,
+			"high": 60,
+			"medium": 10,
+			"low": 0
+		}
+	},
+	"memory": {
+		"format": "  {used:0.1f}G/{total:0.1f}G",
+		"tooltip-format": "RAM - {used:0.1f}G used out of {total:0.1f}G",
+		"interval": 1,
+		"on-click": "kitty --class system_monitor -e btop",
+		"max-lenght": 25,
+		"min-length": 6
+	},
+	"backlight": {
+		"format": "{icon}{percent}%",
+		"format-icons": [
+			" ",
+			" ",
+			" ",
+			" ",
+			" ",
+			" ",
+			" ",
+			" ",
+			" "
+		],
+		"tooltip-format": "{icon}{percent}%",
+		"on-scroll-up": "light -A 5",
+		"on-scroll-down": "light -U 5",
+		"max-length": 25,
+		"min-length": 6
+	},
+	"battery": {
+		"states": {
+			"good": 95,
+			"warning": 30,
+			"critical": 20
+		},
+		"format": "{icon} {capacity}%",
+		"format-charging": " {capacity}%",
+		"format-plugged": " {capacity}%",
+		"format-alt": "{time} {icon}",
+		"format-icons": [
+			"󰂎",
+			"󰁺",
+			"󰁻",
+			"󰁼",
+			"󰁽",
+			"󰁾",
+			"󰁿",
+			"󰂀",
+			"󰂁",
+			"󰂂",
+			"󰁹"
+		],
+		"on-click": "kitty --class system_monitor -e btop"
+	},
+	"network": {
+		"interface": "wlo1",
+		"format": "{ifname}",
+		"format-wifi": "",
+		"format-ethernet": "󰈀",
+		"format-disconnected": "󰖪",
+		"tooltip-format": "{ifname} via {gwaddr} 󰊗",
+		"tooltip-format-wifi": "{essid} ({signalStrength}%) ",
+		"tooltip-format-ethernet": "{ifname} ",
+		"tooltip-format-disconnected": "Disconnected",
+		"on-click": "kitty --class network -e nmtui",
+		"max-length": 50
+	},
+	"disk": {
+		"interval": 30,
+		"format": "󰋊 {percentage_used}%",
+		"path": "/",
+		"tooltip": true,
+		"tooltip-format": "HDD - {used} used out of {total} on {path} ({percentage_used}%)",
+		"on-click": "kitty --class system_monitor -e ncdu --color dark"
+	},
+	"pulseaudio": {
+		"format": "  {volume}%",
+		"format-muted": "  {volume}%",
+		"scroll-step": 1,
+		"on-click-right": "pavucontrol",
+		"ignored-sinks": [
+			"Easy Effects Sink"
+		],
+		"format-icons": {
+			"headphone": "",
+			"hands-free": "",
+			"headset": "",
+			"phone": "",
+			"phone-muted": "",
+			"portable": "",
+			"car": "",
+			"default": [
+				"",
+				""
+			]
+		},
+		"max-lenght": 25,
+		"exec": "pactl --format=json list sinks | jq -cM --unbuffered \"map(select(.name == \\\"$(pactl get-default-sink)\\\"))[0].properties | [.\\\"media.name\\\",.\\\"alsa.name\\\",.\\\"node.nick\\\",.\\\"alsa.long_card_name\\\"] | map(select(length>0))[0] | {text:.}\"",
+		"exec-if": "sleep 0.1", // Give enough time for `pactl get-default-sink` to update
+		"on-click": "pactl --format=json list sinks short | jq -cM --unbuffered \"[.[].name] | .[((index(\\\"$(pactl get-default-sink)\\\")+1)%length)]\" | xargs pactl set-default-sink"
+	},
+	"bluetooth": {
+		"format": " ",
+		"format-connected": " {device_alias}",
+		"format-connected-battery": " {device_alias} {device_battery_percentage}%",
+		// "format-device-preference": [ "device1", "device2" ], // preference list deciding the displayed device
+		"tooltip-format": "{controller_alias}\t{controller_address}\n\n{num_connections} connected",
+		"tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{num_connections} connected\n\n{device_enumerate}",
+		"tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
+		"tooltip-format-enumerate-connected-battery": "{device_alias}\t{device_address}\t{device_battery_percentage}%",
+		"on-click": "blueberry"
+	},
+	"custom/swaync": {
+		"tooltip": "swaync-client -swb", // No of notifications
+		"format": "{icon}",
+		"format-icons": {
+			"notification": "<span foreground='red'><small><sup>⬤</sup></small></span>",
+			"none": " ",
+			"dnd-notification": "<span foreground='red'><small><sup>⬤</sup></small></span>",
+			"dnd-none": " "
+		},
+		"return-type": "json",
+		"exec-if": "which swaync-client",
+		"exec": "swaync-client -swb",
+		"on-click": "sleep 0.1 && swaync-client -t -sw",
+		"on-click-right": "sleep 0.1 && swaync-client -d -sw",
+		"escape": true
+	},
+	"custom/hyprshade": {
+		"format": "",
+		"on-click": "hyprshade toggle blue-light-filter",
+		"tooltip": false
+	}
+}
