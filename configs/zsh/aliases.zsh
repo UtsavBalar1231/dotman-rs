@@ -157,3 +157,9 @@ alias idot="dot -T png | kitty +kitten icat"
 
 # alias for xclip clipboard
 alias clip='xclip -selection clipboard'
+
+# vim like shutdown
+alias :wq='sudo shutdown -h now'
+
+# alias for terminal file manager
+alias y='yazi'

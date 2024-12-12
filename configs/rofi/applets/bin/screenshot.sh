@@ -8,11 +8,10 @@
 # Import Current Theme
 source "$HOME"/.config/rofi/applets/shared/theme.bash
 theme="$type/$style"
-slurp_select_area="slurp -d -b '#ebdbb244' -c '#323232FF' -B '#323232FF' -F 'JetBrains Mono Nerd Font' -w '1'"
+
 # Theme Elements
 prompt='Screenshot'
-mesg="DIR: $(xdg-user-dir PICTURES)/Screenshots"
-background_image=$(cat "$HOME/.cache/swww/cache.txt")
+mesg="DIR: `xdg-user-dir PICTURES`/Screenshots"
 
 if [[ "$theme" == *'type-1'* ]]; then
 	list_col='1'
@@ -33,7 +32,7 @@ elif [[ ( "$theme" == *'type-2'* ) || ( "$theme" == *'type-4'* ) ]]; then
 fi
 
 # Options
-layout=$(echo "${theme}" | grep 'USE_ICON' | cut -d'=' -f2)
+layout=`cat ${theme} | grep 'USE_ICON' | cut -d'=' -f2`
 if [[ "$layout" == 'NO' ]]; then
 	option_1=" Capture Desktop"
 	option_2=" Capture Area"
@@ -52,13 +51,12 @@ fi
 rofi_cmd() {
 	rofi -theme-str "window {width: $win_width;}" \
 		-theme-str "listview {columns: $list_col; lines: $list_row;}" \
-		-theme-str 'textbox-prompt-colon {str: " ";}' \
-		-theme-str 'inputbar {background-image: url("'$background_image'", width);}' \
+		-theme-str 'textbox-prompt-colon {str: "";}' \
 		-dmenu \
 		-p "$prompt" \
 		-mesg "$mesg" \
 		-markup-rows \
-		-theme "${theme}"
+		-theme ${theme}
 }
 
 # Pass variables to rofi dmenu
@@ -66,41 +64,36 @@ run_rofi() {
 	echo -e "$option_1\n$option_2\n$option_3\n$option_4\n$option_5" | rofi_cmd
 }
 
+# Screenshot
+time=`date +%Y-%m-%d-%H-%M-%S`
+geometry=`xrandr | grep 'current' | head -n1 | cut -d',' -f2 | tr -d '[:blank:],current'`
+dir="`xdg-user-dir PICTURES`/Screenshots"
+file="Screenshot_${time}_${geometry}.png"
 
-dir="$(xdg-user-dir PICTURES)/Screenshots"
-before=$(ls "$dir" -1q | wc -l)
 if [[ ! -d "$dir" ]]; then
 	mkdir -p "$dir"
 fi
 
 # notify and view screenshot
 notify_view() {
-	local before="$1"
-	after=$(ls "$dir" -1q | wc -l)
-	echo "$after"
-	notify_cmd_shot='dunstify -u low -i gnome-screenshot Rofishot --replace=699'
-	if [ "$after" -gt "$before" ]; then
-    ${notify_cmd_shot} "Screenshot Saved."
+	notify_cmd_shot='dunstify -u low --replace=699'
+	${notify_cmd_shot} "Copied to clipboard."
+	viewnior ${dir}/"$file"
+	if [[ -e "$dir/$file" ]]; then
+		${notify_cmd_shot} "Screenshot Saved."
 	else
-    ${notify_cmd_shot} "Screenshot Not Saved."
+		${notify_cmd_shot} "Screenshot Deleted."
 	fi
-	
 }
 
-# Grab window wayland 
-
-function grab_window() {
-    local monitors=`hyprctl -j monitors`
-    local clients=`hyprctl -j clients | jq -r '[.[] | select(.workspace.id | contains('$(echo $monitors | jq -r 'map(.activeWorkspace.id) | join(",")')'))]'`
-    # Generate boxes for each visible window and send that to slurp
-    # through stdin
-    local boxes="$(echo $clients | jq -r '.[] | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1]) \(.title)"')"
-    slurp -r <<< "$boxes"
+# Copy screenshot to clipboard
+copy_shot () {
+	tee "$file" | xclip -selection clipboard -t image/png
 }
 
 # countdown
 countdown () {
-	for sec in $(seq "$1" -1 1); do
+	for sec in `seq $1 -1 1`; do
 		dunstify -t 1000 --replace=699 "Taking shot in : $sec"
 		sleep 1
 	done
@@ -108,44 +101,44 @@ countdown () {
 
 # take shots
 shotnow () {
-	grim -g "$(slurp -o)" - | swappy -f - && notify_view "$1"
-	
+	cd ${dir} && sleep 0.5 && maim -u -f png | copy_shot
+	notify_view
 }
 
 shot5 () {
 	countdown '5'
-	sleep 0.2 && grim -g "$(slurp -d -b '#ebdbb244' -c '#323232FF' -B '#323232FF' -F 'JetBrains Mono Nerd Font' -w '1')" - | convert - -trim +repage - | swappy -f -
-	notify_view "$1"
+	sleep 1 && cd ${dir} && maim -u -f png | copy_shot
+	notify_view
 }
 
 shot10 () {
 	countdown '10'
-	sleep 1 && grim -g "$(slurp -d -b '#ebdbb244' -c '#323232FF' -B '#323232FF' -F 'JetBrains Mono Nerd Font' -w '1')" - | convert - -trim +repage - | swappy -f -
-	notify_view "$1"
+	sleep 1 && cd ${dir} && maim -u -f png | copy_shot
+	notify_view
 }
 
 shotwin () {
-	sleep 0.3 && grim -g "$(grab_window)" - | convert - -trim +repage - | swappy -f -
-	notify_view "$1"
+	cd ${dir} && maim -u -f png -i `xdotool getactivewindow` | copy_shot
+	notify_view
 }
 
 shotarea () {
-	sleep 0.2 && grim -g "$(slurp -d -b '#ebdbb244' -c '#323232FF' -B '#323232FF' -F 'JetBrains Mono Nerd Font' -w '1')" - | convert - -trim +repage - | swappy -f - 
-	notify_view "$1"
+	cd ${dir} && maim -u -f png -s -b 2 -c 0.35,0.55,0.85,0.25 -l | copy_shot
+	notify_view
 }
 
 # Execute Command
 run_cmd() {
 	if [[ "$1" == '--opt1' ]]; then
-		shotnow "$before" 
+		shotnow
 	elif [[ "$1" == '--opt2' ]]; then
-		shotarea "$before"
+		shotarea
 	elif [[ "$1" == '--opt3' ]]; then
-		shotwin "$before"
+		shotwin
 	elif [[ "$1" == '--opt4' ]]; then
-		shot5 "$before"
+		shot5
 	elif [[ "$1" == '--opt5' ]]; then
-		shot10 "$before"
+		shot10
 	fi
 }
 

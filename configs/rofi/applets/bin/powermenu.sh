@@ -6,9 +6,9 @@
 ## Applets : Power Menu
 
 # Import Current Theme
-source "$HOME"/.config/rofi/applets/shared/theme.bash
+source ~/.config/rofi/applets/shared/theme.bash
 theme="$type/$style"
-background_image=$(cat "$HOME/.cache/swww/cache.txt")
+
 # Theme Elements
 prompt="$(hostname)"
 mesg="Uptime : $(uptime -p | sed -e 's/up //g')"
@@ -21,34 +21,24 @@ elif [[ ("$theme" == *'type-2'*) || ("$theme" == *'type-4'*) ]]; then
 	list_row='1'
 fi
 
-declare -A icons
-icons[lockscreen]="\Uf033e"
-icons[switchuser]="\Uf0019"
-icons[logout]="\Uf0343"
-icons[suspend]="\Uf04b2"
-icons[hibernate]="\Uf02ca"
-icons[reboot]="\Uf0709"
-icons[shutdown]="\Uf0425"
-icons[cancel]="\Uf0156"
-
 # Options
 layout=$(cat ${theme} | grep 'USE_ICON' | cut -d'=' -f2)
 if [[ "$layout" == 'NO' ]]; then
-	option_1="${icons[lockscreen]}  Lock"
-	option_2="${icons[logout]} Logout"
-	option_3="${icons[suspend]}  Suspend"
-	option_4="${icons[hibernate]} Hibernate"
-	option_5="${icons[reboot]}   Reboot"
-	option_6="${icons[shutdown]} Shutdown"
-	yes=' Yes'
-	no=' No'
+	option_1=" Lock"
+	option_2=" Logout"
+	option_3=" Suspend"
+	option_4=" Hibernate"
+	option_5=" Reboot"
+	option_6=" Shutdown"
+	yes=' Yes'
+	no=' No'
 else
-	option_1="${icons[lockscreen]}"
-	option_2="${icons[logout]}"
-	option_3="${icons[suspend]}"
-	option_4="${icons[hibernate]}"
-	option_5="${icons[reboot]}"
-	option_6="${icons[shutdown]}"
+	option_1=""
+	option_2=""
+	option_3=""
+	option_4=""
+	option_5=""
+	option_6=""
 	yes=''
 	no=''
 fi
@@ -57,7 +47,6 @@ fi
 rofi_cmd() {
 	rofi -theme-str "listview {columns: $list_col; lines: $list_row;}" \
 		-theme-str 'textbox-prompt-colon {str: "";}' \
-		-theme-str 'inputbar {background-image: url("'$background_image'", width);}' \
 		-dmenu \
 		-p "$prompt" \
 		-mesg "$mesg" \
@@ -101,11 +90,11 @@ confirm_run() {
 # Execute Command
 run_cmd() {
 	if [[ "$1" == '--opt1' ]]; then
-		sleep 0.3 && swaylock
+		betterlockscreen -l
 	elif [[ "$1" == '--opt2' ]]; then
-		confirm_run 'hyprctl dispatch exit 1'
+		confirm_run 'kill -9 -1'
 	elif [[ "$1" == '--opt3' ]]; then
-		confirm_run 'systemctl suspend'
+		confirm_run 'mpc -q pause' 'amixer set Master mute' 'systemctl suspend'
 	elif [[ "$1" == '--opt4' ]]; then
 		confirm_run 'systemctl hibernate'
 	elif [[ "$1" == '--opt5' ]]; then

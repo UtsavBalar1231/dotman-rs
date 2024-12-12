@@ -7,6 +7,10 @@
  * Rofi Version: 1.7.3
  **/
 
+
+@import "~/.cache/wal/colors-rofi-dark.rasi"
+@import "~/.cache/wal/colors-rofi-pywal.conf"
+
 /*****----- Configuration -----*****/
 configuration {
 	modi:                       "drun,run,filebrowser,window";
@@ -21,7 +25,7 @@ configuration {
 
 /*****----- Global Properties -----*****/
 * {
-    font:                        "Iosevka Nerd Font 10";
+    font:                        "Iosevka Nerd Font 16";
 }
 
 /*****----- Main Window -----*****/
@@ -39,16 +43,16 @@ window {
     enabled:                     true;
     margin:                      0px;
     padding:                     0px;
-    border-radius:               20px;
+    border-radius:               24px;
     cursor:                      "default";
-    background-color:            #22272C;
+    background-color:            @background;
 }
 
 /*****----- Main Box -----*****/
 mainbox {
     enabled:                     true;
-    spacing:                     25px;
-    padding:                     50px;
+    spacing:                     24px;
+    padding:                     48px;
     background-color:            transparent;
     children:                    [ "inputbar", "message","listview", "mode-switcher" ];
 }
@@ -58,20 +62,20 @@ inputbar {
     enabled:                     true;
     spacing:                     0px;
     margin:                      0px 200px;
-    padding:                     5px;
-    border:                      1px;
+    padding:                     8px;
+    border:                      2px;
     border-radius:               100%;
-    border-color:                gray/25%;
+    border-color:                @color0;
     background-color:            transparent;
     children:                    [ "textbox-prompt-colon", "entry" ];
 }
 
 textbox-prompt-colon {
-    enabled:                     true;
+    enabled:                     false;
     expand:                      false;
-    padding:                     8px 11px;
+    padding:                     8px 16px;
     border-radius:               100%;
-    background-color:            white;
+    background-color:            @foreground;
     text-color:                  black;
     str:                         "";
 }
@@ -80,9 +84,9 @@ entry {
     padding:                     8px 12px;
     border:                      0px;
     background-color:            transparent;
-    text-color:                  white;
+    text-color:                  @foreground;
     cursor:                      text;
-    placeholder:                 "Search...";
+    placeholder:                 "  Search";
     placeholder-color:           inherit;
     vertical-align:              0.5;
     horizontal-align:            0.0;
@@ -92,7 +96,7 @@ entry {
 listview {
     enabled:                     true;
     columns:                     2;
-    lines:                       10;
+    lines:                       8;
     cycle:                       true;
     dynamic:                     true;
     scrollbar:                   false;
@@ -101,7 +105,7 @@ listview {
     fixed-height:                true;
     fixed-columns:               true;
     
-    spacing:                     10px;
+    spacing:                     8px;
     background-color:            transparent;
     cursor:                      "default";
 }
@@ -109,33 +113,35 @@ listview {
 /*****----- Elements -----*****/
 element {
     enabled:                     true;
-    spacing:                     10px;
+    spacing:                     8px;
     margin:                      0px;
-    padding:                     5px;
+    padding:                     4px;
     border:                      0px;
     border-radius:               100%;
-    border-color:                gray/15%;
+    border-color:                @color0;
     background-color:            transparent;
-    text-color:                  gray;
+    text-color:                  @foreground;
     cursor:                      pointer;
 }
+
 element normal.active {
-    background-image:            linear-gradient(to right, #4C4F52, #2E343B);
-    text-color:                  #19B466;
+    text-color:                  @color11;
 }
+
 element selected.normal {
-    background-image:            linear-gradient(to right, #4C4F52, #2E343B);
-    text-color:                  #FF9030;
+    text-color:                  @color15;
 }
+
 element selected.active {
-    background-image:            linear-gradient(to right, #4C4F52, #2E343B);
-    text-color:                  #EA5553;
+    text-color:                  @color8;
 }
+
 element-icon {
     background-color:            transparent;
-    size:                        24px;
+    size:                        36px;
     cursor:                      inherit;
 }
+
 element-text {
     background-color:            inherit;
     text-color:                  inherit;
@@ -152,29 +158,32 @@ mode-switcher{
     margin:                      0px 200px;
     padding:                     12px;
     border-radius:               100%;
-    background-color:            #2E343B;
+    background-color:            @color0;
 }
 button {
     background-color:            inherit;
-    text-color:                  white;
+    text-color:                  @foreground;
     cursor:                      pointer;
 }
+
 button selected {
     background-color:            inherit;
-    text-color:                  #FF9030;
+    text-color:                  @color8;
 }
 
 /*****----- Message -----*****/
 error-message {
-    padding:                     20px;
-    background-color:            #22272C;
-    text-color:                  white;
+    padding:                     24px;
+    background-color:            @foreground;
+    text-color:                  @foreground;
 }
+
 message {
     padding:                     0px;
     background-color:            inherit;
-    text-color:                  #FF9030;
+    text-color:                  @color8;
 }
+
 textbox {
     padding:                     0px;
     border-radius:               0px;

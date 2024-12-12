@@ -13,16 +13,14 @@ configuration {
 }
 
 /*****----- Global Properties -----*****/
-
 * {
-    font:           "JetBrains Mono Nerd Font Normal 16px";
-    background:     #32302FDD;
-    background-alt: #32302FDD;
-    foreground:     #EBDBB2FF; /* #EBDBB2FF; */
-    selected:       #D4BE98FF;
-    active:         #B8BB26FF;
-    urgent:         #FB4934FF;
-    
+    font:                        "JetBrains Mono Nerd Font 10";
+    background:                  #2D1B14;
+    background-alt:              #462D23;
+    foreground:                  #FFFFFF;
+    selected:                    #E25F3E;
+    active:                      #716251;
+    urgent:                      #934A1C;
 }
 
 /*
@@ -66,7 +64,7 @@ inputbar {
     border-radius:               20px;
     border-color:                @selected;
     background-color:            transparent;
-/*  background-image:            url("~/.config/rofi/images/d.png", width);*/
+    background-image:            url("~/.config/rofi/images/d.png", width);
     text-color:                  @foreground;
     children:                    [ "dummy", "textbox-prompt-colon", "prompt", "dummy"];
 }
@@ -80,14 +78,14 @@ textbox-prompt-colon {
     str:                         "";
     padding:                     10px 13px;
     border-radius:               10px;
-    background-color:            #709D93;
+    background-color:            @urgent;
     text-color:                  @background;
 }
 prompt {
     enabled:                     true;
     padding:                     10px;
     border-radius:               10px;
-    background-color:            #D35E58FF;
+    background-color:            @active;
     text-color:                  @background;
 }
 
@@ -126,7 +124,7 @@ listview {
 /*****----- Elements -----*****/
 element {
     enabled:                     true;
-    padding:                     30px 0px;
+    padding:                     30px 10px;
     border:                      0px solid;
     border-radius:               20px;
     border-color:                @selected;
@@ -135,7 +133,7 @@ element {
     cursor:                      pointer;
 }
 element-text {
-    font:                        "Feather 28";
+    font:                        "feather 28";
     background-color:            transparent;
     text-color:                  inherit;
     cursor:                      inherit;

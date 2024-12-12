@@ -38,30 +38,18 @@
 	"custom/updates": {
 		"format": " ",
 		"return-type": "json",
-		"exec": "~/.config/waybar/updates.sh",
+		"exec": "~/.config/hypr/scripts/get_updates.sh",
 		"interval": 3600,
 		"on-click": "exec kitty --class calendar -e paru -Syu",
-		"on-click-right": "exec ~/.config/waybar/updates.sh",
+		"on-click-right": "exec ~/.config/hypr/scripts/get_updates.sh",
 		"tooltip": true
-	},
-	"custom/media": {
-		"format": "{icon} {}",
-		"escape": true,
-		"return-type": "json",
-		"max-length": 40,
-		"on-click": "playerctl play-pause",
-		"on-click-right": "playerctl stop",
-		"smooth-scrolling-threshold": 1, // This value was tested using a trackpad, it should be lowered if using a mouse.
-		"on-scroll-up": "playerctl next",
-		"on-scroll-down": "playerctl previous",
-		"exec": "$HOME/.config/waybar/mediaplayer.py 2> /dev/null" // Script in resources/custom_modules folder
 	},
 	"custom/weather": {
 		"format": " {}",
 		"tooltip": true,
 		"interval": 3600,
-		"on-click": "wttrbar --location Shillong --nerd --custom-indicator \"{ICON}  {FeelsLikeC}°C\"  && notify-send 'Updated weather!'",
-		"exec": "wttrbar --location Shillong --nerd --custom-indicator \"{ICON}  {FeelsLikeC}°C\"",
+		"on-click": "wttrbar --location Surat --nerd --custom-indicator \"{ICON}  {FeelsLikeC}°C\"  && notify-send 'Updated weather!'",
+		"exec": "wttrbar --location Surat --nerd --custom-indicator \"{ICON}  {FeelsLikeC}°C\"",
 		"return-type": "json"
 	},
 	"hyprland/workspaces": {
