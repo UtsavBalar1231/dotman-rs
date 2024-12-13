@@ -45415,3 +45415,2856 @@
 [LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -u"]
 [LOG] [AQ] [libinput] event10 - palm: keyboard timeout
 
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window 61b6a82ee7a0 set title to gs
+[LOG] Searching for matching rules for kitty (title: gs)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "gs"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "gs"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] Window 61b6a82ee7a0 set title to git add -A
+[LOG] Searching for matching rules for kitty (title: git add -A)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "git add -A"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "git add -A"]
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] cursorImage request: surface 0
+[LOG] Window 61b6a82ee7a0 set title to git commit -m "dotfiles: Update"
+[LOG] Searching for matching rules for kitty (title: git commit -m "dotfiles: Update")
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "git commit -m "dotfiles: Update""]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "git commit -m "dotfiles: Update""]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window 61b6a82ee7a0 set title to gps
+[LOG] Searching for matching rules for kitty (title: gps)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "gps"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "gps"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Created a bezier curve, baked 255 points, mem usage: 4.08kB, time to bake: 7.93µs. Estimated average calc time: 0.23µs.
+[LOG] Using config: /home/utsav/.config/hypr/hyprland.conf
+[LOG] ApplyConfigToKeyboard for "video-bus", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a77b66b0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 156
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus"
+[LOG] ApplyConfigToKeyboard for "video-bus-1", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a8140480's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 149
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus-1"
+[LOG] ApplyConfigToKeyboard for "power-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a8138f30's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Power Button
+[LOG] Updated keymap fd to 143
+[LOG] Set the keyboard layout to us and variant to  for keyboard "power-button"
+[LOG] ApplyConfigToKeyboard for "sleep-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a81f1680's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Sleep Button
+[LOG] Updated keymap fd to 142
+[LOG] Set the keyboard layout to us and variant to  for keyboard "sleep-button"
+[LOG] ApplyConfigToKeyboard for "intel-hid-events", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a8219250's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID events
+[LOG] Updated keymap fd to 110
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-events"
+[LOG] ApplyConfigToKeyboard for "intel-hid-5-button-array", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a8269480's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID 5 button array
+[LOG] Updated keymap fd to 105
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-5-button-array"
+[LOG] ApplyConfigToKeyboard for "at-translated-set-2-keyboard", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82a3a60's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard AT Translated Set 2 keyboard
+[LOG] Updated keymap fd to 106
+[LOG] Set the keyboard layout to us and variant to  for keyboard "at-translated-set-2-keyboard"
+[LOG] ApplyConfigToKeyboard for "msi-wmi-hotkeys", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82dda00's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard MSI WMI hotkeys
+[LOG] Updated keymap fd to 107
+[LOG] Set the keyboard layout to us and variant to  for keyboard "msi-wmi-hotkeys"
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-touchpad, sens 0.00
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-mouse, sens 0.00
+[LOG] Applying monitor rule for eDP-1
+[LOG] Not applying a new rule to eDP-1 because it's already applied!
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Searching for matching rules for zen-twilight (title: config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight)
+[LOG] Window rule workspace 1 -> zen-twilight matched [Window 61b6a8394450: title: "config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight"]
+[LOG] Window rule opaque -> zen-twilight matched [Window 61b6a8394450: title: "config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight"]
+[LOG] Window rule idleinhibit fullscreen -> zen-twilight matched [Window 61b6a8394450: title: "config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a8394450: title: "config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight"]
+[LOG] Searching for matching rules for org.telegram.desktop (title: ‎⁨Saved Messages⁩ – (88609))
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a83d2960: title: "‎⁨Saved Messages⁩ – (88609)"]
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] Window 61b6a83d2960 set title to ‎⁨Saved Messages⁩ – (88610)
+[LOG] Searching for matching rules for org.telegram.desktop (title: ‎⁨Saved Messages⁩ – (88610))
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a83d2960: title: "‎⁨Saved Messages⁩ – (88610)"]
+[LOG] [AQ] [libinput] event10 - lid: suspending touchpad
+
+[LOG] Switch Lid Switch fired, triggering binds.
+[LOG] Keybind triggered, calling dispatcher (0, switch:Lid Switch, 0)
+[LOG] Executing systemctl suspend
+[LOG] Process Created with pid 17439
+[LOG] Switch Lid Switch turn on, triggering binds.
+[LOG] Keybind triggered, calling dispatcher (0, switch:on:Lid Switch, 0)
+[LOG] Executing hyprlock
+[LOG] Process Created with pid 17442
+[LOG] [AQ] [libinput] event7  - Intel HID 5 button array: device removed
+
+[LOG] Keyboard at 61b6a8269480 removed
+[LOG] Destroyed keyboard 61b6a8269480
+[LOG] [AQ] [libinput] event9  - MSI WMI hotkeys: device removed
+
+[LOG] [AQ] [libinput] event1  - Sleep Button: device removed
+
+[LOG] [AQ] [libinput] event2  - Power Button: device removed
+
+[LOG] [AQ] [libinput] event5  - AT Translated Set 2 keyboard: device removed
+
+[LOG] [AQ] [libinput] event3  - Video Bus: device removed
+
+[LOG] [AQ] [libinput] event0  - Lid Switch: device removed
+
+[LOG] [AQ] [libinput] event11 - MSNB0001:00 04CA:2642 Mouse: device removed
+
+[LOG] [AQ] [libinput] event6  - Intel HID events: device removed
+
+[LOG] [AQ] [libinput] event4  - Video Bus: device removed
+
+[LOG] Keyboard at 61b6a82dda00 removed
+[LOG] Destroyed keyboard 61b6a82dda00
+[LOG] Keyboard at 61b6a81f1680 removed
+[LOG] Destroyed keyboard 61b6a81f1680
+[LOG] Keyboard at 61b6a8138f30 removed
+[LOG] Destroyed keyboard 61b6a8138f30
+[LOG] Keyboard at 61b6a82a3a60 removed
+[LOG] Destroyed keyboard 61b6a82a3a60
+[LOG] Keyboard at 61b6a8140480 removed
+[LOG] Destroyed keyboard 61b6a8140480
+[LOG] Pointer at 61b6a822ce30 removed
+[LOG] Keyboard at 61b6a8219250 removed
+[LOG] Destroyed keyboard 61b6a8219250
+[LOG] Keyboard at 61b6a77b66b0 removed
+[LOG] Destroyed keyboard 61b6a77b66b0
+[LOG] [AQ] [libseat] [libseat/backend/logind.c:351] Disabling seat
+[LOG] [AQ] [libinput] event10 - MSNB0001:00 04CA:2642 Touchpad: device removed
+
+[LOG] Session got deactivated!
+[LOG] [AQ] [libseat] [libseat/backend/logind.c:348] Enabling seat
+[LOG] [AQ] [libinput] event4  - Video Bus: is tagged by udev as: Keyboard
+
+[LOG] [AQ] [libinput] event4  - Video Bus: device is a keyboard
+
+[LOG] [AQ] [libinput] event3  - Video Bus: is tagged by udev as: Keyboard
+
+[LOG] [AQ] [libinput] event3  - Video Bus: device is a keyboard
+
+[LOG] [AQ] [libinput] event0  - Lid Switch: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event0  - Lid Switch: device is a switch device
+
+[LOG] [AQ] [libinput] event2  - Power Button: is tagged by udev as: Keyboard
+
+[LOG] [AQ] [libinput] event2  - Power Button: device is a keyboard
+
+[LOG] [AQ] [libinput] event1  - Sleep Button: is tagged by udev as: Keyboard
+
+[LOG] [AQ] [libinput] event1  - Sleep Button: device is a keyboard
+
+[LOG] [AQ] [libinput] event12 - HDA NVidia HDMI/DP,pcm=3: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event12 - not using input device '/dev/input/event12'
+
+[LOG] [AQ] [libinput] event13 - HDA NVidia HDMI/DP,pcm=7: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event13 - not using input device '/dev/input/event13'
+
+[LOG] [AQ] [libinput] event14 - HDA NVidia HDMI/DP,pcm=8: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event14 - not using input device '/dev/input/event14'
+
+[LOG] [AQ] [libinput] event15 - HDA NVidia HDMI/DP,pcm=9: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event15 - not using input device '/dev/input/event15'
+
+[LOG] [AQ] [libinput] event10 - MSNB0001:00 04CA:2642 Touchpad: is tagged by udev as: Touchpad
+
+[LOG] [AQ] [libinput] event10 - thumb: enabled thumb detection (area)
+
+[LOG] [AQ] [libinput] event10 - MSNB0001:00 04CA:2642 Touchpad: device is a touchpad
+
+[LOG] [AQ] [libinput] event10 - lid: activated for MSNB0001:00 04CA:2642 Touchpad<->Lid Switch
+
+[LOG] [AQ] [libinput] event11 - MSNB0001:00 04CA:2642 Mouse: is tagged by udev as: Mouse Pointingstick
+
+[LOG] [AQ] [libinput] event11 - MSNB0001:00 04CA:2642 Mouse: device is a pointer
+
+[LOG] [AQ] [libinput] event16 - sof-hda-dsp Mic: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event16 - not using input device '/dev/input/event16'
+
+[LOG] [AQ] [libinput] event17 - sof-hda-dsp Headphone: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event17 - not using input device '/dev/input/event17'
+
+[LOG] [AQ] [libinput] event18 - sof-hda-dsp HDMI/DP,pcm=3: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event18 - not using input device '/dev/input/event18'
+
+[LOG] [AQ] [libinput] event19 - sof-hda-dsp HDMI/DP,pcm=4: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event19 - not using input device '/dev/input/event19'
+
+[LOG] [AQ] [libinput] event20 - sof-hda-dsp HDMI/DP,pcm=5: is tagged by udev as: Switch
+
+[LOG] [AQ] [libinput] event20 - not using input device '/dev/input/event20'
+
+[LOG] [AQ] [libinput] event6  - Intel HID events: is tagged by udev as: Keyboard
+
+[LOG] [AQ] [libinput] event6  - Intel HID events: device is a keyboard
+
+[LOG] [AQ] [libinput] event7  - Intel HID 5 button array: is tagged by udev as: Keyboard
+
+[LOG] [AQ] [libinput] event7  - Intel HID 5 button array: device is a keyboard
+
+[LOG] [AQ] [libinput] event5  - AT Translated Set 2 keyboard: is tagged by udev as: Keyboard
+
+[LOG] [AQ] [libinput] event5  - AT Translated Set 2 keyboard: device is a keyboard
+
+[LOG] [AQ] [libinput] event0  - lid: keyboard paired with Lid Switch<->AT Translated Set 2 keyboard
+
+[LOG] [AQ] [libinput] event10 - palm: dwt activated with MSNB0001:00 04CA:2642 Touchpad<->AT Translated Set 2 keyboard
+
+[LOG] [AQ] [libinput] event8  - PC Speaker: not tagged as supported input device
+
+[LOG] [AQ] [libinput] event8  - not using input device '/dev/input/event8'
+
+[LOG] [AQ] [libinput] event9  - MSI WMI hotkeys: is tagged by udev as: Keyboard
+
+[LOG] [AQ] [libinput] event9  - MSI WMI hotkeys: device is a keyboard
+
+[LOG] [AQ] drm: Restoring after VT switch
+[LOG] [AQ] drm: Scanning connectors for /dev/dri/card0
+[LOG] [AQ] drm: Scanning connector id 241
+[LOG] [AQ] drm: Connector id 241 already initialized
+[LOG] [AQ] drm: connector eDP-1 crtc is capable of vrr: props.vrr_capable -> 248, crtc->props.vrr_enabled -> 24
+[LOG] [AQ] drm: Explicit sync supported
+[LOG] [AQ] drm: connector eDP-1 crtc supports CTM
+[LOG] [AQ] drm: Connector 241 connection state: 1
+[LOG] [AQ] drm: Rechecking CRTCs
+[LOG] [AQ] drm: Skipping connector eDP-1, has crtc 82 and is connected
+[LOG] [AQ] drm: slot 0 crtc 82 taken by eDP-1, skipping
+[LOG] [AQ] drm: slot 1 crtc 134 unassigned
+[LOG] [AQ] drm: slot 2 crtc 186 unassigned
+[LOG] [AQ] drm: slot 3 crtc 238 unassigned
+[LOG] [AQ] drm: rescanning after realloc
+[LOG] [AQ] drm: Scanning connectors for /dev/dri/card0
+[LOG] [AQ] drm: Scanning connector id 241
+[LOG] [AQ] drm: Connector id 241 already initialized
+[LOG] [AQ] drm: connector eDP-1 crtc is capable of vrr: props.vrr_capable -> 248, crtc->props.vrr_enabled -> 24
+[LOG] [AQ] drm: Explicit sync supported
+[LOG] [AQ] drm: connector eDP-1 crtc supports CTM
+[LOG] [AQ] drm: Connector 241 connection state: 1
+[LOG] [AQ] drm: Rescanned connectors
+[ERR] [AQ] drm: failed reset
+[LOG] [AQ] drm: Restoring crtc 82 with clock 389380 hdisplay 1920 vdisplay 1200 vrefresh 144
+[LOG] [AQ] drm: Restoring after VT switch
+[LOG] [AQ] drm: Scanning connectors for /dev/dri/card1
+[LOG] [AQ] drm: Scanning connector id 103
+[LOG] [AQ] drm: Connector id 103 already initialized
+[LOG] [AQ] drm: Connector 103 connection state: 2
+[LOG] [AQ] drm: Scanning connector id 107
+[LOG] [AQ] drm: Connector id 107 already initialized
+[LOG] [AQ] drm: Connector 107 connection state: 2
+[LOG] [AQ] drm: Scanning connector id 110
+[LOG] [AQ] drm: Connector id 110 already initialized
+[LOG] [AQ] drm: Connector 110 connection state: 2
+[LOG] [AQ] drm: Rechecking CRTCs
+[LOG] [AQ] drm: connector DP-1, has crtc -1, will be rechecked
+[LOG] [AQ] drm: connector HDMI-A-1, has crtc -1, will be rechecked
+[LOG] [AQ] drm: connector eDP-2, has crtc -1, will be rechecked
+[LOG] [AQ] drm: slot 0 crtc 57 unassigned
+[LOG] [AQ] drm: slot 1 crtc 70 unassigned
+[LOG] [AQ] drm: slot 2 crtc 83 unassigned
+[LOG] [AQ] drm: slot 3 crtc 96 unassigned
+[LOG] [AQ] drm: Connector DP-1 is not connected
+[LOG] [AQ] drm: Connector HDMI-A-1 is not connected
+[LOG] [AQ] drm: Connector eDP-2 is not connected
+[LOG] [AQ] drm: rescanning after realloc
+[LOG] [AQ] drm: Scanning connectors for /dev/dri/card1
+[LOG] [AQ] drm: Scanning connector id 103
+[LOG] [AQ] drm: Connector id 103 already initialized
+[LOG] [AQ] drm: Connector 103 connection state: 2
+[LOG] [AQ] drm: Scanning connector id 107
+[LOG] [AQ] drm: Connector id 107 already initialized
+[LOG] [AQ] drm: Connector 107 connection state: 2
+[LOG] [AQ] drm: Scanning connector id 110
+[LOG] [AQ] drm: Connector id 110 already initialized
+[LOG] [AQ] drm: Connector 110 connection state: 2
+[LOG] [AQ] drm: Rescanned connectors
+[ERR] [AQ] drm: failed reset
+[LOG] Session got activated!
+[LOG] Applying monitor rule for eDP-1
+[LOG] Monitor eDP-1: requested 1920x1200@144.000000, found available mode: 1920x1200@144001mHz, applying.
+[LOG] output eDP-1 succeeded basic test on format DRM_FORMAT_XRGB8888
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[LOG] arrangeMonitors: 1 to arrange
+[LOG] arrangeMonitors: eDP-1 auto [0, 0]
+[LOG] arrangeMonitors: eDP-1 xwayland [0, 0]
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] Monitor eDP-1 data dump: res 1920x1200@144.00Hz, scale 1.00, transform 0, pos 0x0, 10b 0
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] [AQ] drm: Modesetting eDP-1 with 1920x1200@144.00Hz
+[LOG] Hyprctl: dispatcher dpms : on
+[LOG] NoFrameSchedule hit for eDP-1.
+[LOG] Applying monitor rule for eDP-1
+[LOG] Not applying a new rule to eDP-1 because it's already applied!
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] [CWLSeatProtocol] New seat resource bound at 61b6a8184c40
+[LOG] [CScreencopyProtocol] Bound client successfully!
+[LOG] [CSessionLockProtocol] New sessionLock with id 10
+[LOG] Session got locked by 61b6a816b7e0
+[ERR] BUG THIS: setKeyboardFocus without a valid keyboard set
+[LOG] [CXDGSurfaceResource] xdg_surface 61b6a8241f30 requests geometry 0x0 1904x1124
+[LOG] [CWLCompositorResource] New wl_surface with id 22 at 61b6a651a400
+[LOG] [CSessionLockProtocol] New sessionLockSurface with id 25
+[LOG] [CDRMSyncobjManagerResource] New linux_syncobj at 61b6a64e8160 for surface 61b6a651a400
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 61b6a847d890
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 61b6a8166a00
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 61b6a8190f20
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 61b6a79f3aa0
+[LOG] [CDRMSyncobjManagerResource] New linux_drm_timeline at 61b6a84de250
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 36: size [Vector2D: x: 1920, y: 1200], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 149 stride 7680 offset 0
+[LOG] Set keyboard focus to surface 61b6a651a400
+[LOG] [CPrimarySelectionProtocol] CPrimarySelectionProtocol::updateSelection: cannot send selection to a client without a data_device
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 35: size [Vector2D: x: 1920, y: 1200], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 23 stride 7680 offset 0
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 30: size [Vector2D: x: 1920, y: 1200], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 156 stride 7680 offset 0
+[LOG] [CLinuxDMABBUFParamsResource] Creating a dmabuf, with id 38: size [Vector2D: x: 1920, y: 1200], fmt AR24, planes 1
+[LOG] [CLinuxDMABBUFParamsResource]  | plane 0: mod 0 fd 24 stride 7680 offset 0
+[LOG] Pointer at 61b6a822ca90 removed
+[LOG] [AQ] libinput: New device Video Bus: 0-6
+[LOG] New aquamarine keyboard with name Video Bus
+[LOG] ApplyConfigToKeyboard for "video-bus", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82dda00's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 168
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus"
+[LOG] New keyboard created, pointers Hypr: 61b6a82dda00 and AQ: 61b6a821ce60
+[LOG] [AQ] libinput: New device Video Bus: 0-6
+[LOG] New aquamarine keyboard with name Video Bus
+[LOG] ApplyConfigToKeyboard for "video-bus-1", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82a3a60's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 169
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus-1"
+[LOG] New keyboard created, pointers Hypr: 61b6a82a3a60 and AQ: 61b6a81a2d60
+[LOG] [AQ] libinput: New device Lid Switch: 0-5
+[LOG] New aquamarine switch with name Lid Switch
+[LOG] New switch with name "Lid Switch" added
+[LOG] [AQ] libinput: New device Power Button: 0-1
+[LOG] New aquamarine keyboard with name Power Button
+[LOG] ApplyConfigToKeyboard for "power-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a8269480's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Power Button
+[LOG] Updated keymap fd to 170
+[LOG] Set the keyboard layout to us and variant to  for keyboard "power-button"
+[LOG] New keyboard created, pointers Hypr: 61b6a8269480 and AQ: 61b6a8161890
+[LOG] [AQ] libinput: New device Sleep Button: 0-3
+[LOG] New aquamarine keyboard with name Sleep Button
+[LOG] ApplyConfigToKeyboard for "sleep-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a813a410's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Sleep Button
+[LOG] Updated keymap fd to 171
+[LOG] Set the keyboard layout to us and variant to  for keyboard "sleep-button"
+[LOG] New keyboard created, pointers Hypr: 61b6a813a410 and AQ: 61b6a84647b0
+[LOG] [AQ] libinput: New device MSNB0001:00 04CA:2642 Touchpad: 1226-9794
+[LOG] New aquamarine pointer with name MSNB0001:00 04CA:2642 Touchpad
+[LOG] New mouse has libinput sens 0.00 (0.00) with accel profile 2 (2)
+[LOG] Attached pointer msnb0001:00-04ca:2642-touchpad to global
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-touchpad, sens 0.00
+[LOG] New mouse created, pointer AQ: 61b6a814f000
+[LOG] [AQ] libinput: New device MSNB0001:00 04CA:2642 Mouse: 1226-9794
+[LOG] New aquamarine pointer with name MSNB0001:00 04CA:2642 Mouse
+[LOG] New mouse has libinput sens 0.00 (0.00) with accel profile 2 (2)
+[LOG] Attached pointer msnb0001:00-04ca:2642-mouse to global
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-touchpad, sens 0.00
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-mouse, sens 0.00
+[LOG] New mouse created, pointer AQ: 61b6a6537cf0
+[LOG] [AQ] libinput: New device Intel HID events: 0-0
+[LOG] New aquamarine keyboard with name Intel HID events
+[LOG] ApplyConfigToKeyboard for "intel-hid-events", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82928a0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID events
+[LOG] Updated keymap fd to 172
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-events"
+[LOG] New keyboard created, pointers Hypr: 61b6a82928a0 and AQ: 61b6a83a46e0
+[LOG] [AQ] libinput: New device Intel HID 5 button array: 0-0
+[LOG] New aquamarine keyboard with name Intel HID 5 button array
+[LOG] ApplyConfigToKeyboard for "intel-hid-5-button-array", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82353a0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID 5 button array
+[LOG] Updated keymap fd to 173
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-5-button-array"
+[LOG] New keyboard created, pointers Hypr: 61b6a82353a0 and AQ: 61b6a81bb760
+[LOG] [AQ] libinput: New device AT Translated Set 2 keyboard: 1-1
+[LOG] New aquamarine keyboard with name AT Translated Set 2 keyboard
+[LOG] ApplyConfigToKeyboard for "at-translated-set-2-keyboard", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82ac210's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard AT Translated Set 2 keyboard
+[LOG] Updated keymap fd to 174
+[LOG] Set the keyboard layout to us and variant to  for keyboard "at-translated-set-2-keyboard"
+[LOG] New keyboard created, pointers Hypr: 61b6a82ac210 and AQ: 61b6a81a0e50
+[LOG] [AQ] libinput: New device MSI WMI hotkeys: 0-0
+[LOG] New aquamarine keyboard with name MSI WMI hotkeys
+[LOG] ApplyConfigToKeyboard for "msi-wmi-hotkeys", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a8537a00's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard MSI WMI hotkeys
+[LOG] Updated keymap fd to 175
+[LOG] Set the keyboard layout to us and variant to  for keyboard "msi-wmi-hotkeys"
+[LOG] New keyboard created, pointers Hypr: 61b6a8537a00 and AQ: 61b6a840ee80
+[LOG] Window 61b6a82ee7a0 set title to 1231
+[LOG] Searching for matching rules for kitty (title: 1231)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "1231"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "1231"]
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 released, timeout after typing
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [CWLDataDeviceProtocol] CWLDataDeviceProtocol::onKeyboardFocus: cannot send selection to a client without a data_device
+[LOG] Set keyboard focus to surface 61b6a651a400
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_TOUCH → TAP_EVENT_RELEASE → TAP_STATE_1FGTAP_TAPPED
+
+[LOG] [AQ] [libinput] event10 - tap: touch -1 (), tap state TAP_STATE_1FGTAP_TAPPED → TAP_EVENT_TIMEOUT → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_TOUCH → TAP_EVENT_RELEASE → TAP_STATE_1FGTAP_TAPPED
+
+[LOG] [AQ] [libinput] event10 - tap: touch -1 (), tap state TAP_STATE_1FGTAP_TAPPED → TAP_EVENT_TIMEOUT → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [CPrimarySelectionProtocol] New offer 61b6a7a09180 for data source 61b6a82a8ad0
+[LOG] cursorImage request: surface 61b6a835f990
+[LOG] CWLSurface 61b6a77b1140 called init()
+[LOG] cursorImage request: surface 61b6a835f990
+[WARN] [../src/protocols/SessionLock.cpp:47] SessionLockSurface object remains but surface is being destroyed???
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [seatmgr] Rejecting a setCursor because the client ain't in focus
+[LOG] [CWLDataDeviceProtocol] New offer 61b6a846e4e0 for data source 61b6a83095d0
+[LOG] [CWLDataOfferResource]  | offer 61b6a846e4e0 supports mime text/plain
+[LOG] [CWLDataOfferResource]  | offer 61b6a846e4e0 supports mime text/plain
+[LOG] [CWLDataOfferResource]  | offer 61b6a846e4e0 supports mime text/plain;charset=utf-8
+[LOG] [CWLDataOfferResource]  | offer 61b6a846e4e0 supports mime TEXT
+[LOG] [CWLDataOfferResource]  | offer 61b6a846e4e0 supports mime STRING
+[LOG] [CWLDataOfferResource]  | offer 61b6a846e4e0 supports mime UTF8_STRING
+[LOG] Set keyboard focus to surface 61b6a84428b0, with [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [CPrimarySelectionProtocol] New offer 61b6a826f440 for data source 61b6a82a8ad0
+[LOG] cursorImage request: shape 9 -> text
+[LOG] CWLSurface 61b6a77b1140 called destroy()
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [CXDGSurfaceResource] xdg_surface 61b6a8241f30 requests geometry 0x0 1904x1124
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_TOUCH → TAP_EVENT_RELEASE → TAP_STATE_1FGTAP_TAPPED
+
+[LOG] [AQ] [libinput] event10 - tap: touch -1 (), tap state TAP_STATE_1FGTAP_TAPPED → TAP_EVENT_TIMEOUT → TAP_STATE_IDLE
+
+[LOG] Window 61b6a82ee7a0 set title to clear
+[LOG] Searching for matching rules for kitty (title: clear)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "clear"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "clear"]
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window 61b6a82ee7a0 set title to ls
+[LOG] Searching for matching rules for kitty (title: ls)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "ls"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "ls"]
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] cursorImage request: surface 0
+[LOG] Window 61b6a82ee7a0 set title to ls
+[LOG] Searching for matching rules for kitty (title: ls)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "ls"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "ls"]
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout refresh
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (edge)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to rm -rf configs
+[LOG] Searching for matching rules for kitty (title: rm -rf configs)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "rm -rf configs"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "rm -rf configs"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ./sync-dotfiles-rs -c config.ron -u
+[LOG] Searching for matching rules for kitty (title: ./sync-dotfiles-rs -c config.ron -u)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -u"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -u"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window 61b6a82ee7a0 set title to gs
+[LOG] Searching for matching rules for kitty (title: gs)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "gs"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "gs"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_THUMB → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] Created a bezier curve, baked 255 points, mem usage: 4.08kB, time to bake: 8.75µs. Estimated average calc time: 0.18µs.
+[LOG] Using config: /home/utsav/.config/hypr/hyprland.conf
+[LOG] ApplyConfigToKeyboard for "video-bus", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82dda00's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 23
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus"
+[LOG] ApplyConfigToKeyboard for "video-bus-1", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82a3a60's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Video Bus
+[LOG] Updated keymap fd to 24
+[LOG] Set the keyboard layout to us and variant to  for keyboard "video-bus-1"
+[LOG] ApplyConfigToKeyboard for "power-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a8269480's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Power Button
+[LOG] Updated keymap fd to 27
+[LOG] Set the keyboard layout to us and variant to  for keyboard "power-button"
+[LOG] ApplyConfigToKeyboard for "sleep-button", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a813a410's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Sleep Button
+[LOG] Updated keymap fd to 102
+[LOG] Set the keyboard layout to us and variant to  for keyboard "sleep-button"
+[LOG] ApplyConfigToKeyboard for "intel-hid-events", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82928a0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID events
+[LOG] Updated keymap fd to 104
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-events"
+[LOG] ApplyConfigToKeyboard for "intel-hid-5-button-array", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82353a0's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard Intel HID 5 button array
+[LOG] Updated keymap fd to 110
+[LOG] Set the keyboard layout to us and variant to  for keyboard "intel-hid-5-button-array"
+[LOG] ApplyConfigToKeyboard for "at-translated-set-2-keyboard", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a82ac210's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard AT Translated Set 2 keyboard
+[LOG] Updated keymap fd to 142
+[LOG] Set the keyboard layout to us and variant to  for keyboard "at-translated-set-2-keyboard"
+[LOG] ApplyConfigToKeyboard for "msi-wmi-hotkeys", hasconfig: 0
+[LOG] Attempting to create a keymap for layout us with variant  (rules: , model: , options: )
+[LOG] Updating keyboard 61b6a8537a00's translation state from a provided keymap
+[LOG] xkb: LED index 0 (name Num Lock) got index 1
+[LOG] xkb: LED index 1 (name Caps Lock) got index 0
+[LOG] xkb: LED index 2 (name Scroll Lock) got index 2
+[LOG] xkb: Mod index 0 (name Shift) got index 0
+[LOG] xkb: Mod index 1 (name Lock) got index 1
+[LOG] xkb: Mod index 2 (name Control) got index 2
+[LOG] xkb: Mod index 3 (name Mod1) got index 3
+[LOG] xkb: Mod index 4 (name Mod2) got index 4
+[LOG] xkb: Mod index 5 (name Mod3) got index 5
+[LOG] xkb: Mod index 6 (name Mod4) got index 6
+[LOG] xkb: Mod index 7 (name Mod5) got index 7
+[LOG] Updating keymap fd for keyboard MSI WMI hotkeys
+[LOG] Updated keymap fd to 143
+[LOG] Set the keyboard layout to us and variant to  for keyboard "msi-wmi-hotkeys"
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-touchpad, sens 0.00
+[LOG] Applied config to mouse msnb0001:00-04ca:2642-mouse, sens 0.00
+[LOG] Applying monitor rule for eDP-1
+[LOG] Not applying a new rule to eDP-1 because it's already applied!
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Searching for matching rules for zen-twilight (title: config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight)
+[LOG] Window rule workspace 1 -> zen-twilight matched [Window 61b6a8394450: title: "config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight"]
+[LOG] Window rule opaque -> zen-twilight matched [Window 61b6a8394450: title: "config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight"]
+[LOG] Window rule idleinhibit fullscreen -> zen-twilight matched [Window 61b6a8394450: title: "config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a8394450: title: "config.nvim/lua/custom/clangd.lua at master · tjdevries/config.nvim — Zen Twilight"]
+[LOG] Searching for matching rules for org.telegram.desktop (title: ‎⁨Saved Messages⁩ – (88610))
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a83d2960: title: "‎⁨Saved Messages⁩ – (88610)"]
+[LOG] [CXDGOutputProtocol] updating all xdg_output heads
+[ERR] [AQ] [libinput] event10 - MSNB0001:00 04CA:2642 Touchpad: client bug: event processing lagging behind by 51ms, your system is too slow
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - thumb: touch 0, THUMB_STATE_FINGER → THUMB_STATE_JAILED
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_BOTTOM_L to BUTTON_STATE_BOTTOM 
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_BOTTOM  event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ./sync-dotfiles-rs -c config.ron -u
+[LOG] Searching for matching rules for kitty (title: ./sync-dotfiles-rs -c config.ron -u)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -u"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -u"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] cursorImage request: surface 0
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window 61b6a82ee7a0 set title to grsth
+[LOG] Searching for matching rules for kitty (title: grsth)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "grsth"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "grsth"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ./
+[LOG] Searching for matching rules for kitty (title: ./)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "./"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "./"]
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ./sync-dotfiles-rs -c config.ron -h
+[LOG] Searching for matching rules for kitty (title: ./sync-dotfiles-rs -c config.ron -h)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -h"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -h"]
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ./sync-dotfiles-rs -c config.ron -F
+[LOG] Searching for matching rules for kitty (title: ./sync-dotfiles-rs -c config.ron -F)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -F"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -F"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window 61b6a82ee7a0 set title to gs
+[LOG] Searching for matching rules for kitty (title: gs)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "gs"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "gs"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] cursorImage request: surface 0
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_FINGER_SWITCH_TIMEOUT → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_FINGER_SWITCH_TIMEOUT → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_TOUCH → TAP_EVENT_RELEASE → TAP_STATE_1FGTAP_TAPPED
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_1FGTAP_TAPPED → TAP_EVENT_TOUCH → TAP_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP → TAP_EVENT_RELEASE → TAP_STATE_1FGTAP_TAPPED
+
+[LOG] [AQ] [libinput] event10 - tap: touch -1 (), tap state TAP_STATE_1FGTAP_TAPPED → TAP_EVENT_TIMEOUT → TAP_STATE_IDLE
+
+[LOG] [CPrimarySelectionManager] New primary selection data source bound at 61b6a8284340
+[LOG] [CPrimarySelectionDevice] wlr manager requests selection to 61b6a8284340
+[LOG] [CPrimarySelectionProtocol] New selection for data source 61b6a8284340
+[LOG] [CPrimarySelectionProtocol] New offer 61b6a82e2ad0 for data source 61b6a8284340
+[LOG] [CDataDeviceWLRProtocol] New primaryselection for data source 61b6a8284340
+[LOG] [CDataDeviceWLRProtocol] New primary offer 61b6a7a0ac80 for data source 61b6a8284340
+[LOG] [CDataDeviceWLRProtocol] New primary offer 61b6a82a5430 for data source 61b6a8284340
+[WARN] [../src/protocols/core/DataDevice.cpp:310] New data source before a device was created
+[LOG] [CWLDataDeviceManagerResource] New data source bound at 61b6a819f530
+[LOG] [CWLDataDeviceProtocol] New selection for data source 61b6a819f530
+[LOG] [CWLDataDeviceProtocol] New offer 61b6a82f8b10 for data source 61b6a819f530
+[LOG] [CWLDataOfferResource]  | offer 61b6a82f8b10 supports mime application/glfw+clipboard-2770
+[LOG] [CWLDataOfferResource]  | offer 61b6a82f8b10 supports mime TEXT
+[LOG] [CWLDataOfferResource]  | offer 61b6a82f8b10 supports mime STRING
+[LOG] [CWLDataOfferResource]  | offer 61b6a82f8b10 supports mime UTF8_STRING
+[LOG] [CWLDataOfferResource]  | offer 61b6a82f8b10 supports mime text/plain;charset=utf-8
+[LOG] [CWLDataOfferResource]  | offer 61b6a82f8b10 supports mime text/plain
+[LOG] [CDataDeviceWLRProtocol] New selection for data source 61b6a819f530
+[LOG] [CDataDeviceWLRProtocol] New  offer 61b6a79f40a0 for data source 61b6a819f530
+[LOG] [CDataDeviceWLRProtocol] New  offer 61b6a81eff30 for data source 61b6a819f530
+[LOG] [CWLRDataOffer] Offer 61b6a79f40a0 asks to send data from source 61b6a819f530
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] cursorImage request: surface 0
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [CWLDataDeviceProtocol] resetting selection
+[WARN] [../src/protocols/core/DataDevice.cpp:310] New data source before a device was created
+[LOG] [CWLDataDeviceManagerResource] New data source bound at 61b6a82caa50
+[LOG] [CWLDataDeviceProtocol] New selection for data source 61b6a82caa50
+[LOG] [CWLDataDeviceProtocol] New offer 61b6a8522cf0 for data source 61b6a82caa50
+[LOG] [CWLDataOfferResource]  | offer 61b6a8522cf0 supports mime application/glfw+clipboard-2770
+[LOG] [CWLDataOfferResource]  | offer 61b6a8522cf0 supports mime TEXT
+[LOG] [CWLDataOfferResource]  | offer 61b6a8522cf0 supports mime STRING
+[LOG] [CWLDataOfferResource]  | offer 61b6a8522cf0 supports mime UTF8_STRING
+[LOG] [CWLDataOfferResource]  | offer 61b6a8522cf0 supports mime text/plain;charset=utf-8
+[LOG] [CWLDataOfferResource]  | offer 61b6a8522cf0 supports mime text/plain
+[LOG] [CDataDeviceWLRProtocol] New selection for data source 61b6a82caa50
+[LOG] [CDataDeviceWLRProtocol] New  offer 61b6a831d8d0 for data source 61b6a82caa50
+[LOG] [CWLRDataOffer] Offer 61b6a831d8d0 asks to send data from source 61b6a82caa50
+[LOG] Window 61b6a82ee7a0 set title to gch configs/gtk-4.0/settings.ini
+[LOG] Searching for matching rules for kitty (title: gch configs/gtk-4.0/settings.ini)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "gch configs/gtk-4.0/settings.ini"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "gch configs/gtk-4.0/settings.ini"]
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window 61b6a82ee7a0 set title to n configs/gtk-4.0/settings.ini
+[LOG] Searching for matching rules for kitty (title: n configs/gtk-4.0/settings.ini)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "n configs/gtk-4.0/settings.ini"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "n configs/gtk-4.0/settings.ini"]
+[LOG] cursorImage request: surface 0
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 1 (TOUCH_BEGIN), tap state TAP_STATE_TOUCH → TAP_EVENT_TOUCH → TAP_STATE_TOUCH_2
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH_2 → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_SCROLL_START → GESTURE_STATE_SCROLL_START
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_SCROLL_START → GESTURE_STATE_SCROLL
+
+[LOG] [AQ] [libinput] event10 - button state: touch 1 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [2fg] state GESTURE_STATE_SCROLL → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_CANCEL → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_HOLD → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_HOLD_TIMEOUT → GESTURE_STATE_HOLD
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_HOLD → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_TOUCH → TAP_EVENT_RELEASE → TAP_STATE_1FGTAP_TAPPED
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_1FGTAP_TAPPED → TAP_EVENT_TOUCH → TAP_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_RESET → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_1FGTAP_DRAGGING_OR_DOUBLETAP → TAP_EVENT_RELEASE → TAP_STATE_1FGTAP_TAPPED
+
+[LOG] [AQ] [libinput] event10 - tap: touch -1 (), tap state TAP_STATE_1FGTAP_TAPPED → TAP_EVENT_TIMEOUT → TAP_STATE_IDLE
+
+[LOG] [CPrimarySelectionProtocol] resetting selection
+[LOG] [CPrimarySelectionManager] New primary selection data source bound at 61b6a81a23a0
+[LOG] [CPrimarySelectionDevice] wlr manager requests selection to 61b6a81a23a0
+[LOG] [CPrimarySelectionProtocol] New selection for data source 61b6a81a23a0
+[LOG] [CPrimarySelectionProtocol] New offer 61b6a81676c0 for data source 61b6a81a23a0
+[LOG] [CDataDeviceWLRProtocol] New primaryselection for data source 61b6a81a23a0
+[LOG] [CDataDeviceWLRProtocol] New primary offer 61b6a8258cf0 for data source 61b6a81a23a0
+[LOG] [CWLDataDeviceProtocol] resetting selection
+[WARN] [../src/protocols/core/DataDevice.cpp:310] New data source before a device was created
+[LOG] [CWLDataDeviceManagerResource] New data source bound at 61b6a83a7b90
+[LOG] [CWLDataDeviceProtocol] New selection for data source 61b6a83a7b90
+[LOG] [CWLDataDeviceProtocol] New offer 61b6a83f9d50 for data source 61b6a83a7b90
+[LOG] [CWLDataOfferResource]  | offer 61b6a83f9d50 supports mime application/glfw+clipboard-2770
+[LOG] [CWLDataOfferResource]  | offer 61b6a83f9d50 supports mime TEXT
+[LOG] [CWLDataOfferResource]  | offer 61b6a83f9d50 supports mime STRING
+[LOG] [CWLDataOfferResource]  | offer 61b6a83f9d50 supports mime UTF8_STRING
+[LOG] [CWLDataOfferResource]  | offer 61b6a83f9d50 supports mime text/plain;charset=utf-8
+[LOG] [CWLDataOfferResource]  | offer 61b6a83f9d50 supports mime text/plain
+[LOG] [CDataDeviceWLRProtocol] New selection for data source 61b6a83a7b90
+[LOG] [CDataDeviceWLRProtocol] New  offer 61b6a84e1580 for data source 61b6a83a7b90
+[LOG] [CWLRDataOffer] Offer 61b6a84e1580 asks to send data from source 61b6a83a7b90
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] cursorImage request: surface 0
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to cp configs/gtk-4.0/settings.ini ~/.config/gtk-4.0
+[LOG] Searching for matching rules for kitty (title: cp configs/gtk-4.0/settings.ini ~/.config/gtk-4.0)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "cp configs/gtk-4.0/settings.ini ~/.config/gtk-4.0"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "cp configs/gtk-4.0/settings.ini ~/.config/gtk-4.0"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_BEGIN), tap state TAP_STATE_IDLE → TAP_EVENT_TOUCH → TAP_STATE_TOUCH
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_UPDATE), tap state TAP_STATE_TOUCH → TAP_EVENT_MOTION → TAP_STATE_DEAD
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] cursorImage request: shape 9 -> text
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - tap: touch 0 (TOUCH_END), tap state TAP_STATE_DEAD → TAP_EVENT_RELEASE → TAP_STATE_IDLE
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (edge)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 released, out of edge zone
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_NONE → GESTURE_EVENT_FINGER_DETECTED → GESTURE_STATE_UNKNOWN
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_UNKNOWN → GESTURE_EVENT_POINTER_MOTION_START → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] transitions GESTURE_STATE_NONE → GESTURE_STATE_UNKNOWN → GESTURE_STATE_POINTER_MOTION
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - gesture: [1fg] state GESTURE_STATE_POINTER_MOTION → GESTURE_EVENT_END → GESTURE_STATE_NONE
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] cursorImage request: surface 0
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to n ~/.config/gtk-3.0/settings.ini
+[LOG] Searching for matching rules for kitty (title: n ~/.config/gtk-3.0/settings.ini)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "n ~/.config/gtk-3.0/settings.ini"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "n ~/.config/gtk-3.0/settings.ini"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ls
+[LOG] Searching for matching rules for kitty (title: ls)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "ls"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "ls"]
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout refresh
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: touch 0 (TOUCH_BEGIN), palm detected (typing)
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_NONE    event BUTTON_EVENT_IN_AREA     to BUTTON_STATE_AREA   
+
+[LOG] [AQ] [libinput] event10 - button state: touch 0 from BUTTON_STATE_AREA    event BUTTON_EVENT_UP          to BUTTON_STATE_NONE   
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to n config.ron
+[LOG] Searching for matching rules for kitty (title: n config.ron)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "n config.ron"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "n config.ron"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [CWLSeatProtocol] New seat resource bound at 61b6a8160740
+[LOG] [CWLDataDeviceProtocol] New datamgr resource bound at 61b6a82ca4d0
+[LOG] [CXDGShellProtocol] New xdg_wm_base at 61b6a6513fd0
+[LOG] [CDataDeviceWLRProtocol] New wlr_data_control_manager at 61b6a855ce30
+[LOG] [CPrimarySelectionProtocol] New primary_seletion_manager at 61b6a841d820
+[LOG] [CDataDeviceWLRProtocol] New  offer 61b6a81a7900 for data source 61b6a83a7b90
+[LOG] [CDataDeviceWLRProtocol] New primary offer 61b6a82bb790 for data source 61b6a81a23a0
+[LOG] [CWLRDataControlManagerResource] New wlr data device bound at 61b6a8260f20
+[LOG] [CWLRDataControlManagerResource] New wlr data source bound at 61b6a81ddae0
+[LOG] [CWLRDataDevice] wlr manager requests selection to 61b6a81ddae0
+[LOG] [CWLDataDeviceProtocol] New selection for data source 61b6a81ddae0
+[LOG] [CWLDataDeviceProtocol] New offer 61b6a83107c0 for data source 61b6a81ddae0
+[LOG] [CWLDataOfferResource]  | offer 61b6a83107c0 supports mime text/plain
+[LOG] [CWLDataOfferResource]  | offer 61b6a83107c0 supports mime text/plain
+[LOG] [CWLDataOfferResource]  | offer 61b6a83107c0 supports mime text/plain;charset=utf-8
+[LOG] [CWLDataOfferResource]  | offer 61b6a83107c0 supports mime TEXT
+[LOG] [CWLDataOfferResource]  | offer 61b6a83107c0 supports mime STRING
+[LOG] [CWLDataOfferResource]  | offer 61b6a83107c0 supports mime UTF8_STRING
+[LOG] [CDataDeviceWLRProtocol] New selection for data source 61b6a81ddae0
+[LOG] [CDataDeviceWLRProtocol] New  offer 61b6a6476e00 for data source 61b6a81ddae0
+[LOG] [CDataDeviceWLRProtocol] New  offer 61b6a8243cc0 for data source 61b6a81ddae0
+[LOG] [CWLRDataOffer] Offer 61b6a6476e00 asks to send data from source 61b6a81ddae0
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ~/dotfiles
+[LOG] Searching for matching rules for kitty (title: ~/dotfiles)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "~/dotfiles"]
+[LOG] [AQ] [libinput] event10 - palm: keyboard timeout
+
+[LOG] Window 61b6a82ee7a0 set title to ./sync-dotfiles-rs -c config.ron -F
+[LOG] Searching for matching rules for kitty (title: ./sync-dotfiles-rs -c config.ron -F)
+[LOG] Window rule opacity 0.9 0.9 ->  class:^(kitty)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -F"]
+[LOG] Window rule suppressevent maximize ->  class:^(.*)$ matched [Window 61b6a82ee7a0: title: "./sync-dotfiles-rs -c config.ron -F"]

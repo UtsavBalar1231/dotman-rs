@@ -1,5 +1,0 @@
-require("catDaddy.editor")
-require("catDaddy.keymap")
-require("catDaddy.plugins")
-require("catDaddy.autocmds")
--- require("catDaddy.copilot")

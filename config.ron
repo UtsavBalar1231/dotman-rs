@@ -2,7 +2,6 @@
 (
     dotconfigs_path: Local("~/dotfiles/configs/"),
     configs: [
-        (name: "leftwm", path: "/home/utsav/.config/leftwm/", hash: "9031a9e31299cc7257b210f6c16ef6da4712b979", conf_type: Dir),
         (name: "nvim", path: "/home/utsav/.config/nvim/", hash: "c42aeeee1958171f77c3d4e3298ba880eba5898c", conf_type: Dir),
         (name: "polybar", path: "/home/utsav/.config/polybar/", hash: "f39d69671d44e353c2eb5cc81793579c3e4240f8", conf_type: Dir),
         (name: "rofi", path: "/home/utsav/.config/rofi/", hash: "25528cc48eab16d03e571abf575116b07852f700", conf_type: Dir),
