@@ -1,9 +1,9 @@
 use digest::DynDigest;
 use std::{
-    fmt,
-    fmt::Write,
-    fs, io,
-    io::Read,
+    collections::HashMap,
+    fmt::{self, Write},
+    fs,
+    io::{self, Read},
     marker,
     num::NonZeroUsize,
     path::{Path, PathBuf},
@@ -31,28 +31,46 @@ impl string::ToString for HashBox {
     }
 }
 
-pub fn list_dir_files<P>(p: P) -> Vec<PathBuf>
+pub fn list_dir_files<P>(p: P) -> Result<Vec<PathBuf>, io::Error>
 where
     P: AsRef<Path>,
 {
-    walkdir::WalkDir::new(p)
+    Ok(walkdir::WalkDir::new(p)
         .into_iter()
         .filter_map(|file| file.ok())
-        .filter(|entry| {
-            // Skip entries inside a .git folder
-            !entry.path().components().any(|c| c.as_os_str() == ".git")
+        .filter(|entry| !entry.path().components().any(|c| c.as_os_str() == ".git"))
+        .filter_map(|entry| {
+            entry.metadata().map_or(None, |m| {
+                if m.is_file() {
+                    Some(entry.into_path())
+                } else {
+                    None
+                }
+            })
         })
-        .filter(|normal_file| normal_file.metadata().unwrap().is_file())
-        .map(|x| x.into_path())
-        .collect::<Vec<PathBuf>>()
+        .collect::<Vec<_>>())
 }
 
-pub fn get_file_hash<Hasher, P>(path: P, hash: &mut Hasher) -> Result<String, io::Error>
+pub fn get_file_hash<Hasher>(
+    path: &PathBuf,
+    hash: &mut Hasher,
+    cache: &mut HashMap<PathBuf, String>,
+) -> Result<String, io::Error>
 where
     Hasher: DynDigest + Clone,
-    P: AsRef<Path>,
 {
-    let mut file = fs::File::open(path)?;
+    if let Some(cached_hash) = cache.get(path) {
+        if let Ok(metadata) = fs::metadata(&path) {
+            if let Ok(modified) = metadata.modified() {
+                if let Ok(cached_modified) = metadata.modified() {
+                    if modified == cached_modified {
+                        return Ok(cached_hash.clone());
+                    }
+                }
+            }
+        }
+    }
+    let mut file = fs::File::open(&path)?;
     let mut buf = [0u8; 4096];
 
     loop {
@@ -61,14 +79,18 @@ where
 
         if i == 0 {
             let final_hash = HashBox(hash.finalize_reset()).to_string();
+            cache.insert(path.to_path_buf(), final_hash.clone());
             return Ok(final_hash);
         }
     }
 }
 
-pub fn get_files_hash<Hasher, P>(files: &[P], hash: &mut Hasher) -> Result<String, io::Error>
+pub fn get_files_hash<Hasher>(
+    files: &[PathBuf],
+    hash: &mut Hasher,
+    cache: &mut HashMap<PathBuf, String>,
+) -> Result<String, io::Error>
 where
-    P: AsRef<Path> + marker::Sync,
     Hasher: DynDigest + marker::Send + Clone,
 {
     if files.is_empty() {
@@ -82,33 +104,33 @@ where
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(threads)
         .build()
-        .unwrap();
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
-    let mut jobs: Vec<_> = Vec::with_capacity(files.len());
+    let results: Result<Vec<_>, _> = files
+        .iter()
+        .map(|file| pool.install(|| get_file_hash(file, hash, cache)))
+        .collect();
 
-    files.iter().for_each(|file| {
-        jobs.push(pool.install(|| -> Result<(), io::Error> {
-            let filehash = get_file_hash(file, hash)?;
-            hash.update(filehash.as_bytes());
-            Ok(())
-        }))
-    });
+    results?;
 
     let final_hash = HashBox(hash.finalize_reset()).to_string();
 
     Ok(final_hash)
 }
 
-pub fn get_complete_dir_hash<Hasher, P>(dir_path: P, hash: &mut Hasher) -> Result<String, io::Error>
+pub fn get_complete_dir_hash<Hasher>(
+    dir_path: &PathBuf,
+    hash: &mut Hasher,
+    cache: &mut HashMap<PathBuf, String>,
+) -> Result<String, io::Error>
 where
     Hasher: DynDigest + Clone + marker::Send,
-    P: AsRef<Path> + marker::Sync,
 {
-    let dirs = list_dir_files(&dir_path);
-    let mut paths: Vec<PathBuf> = vec![];
+    let dirs = list_dir_files(&dir_path)?;
+    let mut paths = Vec::with_capacity(dirs.len());
 
     dirs.iter()
-        .for_each(|dir| paths.append(&mut list_dir_files(dir)));
+        .for_each(|dir| paths.append(&mut list_dir_files(dir).unwrap()));
 
-    get_files_hash(&paths, hash)
+    get_files_hash(&paths, hash, cache)
 }

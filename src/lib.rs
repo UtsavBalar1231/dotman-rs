@@ -1,5 +1,12 @@
 pub mod config;
-mod utils;
+pub mod errors;
 mod hasher;
-mod config_fmt;
+mod file_manager;
+use ron::{extensions::Extensions, ser::PrettyConfig};
+
+pub fn get_ron_formatter() -> PrettyConfig {
+    PrettyConfig::new()
+        .depth_limit(2)
+        .extensions(Extensions::IMPLICIT_SOME)
+}
 

@@ -1,23 +1,25 @@
+use dotman::errors::ConfigError;
 use args::Commands;
 use dotman::config::*;
-use std::io::{self};
 use std::path::PathBuf;
 mod args;
 
-fn main() -> io::Result<()> {
+
+fn main() -> Result<(), ConfigError> {
     let env_args = args::get_env_args();
     let config_path: PathBuf = if let Some(custom_path) = env_args.config_path {
         PathBuf::from(custom_path)
     } else {
+        let config_path_name = format!("{}/config.ron", env!("CARGO_PKG_NAME"));
         dirs::config_dir()
-            .expect("Cannot find config directory")
-            .join("config.ron")
+            .unwrap_or_else(|| dirs::home_dir().unwrap())
+            .join(config_path_name)
     };
 
     let args = env_args.command;
 
     if matches!(args, Commands::PrintNew) {
-        Config::print_config(None, PrintConfigOpts::new_required())?;
+        Config::print_config(None)?;
         return Ok(());
     }
 
@@ -34,13 +36,18 @@ fn main() -> io::Result<()> {
         Commands::ForcePull => config.pull_config(true),
         Commands::ForcePush => config.push_config(true),
         Commands::ClearMetadata => config.clear_config(),
-        Commands::PrintNew => Config::print_config(None, PrintConfigOpts::new_required()),
-        Commands::PrintConfig => Config::print_config(Some(&config), PrintConfigOpts::default()),
+        Commands::PrintNew => Config::print_config(None),
+        Commands::PrintConfig => Config::print_config(Some(&config)),
         Commands::FixConfig => config.fix_config(),
         Commands::Add(args::AddArgs { name, path }) => config.add_config(&name, &path),
         Commands::Edit => config.edit_config(),
+        Commands::Clean => config.clean_configs(),
     }?;
 
-    println!("{} {} completed successfully.", env!("CARGO_PKG_NAME"), &args);
+    println!(
+        "{} {} completed successfully.",
+        env!("CARGO_PKG_NAME"),
+        &args
+    );
     Ok(())
 }

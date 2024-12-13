@@ -16,46 +16,50 @@ pub struct DotmanArgs {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Force push configs from dotconfigs directory into your local system
+    /// Push configs from tracking config directory into your local system
     #[clap(short_flag = 'p')]
     LocalPull,
 
-    /// Force pull configs from your local system into the dotconfigs directory
+    /// Pull configs from your local system into the tracking config directory
     #[clap(short_flag = 'u')]
     LocalPush,
 
-    /// Update your dotconfigs directory with the latest configs
+    /// Force pull your tracking config directory with the latest configs from your local system
     #[clap(short_flag = 'P')]
     ForcePull,
 
-    /// Update your local system configs with the configs from the dotconfigs directory
+    /// Force Update your local system with the configs from the tracking directory
     #[clap(short_flag = 'U')]
     ForcePush,
 
-    /// Clear the metadata of config entries in the sync-dotfiles config
+    /// Clear the metadata of config entries in the dotman config
     #[clap(short_flag = 'x')]
     ClearMetadata,
 
-    /// Prints a new sync-dotfiles configuration
+    /// Prints a new dotman configuration
     #[clap(name = "new", short_flag = 'n')]
     PrintNew,
 
-    /// Prints the currently used sync-dotfiles config file
+    /// Prints the currently used dotman config file
     #[clap(name = "printconf", short_flag = 'r')]
     PrintConfig,
 
-    /// Fix your sync-dotfiles config file for any errors
+    /// Fix your dotman config for any errors
     #[clap(short_flag = 'z')]
     FixConfig,
 
-    /// Adds a new config entry to your exisiting sync-dotfiles config
+    /// Adds a new config entry to your exisiting dotman config
     #[clap(short_flag = 'a')]
     #[command(arg_required_else_help = true)]
     Add(AddArgs),
 
-    /// Edit the sync-dotfiles config file
+    /// Edit the dotman config file in your editor
     #[clap(short_flag = 'e')]
     Edit,
+
+    /// Clean the dotconfigs directory
+    #[clap(short_flag = 'C')]
+    Clean,
 }
 
 #[derive(Args)]
@@ -85,6 +89,7 @@ impl fmt::Display for Commands {
             Commands::FixConfig => write!(f, "fix config"),
             Commands::Add(_) => write!(f, "add"),
             Commands::Edit => write!(f, "edit"),
+            Commands::Clean => write!(f, "clean"),
         }
     }
 }
