@@ -1,98 +1,82 @@
 #!/usr/bin/env bash
 
 function cargo_check() {
-if ! command -v paru >/dev/null 2>&1; then
-	if ! command -v cargo >/dev/null 2>&1; then
-		if [ -d ~/.cargo/bin ]; then
-			export PATH="$HOME/.cargo/bin:$PATH"
-		fi
+	if ! command -v paru >/dev/null 2>&1; then
+		if ! command -v cargo >/dev/null 2>&1; then
+			if [ -d ~/.cargo/bin ]; then
+				export PATH="$HOME/.cargo/bin:$PATH"
+			fi
 
-		cargo install paru
+			cargo install paru
+		fi
 	fi
-fi
 }
 
-# Check if $DISPLAY is set
-active_monitors=$(xrandr | grep -c " connected")
-if [ -n "$active_monitors" ]; then
-	# Configure polybar: {{{
-	sudo pacman --noconfirm -S polybar
-	# }}}
-fi
+declare -a arch_base_packages=(
+	acpi alacritty base base-devel bash bash-completion bat btop clang cmake cpio curl eza fastfetch fd firefox-nightly-bin
+	fzf gcc git git-delta google-chrome-beta kdeconnect kitty libinput-gestures ly make meson neovim nodejs npm nvidia
+	okular p7zip-full pyenv python python-pip python-pipenv python-pipx ripgrep rustup tmux ttf-terminus-nerd vim yay-bin
+	yazi zen-twilight-avx2-bin zoxide zsh
+)
 
-# NVIM configuration: {{{
-if [ ! -d /root/.config ]; then
-	sudo mkdir -p /root/.config
-fi
+declare -a arch_xorg_packages=(
+	bluez bluez-utils brightnessctl feh flameshot i3-git lxappearance lxrandr polybar-git rofi-emoji rofi-greenclip
+	simplescreenrecorder-bin xclip xorg xsel
+)
 
-if [ ! -d /root/.config/nvim ]; then
-	sudo cp -afr ~/.config/nvim/ /root/.config/nvim
-fi
+declare -a arch_rice_packages=(
+	aurutils bibata-cursor-theme-bin diff-so-fancy gdrive-git getnf gruvbox-gtk-theme-git gruvbox-icon-theme-git gruvbox-plus-icon-theme
+	gruvbox-wallpaper hollywood lazygit picom python-pywal16 python-pywalfox qt5ct qt6ct
+)
 
-nvim --headless +PackerSync +qa
-# }}}
+declare -a arch_misc_packages=(
+	lineageos-devel pacman-contrib seer-gdb-git spice-vdagent steam sunshine-bin tartube telegram-desktop texlive
+	udiskie uget upwork valgrind ventoy-bin visual-studio-code-insiders-bin whatsapp-for-linux
+)
 
-#: {{{ AUR packages
-arch_aur_packages="
-bibata-cursor-theme-bin
-docker-desktop
-dunst-git
-feh-git
-flameshot-git
-google-chrome-dev
-gruvbox-material-gtk-theme-git
-gruvbox-material-icon-theme-git
-gruvbox-plus-icon-theme-git
-i3-git
-i3lock-git
-i3status-git
-kitty-git
-kitty-shell-integration-git
-kitty-terminfo-git
-libinput-gestures-git
-libxfce4util-devel
-nbfc-linux
-nerd-fonts-inter
-pavucontrol-git
-pcmanfm-git
-polybar-git
-rofi-bluetooth-git
-rofi-git
-rofi-greenclip
-simplescreenrecorder-bin
-slack-desktop
-wlr-protocols-git
-xf86-input-libinput-git
-xfce4-dev-tools-devel
-xfce4-power-manager-git
-xinit-xsession
-xsecurelock-git
-"
+declare -a arch_wayland_packages=(
+	cliphist cosmic-comp-git cosmic-comp-git-debug cosmic-ext-calculator-git cosmic-ext-forecast-git cosmic-ext-tweaks-git
+	cosmic-greeter-git cosmic-session-git cosmic-store-git grimblast-git hyprcursor-git hyprgraphics-git hypridle-git
+	hyprland-git hyprlock-git hyprpaper-git hyprpicker hyprshade-git hyprsunset-git nwg-displays rofi-lbonn-wayland-git
+	swaybg swaync swayosd-git swww system76-acpi-dkms-git system76-io-dkms-git system76-power system76-scheduler-git
+	waybar wayvnc wl-clipboard xdg-desktop-portal-hyprland-git
+)
 
-# Install AUR packages
-cargo_check
+dry_run() {
+	local packages=("$@")
+	local to_install=()
 
-IFS=' ' read -r -a packages <<< "$arch_aur_packages"
-for package in "${packages[@]}"; do
-	if ! paru -Qi "$package" >/dev/null 2>&1; then
-		paru -S --noconfirm "$package"
+	for package in "${packages[@]}"; do
+		if ! pacman -Qi "$package" >/dev/null 2>&1; then
+			to_install+=("$package")
+		else
+			echo "$package is already installed"
+		fi
+	done
+
+	echo "Packages to install: ${to_install[*]}"
+	echo "${to_install[@]}"
+}
+
+install_packages() {
+	local packages=("$@")
+	if [ "${#packages[@]}" -gt 0 ]; then
+		paru -S --noconfirm "${packages[@]}"
 	else
-		echo "$package is already installed"
+		echo "No packages to install."
 	fi
-done
-# }}}
+}
 
+cargo_check
+paru -Syu --noconfirm
 
-# Configure zsh: {{{
-sudo chsh "$(whoami)" -s "$(which zsh)"
-sudo chsh -s "$(which zsh)"
+all_packages=(
+	"${arch_base_packages[@]}"
+	"${arch_xorg_packages[@]}"
+	"${arch_rice_packages[@]}"
+	"${arch_misc_packages[@]}"
+	"${arch_wayland_packages[@]}"
+)
 
-if [ ! -d /root/.config/zsh ]; then
-	sudo cp -afr ~/.config/zsh/ /root/.config/zsh
-fi
-
-# shellcheck disable=SC1090
-source ~/.zshrc
-# }}}
-
-exec $(which zsh)
+to_install=($(dry_run "${all_packages[@]}"))
+install_packages "${to_install[@]}"

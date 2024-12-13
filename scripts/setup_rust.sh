@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [ ! -f /etc/arch-release ]; then
-	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
 
 	if [ ! -f ~/.cargo/env ]; then
 		echo "Failed to install rustup"
@@ -11,5 +11,5 @@ if [ ! -f /etc/arch-release ]; then
 else
 	sudo pacman -S rustup --noconfirm
 
-	rustup toolchain install nightly --profile minimal
+	rustup toolchain install stable --profile minimal
 fi

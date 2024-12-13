@@ -57,13 +57,18 @@ if ! command -v fcp >/dev/null 2>&1; then
 	cargo install fcp
 fi
 
-if ! command -v broot >/dev/null 2>&1; then
-	cargo install broot
-fi
+# Install diff-so-fancy: {{{
+if ! command -v diff-so-fancy >/dev/null 2>&1; then
+	echo "Setting up diff-so-fancy..."
+	diff_so_fancy_version=$(get_git_version "so-fancy/diff-so-fancy")
 
-if ! command -v svls >/dev/null 2>&1; then
-	cargo install svls
+	curl -sLo ./diff-so-fancy https://github.com/so-fancy/diff-so-fancy/releases/download/"${diff_so_fancy_version}"/diff-so-fancy
+
+	chmod a+x ./diff-so-fancy
+
+	sudo mv ./diff-so-fancy /usr/local/bin/diff-so-fancy
 fi
+# }}}
 
 # Install btop
 ARCH=$(uname -m)
