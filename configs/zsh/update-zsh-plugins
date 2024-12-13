@@ -1,5 +1,35 @@
 #!/usr/bin/env bash
 
+# Function to display the progress bar
+show_progress_bar() {
+	local progress=$1
+	local bar_length=30
+	local filled_length=$((progress * bar_length / 100))
+	local empty_length=$((bar_length - filled_length))
+
+	local bar
+	bar=$(printf "%0.s█" $(seq 1 "$filled_length"))
+	bar+=$(printf "%0.s▒" $(seq 1 "$empty_length"))
+
+	printf "\rUpdating '%s': [%s] %d%%" "$current_plugin" "$bar" "$progress"
+}
+
+# Function to clone a repository with a progress bar
+clone_repo_with_progress() {
+	local repo_url=$1
+	local dest_dir=$2
+	local branch=$3
+
+	git clone --progress "$repo_url" "$dest_dir" -b "$branch" 2>&1 | while IFS= read -r line; do
+		if [[ $line =~ ([0-9]+)% ]]; then
+			local progress=${BASH_REMATCH[1]}
+			show_progress_bar "$progress"
+		fi
+	done
+
+	show_progress_bar 100
+}
+
 declare -g plugins=(
 	"z-shell/F-Sy-H:main"
 	"zsh-users/zsh-autosuggestions:develop"
@@ -8,9 +38,18 @@ declare -g plugins=(
 	"zsh-users/zsh-syntax-highlighting:master"
 )
 
-for plugin in "${plugins[@]}"; do
-	plugin_name="${plugin%%:*}"
-	plugin_branch="${plugin#*:}"
-	rm -rf "$HOME/.config/zsh/plugins/$plugin_name"
-	git clone "https://github.com/$plugin_name" "$HOME/.config/zsh/plugins/$plugin_name" -b "$plugin_branch"
-done
+function update_plugins() {
+	for plugin in "${plugins[@]}"; do
+		plugin_name="${plugin%%:*}"
+		plugin_branch="${plugin#*:}"
+		current_plugin="$plugin_name"
+		dest_dir="$HOME/.config/zsh/plugins/$plugin_name"
+
+		rm -rf "$dest_dir"
+		clone_repo_with_progress "https://github.com/$plugin_name" "$dest_dir" "$plugin_branch"
+	done
+}
+
+if update_plugins; then
+	printf "\nAll plugins updated successfully.\n"
+fi

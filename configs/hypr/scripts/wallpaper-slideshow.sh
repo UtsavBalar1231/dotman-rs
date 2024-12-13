@@ -19,13 +19,13 @@ if [ -d "${HOME}/Pictures/wallpapers/" ]; then
 			if command -v wal >/dev/null 2>&1; then
 				wal -ei "${img}" 2>&1 | tee -a /tmp/pywal.log
 			fi
-			if command -v matugen >/dev/null 2>&1; then
-				matugen image "${img}" 2>&1 | tee -a /tmp/matugen.log
-			fi
+			# if command -v matugen >/dev/null 2>&1; then
+			# 	matugen image "${img}" 2>&1 | tee -a /tmp/matugen.log
+			# fi
 			if command -v hyprpaper >/dev/null 2>&1; then
 				# notify-send -i "$img" "Wallpaper changed"
-				hyprctl hyprpaper preload "${img}"
-				hyprctl hyprpaper wallpaper eDP-1,"$img"
+				hyprctl hyprpaper preload "${img}" | tee -a /tmp/hyprpaper.log
+				hyprctl hyprpaper wallpaper eDP-1,"$img" | tee -a /tmp/hyprpaper.log
 			else
 				swaybg -i "${img}" &
 			fi

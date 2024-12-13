@@ -1,5 +1,9 @@
 #/usr/bin/env zsh
 
+function get_xdg_session_type() {
+	echo $XDG_SESSION_TYPE
+}
+
 function get_package_manager() {
 	# Check /etc/os-release
 	ID=$(grep '^ID=' /etc/os-release | cut -d'=' -f2)
@@ -29,6 +33,10 @@ function get_package_manager() {
 # $1: package name in fedora, $2: package name in arch, $3: package name in apt
 function install_package() {
 	echo "installing $1 using $package_manager"
+	if [ $1 -eq "" ]; then
+		echo "Ignoring empty package name"
+		return
+	fi
 	case $package_manager in
 		'dnf')
 			sudo dnf install $1
@@ -84,15 +92,27 @@ fi
 
 if command -v fd >/dev/null 2>&1; then
 	alias fd='fd --color=always'
+elif command -v fdfind >/dev/null; then
+	alias fd='fdfind --color=always'
 else
-	if command -v fdfind >/dev/null; then
-		alias fd='fdfind --color=always'
-	fi
+	install_package 'fd' 'fd-find' 'fd-find'
 fi
 
-# alias for vim
-alias n='nvim'
-alias v='vim'
+if command -v nvim >/dev/null 2>&1; then
+	alias v='nvim'
+	alias n='nvim'
+else
+	if [ $(get_package_manager) -eq 'apt' ]; then
+		sudo add-apt-repository ppa:neovim-ppa/unstable -y
+		sudo apt update -y
+	fi
+
+	install_package 'neovim' 'neovim' 'neovim'
+fi
+
+if !command -v git>/dev/null 2>&1; then
+	install_package 'git' 'git' 'git'
+fi
 
 # git aliases
 alias gb='git branch'
@@ -153,13 +173,30 @@ fi
 alias x="xdg-open"
 
 # alias for kitty graph visualization
-alias idot="dot -T png | kitty +kitten icat"
+if command -v dot >/dev/null 2>&1; then
+	alias idot="dot -T png | kitty +kitten icat"
+fi
 
-# alias for xclip clipboard
-alias clip='xclip -selection clipboard'
+# alias for clipboard
+if [ $(get_xdg_session_type) = 'wayland' ]; then
+	if command -v wl-copy >/dev/null 2>&1; then
+		alias clip='wl-copy'
+	else
+		install_package 'wl-clipboard' 'wl-clipboard' 'wl-clipboard'
+	fi
+elif [ $(get_xdg_session_type) = 'x11' ]; then
+	if command -v xclip >/dev/null 2>&1; then
+		alias clip='xclip -selection clipboard'
+	else
+		install_package 'xclip' 'xclip' 'xclip'
+		install_package 'xsel' 'xsel' 'xsel'
+	fi
+fi
 
 # vim like shutdown
 alias :wq='sudo shutdown -h now'
 
 # alias for terminal file manager
-alias y='yazi'
+if command -v yazi >/dev/null 2>&1; then
+	alias y='yazi'
+fi
