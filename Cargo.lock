@@ -203,7 +203,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dotman"
+name = "dotman-rs"
 version = "0.0.1"
 dependencies = [
  "clap",

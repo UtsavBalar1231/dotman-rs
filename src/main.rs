@@ -1,21 +1,12 @@
-use dotman::errors::ConfigError;
 use args::Commands;
-use dotman::config::*;
+use dotman_rs::config::*;
+use dotman_rs::errors::ConfigError;
 use std::path::PathBuf;
 mod args;
 
-
 fn main() -> Result<(), ConfigError> {
     let env_args = args::get_env_args();
-    let config_path: PathBuf = if let Some(custom_path) = env_args.config_path {
-        PathBuf::from(custom_path)
-    } else {
-        let config_path_name = format!("{}/config.ron", env!("CARGO_PKG_NAME"));
-        dirs::config_dir()
-            .unwrap_or_else(|| dirs::home_dir().unwrap())
-            .join(config_path_name)
-    };
-
+    let config_path: PathBuf = Config::get_config_path(env_args.config_path);
     let args = env_args.command;
 
     if matches!(args, Commands::PrintNew) {

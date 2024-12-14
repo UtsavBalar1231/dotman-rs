@@ -40,6 +40,31 @@ impl fmt::Display for Config {
 }
 
 impl Config {
+    pub fn get_config_path(config_path: Option<String>) -> PathBuf {
+        if let Some(path) = config_path {
+            return PathBuf::from(path);
+        }
+
+        if let Some(path) = std::env::var("DOTMAN_CONFIG_PATH").ok() {
+            // Check if path is valid
+            let path = PathBuf::from(path);
+            if path.exists() {
+                return path;
+            } else {
+                eprintln!(
+                    "Config file set in $DOTMAN_CONFIG_PATH, but not found: {}",
+                    path.display()
+                );
+                eprintln!("Using default path: {}/config.ron", env!("CARGO_PKG_NAME"));
+            }
+        }
+
+        let config_path_name = format!("{}/config.ron", env!("CARGO_PKG_NAME"));
+        dirs::config_dir()
+            .unwrap_or_else(|| dirs::home_dir().unwrap())
+            .join(config_path_name)
+    }
+
     pub fn new(path: PathBuf, dotconfigs_path: DotconfigPath) -> Self {
         let mut hasher = Sha1::new();
         let default_config = ConfigEntry::new(

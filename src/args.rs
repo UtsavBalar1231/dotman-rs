@@ -2,7 +2,7 @@ use clap::{Args, Parser, Subcommand};
 use std::fmt;
 
 #[derive(Parser)]
-#[command(name = "dotman")]
+#[command(name = "dotman-rs")]
 #[command(author = "Utsav Balar")]
 #[command(version, about, long_about)]
 pub struct DotmanArgs {
