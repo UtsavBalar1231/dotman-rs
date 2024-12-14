@@ -1,6 +1,3 @@
-1. rayon wherever possible
-2. Unit and Integration Tests
-3. Documentation and Examples
 4. Optimize File Copying
 ```rust
 use fs_extra::dir::{copy as copy_dir, CopyOptions as DirCopyOptions};
@@ -90,6 +87,5 @@ pub fn push_config(&self, clean: bool) -> Result<(), ConfigError> {
 
     self.save_config()
 }
-```
 
-5. Add github repo tracking support
+```
