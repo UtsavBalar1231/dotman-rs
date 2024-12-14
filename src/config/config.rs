@@ -45,7 +45,7 @@ impl Config {
             return PathBuf::from(path);
         }
 
-        if let Some(path) = std::env::var("DOTMAN_CONFIG_PATH").ok() {
+        if let Ok(path) = std::env::var("DOTMAN_CONFIG_PATH") {
             // Check if path is valid
             let path = PathBuf::from(path);
             if path.exists() {
@@ -154,7 +154,7 @@ impl Config {
             let dst_path = &entry.path;
 
             if clean {
-                file_manager::fs_remove_recursive(&dst_path)?;
+                file_manager::fs_remove_recursive(dst_path)?;
             }
 
             println!("Pushing: {}", entry.name);
@@ -273,7 +273,7 @@ impl Config {
 
     pub fn clean_configs(&mut self) -> Result<(), ConfigError> {
         // Delete all the configs in the tracking directory
-        file_manager::fs_remove_recursive(&self.dotconfigs_path.get_path())?;
+        file_manager::fs_remove_recursive(self.dotconfigs_path.get_path())?;
 
         Ok(())
     }

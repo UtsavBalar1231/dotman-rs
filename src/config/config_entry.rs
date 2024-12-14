@@ -1,6 +1,6 @@
-use std::fmt;
-use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::path::{Path, PathBuf};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ConfigEntry {
@@ -18,7 +18,7 @@ pub enum ConfType {
 }
 
 impl ConfType {
-    pub fn get_conf_type(path: &PathBuf) -> Self {
+    pub fn get_conf_type(path: &Path) -> Self {
         if path.is_dir() {
             ConfType::Dir
         } else if path.is_file() {

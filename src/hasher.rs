@@ -1,13 +1,12 @@
 use digest::DynDigest;
 use std::{
     collections::HashMap,
-    fmt::{self, Write},
-    fs,
+    fmt, fs,
     io::{self, Read},
     marker,
     num::NonZeroUsize,
     path::{Path, PathBuf},
-    string, thread,
+    thread,
 };
 
 struct HashBox(Box<[u8]>);
@@ -21,13 +20,12 @@ impl fmt::LowerHex for HashBox {
     }
 }
 
-impl string::ToString for HashBox {
-    fn to_string(&self) -> String {
-        let mut hex_string = String::with_capacity(self.0.len() * 2);
-        self.0.iter().for_each(|byte| {
-            write!(hex_string, "{:02x}", byte).expect("Failed to write to string");
-        });
-        hex_string
+impl fmt::Display for HashBox {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0
+            .iter()
+            .for_each(|byte| write!(f, "{:02x}", byte).expect("Failed to write to string"));
+        Ok(())
     }
 }
 
@@ -60,7 +58,7 @@ where
     Hasher: DynDigest + Clone,
 {
     if let Some(cached_hash) = cache.get(path) {
-        if let Ok(metadata) = fs::metadata(&path) {
+        if let Ok(metadata) = fs::metadata(path) {
             if let Ok(modified) = metadata.modified() {
                 if let Ok(cached_modified) = metadata.modified() {
                     if modified == cached_modified {
@@ -70,7 +68,7 @@ where
             }
         }
     }
-    let mut file = fs::File::open(&path)?;
+    let mut file = fs::File::open(path)?;
     let mut buf = [0u8; 4096];
 
     loop {
@@ -126,7 +124,7 @@ pub fn get_complete_dir_hash<Hasher>(
 where
     Hasher: DynDigest + Clone + marker::Send,
 {
-    let dirs = list_dir_files(&dir_path)?;
+    let dirs = list_dir_files(dir_path)?;
     let mut paths = Vec::with_capacity(dirs.len());
 
     dirs.iter()

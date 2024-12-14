@@ -30,7 +30,7 @@ fn main() -> Result<(), ConfigError> {
         Commands::PrintNew => Config::print_config(None),
         Commands::PrintConfig => Config::print_config(Some(&config)),
         Commands::FixConfig => config.fix_config(),
-        Commands::Add(args::AddArgs { name, path }) => config.add_config(&name, &path),
+        Commands::Add(args::AddArgs { name, path }) => config.add_config(name, path),
         Commands::Edit => config.edit_config(),
         Commands::Clean => config.clean_configs(),
     }?;

@@ -1,3 +1,4 @@
+#![allow(clippy::module_inception)]
 pub mod config;
 pub mod config_entry;
 pub mod dotconfig_path;
