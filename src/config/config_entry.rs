@@ -56,13 +56,6 @@ impl fmt::Display for ConfType {
 
 impl fmt::Display for ConfigEntry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "(name: {:?}, path: {:?}, hash: {:?}, conf_type: {})",
-            self.name,
-            self.path.display(),
-            self.hash,
-            self.conf_type
-        )
+        write!(f, "{}", toml::to_string_pretty(self).unwrap())
     }
 }

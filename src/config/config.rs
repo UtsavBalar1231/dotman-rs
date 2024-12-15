@@ -8,46 +8,36 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
-use std::collections::HashMap;
-use std::{
-    fmt, fs,
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, ffi};
+use std::{fmt, fs, io::Write, path};
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Config {
     #[serde(skip)]
-    path: PathBuf,
+    path: path::PathBuf,
     #[serde(skip)]
-    hash_cache: HashMap<PathBuf, String>,
+    hash_cache: Option<HashMap<path::PathBuf, String>>,
     pub dotconfigs_path: DotconfigPath,
     pub configs: Vec<ConfigEntry>,
 }
 
 impl fmt::Display for Config {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "(\n    dotconfigs_path: {:?},\n    configs: [\n",
-            self.dotconfigs_path
-        )?;
-        for config in &self.configs {
-            writeln!(f, "        {},", config)?;
-        }
-        write!(f, "    ]\n)")
+        write!(f, "{}", toml::to_string_pretty(self).unwrap())
     }
 }
 
 impl Config {
-    pub fn get_config_path(config_path: Option<String>) -> PathBuf {
+    pub fn get_config_path(config_path: Option<String>) -> path::PathBuf {
+        let config_path_name = format!("{}/config.toml", env!("CARGO_PKG_NAME"));
+
         if let Some(path) = config_path {
-            return PathBuf::from(path);
+            return path::PathBuf::from(path);
         }
 
         if let Ok(path) = std::env::var("DOTMAN_CONFIG_PATH") {
             // Check if path is valid
-            let path = PathBuf::from(path);
+            let path = path::PathBuf::from(path);
             if path.exists() {
                 return path;
             } else {
@@ -55,52 +45,52 @@ impl Config {
                     "Config file set in $DOTMAN_CONFIG_PATH, but not found: {}",
                     path.display()
                 );
-                eprintln!("Using default path: {}/config.ron", env!("CARGO_PKG_NAME"));
+                eprintln!("Using default path: {}", config_path_name);
             }
         }
 
-        let config_path_name = format!("{}/config.ron", env!("CARGO_PKG_NAME"));
         dirs::config_dir()
             .unwrap_or_else(|| dirs::home_dir().unwrap())
             .join(config_path_name)
     }
 
-    pub fn new(path: PathBuf, dotconfigs_path: DotconfigPath) -> Self {
+    pub fn new(path: path::PathBuf, dotconfigs_path: DotconfigPath) -> Self {
         let mut hasher = Sha1::new();
         let default_config = ConfigEntry::new(
-            dotconfigs_path.to_string(),
+            dotconfigs_path
+                .get_path()
+                .file_name()
+                .unwrap_or_else(|| ffi::OsStr::new("<config_name>"))
+                .to_string_lossy()
+                .to_string(),
             dotconfigs_path.get_path(),
-            hasher::get_complete_dir_hash(
-                &dotconfigs_path.get_path(),
-                &mut hasher,
-                &mut HashMap::new(),
-            )
-            .unwrap_or_default(),
+            hasher::get_complete_dir_hash(&dotconfigs_path.get_path(), &mut hasher, &mut None)
+                .unwrap_or_default(),
             ConfType::Dir,
         );
 
         Self {
             path,
             dotconfigs_path,
-            hash_cache: HashMap::new(),
+            hash_cache: None,
             configs: Vec::from([default_config]),
         }
     }
 
     fn load_hash_cache(&mut self) -> Result<(), ConfigError> {
-        let cache_path = self.path.with_extension("hash_cache.ron");
+        let cache_path = self.path.with_extension("_cache.toml");
         if cache_path.exists() {
             let content = fs::read_to_string(cache_path)?;
-            self.hash_cache = ron::from_str(&content).unwrap_or_default();
+            self.hash_cache = toml::from_str(&content).unwrap_or_default();
         } else {
-            self.hash_cache = HashMap::new();
+            self.hash_cache = None;
         }
         Ok(())
     }
 
     fn save_hash_cache(&self) -> Result<(), ConfigError> {
-        let cache_path = self.path.with_extension("hash_cache.ron");
-        let content = ron::ser::to_string_pretty(&self.hash_cache, crate::get_ron_formatter())?;
+        let cache_path = self.path.with_extension("_cache.toml");
+        let content = toml::to_string_pretty(&self.hash_cache)?;
         fs::write(cache_path, content)?;
         Ok(())
     }
@@ -166,11 +156,26 @@ impl Config {
 
     pub fn add_config(&self, name: &str, path: &str) -> Result<(), ConfigError> {
         let mut hasher = Sha1::new();
-        let config_path = PathBuf::from(path);
+        let config_path = path::PathBuf::from(path);
+
+        if self.configs.iter().any(|c| c.name == name) {
+            return Err(ConfigError::InvalidConfig(format!(
+                "Config with name {} already exists",
+                name
+            )));
+        }
+
+        if !config_path.exists() {
+            return Err(ConfigError::InvalidPath(format!(
+                "Path does not exist: {}",
+                path
+            )));
+        }
+
         let new_entry = ConfigEntry {
             name: name.to_string(),
             path: config_path.to_path_buf(),
-            hash: hasher::get_complete_dir_hash(&config_path, &mut hasher, &mut HashMap::new())
+            hash: hasher::get_complete_dir_hash(&config_path, &mut hasher, &mut None)
                 .unwrap_or_default(),
             conf_type: ConfType::get_conf_type(&config_path),
         };
@@ -209,12 +214,10 @@ impl Config {
 
     fn save_config(&self) -> Result<(), ConfigError> {
         println!("Saving config: {}", self.path.display());
-        let ron_pretty = crate::get_ron_formatter();
 
-        let mut serialized =
-            ron::ser::to_string_pretty(self, ron_pretty).map_err(ConfigError::Serialization)?;
+        let mut serialized = toml::to_string_pretty(self)?;
 
-        let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
+        let home_dir = dirs::home_dir().unwrap_or_else(|| path::PathBuf::from("/"));
 
         // Replace occurrences of the actual home directory with $HOME
         serialized = serialized.replace(&*home_dir.to_string_lossy(), "$HOME");
@@ -241,18 +244,15 @@ impl Config {
         if let Some(config) = config {
             println!("{}", config);
         } else {
-            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::new());
-            let new_config = Config::new(PathBuf::new(), DotconfigPath::Local(cwd));
-            // Pretty ron output
-            let ron_config =
-                ron::ser::to_string_pretty(&new_config, ron::ser::PrettyConfig::default())
-                    .map_err(ConfigError::Serialization)?;
-            println!("{}", ron_config);
+            let cwd = std::env::current_dir().unwrap_or_else(|_| path::PathBuf::from("."));
+            let new_config = Config::new(path::PathBuf::new(), DotconfigPath::Local(cwd));
+            let toml_config = toml::to_string_pretty(&new_config)?;
+            println!("{}", toml_config);
         }
         Ok(())
     }
 
-    pub fn load_config(config_path: &Path) -> Result<Config, ConfigError> {
+    pub fn load_config(config_path: &path::Path) -> Result<Config, ConfigError> {
         let mut content = fs::read_to_string(config_path)?;
         let home_dir = dirs::home_dir().unwrap();
         let replacements = [
@@ -264,7 +264,7 @@ impl Config {
             .iter()
             .fold(content, |acc, &(from, to)| acc.replace(from, to));
 
-        let mut config: Config = ron::from_str(&content).map_err(ConfigError::Deserialization)?;
+        let mut config: Config = toml::from_str(&content)?;
 
         config.path = config_path.to_path_buf();
 

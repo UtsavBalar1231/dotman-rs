@@ -9,17 +9,17 @@ pub enum ConfigError {
     #[error("Failed due to formatting error: {0}")]
     Fmt(#[from] std::fmt::Error),
 
-    #[error("Failed to serialize ron: {0}")]
-    Serialization(#[from] ron::Error),
+    #[error("Failed to serialize toml: {0}")]
+    Serialization(#[from] toml::ser::Error),
 
-    #[error("Failed to deserialize ron: {0}")]
-    Deserialization(#[from] ron::de::SpannedError),
-
-    #[error("Failed to serialize: {0}")]
-    SerializationError(String),
+    #[error("Failed to deserialize toml: {0}")]
+    Deserialization(#[from] toml::de::Error),
 
     #[error("Failed due to invalid configuration: {0}")]
     InvalidConfig(String),
+
+    #[error("Failed due to invalid path: {0}")]
+    InvalidPath(String),
 
     #[error("Failed due to unknown error: {0}")]
     Unknown(String),

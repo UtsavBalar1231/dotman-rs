@@ -6,7 +6,7 @@ use std::fmt;
 #[command(author = "Utsav Balar")]
 #[command(version, about, long_about)]
 pub struct DotmanArgs {
-    /// Provide custom path to the config file (default: ${pwd}/config.ron)
+    /// Provide custom path to the config file (default: ${pwd}/config.toml)
     #[clap(short, long)]
     pub config_path: Option<String>,
 

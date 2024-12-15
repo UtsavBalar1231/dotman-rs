@@ -52,17 +52,19 @@ where
 pub fn get_file_hash<Hasher>(
     path: &PathBuf,
     hash: &mut Hasher,
-    cache: &mut HashMap<PathBuf, String>,
+    cache: &mut Option<HashMap<PathBuf, String>>,
 ) -> Result<String, io::Error>
 where
     Hasher: DynDigest + Clone,
 {
-    if let Some(cached_hash) = cache.get(path) {
-        if let Ok(metadata) = fs::metadata(path) {
-            if let Ok(modified) = metadata.modified() {
-                if let Ok(cached_modified) = metadata.modified() {
-                    if modified == cached_modified {
-                        return Ok(cached_hash.clone());
+    if let Some(cache) = cache {
+        if let Some(cached_hash) = cache.get(path) {
+            if let Ok(metadata) = fs::metadata(path) {
+                if let Ok(modified) = metadata.modified() {
+                    if let Ok(cached_modified) = metadata.modified() {
+                        if modified == cached_modified {
+                            return Ok(cached_hash.clone());
+                        }
                     }
                 }
             }
@@ -77,7 +79,9 @@ where
 
         if i == 0 {
             let final_hash = HashBox(hash.finalize_reset()).to_string();
-            cache.insert(path.to_path_buf(), final_hash.clone());
+            if let Some(cache) = cache {
+                cache.insert(path.to_path_buf(), final_hash.clone());
+            }
             return Ok(final_hash);
         }
     }
@@ -86,7 +90,7 @@ where
 pub fn get_files_hash<Hasher>(
     files: &[PathBuf],
     hash: &mut Hasher,
-    cache: &mut HashMap<PathBuf, String>,
+    cache: &mut Option<HashMap<PathBuf, String>>,
 ) -> Result<String, io::Error>
 where
     Hasher: DynDigest + marker::Send + Clone,
@@ -119,7 +123,7 @@ where
 pub fn get_complete_dir_hash<Hasher>(
     dir_path: &PathBuf,
     hash: &mut Hasher,
-    cache: &mut HashMap<PathBuf, String>,
+    cache: &mut Option<HashMap<PathBuf, String>>,
 ) -> Result<String, io::Error>
 where
     Hasher: DynDigest + Clone + marker::Send,

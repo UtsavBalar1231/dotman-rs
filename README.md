@@ -162,12 +162,11 @@ Start managing your dotfiles effortlessly with `dotman-rs`! For questions or fee
 
 ## TODO
 
-1. Replace RON config with TOML
-2. Add support for remote dotfiles repository (github)
-3. rayon wherever possible
-4. Unit and Integration Tests
-5. Documentation and Examples
-6. Optimize File Copying using `fs_extra`
+1. Add support for remote dotfiles repository (github)
+2. rayon wherever possible
+3. Unit and Integration Tests
+4. Documentation and Examples
+5. Optimize File Copying using `fs_extra`
 ```rust
 use fs_extra::dir::{copy as copy_dir, CopyOptions as DirCopyOptions};
 use fs_extra::file::{copy as copy_file, CopyOptions as FileCopyOptions};
