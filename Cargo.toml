@@ -15,6 +15,7 @@ dirs = "5.0"
 walkdir = "2.5"
 rayon = "1.10"
 thiserror = "2.0"
+tempfile = "3.14.0"
 
 [dependencies.serde]
 version = "1.0"

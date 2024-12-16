@@ -87,3 +87,61 @@ where
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    use super::*;
+
+    #[test]
+    fn test_file_manager_fs_copy_recursive_file() {
+        let temp_dir = tempdir().unwrap();
+        let src_path = temp_dir.path().join("test_file.txt");
+        let dst_path = temp_dir.path().join("copy_test_file.txt");
+        let mut file = File::create(&src_path).unwrap();
+        writeln!(file, "test content").unwrap();
+        fs_copy_recursive(&src_path, &dst_path).unwrap();
+        assert!(dst_path.exists());
+        let copied_content = fs::read_to_string(&dst_path).unwrap();
+        assert_eq!(copied_content, "test content\n");
+    }
+
+    #[test]
+    fn test_file_manager_fs_copy_recursive_dir() {
+        let temp_dir = tempdir().unwrap();
+        let src_dir = temp_dir.path().join("test_dir");
+        let dst_dir = temp_dir.path().join("copy_test_dir");
+        fs::create_dir_all(&src_dir).unwrap();
+        let file_in_dir = src_dir.join("test_file.txt");
+        let mut file = File::create(&file_in_dir).unwrap();
+        writeln!(file, "test content").unwrap();
+        fs_copy_recursive(&src_dir, &dst_dir).unwrap();
+        assert!(dst_dir.exists());
+        assert!(dst_dir.join("test_file.txt").exists());
+        let copied_content = fs::read_to_string(dst_dir.join("test_file.txt")).unwrap();
+        assert_eq!(copied_content, "test content\n");
+    }
+
+    #[test]
+    fn test_file_manager_fs_remove_recursive_file() {
+        let temp_dir = tempdir().unwrap();
+        let file_path = temp_dir.path().join("test_file.txt");
+        File::create(&file_path).unwrap();
+        fs_remove_recursive(&file_path).unwrap();
+        assert!(!file_path.exists());
+    }
+
+    #[test]
+    fn test_file_manager_fs_remove_recursive_dir() {
+        let temp_dir = tempdir().unwrap();
+        let dir_path = temp_dir.path().join("test_dir");
+        fs::create_dir_all(&dir_path).unwrap();
+        let file_in_dir = dir_path.join("test_file.txt");
+        File::create(&file_in_dir).unwrap();
+        fs_remove_recursive(&dir_path).unwrap();
+        assert!(!dir_path.exists());
+    }
+}

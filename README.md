@@ -164,9 +164,8 @@ Start managing your dotfiles effortlessly with `dotman-rs`! For questions or fee
 
 1. Add support for remote dotfiles repository (github)
 2. rayon wherever possible
-3. Unit and Integration Tests
-4. Documentation and Examples
-5. Optimize File Copying using `fs_extra`
+3. Documentation and Examples
+4. Optimize File Copying using `fs_extra`
 ```rust
 use fs_extra::dir::{copy as copy_dir, CopyOptions as DirCopyOptions};
 use fs_extra::file::{copy as copy_file, CopyOptions as FileCopyOptions};

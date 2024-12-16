@@ -8,8 +8,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
-use std::{collections::HashMap, ffi};
-use std::{fmt, fs, io::Write, path};
+use std::{collections::HashMap, fmt, fs, io::Write, path};
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Config {
@@ -28,133 +27,170 @@ impl fmt::Display for Config {
 }
 
 impl Config {
-    pub fn get_config_path(config_path: Option<String>) -> path::PathBuf {
+    pub fn get_config_path(config_path: Option<String>) -> Result<path::PathBuf, ConfigError> {
         let config_path_name = format!("{}/config.toml", env!("CARGO_PKG_NAME"));
 
         if let Some(path) = config_path {
-            return path::PathBuf::from(path);
+            return Ok(path::PathBuf::from(path));
         }
 
         if let Ok(path) = std::env::var("DOTMAN_CONFIG_PATH") {
             // Check if path is valid
             let path = path::PathBuf::from(path);
             if path.exists() {
-                return path;
+                return Ok(path);
             } else {
                 eprintln!(
                     "Config file set in $DOTMAN_CONFIG_PATH, but not found: {}",
                     path.display()
                 );
-                eprintln!("Using default path: {}", config_path_name);
+
+                return Err(ConfigError::ConfigFileNotFound(path));
             }
         }
 
-        dirs::config_dir()
+        Ok(dirs::config_dir()
             .unwrap_or_else(|| dirs::home_dir().unwrap())
-            .join(config_path_name)
+            .join(config_path_name))
     }
 
     pub fn new(path: path::PathBuf, dotconfigs_path: DotconfigPath) -> Self {
-        let mut hasher = Sha1::new();
-        let default_config = ConfigEntry::new(
-            dotconfigs_path
-                .get_path()
-                .file_name()
-                .unwrap_or_else(|| ffi::OsStr::new("<config_name>"))
-                .to_string_lossy()
-                .to_string(),
-            dotconfigs_path.get_path(),
-            hasher::get_complete_dir_hash(&dotconfigs_path.get_path(), &mut hasher, &mut None)
-                .unwrap_or_default(),
-            ConfType::Dir,
-        );
-
         Self {
             path,
             dotconfigs_path,
             hash_cache: None,
-            configs: Vec::from([default_config]),
+            configs: Vec::new(),
         }
     }
 
     fn load_hash_cache(&mut self) -> Result<(), ConfigError> {
-        let cache_path = self.path.with_extension("_cache.toml");
+        let cache_path = get_cache_path(&self.path);
+
         if cache_path.exists() {
             let content = fs::read_to_string(cache_path)?;
             self.hash_cache = toml::from_str(&content).unwrap_or_default();
         } else {
             self.hash_cache = None;
         }
+
         Ok(())
     }
 
     fn save_hash_cache(&self) -> Result<(), ConfigError> {
-        let cache_path = self.path.with_extension("_cache.toml");
+        if self.hash_cache.is_none() {
+            return Ok(());
+        }
+
+        let cache_path = get_cache_path(&self.path);
+        if !cache_path.exists() {
+            fs::create_dir_all(cache_path.parent().unwrap())?;
+        }
+
         let content = toml::to_string_pretty(&self.hash_cache)?;
         fs::write(cache_path, content)?;
+
         Ok(())
     }
 
-    pub fn pull_config(&mut self, clean: bool) -> Result<(), ConfigError> {
+    pub fn pull_config(&mut self, clean: bool) -> Result<Option<path::PathBuf>, ConfigError> {
         self.load_hash_cache()?;
-        let backup_path = &self.dotconfigs_path.get_path();
 
-        if !backup_path.exists() {
-            fs::create_dir_all(backup_path)?;
+        let tracking_path = &self.dotconfigs_path.get_path();
+
+        if !tracking_path.exists() {
+            fs::create_dir_all(tracking_path)?;
         }
 
+        let mut copied_path = None;
         let mut hasher = Sha1::new();
+
         for entry in &mut self.configs {
             let src_path = entry.path.clone();
             let current_hash = if src_path.is_dir() {
                 hasher::get_complete_dir_hash(&src_path, &mut hasher, &mut self.hash_cache)
                     .unwrap_or_default()
             } else if src_path.is_file() {
-                let mut hasher = Sha1::new();
                 hasher::get_file_hash(&src_path, &mut hasher, &mut self.hash_cache)
                     .unwrap_or_default()
             } else {
-                String::new()
+                return Err(ConfigError::InvalidPath(format!(
+                    "Path is not a file or directory: {}",
+                    src_path.display()
+                )));
             };
 
             // Compare and pull if hashes differ
-            if entry.hash != current_hash || clean {
-                println!("Pulling: {}", entry.name);
-                let dest_path = backup_path.join(&entry.name);
+            if entry.hash != current_hash
+                || clean
+                || self.hash_cache.is_none()
+                || entry.hash.is_empty()
+            {
+                // Ensure the destination path considers the file extension dynamically
+                let dest_path = if src_path.is_file() {
+                    println!("Pulling file: {:?}", src_path.file_name().unwrap());
+                    tracking_path.join(src_path.file_name().unwrap())
+                } else {
+                    println!("Pulling dir: {}", entry.name);
+                    tracking_path.join(&entry.name)
+                };
+
                 file_manager::fs_copy_recursive(&src_path, &dest_path)?;
                 entry.hash = current_hash;
+                copied_path = Some(dest_path);
             } else {
                 println!("No changes detected for: {}", entry.name);
             }
         }
 
         self.save_hash_cache()?;
-        self.save_config()
+        self.save_config()?;
+
+        Ok(copied_path)
     }
 
     pub fn push_config(&self, clean: bool) -> Result<(), ConfigError> {
-        let backup_path = &self.dotconfigs_path.get_path();
+        let tracking_path = &self.dotconfigs_path.get_path();
 
-        if !backup_path.exists() {
-            fs::create_dir_all(backup_path)?;
+        if !tracking_path.exists() {
+            fs::create_dir_all(tracking_path)?;
         }
 
         for entry in &self.configs {
-            let src_path = &backup_path.join(&entry.name);
+            // Dynamically derive the correct filename and extension from entry.path
+            let file_name = entry.path.file_name().ok_or_else(|| {
+                ConfigError::InvalidPath(format!(
+                    "Failed to extract file name from path: {:?}",
+                    entry.path
+                ))
+            })?;
+
+            let src_path = if entry.path.exists() {
+                &entry.path
+            } else {
+                &tracking_path.join(file_name)
+            };
             let dst_path = &entry.path;
 
             if clean {
                 file_manager::fs_remove_recursive(dst_path)?;
             }
 
-            println!("Pushing: {}", entry.name);
-            file_manager::fs_copy_recursive(&src_path, &dst_path)?;
+            if !src_path.exists() {
+                return Err(ConfigError::InvalidPath(format!(
+                    "Source file does not exist: {:?}",
+                    src_path
+                )));
+            }
+
+            // Perform the copy operation
+            println!("Pushing from {:?} to {:?}", src_path, dst_path);
+            file_manager::fs_copy_recursive(src_path, dst_path)?;
         }
 
         self.save_config()
     }
 
-    pub fn add_config(&self, name: &str, path: &str) -> Result<(), ConfigError> {
+    pub fn add_config(&mut self, name: &str, path: &str) -> Result<(), ConfigError> {
         let mut hasher = Sha1::new();
         let config_path = path::PathBuf::from(path);
 
@@ -180,10 +216,10 @@ impl Config {
             conf_type: ConfType::get_conf_type(&config_path),
         };
 
-        let mut updated_config = self.clone();
-        updated_config.configs.push(new_entry);
+        self.configs.push(new_entry.clone());
 
-        updated_config.save_config()
+        println!("Added config: {}", new_entry);
+        self.save_config()
     }
 
     pub fn edit_config(&self) -> Result<(), ConfigError> {
@@ -276,5 +312,172 @@ impl Config {
         file_manager::fs_remove_recursive(self.dotconfigs_path.get_path())?;
 
         Ok(())
+    }
+}
+
+fn get_cache_path(original_path: &path::Path) -> path::PathBuf {
+    let path_buf = original_path
+        .to_string_lossy()
+        .to_string()
+        .replace(".toml", "_cache.toml");
+
+    path::PathBuf::from(path_buf)
+}
+
+#[cfg(test)]
+mod tests {
+    use fs::File;
+    use tempfile::tempdir;
+
+    use super::*;
+
+    #[test]
+    fn test_config_get_config_path_with_env() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        File::create(&config_path).unwrap();
+
+        std::env::set_var(
+            "DOTMAN_CONFIG_PATH",
+            config_path.to_str().expect("Unable to get config path"),
+        );
+        let path = Config::get_config_path(None);
+
+        assert!(path.is_ok());
+        let path = path.unwrap();
+        assert_eq!(path, config_path);
+        std::env::remove_var("DOTMAN_CONFIG_PATH");
+    }
+
+    #[test]
+    fn test_config_get_config_path_with_arg() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("my_config.toml");
+        File::create(&config_path).unwrap();
+
+        let path = Config::get_config_path(Some(config_path.to_str().unwrap().to_string()));
+
+        assert!(path.is_ok());
+        let path = path.unwrap();
+        assert_eq!(path, config_path);
+    }
+
+    #[test]
+    fn test_config_new() {
+        let temp_dir = tempdir().unwrap();
+        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().to_path_buf());
+        let config_path = temp_dir.path().join("config.toml");
+        File::create(&config_path).unwrap();
+
+        let config = Config::new(config_path, dotconfigs_path.clone());
+        assert_eq!(config.configs.len(), 0);
+        assert_eq!(
+            config.dotconfigs_path.get_path(),
+            dotconfigs_path.get_path()
+        );
+    }
+
+    #[test]
+    fn test_config_pull_push_config() {
+        // Create a temporary directory for dotfiles tracking
+        let temp_dir = tempdir().unwrap();
+        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().join("dotfiles"));
+        fs::create_dir_all(&dotconfigs_path.get_path()).unwrap();
+
+        let config_path = temp_dir.path().join("config.toml");
+        File::create(&config_path).unwrap();
+
+        let mut config = Config::new(config_path.clone(), dotconfigs_path);
+        let test_file_path = temp_dir.path().join("test_file.txt");
+        let mut test_file = File::create(&test_file_path).unwrap();
+        writeln!(test_file, "test content").unwrap();
+
+        config
+            .add_config("test_file", test_file_path.to_str().unwrap())
+            .unwrap();
+
+        config.clear_config().unwrap();
+        config.pull_config(false).unwrap();
+        let pulled_file = config.dotconfigs_path.get_path().join("test_file.txt");
+        assert!(pulled_file.exists());
+
+        let new_test_file_path = temp_dir.path().join("new_test_file.txt");
+        File::create(&new_test_file_path).unwrap();
+        config.configs[0].path = new_test_file_path.clone();
+
+        Config::print_config(Some(&config)).unwrap();
+
+        config.push_config(false).unwrap();
+
+        assert!(new_test_file_path.exists());
+    }
+
+    #[test]
+    fn test_config_clear_config() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        File::create(&config_path).unwrap();
+        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().to_path_buf());
+        fs::create_dir_all(&dotconfigs_path.get_path()).unwrap();
+        let mut config = Config::new(config_path.clone(), dotconfigs_path);
+        let test_file_path = temp_dir.path().join("test_file.txt");
+        File::create(&test_file_path).unwrap();
+        config
+            .add_config("test_file", test_file_path.to_str().unwrap())
+            .unwrap();
+        config.pull_config(false).unwrap();
+        let loaded_config = Config::load_config(&config_path).unwrap();
+        assert!(!loaded_config.configs[0].hash.is_empty());
+        loaded_config.clear_config().unwrap();
+        let loaded_config = Config::load_config(&config_path).unwrap();
+        assert!(loaded_config.configs[0].hash.is_empty());
+    }
+    #[test]
+    fn test_config_add_config() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().to_path_buf());
+        fs::create_dir_all(&dotconfigs_path.get_path()).unwrap();
+
+        let mut config = Config::new(config_path.clone(), dotconfigs_path);
+        let config_len_before = config.configs.len();
+
+        let test_file_path = temp_dir.path().join("test_file.txt");
+        File::create(&test_file_path).unwrap();
+
+        config
+            .add_config("test_file", test_file_path.to_str().unwrap())
+            .unwrap();
+
+        // Now check the *same* config instance
+        assert_eq!(config.configs.len(), config_len_before + 1);
+        assert_eq!(config.configs[0].name, "test_file");
+
+        let result = config.add_config("test_file", test_file_path.to_str().unwrap());
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Config with name test_file already exists"));
+
+        let non_existent_path = temp_dir.path().join("non_existent_file.txt");
+        let result = config.add_config("non_existent", non_existent_path.to_str().unwrap());
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Path does not exist"));
+    }
+
+    #[test]
+    fn test_config_load_save_config() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().join("dotfiles"));
+        fs::create_dir_all(&dotconfigs_path.get_path()).unwrap();
+        let config = Config::new(config_path.clone(), dotconfigs_path);
+        config.save_config().unwrap();
+        let loaded_config = Config::load_config(&config_path).unwrap();
+        assert_eq!(config.configs.len(), loaded_config.configs.len());
     }
 }

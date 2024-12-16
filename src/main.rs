@@ -6,7 +6,7 @@ mod args;
 
 fn main() -> Result<(), ConfigError> {
     let env_args = args::get_env_args();
-    let config_path: PathBuf = Config::get_config_path(env_args.config_path);
+    let config_path: PathBuf = Config::get_config_path(env_args.config_path)?;
     let args = env_args.command;
 
     if matches!(args, Commands::PrintNew) {
@@ -22,9 +22,9 @@ fn main() -> Result<(), ConfigError> {
     let mut config = Config::load_config(&config_path)?;
 
     match &args {
-        Commands::LocalPull => config.pull_config(false),
         Commands::LocalPush => config.push_config(false),
-        Commands::ForcePull => config.pull_config(true),
+        Commands::LocalPull => config.pull_config(false).map(|_| ()),
+        Commands::ForcePull => config.pull_config(true).map(|_| ()),
         Commands::ForcePush => config.push_config(true),
         Commands::ClearMetadata => config.clear_config(),
         Commands::PrintNew => Config::print_config(None),

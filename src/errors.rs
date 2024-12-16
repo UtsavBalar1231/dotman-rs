@@ -21,6 +21,9 @@ pub enum ConfigError {
     #[error("Failed due to invalid path: {0}")]
     InvalidPath(String),
 
+    #[error("Failed due to invalid config file: {0}")]
+    ConfigFileNotFound(std::path::PathBuf),
+
     #[error("Failed due to unknown error: {0}")]
     Unknown(String),
 }

@@ -136,3 +136,45 @@ where
 
     get_files_hash(&paths, hash, cache)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fs::File;
+    use sha1::Digest;
+    use std::collections::HashMap;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_hasher_get_file_hash() {
+        use sha1::Sha1;
+        let temp_dir = tempdir().unwrap();
+        let file_path = temp_dir.path().join("test_file.txt");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "test content").unwrap();
+        let mut hasher = Sha1::new();
+        let hash = get_file_hash(&file_path, &mut hasher, &mut None).unwrap();
+        assert!(!hash.is_empty());
+
+        let mut hasher = Sha1::new();
+        let cache = HashMap::new();
+        let mut cached_hash = Some(cache);
+        let hash = get_file_hash(&file_path, &mut hasher, &mut cached_hash).unwrap();
+        assert!(!hash.is_empty());
+        assert_eq!(cached_hash.unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_hasher_get_complete_dir_hash() {
+        use sha1::Sha1;
+        let temp_dir = tempdir().unwrap();
+        let dir_path = temp_dir.path().join("test_dir");
+        fs::create_dir_all(&dir_path).unwrap();
+        let file_in_dir = dir_path.join("test_file.txt");
+        File::create(&file_in_dir).unwrap();
+        let mut hasher = Sha1::new();
+        let hash = get_complete_dir_hash(&dir_path, &mut hasher, &mut None).unwrap();
+        assert!(!hash.is_empty());
+    }
+}
