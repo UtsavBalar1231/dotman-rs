@@ -10,12 +10,20 @@ authors = ["Utsav Balar <utsavbalar1231@gmail.com>"]
 
 [dependencies]
 toml = "0.8"
-sha1 = "0.10"
+blake3 = "1.5"
 dirs = "5.0"
+dashmap = "6.1"
 walkdir = "2.5"
 rayon = "1.10"
 thiserror = "2.0"
-tempfile = "3.14.0"
+
+[dev-dependencies]
+tempfile = "3.14"
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
 
 [dependencies.serde]
 version = "1.0"
@@ -28,4 +36,3 @@ features = ["derive"]
 [dependencies.digest]
 version = "0.10"
 features = ["alloc"]
-

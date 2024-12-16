@@ -1,21 +1,23 @@
 use crate::{
     config::{
+        config_cache::{CacheEntry, ConfigCacheSerde},
         config_entry::{ConfType, ConfigEntry},
         dotconfig_path::DotconfigPath,
     },
     errors::ConfigError,
     file_manager, hasher,
 };
+use dashmap::DashMap;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use sha1::{Digest, Sha1};
-use std::{collections::HashMap, fmt, fs, io::Write, path};
+use std::{fmt, fs, io::Write, path, sync};
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Config {
     #[serde(skip)]
     path: path::PathBuf,
     #[serde(skip)]
-    hash_cache: Option<HashMap<path::PathBuf, String>>,
+    hash_cache: sync::Arc<DashMap<path::PathBuf, CacheEntry>>,
     pub dotconfigs_path: DotconfigPath,
     pub configs: Vec<ConfigEntry>,
 }
@@ -27,7 +29,7 @@ impl fmt::Display for Config {
 }
 
 impl Config {
-    pub fn get_config_path(config_path: Option<String>) -> Result<path::PathBuf, ConfigError> {
+    pub fn get_config_path(config_path: Option<&str>) -> Result<path::PathBuf, ConfigError> {
         let config_path_name = format!("{}/config.toml", env!("CARGO_PKG_NAME"));
 
         if let Some(path) = config_path {
@@ -58,7 +60,7 @@ impl Config {
         Self {
             path,
             dotconfigs_path,
-            hash_cache: None,
+            hash_cache: sync::Arc::new(DashMap::new()),
             configs: Vec::new(),
         }
     }
@@ -68,16 +70,17 @@ impl Config {
 
         if cache_path.exists() {
             let content = fs::read_to_string(cache_path)?;
-            self.hash_cache = toml::from_str(&content).unwrap_or_default();
+            let serde_wrapper: ConfigCacheSerde = toml::from_str(&content).unwrap_or_default();
+            self.hash_cache = sync::Arc::new(serde_wrapper.to_dashmap());
         } else {
-            self.hash_cache = None;
+            self.hash_cache = sync::Arc::new(DashMap::new());
         }
 
         Ok(())
     }
 
     fn save_hash_cache(&self) -> Result<(), ConfigError> {
-        if self.hash_cache.is_none() {
+        if self.hash_cache.is_empty() {
             return Ok(());
         }
 
@@ -86,7 +89,8 @@ impl Config {
             fs::create_dir_all(cache_path.parent().unwrap())?;
         }
 
-        let content = toml::to_string_pretty(&self.hash_cache)?;
+        let serde_wrapper = ConfigCacheSerde::from_dashmap(&self.hash_cache);
+        let content = toml::to_string_pretty(&serde_wrapper)?;
         fs::write(cache_path, content)?;
 
         Ok(())
@@ -102,44 +106,51 @@ impl Config {
         }
 
         let mut copied_path = None;
-        let mut hasher = Sha1::new();
 
-        for entry in &mut self.configs {
-            let src_path = entry.path.clone();
-            let current_hash = if src_path.is_dir() {
-                hasher::get_complete_dir_hash(&src_path, &mut hasher, &mut self.hash_cache)
-                    .unwrap_or_default()
-            } else if src_path.is_file() {
-                hasher::get_file_hash(&src_path, &mut hasher, &mut self.hash_cache)
-                    .unwrap_or_default()
-            } else {
-                return Err(ConfigError::InvalidPath(format!(
-                    "Path is not a file or directory: {}",
-                    src_path.display()
-                )));
-            };
-
-            // Compare and pull if hashes differ
-            if entry.hash != current_hash
-                || clean
-                || self.hash_cache.is_none()
-                || entry.hash.is_empty()
-            {
-                // Ensure the destination path considers the file extension dynamically
-                let dest_path = if src_path.is_file() {
-                    println!("Pulling file: {:?}", src_path.file_name().unwrap());
-                    tracking_path.join(src_path.file_name().unwrap())
+        // Parallelize the processing of each config entry
+        let copied_paths: Vec<Option<path::PathBuf>> = self
+            .configs
+            .par_iter_mut()
+            .map(|entry| {
+                let src_path = &entry.path;
+                let current_hash = if src_path.is_dir() {
+                    hasher::get_complete_dir_hash(&src_path, &self.hash_cache).unwrap_or_default()
+                } else if src_path.is_file() {
+                    hasher::get_file_hash(&src_path, &self.hash_cache).unwrap_or_default()
                 } else {
-                    println!("Pulling dir: {}", entry.name);
-                    tracking_path.join(&entry.name)
+                    return Err(ConfigError::InvalidPath(format!(
+                        "Path is not a file or directory: {}",
+                        src_path.display()
+                    )));
                 };
 
-                file_manager::fs_copy_recursive(&src_path, &dest_path)?;
-                entry.hash = current_hash;
-                copied_path = Some(dest_path);
-            } else {
-                println!("No changes detected for: {}", entry.name);
-            }
+                // Compare and pull if hashes differ
+                if entry.hash != current_hash
+                    || clean
+                    || self.hash_cache.is_empty()
+                    || entry.hash.is_empty()
+                {
+                    // Ensure the destination path considers the file extension dynamically
+                    let dest_path = if src_path.is_file() {
+                        println!("Pulling file: {:?}", src_path.file_name().unwrap());
+                        tracking_path.join(src_path.file_name().unwrap())
+                    } else {
+                        println!("Pulling dir: {}", entry.name);
+                        tracking_path.join(&entry.name)
+                    };
+
+                    file_manager::fs_copy_recursive(&src_path, &&dest_path)?;
+                    entry.hash = current_hash;
+                    Ok(Some(dest_path))
+                } else {
+                    println!("No changes detected for: {}", entry.name);
+                    Ok(None)
+                }
+            })
+            .collect::<Result<Vec<_>, ConfigError>>()?;
+
+        if let Some(path) = copied_paths.into_iter().find(|path| path.is_some()) {
+            copied_path = path;
         }
 
         self.save_hash_cache()?;
@@ -191,7 +202,6 @@ impl Config {
     }
 
     pub fn add_config(&mut self, name: &str, path: &str) -> Result<(), ConfigError> {
-        let mut hasher = Sha1::new();
         let config_path = path::PathBuf::from(path);
 
         if self.configs.iter().any(|c| c.name == name) {
@@ -211,8 +221,7 @@ impl Config {
         let new_entry = ConfigEntry {
             name: name.to_string(),
             path: config_path.to_path_buf(),
-            hash: hasher::get_complete_dir_hash(&config_path, &mut hasher, &mut None)
-                .unwrap_or_default(),
+            hash: hasher::get_complete_dir_hash(&config_path, &self.hash_cache).unwrap_or_default(),
             conf_type: ConfType::get_conf_type(&config_path),
         };
 
@@ -308,8 +317,11 @@ impl Config {
     }
 
     pub fn clean_configs(&mut self) -> Result<(), ConfigError> {
+        let tracking_path = &self.dotconfigs_path.get_path();
         // Delete all the configs in the tracking directory
-        file_manager::fs_remove_recursive(self.dotconfigs_path.get_path())?;
+        file_manager::fs_remove_recursive(tracking_path)?;
+        // Recreate the tracking directory
+        fs::create_dir_all(tracking_path)?;
 
         Ok(())
     }
@@ -355,7 +367,7 @@ mod tests {
         let config_path = temp_dir.path().join("my_config.toml");
         File::create(&config_path).unwrap();
 
-        let path = Config::get_config_path(Some(config_path.to_str().unwrap().to_string()));
+        let path = Config::get_config_path(Some(config_path.to_str().unwrap()));
 
         assert!(path.is_ok());
         let path = path.unwrap();

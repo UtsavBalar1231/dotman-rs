@@ -6,7 +6,7 @@ mod args;
 
 fn main() -> Result<(), ConfigError> {
     let env_args = args::get_env_args();
-    let config_path: PathBuf = Config::get_config_path(env_args.config_path)?;
+    let config_path: PathBuf = Config::get_config_path(env_args.config_path.as_deref())?;
     let args = env_args.command;
 
     if matches!(args, Commands::PrintNew) {

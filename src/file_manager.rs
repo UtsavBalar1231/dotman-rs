@@ -15,7 +15,7 @@ where
 
     if path.is_dir() {
         // Collect all entries in the directory for parallel processing
-        let entries: Vec<_> = fs::read_dir(path)?.filter_map(|e| e.ok()).collect();
+        let entries: Vec<_> = fs::read_dir(path)?.filter_map(Result::ok).collect();
 
         entries.par_iter().try_for_each(|entry| {
             let entry_path = entry.path();
@@ -61,8 +61,9 @@ where
 
         for entry in WalkDir::new(src)
             .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| !e.path().components().any(|c| c.as_os_str() == ".git"))
+            .filter_map(Result::ok)
+            .filter(|e| !crate::is_git_related(e.path()))
+        // Ignore `.git`-related files
         {
             let src_entry = entry.path();
             let dst_entry = dst.join(src_entry.strip_prefix(src).expect("Failed to strip prefix"));
