@@ -41,6 +41,6 @@ return {
 		local map = vim.keymap.set
 
 		map("n", "<leader>q", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
-		map("n", "<leader>e", "<cmd>NvimTreeFocus<CR>", { desc = "nvimtree focus window" })
+		map("n", "<leader>t", "<cmd>NvimTreeFocus<CR>", { desc = "nvimtree focus window" })
 	end,
 }

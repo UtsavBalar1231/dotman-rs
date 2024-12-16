@@ -200,3 +200,7 @@ alias :wq='sudo shutdown -h now'
 if command -v yazi >/dev/null 2>&1; then
 	alias y='yazi'
 fi
+
+if command -v nvim >/dev/null; then
+	export SUDO_EDITOR=$(which nvim)
+fi

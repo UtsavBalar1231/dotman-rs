@@ -28,7 +28,6 @@ return {
 				"pylint",
 				"pyright",
 				"rust_analyzer",
-				"rustfmt",
 				"stylua",
 				"svls",
 				"vimls",
@@ -42,9 +41,9 @@ return {
 		null_ls.setup({
 			sources = {
 				-- Completions
-				null_ls.builtins.completion.luasnip,
+				-- null_ls.builtins.completion.luasnip,
 				-- null_ls.builtins.completion.spell,
-				null_ls.builtins.completion.tags,
+				-- null_ls.builtins.completion.tags,
 
 				-- Diagnostics
 				-- null_ls.builtins.diagnostics.stylelint,
@@ -53,11 +52,11 @@ return {
 				-- null_ls.builtins.diagnostics.eslint_d,
 				-- null_ls.builtins.diagnostics.eslint,
 				-- null_ls.builtins.diagnostics.markdownlint,
-				null_ls.builtins.diagnostics.pylint,
+				-- null_ls.builtins.diagnostics.pylint,
 				-- null_ls.builtins.diagnostics.rstcheck,
-				null_ls.builtins.diagnostics.todo_comments,
+				-- null_ls.builtins.diagnostics.todo_comments,
 				-- null_ls.builtins.diagnostics.trail_space,
-				null_ls.builtins.diagnostics.zsh,
+				-- null_ls.builtins.diagnostics.zsh,
 
 				-- Formatting
 				null_ls.builtins.formatting.black,
@@ -73,7 +72,7 @@ return {
 				null_ls.builtins.formatting.yamlfmt,
 
 				-- Hover options
-				null_ls.builtins.hover.dictionary,
+				-- null_ls.builtins.hover.dictionary,
 				null_ls.builtins.hover.printenv,
 			},
 		})

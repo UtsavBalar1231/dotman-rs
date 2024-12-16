@@ -1,26 +1,26 @@
-@import '/home/utsav/.cache/wal/colors-waybar.css';
+@import "/home/utsav/.config/waybar/themes/gruvbox.css";
 
 * {
-	font-family: 'JetBrainsMono Nerd Font';
+	font-family: "JetBrainsMono Nerd Font";
 	font-size: 16px;
 	/* font-weight: bold; */
 	border-radius: 0px;
-	margin: 0;
+	margin: 0px;
 }
 
 window#waybar {
 	background-color: transparent;
-	border-radius: 10px;
+	border-radius: 12px;
 	padding-top: 0px;
-	margin-top: 0;
+	margin-top: 0px;
 }
 
 .modules-right {
 	font-size: 10px;
 	background-color: @background;
 	border-radius: 10px;
-	padding: 0;
-	margin: 5px 0 5px 0;
+	padding: 0px;
+	margin: 5px 0 5px 0px;
 }
 
 .modules-left {
@@ -34,7 +34,7 @@ window#waybar {
 
 .modules-center {
 	padding: 0px;
-	margin: 5px 0 5px 0;
+	margin: 5px 0 5px 0px;
 }
 
 tooltip {
@@ -47,7 +47,6 @@ tooltip label {
 	background-color: @background;
 	border-radius: 10px;
 }
-
 
 tooltip * {
 	border-radius: 10px;
@@ -70,7 +69,7 @@ window#waybar.empty #window {
 }
 
 #workspaces button {
-	margin: 0;
+	margin: 0px;
 	color: @color15;
 	font-weight: bolder;
 	font-style: normal;
@@ -87,9 +86,9 @@ window#waybar.empty #window {
 }
 
 #workspaces button.active {
-	color: @foreground;
+	color: @background;
 	background-color: @color3;
-	text-shadow: 0 0 5px rgba(0, 0, 0, 0.818);
+	text-shadow: 0 0 5px rgba(20, 21, 24, 0.7);
 	transition: all 0.1s ease-in-out;
 	border-radius: 20px;
 }
@@ -98,10 +97,11 @@ window#waybar.empty #window {
 #custom-weather,
 #custom-swaync,
 #custom-hyprshade,
-#custom-updates {
-	font-family: 'Iosevka Nerd Font';
+#custom-updates, 
+#power-profiles-daemon {
+	font-family: "Iosevka Nerd Font";
 	font-weight: bolder;
-	text-shadow: 0 0 5px rgb(0, 0, 0);
+	text-shadow: 0 0 5px rgb(20, 21, 24);
 	color: @color15;
 	background-color: @background;
 }
@@ -116,62 +116,75 @@ window#waybar.empty #window {
 #custom-swaync,
 #custom-updates {
 	padding-right: 1.5rem;
-	border-radius: 0 10px 10px 0;
+	border-radius: 0 10px 10px 0px;
 }
 
-#custom-swaync,
 #custom-hyprshade {
-	padding-right: 1.5rem;
+	padding: 0 0.8em 0 0.1rem;
 }
 
 #memory {
-	color: @color5;
+	color: @color2;
 	padding: 0 0.4em 0 0.5rem;
 	padding-left: 1.5rem;
 	border-radius: 10px 0 0 10px;
 }
 
+#backlight {
+	color: @color3;
+}
+
+#pulseaudio {
+	color: @color1;
+}
+
 #backlight,
 #pulseaudio {
-	margin: 0;
+	margin: 0px;
 	padding: 0 0.4em 0 0.5rem;
-	color: @color12;
 }
 
 #cpu {
-	margin: 0;
+	margin: 0px;
 	padding: 0 0.4em 0 0.5rem;
 	color: @color5;
 }
 
 #tray {
-	margin: 0;
+	margin: 0px;
 	padding-right: 1.5rem;
 	color: @color6;
-	border-radius: 0 10px 10px 0;
+	border-radius: 0 10px 10px 0px;
+}
+
+#disk {
+	color: @color5;
+}
+
+#battery {
+	color: @color6;
 }
 
 #disk,
 #battery {
-	margin: 0;
+	margin: 0px;
 	padding: 0 0.4em 0 0.5rem;
-	color: @color5;
 }
 
 #window {
 	color: @foreground;
 	margin-left: 0rem;
 	margin-right: 1rem;
-	text-shadow: 0 0 5px rgba(0, 0, 0, 0.818);
+	text-shadow: 0 0 5px rgba(20, 21, 24, 0.8);
 	transition: all 0.1s ease-in-out;
 	border-radius: 0px;
 	font-size: 16px;
 }
 
 #bluetooth {
-	margin: 0;
+	margin: 0px;
 	padding: 0 0 0 0.5rem;
-	color: @color9;
+	color: @color12;
 }
 
 #bluetooth.disabled,
@@ -180,12 +193,28 @@ window#waybar.empty #window {
 }
 
 #network {
-	margin: 0;
-	padding: 0 1.5em 0 0.5rem;
-	color: @color6;
+	margin: 0px;
+	padding: 0 1.5rem 0 0.5rem;
+	color: @color14;
 }
 
 #network.disabled,
 #network.offline {
 	color: @foreground;
+}
+
+#power-profiles-daemon {
+	padding-right: 1.5rem;
+}
+
+#power-profiles-daemon.performance {
+	color: @color9;
+}
+
+#power-profiles-daemon.balanced {
+	color: @color12;
+}
+
+#power-profiles-daemon.power-saver {
+	color: @color14;
 }

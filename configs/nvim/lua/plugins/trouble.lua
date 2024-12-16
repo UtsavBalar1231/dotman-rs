@@ -2,17 +2,17 @@ return {
 	"folke/trouble.nvim",
 	opts = {
 		focus = true,
-		win = { position = "right", size = 0.5 },
+		win = { position = "top", size = 0.35 },
 	},
 	cmd = "Trouble",
 	keys = {
 		{
-			"<leader>xx",
+			"<leader>cx",
 			"<cmd>Trouble diagnostics toggle<cr>",
 			desc = "Diagnostics (Trouble)",
 		},
 		{
-			"<leader>xX",
+			"<leader>cX",
 			"<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
 			desc = "Buffer Diagnostics (Trouble)",
 		},
@@ -27,12 +27,12 @@ return {
 			desc = "LSP Definitions / references / ... (Trouble)",
 		},
 		{
-			"<leader>xL",
+			"<leader>cL",
 			"<cmd>Trouble loclist toggle<cr>",
 			desc = "Location List (Trouble)",
 		},
 		{
-			"<leader>xQ",
+			"<leader>cQ",
 			"<cmd>Trouble qflist toggle<cr>",
 			desc = "Quickfix List (Trouble)",
 		},

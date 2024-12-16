@@ -15,11 +15,14 @@
 
 /* Import color-scheme from `colors` directory */
 
-@import "~/.cache/wal/colors-rofi-dark.rasi"
-
+/* 
+ @import "~/.cache/wal/colors-rofi-dark.rasi"
 * {
 	selected: @selected-normal-background;
 	active: @selected-active-background;
 	urgent: @selected-urgent-background;
 	background-alt: @background;
 }
+*/
+
+@import "~/.config/rofi/colors/gruvbox.rasi"

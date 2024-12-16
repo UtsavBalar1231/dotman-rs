@@ -13,10 +13,6 @@ return {
 		-- local actions = require("telescope.actions")
 		local builtin = require("telescope.builtin")
 
-		telescope.load_extension("fzf")
-		telescope.load_extension("file_browser")
-		telescope.load_extension("ui-select")
-
 		-- Grep in current directory
 		local function telescope_buffer_dir()
 			return vim.fn.expand("%:p:h")
@@ -76,11 +72,14 @@ return {
 
 		-- git commands
 		vim.keymap.set("n", "<leader>gs", builtin.git_status, { desc = "Telescope git status" })
-		vim.keymap.set("n", "<leader>gb", builtin.git_branches, { desc = "Telescope git branches" })
-		vim.keymap.set("n", "<leader>gc", builtin.git_commits, { desc = "Telescope git commits" })
+		vim.keymap.set("n", "<leader>tb", builtin.git_branches, { desc = "Telescope git branches" })
+		vim.keymap.set("n", "<leader>tc", builtin.git_commits, { desc = "Telescope git commits" })
 		vim.keymap.set("n", "<leader>gC", builtin.git_bcommits, { desc = "Telescope git buffer commits" })
 		vim.keymap.set("n", "<leader>gf", builtin.git_files, { desc = "Telescope git files" })
 		vim.keymap.set("n", "<leader>gS", builtin.git_stash, { desc = "Telescope git stash files" })
+
+		vim.keymap.set("n", "<leader>fm", "<cmd>Telescope man_pages<cr>", { desc = "Telescope Man Pages" })
+		vim.keymap.set("n", "<leader>fk", "<cmd>Telescope keymaps<cr>", { desc = "Telescope Keymaps" })
 
 		vim.keymap.set("n", "ff", function()
 			telescope.extensions.file_browser.file_browser({
@@ -95,7 +94,7 @@ return {
 		end)
 
 		local fb_actions = require("telescope").extensions.file_browser.actions
-		local trouble_telescope = require("trouble.sources.telescope")
+		local open_with_trouble = require("trouble.sources.telescope")
 
 		telescope.setup({
 			pickers = {
@@ -105,26 +104,49 @@ return {
 				},
 			},
 			defaults = {
+				layout_strategy = "horizontal",
+				layout_config = {
+					horizontal = {
+						prompt_position = "top",
+						preview_width = 0.55,
+					},
+					width = 0.87,
+					height = 0.80,
+				},
 				mappings = {
 					i = {
 						["<esc>"] = require("telescope.actions").close,
-						["<c-t>"] = trouble_telescope.open,
+						["<c-t>"] = open_with_trouble,
+						["<a-t>"] = open_with_trouble,
 					},
 					n = {
 						["q"] = require("telescope.actions").close,
-						["<c-t>"] = trouble_telescope.open,
 					},
 				},
+				find_command = {
+					"rg",
+					"--no-heading",
+					"--with-filename",
+					"--line-number",
+					"--column",
+					"--smart-case",
+				},
+				prompt_prefix = "   ",
+				selection_caret = "  ",
+				entry_prefix = "  ",
+				initial_mode = "insert",
+				selection_strategy = "reset",
+				sorting_strategy = "ascending",
 				file_sorter = require("telescope.sorters").get_fuzzy_file,
 				file_ignore_patterns = { "node_modules" },
 				generic_sorter = require("telescope.sorters").get_generic_fuzzy_sorter,
 				path_display = { "truncate" },
-				winblend = 1,
+				winblend = 0,
 				border = {},
 				-- borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
 				color_devicons = true,
 				use_less = true,
-				set_env = { ["COLORTERM"] = "truecolor" }, -- default = nil,
+				set_env = { ["COLORTERM"] = "truecolor" },
 				file_previewer = require("telescope.previewers").vim_buffer_cat.new,
 				grep_previewer = require("telescope.previewers").vim_buffer_vimgrep.new,
 				qflist_previewer = require("telescope.previewers").vim_buffer_qflist.new,
@@ -161,5 +183,9 @@ return {
 				},
 			},
 		})
+
+		telescope.load_extension("fzf")
+		telescope.load_extension("file_browser")
+		telescope.load_extension("ui-select")
 	end,
 }

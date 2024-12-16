@@ -141,6 +141,36 @@ ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)
 typeset -A ZSH_HIGHLIGHT_STYLES
 ZSH_HIGHLIGHT_STYLES[comment]='fg=242'
 
+# Function to display the progress bar
+show_progress_bar() {
+	local progress=$1
+	local bar_length=30
+	local filled_length=$((progress * bar_length / 100))
+	local empty_length=$((bar_length - filled_length))
+
+	local bar
+	bar=$(printf "%0.s█" $(seq 1 "$filled_length"))
+	bar+=$(printf "%0.s▒" $(seq 1 "$empty_length"))
+
+	printf "\rUpdating '%s': [%s] %d%%" "$current_plugin" "$bar" "$progress"
+}
+
+# Function to clone a repository with a progress bar
+clone_repo_with_progress() {
+	local repo_url=$1
+	local dest_dir=$2
+	local branch=$3
+
+	git clone --progress "$repo_url" "$dest_dir" -b "$branch" 2>&1 | while IFS= read -r line; do
+		if [[ $line =~ ([0-9]+)% ]]; then
+			local progress=${BASH_REMATCH[1]}
+			show_progress_bar "$progress"
+		fi
+	done
+
+	show_progress_bar 100
+}
+
 # Cargo environment
 if [ -f ${HOME}/.cargo/env ]; then
 	source ${HOME}/.cargo/env
@@ -205,13 +235,14 @@ function update_zsh_plugins() {
 
 		echo "Updating $plugin_name" >&2
 		rm -rf "$HOME/.config/zsh/plugins/$plugin_name"
-		git clone --depth=1 -q "https://github.com/$plugin_name" "$HOME/.config/zsh/plugins/$plugin_name" -b "$plugin_branch"
+
+		clone_repo_with_progress "https://github.com/$plugin_name" "$HOME/.config/zsh/plugins/$plugin_name" "$plugin_branch"
 	done
 }
 
 # FZF
 if [ ! -f ${HOME}/.fzf.zsh ]; then
-	git clone --depth 1 https://github.com/junegunn/fzf.git ${HOME}/.fzf
+	clone_repo_with_progress "https://github.com/junegunn/fzf" ${HOME}/.fzf
 	${HOME}/.fzf/install
 fi
 eval "$(fzf --zsh)"
@@ -247,12 +278,9 @@ fi
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+# Set QT theme
 export QT_QPA_PLATFORMTHEME="qt6ct"
 
-if command -v nvim >/dev/null; then
-	export SUDO_EDITOR=$(which nvim)
-fi
-
-if command -v wal >/dev/null; then
-	(cat ~/.cache/wal/sequences &)
-fi
+# if command -v wal >/dev/null; then
+# 	(cat ~/.cache/wal/sequences &)
+# fi

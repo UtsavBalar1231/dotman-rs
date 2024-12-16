@@ -14,6 +14,9 @@ return {
 		local opts = { noremap = true, silent = true }
 
 		local on_attach = function(_, bufnr)
+			if vim.lsp.inlay_hint then
+				vim.lsp.inlay_hint.enable(true, { 0 })
+			end
 			opts.buffer = bufnr
 
 			-- set keybinds
@@ -42,7 +45,7 @@ return {
 			keymap.set("n", "<leader>D", "<cmd>Telescope diagnostics bufnr=0<CR>", opts) -- show  diagnostics for file
 
 			opts.desc = "LSP: Show line diagnostics"
-			keymap.set("n", "<leader>d", vim.diagnostic.open_float, opts) -- show diagnostics for line
+			keymap.set("n", "<leader>e", vim.diagnostic.open_float, opts) -- show diagnostics for line
 
 			opts.desc = "LSP: Go to previous diagnostic"
 			keymap.set("n", "[d", vim.diagnostic.goto_prev, opts) -- jump to previous diagnostic in buffer
@@ -162,11 +165,11 @@ return {
 			on_attach = on_attach,
 		})
 
-		-- rust
-		lspconfig.rust_analyzer.setup({
-			capabilities = capabilities,
-			-- on_attach is set from rust.lua
-		})
+		-- rust (called from rustaceanvim)
+		-- lspconfig.rust_analyzer.setup({
+		-- 	capabilities = capabilities,
+		-- 	on_attach = on_attach,
+		-- })
 
 		-- SystemVerilog
 		lspconfig.svls.setup({

@@ -8,8 +8,7 @@
  **/
 
 
-@import "~/.cache/wal/colors-rofi-dark.rasi"
-@import "~/.cache/wal/colors-rofi-pywal.conf"
+@import "~/.config/rofi/colors/gruvbox.rasi"
 
 /*****----- Configuration -----*****/
 configuration {
@@ -76,14 +75,14 @@ textbox-prompt-colon {
     padding:                     8px 16px;
     border-radius:               100%;
     background-color:            @foreground;
-    text-color:                  black;
+    text-color:                  @background;
     str:                         "";
 }
 entry {
     enabled:                     true;
     padding:                     8px 12px;
     border:                      0px;
-    background-color:            transparent;
+    background-color:            @background;
     text-color:                  @foreground;
     cursor:                      text;
     placeholder:                 "  Search";
@@ -118,22 +117,25 @@ element {
     padding:                     4px;
     border:                      0px;
     border-radius:               100%;
-    border-color:                @color0;
+    border-color:                @foreground;
     background-color:            transparent;
     text-color:                  @foreground;
     cursor:                      pointer;
 }
 
 element normal.active {
-    text-color:                  @color11;
+    background-color:            @active;
+    text-color:                  @background;
 }
 
 element selected.normal {
-    text-color:                  @color15;
+    background-color:            @selected;
+    text-color:                  @background;
 }
 
 element selected.active {
-    text-color:                  @color8;
+    background-color:            @active;
+    text-color:                  @background;
 }
 
 element-icon {
@@ -160,6 +162,7 @@ mode-switcher{
     border-radius:               100%;
     background-color:            @color0;
 }
+
 button {
     background-color:            inherit;
     text-color:                  @foreground;
@@ -168,7 +171,7 @@ button {
 
 button selected {
     background-color:            inherit;
-    text-color:                  @color8;
+    text-color:                  @color14;
 }
 
 /*****----- Message -----*****/

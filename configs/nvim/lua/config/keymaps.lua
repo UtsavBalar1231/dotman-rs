@@ -10,19 +10,19 @@ keymap("n", "<leader>Q", "<cmd>:qa<cr>", { noremap = true, silent = true, desc =
 keymap("n", "<leader>ss", "<cmd>:w<cr>:source %<cr>", { noremap = true, silent = true, desc = "Save and Source" })
 
 -- Map <leader>tt to open a new tab
-keymap("n", "<leader>tt", "<cmd>:tabnew<cr>", { noremap = true, silent = true, desc = "Open New Tab" })
+keymap("n", "<leader>Tt", "<cmd>:tabnew<cr>", { noremap = true, silent = true, desc = "Open New Tab" })
 
 -- Map <leader>tn to go to next tab
-keymap("n", "<leader>tn", "<cmd>:tabnext<cr>", { noremap = true, silent = true, desc = "Next Tab" })
+keymap("n", "<leader>Tn", "<cmd>:tabnext<cr>", { noremap = true, silent = true, desc = "Next Tab" })
 
 -- Map <leader>tp to go to previous tab
-keymap("n", "<leader>tp", "<cmd>:tabprevious<cr>", { noremap = true, silent = true, desc = "Previous Tab" })
+keymap("n", "<leader>Tp", "<cmd>:tabprevious<cr>", { noremap = true, silent = true, desc = "Previous Tab" })
 
 -- Map <leader>tw to close current tab
-keymap("n", "<leader>tw", "<cmd>:tabclose<cr>", { noremap = true, silent = true, desc = "Close Current Tab" })
+keymap("n", "<leader>Tw", "<cmd>:tabclose<cr>", { noremap = true, silent = true, desc = "Close Current Tab" })
 
 -- Map <leader>to to close all other tabs
-keymap("n", "<leader>to", "<cmd>:tabonly<cr>", { noremap = true, silent = true, desc = "Close Other Tabs" })
+keymap("n", "<leader>To", "<cmd>:tabonly<cr>", { noremap = true, silent = true, desc = "Close Other Tabs" })
 
 -- Use Q to quit bang
 keymap("n", "Q", "<cmd>:q<cr>", { noremap = true, silent = true, desc = "Quit" })
@@ -93,7 +93,7 @@ keymap("n", "<leader><leader>", "<cmd>:b#<cr>", { noremap = true, silent = true,
 keymap("n", "<leader>,", "<cmd>:set list!<cr>", { noremap = true, silent = true, desc = "Toggle Invisible Characters" })
 
 -- <leader>x to chmod +x the current file
-keymap("n", "<leader>x", "<cmd>!chmod +x %<cr>", { noremap = true, silent = true, desc = "Make File Executable" })
+keymap("n", "<leader>xx", "<cmd>!chmod +x %<cr>", { noremap = true, silent = true, desc = "Make File Executable" })
 
 -- Keybindings for moving lines in normal mode
 keymap("n", "<A-j>", "<cmd>:m .+1<cr>==", { noremap = true, silent = true, desc = "Move Line Down" })
