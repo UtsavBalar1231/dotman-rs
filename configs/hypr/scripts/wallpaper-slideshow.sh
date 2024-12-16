@@ -24,10 +24,10 @@ if [ -d "${HOME}/Pictures/wallpapers/" ]; then
 			# fi
 			# if command -v hyprpaper >/dev/null 2>&1; then
 			# 	# notify-send -i "$img" "Wallpaper changed"
-			# 	hyprctl hyprpaper preload "${img}" | tee -a /tmp/hyprpaper.log
-			# 	hyprctl hyprpaper wallpaper eDP-1,"$img" | tee -a /tmp/hyprpaper.log
+				hyprctl hyprpaper preload "${img}" | tee -a /tmp/hyprpaper.log
+				hyprctl hyprpaper wallpaper eDP-1,"$img" | tee -a /tmp/hyprpaper.log
 			# else
-				swaybg -i "${img}" -m fill &
+				# swaybg -i "${img}" &
 			# fi
 			sleep 240
 		done

@@ -16,7 +16,7 @@ declare -a arch_base_packages=(
 	acpi alacritty base base-devel bash bash-completion bat btop clang cmake cpio curl eza fastfetch fd firefox-nightly-bin
 	fzf gcc git git-delta google-chrome-beta kdeconnect kitty libinput-gestures ly make meson neovim nodejs npm nvidia
 	okular p7zip-full pyenv python python-pip python-pipenv python-pipx ripgrep rustup tmux ttf-terminus-nerd vim yay-bin
-	yazi zen-twilight-avx2-bin zoxide zsh
+	yazi zen-twilight-avx2-bin zoxide zsh mpc iw
 )
 
 declare -a arch_xorg_packages=(

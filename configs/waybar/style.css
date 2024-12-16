@@ -10,15 +10,15 @@
 
 window#waybar {
 	background-color: transparent;
-	border-radius: 12px;
+	border-radius: 8px;
 	padding-top: 0px;
 	margin-top: 0px;
 }
 
 .modules-right {
-	font-size: 10px;
+	font-size: 12px;
 	background-color: @background;
-	border-radius: 10px;
+	border-radius: 12px;
 	padding: 0px;
 	margin: 5px 0 5px 0px;
 }
@@ -29,7 +29,7 @@ window#waybar {
 	margin-top: 5px;
 	margin-bottom: 5px;
 	padding: 1px 0px;
-	border-radius: 10px;
+	border-radius: 12px;
 }
 
 .modules-center {
@@ -39,17 +39,17 @@ window#waybar {
 
 tooltip {
 	background: @background;
-	border-radius: 10px;
+	border-radius: 12px;
 }
 
 tooltip label {
 	color: @foreground;
 	background-color: @background;
-	border-radius: 10px;
+	border-radius: 12px;
 }
 
 tooltip * {
-	border-radius: 10px;
+	border-radius: 12px;
 }
 
 #window {
@@ -82,7 +82,7 @@ window#waybar.empty #window {
 	text-shadow: inherit;
 	background-color: @color15;
 	color: @background;
-	border-radius: 10px;
+	border-radius: 12px;
 }
 
 #workspaces button.active {
@@ -108,7 +108,7 @@ window#waybar.empty #window {
 
 #clock {
 	padding: 0 1rem 0 1.5rem;
-	border-radius: 10px 0 0 10px;
+	border-radius: 12px 0 0 12px;
 }
 
 #hyprland-window,
@@ -116,7 +116,7 @@ window#waybar.empty #window {
 #custom-swaync,
 #custom-updates {
 	padding-right: 1.5rem;
-	border-radius: 0 10px 10px 0px;
+	border-radius: 0 12px 12px 0px;
 }
 
 #custom-hyprshade {
@@ -127,7 +127,7 @@ window#waybar.empty #window {
 	color: @color2;
 	padding: 0 0.4em 0 0.5rem;
 	padding-left: 1.5rem;
-	border-radius: 10px 0 0 10px;
+	border-radius: 12px 0 0 12px;
 }
 
 #backlight {
@@ -154,7 +154,7 @@ window#waybar.empty #window {
 	margin: 0px;
 	padding-right: 1.5rem;
 	color: @color6;
-	border-radius: 0 10px 10px 0px;
+	border-radius: 0 12px 12px 0px;
 }
 
 #disk {

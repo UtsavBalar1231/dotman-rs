@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e
+
+CMD=$(realpath "${0}")
+CUR_DIR=$(dirname "${CMD}")
+
+get_glibc_version() {
+	ldd --version | head -n 1 | awk '{print $NF}'
+}
+
+# check if glibc version is less than 2.32
+# if (($(echo "$(get_glibc_version) < 2.32" | bc -l))); then
+	# "${CUR_DIR}"/prebuilts/sync-dotfiles-rs-old-glibc "$@"
+# else
+	"${CUR_DIR}"/prebuilts/dotman-rs "$@"
+# fi

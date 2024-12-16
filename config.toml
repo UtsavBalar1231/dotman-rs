@@ -1,0 +1,140 @@
+[dotconfigs_path]
+Local = "$HOME/dotfiles/configs/"
+
+[[configs]]
+name = "nvim"
+path = "$HOME/.config/nvim/"
+hash = "b91052c7e9fe1b05f51c9597b7fe28f38204ef9f1e8b11d79c7194dda2b28170"
+conf_type = "Dir"
+
+[[configs]]
+name = "polybar"
+path = "$HOME/.config/polybar/"
+hash = "566356a8489ae372b717771126952f72b71eca6dc5aa0002d6b40f6dea685b9a"
+conf_type = "Dir"
+
+[[configs]]
+name = "rofi"
+path = "$HOME/.config/rofi/"
+hash = "d50adfc53405f4f0f5904c3751f00b4963977e34c42e1525be05bec8b8a81135"
+conf_type = "Dir"
+
+[[configs]]
+name = "zsh"
+path = "$HOME/.config/zsh/"
+hash = "d33c932e1fbeba67f4d96c3d0a32f61a86b336a32c46280d3f5078a23cd992f6"
+conf_type = "Dir"
+
+[[configs]]
+name = "kitty"
+path = "$HOME/.config/kitty/"
+hash = "600a1827e41c47edaec5c9a5e8ad00831e7f77589f1c236310cf0198f3b30b82"
+conf_type = "Dir"
+
+[[configs]]
+name = "sync-dotfiles"
+path = "$HOME/.config/sync-dotfiles/"
+hash = "66bd8247903f5e4ce9c9913dff90768c58f475478af47da600ed69718c5a1fa1"
+conf_type = "Dir"
+
+[[configs]]
+name = "clang-format"
+path = "$HOME/.clang-format"
+hash = "79e9d4ea5d24ff0e3d8e39ea30c981f557e1ec420f491763c2a5e7633da20165"
+conf_type = "File"
+
+[[configs]]
+name = "zshrc"
+path = "$HOME/.zshrc"
+hash = "d4f319c223be1f61b46ca7d8db7e5b0935346685e77158d9a5952dc8e09b6530"
+conf_type = "File"
+
+[[configs]]
+name = "xinitrc"
+path = "$HOME/.xinitrc"
+hash = "19053ee54dece5eec0dc78260271e1603df0d565a4cf65068ba3ceb51ca5ea0a"
+conf_type = "File"
+
+[[configs]]
+name = "gitlint"
+path = "$HOME/.gitlint"
+hash = "95492741fcd743f8aed2ee8e00a9d0a22e7fe28709b8574778275c4dff05ab51"
+conf_type = "File"
+
+[[configs]]
+name = "tmux"
+path = "$HOME/.tmux.conf"
+hash = "52a3dd10ead3e02d846ae63a691fcb8f8951413fb00d9385197e5bfe5b82c442"
+conf_type = "File"
+
+[[configs]]
+name = "alacritty"
+path = "$HOME/.config/alacritty"
+hash = "6a8e14ff033730b0e325725198f2d5c1a3433751a6f0d785d0904f004e27d58b"
+conf_type = "Dir"
+
+[[configs]]
+name = "i3wm"
+path = "$HOME/.config/i3"
+hash = "b84c0370e928dbb3530a2c9cc8e8e943a740bf34f87754b29aaaa1a6d42aacfc"
+conf_type = "Dir"
+
+[[configs]]
+name = "x11"
+path = "/etc/X11/"
+hash = "41f3dae12dc73cfd017a729a72362f05258ef5e2d9e18d17fbd7c9c74930e614"
+conf_type = "Dir"
+
+[[configs]]
+name = "ly"
+path = "/etc/ly/"
+hash = "f8fdd98788a974dc757b9525b8f262e630934e27b5c87106c32f2037e3e29516"
+conf_type = "Dir"
+
+[[configs]]
+name = "starship"
+path = "$HOME/.config/starship.toml"
+hash = "86db7cbf7f2fb4d30a1a7445723c23d22fbcfad2de290b6dd3979dc4a467ceec"
+conf_type = "File"
+
+[[configs]]
+name = "hypr"
+path = "$HOME/.config/hypr"
+hash = "e0df63999a752ae00ec1719cec74b60899cf159bc16966ee9609e54c66ad1c8b"
+conf_type = "Dir"
+
+[[configs]]
+name = "yazi"
+path = "$HOME/.config/yazi"
+hash = "2e4cc2343212e34678ce5a51b23b7a5c59a6297a412b7bb2e43ce80c8369db0f"
+conf_type = "Dir"
+
+[[configs]]
+name = "gtk-3.0"
+path = "$HOME/.config/gtk-3.0"
+hash = "7d9bbea29893c8ffbde2cc60175668643cda039873acc557f59b68ec9af07027"
+conf_type = "Dir"
+
+[[configs]]
+name = "gtk-4.0"
+path = "$HOME/.config/gtk-4.0"
+hash = "4c90ccae13d782a769348c3cf249cddaf059652e92bdc9e82bb859a95a3a83ec"
+conf_type = "Dir"
+
+[[configs]]
+name = "wal"
+path = "$HOME/.config/wal"
+hash = "8554a94d54ae6065a5c46da55b9e12f8d4144504dd3d623690012e933d70097c"
+conf_type = "Dir"
+
+[[configs]]
+name = "waybar"
+path = "$HOME/.config/waybar"
+hash = "e10afd72fd6b683107fb0d62aca4fb95316869eec158166266810346b621795e"
+conf_type = "Dir"
+
+[[configs]]
+name = "wallpapers"
+path = "$HOME/Pictures/wallpapers"
+hash = "cf1aa359175ad664eb4640a52c40bacd4d637a50f256c55c0ad63fa61014ae56"
+conf_type = "Dir"
