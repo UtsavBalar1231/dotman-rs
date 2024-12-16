@@ -124,20 +124,25 @@ impl Config {
                     )));
                 };
 
+                // Ensure the destination path considers the file extension dynamically
+                let dest_path = if src_path.is_file() {
+                    tracking_path.join(src_path.file_name().unwrap())
+                } else {
+                    tracking_path.join(&entry.name)
+                };
+
                 // Compare and pull if hashes differ
                 if entry.hash != current_hash
                     || clean
                     || self.hash_cache.is_empty()
                     || entry.hash.is_empty()
+                    || !dest_path.exists()
                 {
-                    // Ensure the destination path considers the file extension dynamically
-                    let dest_path = if src_path.is_file() {
-                        println!("Pulling file: {:?}", src_path.file_name().unwrap());
-                        tracking_path.join(src_path.file_name().unwrap())
-                    } else {
-                        println!("Pulling dir: {}", entry.name);
-                        tracking_path.join(&entry.name)
-                    };
+                    println!(
+                        "Pulling {}: {}",
+                        if src_path.is_file() { "file" } else { "dir" },
+                        src_path.file_name().unwrap().to_string_lossy()
+                    );
 
                     file_manager::fs_copy_recursive(&src_path, &&dest_path)?;
                     entry.hash = current_hash;
