@@ -90,7 +90,7 @@ mod tests {
 
         config.pull_config(false).unwrap();
 
-        let check_path = dotconfigs_path.get_path().join("test_file.txt");
+        let check_path = dotconfigs_path.get_path().join("test_file");
         println!("{}", check_path.display());
 
         assert!(&check_path.exists());

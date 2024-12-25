@@ -10,7 +10,7 @@ pub struct ConfigEntry {
     pub conf_type: ConfType,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, PartialEq)]
 pub enum ConfType {
     Dir,
     File,

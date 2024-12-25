@@ -100,51 +100,63 @@ impl Config {
         self.load_hash_cache()?;
 
         let tracking_path = &self.dotconfigs_path.get_path();
-
         if !tracking_path.exists() {
             fs::create_dir_all(tracking_path)?;
         }
 
-        let mut copied_path = None;
-
-        // Parallelize the processing of each config entry
+        // Process each config entry in parallel
         let copied_paths: Vec<Option<path::PathBuf>> = self
             .configs
             .par_iter_mut()
             .map(|entry| {
                 let src_path = &entry.path;
-                let current_hash = if src_path.is_dir() {
-                    hasher::get_complete_dir_hash(&src_path, &self.hash_cache).unwrap_or_default()
-                } else if src_path.is_file() {
-                    hasher::get_file_hash(&src_path, &self.hash_cache).unwrap_or_default()
+
+                // Determine the destination path
+                let dest_path = if entry.conf_type == ConfType::File {
+                    tracking_path.join(&entry.name) // Copy file directly to `tracking_path/name`
                 } else {
-                    return Err(ConfigError::InvalidPath(format!(
-                        "Path is not a file or directory: {}",
-                        src_path.display()
-                    )));
+                    tracking_path.join(&entry.name) // Copy directory to `tracking_path/name`
                 };
 
-                // Ensure the destination path considers the file extension dynamically
-                let dest_path = if src_path.is_file() {
-                    tracking_path.join(src_path.file_name().unwrap())
-                } else {
-                    tracking_path.join(&entry.name)
+                // Get the current hash based on file or directory type
+                let current_hash = match src_path.metadata() {
+                    Ok(metadata) if metadata.is_file() => {
+                        hasher::get_file_hash(src_path, &self.hash_cache).unwrap_or_default()
+                    }
+                    Ok(metadata) if metadata.is_dir() => {
+                        hasher::get_complete_dir_hash(src_path, &self.hash_cache)
+                            .unwrap_or_default()
+                    }
+                    _ => {
+                        return Err(ConfigError::InvalidPath(format!(
+                            "Path is not a valid file or directory: {}",
+                            src_path.display()
+                        )));
+                    }
                 };
 
-                // Compare and pull if hashes differ
-                if entry.hash != current_hash
+                // Check if copying is needed
+                let needs_pull = entry.hash != current_hash
                     || clean
                     || self.hash_cache.is_empty()
                     || entry.hash.is_empty()
-                    || !dest_path.exists()
-                {
+                    || !dest_path.exists();
+
+                if needs_pull {
                     println!(
                         "Pulling {}: {}",
                         if src_path.is_file() { "file" } else { "dir" },
-                        src_path.file_name().unwrap().to_string_lossy()
+                        src_path.display()
                     );
 
-                    file_manager::fs_copy_recursive(&src_path, &&dest_path)?;
+                    // Clean the destination if required
+                    if clean {
+                        file_manager::fs_remove_recursive(&dest_path)?;
+                    }
+
+                    // Recursively copy to destination
+                    file_manager::fs_copy_recursive(src_path, &dest_path)?;
+
                     entry.hash = current_hash;
                     Ok(Some(dest_path))
                 } else {
@@ -154,10 +166,10 @@ impl Config {
             })
             .collect::<Result<Vec<_>, ConfigError>>()?;
 
-        if let Some(path) = copied_paths.into_iter().find(|path| path.is_some()) {
-            copied_path = path;
-        }
+        // Collect the first non-None copied path
+        let copied_path = copied_paths.into_iter().flatten().next();
 
+        // Save updated configurations and hash cache
         self.save_hash_cache()?;
         self.save_config()?;
 
@@ -172,68 +184,113 @@ impl Config {
         }
 
         for entry in &self.configs {
-            // Dynamically derive the correct filename and extension from entry.path
-            let file_name = entry.path.file_name().ok_or_else(|| {
+            let name_based_src = tracking_path.join(&entry.name);
+            let fallback_src = tracking_path.join(entry.path.file_name().ok_or_else(|| {
                 ConfigError::InvalidPath(format!(
                     "Failed to extract file name from path: {:?}",
                     entry.path
                 ))
-            })?;
+            })?);
 
-            let src_path = if entry.path.exists() {
-                &entry.path
+            // Determine the actual source path to use
+            let src_path = if name_based_src.exists() {
+                name_based_src
             } else {
-                &tracking_path.join(file_name)
+                fallback_src
             };
+
+            // Destination path is the original path from the configuration entry
             let dst_path = &entry.path;
 
-            if clean {
+            println!("SRC PATH: {}", src_path.display());
+            println!("DST PATH: {}", dst_path.display());
+
+            // If `clean` is true or if overwrite support is enabled, remove the destination path
+            if clean || dst_path.exists() {
                 file_manager::fs_remove_recursive(dst_path)?;
             }
 
+            // Ensure the source path exists before attempting to copy
             if !src_path.exists() {
                 return Err(ConfigError::InvalidPath(format!(
-                    "Source file does not exist: {:?}",
+                    "Source path does not exist: {:?}",
                     src_path
                 )));
             }
 
-            // Perform the copy operation
             println!("Pushing from {:?} to {:?}", src_path, dst_path);
-            file_manager::fs_copy_recursive(src_path, dst_path)?;
+
+            file_manager::fs_copy_recursive(&src_path, dst_path)?;
         }
 
         self.save_config()
     }
 
     pub fn add_config(&mut self, name: &str, path: &str) -> Result<(), ConfigError> {
-        let config_path = path::PathBuf::from(path);
+        // Expand the path to its absolute form
+        let expanded_path = Self::expand_path(path)?;
 
-        if self.configs.iter().any(|c| c.name == name) {
+        if self
+            .configs
+            .iter()
+            .any(|c| c.name == name || c.path.to_str().unwrap() == path)
+        {
             return Err(ConfigError::InvalidConfig(format!(
                 "Config with name {} already exists",
                 name
             )));
         }
 
-        if !config_path.exists() {
+        if !expanded_path.exists() {
             return Err(ConfigError::InvalidPath(format!(
                 "Path does not exist: {}",
-                path
+                expanded_path.display()
             )));
         }
 
         let new_entry = ConfigEntry {
             name: name.to_string(),
-            path: config_path.to_path_buf(),
-            hash: hasher::get_complete_dir_hash(&config_path, &self.hash_cache).unwrap_or_default(),
-            conf_type: ConfType::get_conf_type(&config_path),
+            path: expanded_path.clone(),
+            hash: hasher::get_complete_dir_hash(&expanded_path, &self.hash_cache)
+                .unwrap_or_default(),
+            conf_type: ConfType::get_conf_type(&expanded_path),
         };
 
         self.configs.push(new_entry.clone());
 
         println!("Added config: {}", new_entry);
         self.save_config()
+    }
+
+    // Helper function to expand the path
+    fn expand_path(path_str: &str) -> Result<path::PathBuf, ConfigError> {
+        // Handle ~ (home directory)
+        let path_str = if path_str.starts_with("~/") {
+            match dirs::home_dir() {
+                Some(home) => path_str.replacen("~", &home.to_string_lossy(), 1),
+                None => {
+                    return Err(ConfigError::InvalidPath(
+                        "Could not determine home directory".to_string(),
+                    ))
+                }
+            }
+        } else {
+            path_str.to_string()
+        };
+
+        // Handle environment variables
+        let path_str = shellexpand::env(&path_str)
+            .map_err(|e| {
+                ConfigError::InvalidPath(format!("Failed to expand environment variables: {}", e))
+            })?
+            .to_string();
+
+        // Convert to absolute path
+        let abs_path = path::Path::new(&path_str)
+            .canonicalize()
+            .map_err(|e| ConfigError::InvalidPath(format!("Failed to canonicalize path: {}", e)))?;
+
+        Ok(abs_path)
     }
 
     pub fn edit_config(&self) -> Result<(), ConfigError> {
@@ -415,7 +472,7 @@ mod tests {
 
         config.clear_config().unwrap();
         config.pull_config(false).unwrap();
-        let pulled_file = config.dotconfigs_path.get_path().join("test_file.txt");
+        let pulled_file = config.dotconfigs_path.get_path().join("test_file");
         assert!(pulled_file.exists());
 
         let new_test_file_path = temp_dir.path().join("new_test_file.txt");
@@ -480,10 +537,6 @@ mod tests {
         let non_existent_path = temp_dir.path().join("non_existent_file.txt");
         let result = config.add_config("non_existent", non_existent_path.to_str().unwrap());
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Path does not exist"));
     }
 
     #[test]

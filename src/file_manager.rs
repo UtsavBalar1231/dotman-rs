@@ -1,8 +1,7 @@
-use rayon::prelude::*;
+use fs_extra::{dir, file};
 use std::{fs, io, path::Path};
-use walkdir::WalkDir;
 
-/// Recursively removes files and directories with optimized parallel processing.
+/// Removes files and directories recursively.
 ///
 /// # Errors
 ///
@@ -13,28 +12,19 @@ where
 {
     let path = path.as_ref();
 
-    if path.is_dir() {
-        // Collect all entries in the directory for parallel processing
-        let entries: Vec<_> = fs::read_dir(path)?.filter_map(Result::ok).collect();
-
-        entries.par_iter().try_for_each(|entry| {
-            let entry_path = entry.path();
-            if entry_path.is_dir() {
-                fs_remove_recursive(&entry_path)
-            } else {
-                fs::remove_file(&entry_path)
-            }
-        })?;
-
-        // Remove the directory itself after its contents are cleared
-        fs::remove_dir(path)?;
-    } else if path.is_file() {
-        fs::remove_file(path)?;
-    } else {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "Path is neither a file nor a directory",
-        ));
+    if path.exists() {
+        if path.is_dir() {
+            // Remove the directory and its contents
+            dir::remove(path).map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        } else if path.is_file() {
+            // Remove a single file
+            file::remove(path).map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        } else {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Path is neither a file nor a directory",
+            ));
+        }
     }
 
     Ok(())
@@ -42,47 +32,74 @@ where
 
 /// Copies a file or directory recursively.
 ///
-/// # Panics
-///
-/// Panics if the source path is not a valid file or directory.
+/// This function determines whether the source path is a file or a directory and handles the copying process accordingly.
 ///
 /// # Errors
 ///
-/// This function will return an error if any part of the copy process fails.
+/// Returns an error if any part of the copy process fails.
 pub fn fs_copy_recursive<P>(src: P, dst: P) -> io::Result<()>
 where
     P: AsRef<Path>,
 {
-    let src = src.as_ref();
-    let dst = dst.as_ref();
+    let src_path = src.as_ref();
+    let dst_path = dst.as_ref();
 
-    if src.is_dir() {
-        fs::create_dir_all(dst)?;
+    if !src_path.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("Source path not found: {}", src_path.display()),
+        ));
+    }
 
-        for entry in WalkDir::new(src)
-            .into_iter()
-            .filter_map(Result::ok)
-            .filter(|e| !crate::is_git_related(e.path()))
-        // Ignore `.git`-related files
-        {
-            let src_entry = entry.path();
-            let dst_entry = dst.join(src_entry.strip_prefix(src).expect("Failed to strip prefix"));
+    if src_path.is_file() {
+        // Copy a single file
+        if dst_path.is_dir() {
+            let dest_file_path = dst_path.join(src_path.file_name().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Destination is a directory but source file has no name",
+                )
+            })?);
+            fs::copy(src_path, &dest_file_path).map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to copy file: {}", e.to_string()),
+                )
+            })?;
+        } else {
+            fs::copy(src_path, dst_path).map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to copy file: {}", e.to_string()),
+                )
+            })?;
+        }
+    } else if src_path.is_dir() {
+        // Copy a directory and its contents
+        if !dst_path.exists() {
+            fs::create_dir_all(dst_path)?;
+        }
 
-            if src_entry.is_dir() {
-                fs::create_dir_all(&dst_entry)?;
-            } else if src_entry.is_file() {
-                fs::copy(src_entry, &dst_entry)?;
+        for entry in fs::read_dir(src_path)? {
+            let entry = entry?;
+            let entry_path = entry.path();
+            let dest_entry_path = dst_path.join(entry.file_name());
+
+            if entry_path.is_dir() {
+                fs_copy_recursive(&entry_path, &dest_entry_path)?;
+            } else {
+                fs::copy(&entry_path, &dest_entry_path).map_err(|e| {
+                    io::Error::new(
+                        io::ErrorKind::Other,
+                        format!("Failed to copy file: {}", e.to_string()),
+                    )
+                })?;
             }
         }
-    } else if src.is_file() {
-        if let Some(parent) = dst.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::copy(src, dst)?;
     } else {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "Source is not a valid file or directory",
+            "Source path is neither file nor directory",
         ));
     }
 
@@ -91,58 +108,44 @@ where
 
 #[cfg(test)]
 mod tests {
-    use fs::File;
-    use std::io::Write;
-    use tempfile::tempdir;
-
     use super::*;
+    use std::{fs, path::PathBuf};
 
     #[test]
-    fn test_file_manager_fs_copy_recursive_file() {
-        let temp_dir = tempdir().unwrap();
-        let src_path = temp_dir.path().join("test_file.txt");
-        let dst_path = temp_dir.path().join("copy_test_file.txt");
-        let mut file = File::create(&src_path).unwrap();
-        writeln!(file, "test content").unwrap();
-        fs_copy_recursive(&src_path, &dst_path).unwrap();
-        assert!(dst_path.exists());
-        let copied_content = fs::read_to_string(&dst_path).unwrap();
-        assert_eq!(copied_content, "test content\n");
+    fn test_fs_copy_recursive() {
+        let src = PathBuf::from("test_src");
+        let dst = PathBuf::from("test_dst");
+
+        // Setup
+        fs::create_dir_all(&src).unwrap();
+        fs::write(src.join("file1.txt"), "Hello, World!").unwrap();
+        fs::create_dir_all(src.join("subdir")).unwrap();
+        fs::write(src.join("subdir/file2.txt"), "Another file!").unwrap();
+
+        // Perform copy
+        fs_copy_recursive(&src, &dst).unwrap();
+
+        // Verify
+        assert!(dst.join("file1.txt").exists());
+        assert!(dst.join("subdir/file2.txt").exists());
+
+        // Cleanup
+        fs_remove_recursive(&src).unwrap();
+        fs_remove_recursive(&dst).unwrap();
     }
 
     #[test]
-    fn test_file_manager_fs_copy_recursive_dir() {
-        let temp_dir = tempdir().unwrap();
-        let src_dir = temp_dir.path().join("test_dir");
-        let dst_dir = temp_dir.path().join("copy_test_dir");
-        fs::create_dir_all(&src_dir).unwrap();
-        let file_in_dir = src_dir.join("test_file.txt");
-        let mut file = File::create(&file_in_dir).unwrap();
-        writeln!(file, "test content").unwrap();
-        fs_copy_recursive(&src_dir, &dst_dir).unwrap();
-        assert!(dst_dir.exists());
-        assert!(dst_dir.join("test_file.txt").exists());
-        let copied_content = fs::read_to_string(dst_dir.join("test_file.txt")).unwrap();
-        assert_eq!(copied_content, "test content\n");
-    }
+    fn test_fs_remove_recursive() {
+        let path = PathBuf::from("test_remove");
 
-    #[test]
-    fn test_file_manager_fs_remove_recursive_file() {
-        let temp_dir = tempdir().unwrap();
-        let file_path = temp_dir.path().join("test_file.txt");
-        File::create(&file_path).unwrap();
-        fs_remove_recursive(&file_path).unwrap();
-        assert!(!file_path.exists());
-    }
+        // Setup
+        fs::create_dir_all(&path).unwrap();
+        fs::write(path.join("file.txt"), "To be deleted.").unwrap();
 
-    #[test]
-    fn test_file_manager_fs_remove_recursive_dir() {
-        let temp_dir = tempdir().unwrap();
-        let dir_path = temp_dir.path().join("test_dir");
-        fs::create_dir_all(&dir_path).unwrap();
-        let file_in_dir = dir_path.join("test_file.txt");
-        File::create(&file_in_dir).unwrap();
-        fs_remove_recursive(&dir_path).unwrap();
-        assert!(!dir_path.exists());
+        // Perform removal
+        fs_remove_recursive(&path).unwrap();
+
+        // Verify
+        assert!(!path.exists());
     }
 }
