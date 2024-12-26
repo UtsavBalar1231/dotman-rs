@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
-use std::{path, time};
+use std::{fmt, path, time};
 
 /// A struct to store the hash and modified time of a file
 #[derive(Serialize, Deserialize, Clone, Eq, PartialEq)]
@@ -10,6 +10,21 @@ pub struct CacheEntry {
 
     /// The modified time of the entry
     pub modified: time::SystemTime,
+}
+
+impl CacheEntry {
+    pub fn from(hash: &str, modified: time::SystemTime) -> Self {
+        Self {
+            hash: hash.to_string(),
+            modified,
+        }
+    }
+}
+
+impl fmt::Display for CacheEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.hash)
+    }
 }
 
 /// A serializable version of DashMap

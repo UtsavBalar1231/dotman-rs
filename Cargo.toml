@@ -12,7 +12,6 @@ authors = ["Utsav Balar <utsavbalar1231@gmail.com>"]
 toml = "0.8"
 blake3 = "1.5"
 dirs = "5.0"
-dashmap = "6.1"
 walkdir = "2.5"
 rayon = "1.10"
 thiserror = "2.0"
@@ -38,3 +37,7 @@ features = ["derive"]
 [dependencies.digest]
 version = "0.10"
 features = ["alloc"]
+
+[dependencies.dashmap]
+version = "6.1"
+features = ["serde", "rayon", "inline"]

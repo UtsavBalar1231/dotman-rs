@@ -28,6 +28,11 @@ impl fmt::Display for Config {
     }
 }
 
+#[derive(Deserialize, Serialize)]
+struct TrackedFiles {
+    files: DashMap<String, Vec<String>>, // Maps config name to a list of tracked file paths
+}
+
 impl Config {
     pub fn get_config_path(config_path: Option<&str>) -> Result<path::PathBuf, ConfigError> {
         let config_path_name = format!("{}/config.toml", env!("CARGO_PKG_NAME"));
@@ -201,9 +206,6 @@ impl Config {
 
             // Destination path is the original path from the configuration entry
             let dst_path = &entry.path;
-
-            println!("SRC PATH: {}", src_path.display());
-            println!("DST PATH: {}", dst_path.display());
 
             // If `clean` is true or if overwrite support is enabled, remove the destination path
             if clean || dst_path.exists() {
@@ -387,6 +389,210 @@ impl Config {
 
         Ok(())
     }
+
+    pub fn status(&self) -> Result<(), ConfigError> {
+        let metadata_path = get_metadata_path(&self.path);
+        let metadata_content = fs::read_to_string(metadata_path)?;
+        let tracked_files: TrackedFiles = toml::from_str(&metadata_content)?;
+
+        for config_entry in &self.configs {
+            let resolved_path =
+                shellexpand::tilde(&config_entry.path.to_string_lossy()).to_string();
+
+            // Get tracked file paths and their hashes.
+            let tracked_files_map = tracked_files
+                .files
+                .get(&config_entry.name)
+                .map(|ref_val| {
+                    ref_val
+                        .value()
+                        .iter()
+                        .map(|file_path| {
+                            // Attempt to get hash from cache first
+                            if let Some(_cache_entry) =
+                                self.hash_cache.get(&path::PathBuf::from(file_path))
+                            {
+                                Ok((file_path.clone(), self.hash_cache.clone()))
+                            } else {
+                                // If not in cache, calculate and insert into cache
+                                let hash = hasher::get_complete_dir_hash(
+                                    &path::PathBuf::from(file_path),
+                                    &sync::Arc::clone(&self.hash_cache),
+                                )?;
+
+                                let metadata = fs::metadata(&file_path)?;
+                                let modified = metadata.modified()?;
+                                self.hash_cache.insert(
+                                    file_path.into(),
+                                    CacheEntry::from(&hash.clone(), modified),
+                                );
+
+                                Ok((file_path.clone(), self.hash_cache.clone()))
+                            }
+                        })
+                        .collect::<Result<DashMap<String, _>, ConfigError>>()
+                })
+                .unwrap_or_else(|| Ok(DashMap::new()))?; // Handle case where config entry is not tracked
+
+            // Collect current file paths and calculate their hashes.
+            let current_files_map = DashMap::new();
+            if config_entry.path.is_dir() {
+                for entry in fs::read_dir(&resolved_path)? {
+                    let entry = entry?;
+                    if entry.file_type()?.is_file() {
+                        let file_path = entry.path().to_string_lossy().to_string();
+                        // Attempt to use cache or calculate hash
+                        let hash = if let Some(cached_hash) =
+                            self.hash_cache.get(&path::PathBuf::from(&file_path))
+                        {
+                            cached_hash.clone()
+                        } else {
+                            let calculated_hash = hasher::get_complete_dir_hash(
+                                &path::PathBuf::from(&file_path),
+                                &sync::Arc::clone(&self.hash_cache),
+                            )?;
+
+                            let metadata = fs::metadata(&file_path)?;
+                            let modified = metadata.modified()?;
+                            let cache_entry = CacheEntry::from(&calculated_hash, modified);
+                            self.hash_cache
+                                .insert(file_path.clone().into(), cache_entry.clone());
+                            cache_entry
+                        };
+                        println!("DIR FILE: {}: {}", config_entry.name, hash);
+                        current_files_map.insert(file_path.clone(), hash);
+                    }
+                }
+            } else if config_entry.path.is_file() {
+                let hash = if let Some(cached_hash) =
+                    self.hash_cache.get(&path::PathBuf::from(&resolved_path))
+                {
+                    cached_hash.clone()
+                } else {
+                    let calculated_hash = hasher::get_file_hash(
+                        &path::PathBuf::from(&resolved_path),
+                        &sync::Arc::clone(&self.hash_cache),
+                    )?;
+
+                    let metadata = fs::metadata(&resolved_path)?;
+                    let modified = metadata.modified()?;
+
+                    let cache_entry = CacheEntry::from(&calculated_hash, modified);
+                    self.hash_cache
+                        .insert(resolved_path.clone().into(), cache_entry.clone());
+                    cache_entry
+                };
+                println!("FILE: {}: {}", config_entry.name, hash);
+                current_files_map.insert(resolved_path, hash);
+            } else {
+                unreachable!("ERROR: Not a file or directory");
+            }
+
+            // Detect changes using the hashmaps.
+            let added_files: Vec<_> = current_files_map
+                .iter()
+                .map(|entry| entry.key().clone())
+                .filter(|file| !tracked_files_map.contains_key(file))
+                .collect();
+
+            let deleted_files: Vec<_> = tracked_files_map
+                .iter()
+                .map(|entry| entry.key().clone())
+                .filter(|file| !current_files_map.contains_key(file))
+                .collect();
+
+            let modified_files: Vec<_> = current_files_map
+                .iter()
+                .filter(|entry| {
+                    tracked_files_map
+                        .get(entry.key().as_str())
+                        .map_or(false, |old_hash| {
+                            let old_hash_value = old_hash
+                                .value()
+                                .get(&path::PathBuf::from(entry.key()))
+                                .map_or(String::new(), |entry| entry.clone().hash);
+
+                            entry.value().to_string() != old_hash_value
+                        })
+                })
+                .map(|entry| entry.key().clone())
+                .collect();
+
+            // Report changes.
+            if !added_files.is_empty() {
+                println!("[{}] Added files:", config_entry.name);
+                for file in &added_files {
+                    println!("  {}", file);
+                }
+            }
+
+            if !deleted_files.is_empty() {
+                println!("[{}] Deleted files:", config_entry.name);
+                for file in &deleted_files {
+                    println!("  {}", file);
+                }
+            }
+
+            if !modified_files.is_empty() {
+                println!("[{}] Modified files:", config_entry.name);
+                for file in &modified_files {
+                    println!("  {}", file);
+                }
+            }
+
+            if added_files.is_empty() && deleted_files.is_empty() && modified_files.is_empty() {
+                println!("[{}] No changes detected.", config_entry.name);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn init_metadata(&self) -> Result<(), ConfigError> {
+        let tracked_files = DashMap::new();
+
+        for config_entry in &self.configs {
+            let mut files = Vec::new();
+            let resolved_path =
+                shellexpand::tilde(&config_entry.path.to_string_lossy()).to_string();
+
+            match config_entry.conf_type {
+                ConfType::Dir => {
+                    for entry in fs::read_dir(&resolved_path)? {
+                        let entry = entry?;
+                        if entry.file_type()?.is_file() {
+                            files.push(entry.path().to_string_lossy().to_string());
+                        }
+                    }
+                }
+                ConfType::File => {
+                    files.push(resolved_path.clone());
+                }
+
+                _ => unreachable!(),
+            }
+            tracked_files.insert(config_entry.name.clone(), files);
+        }
+
+        // Save to metadata file
+        let metadata_path = get_metadata_path(&self.path);
+        let tracked_files_struct = TrackedFiles {
+            files: tracked_files,
+        };
+        let toml_content = toml::to_string(&tracked_files_struct)?;
+        fs::write(&metadata_path, toml_content)?;
+
+        println!("Tracking initialized: {}", metadata_path.display());
+
+        Ok(())
+    }
+}
+
+fn get_metadata_path(path: &path::PathBuf) -> path::PathBuf {
+    path.to_string_lossy()
+        .to_string()
+        .replace(".toml", "_tracked_files.toml")
+        .into()
 }
 
 fn get_cache_path(original_path: &path::Path) -> path::PathBuf {

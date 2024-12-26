@@ -174,5 +174,5 @@ This project is licensed under the [MIT License](LICENSE).
    - Implement `dotman-rs remote-push` and `dotman-rs remote-pull`.
 2. Add support for checking status of tracked configurations.
    - Implement `dotman-rs status` for displaying the status of tracked configurations.
-3. Use `fs_extra` for efficient file operations.
+3. Reduce dependencies
 4. Do Documentation.

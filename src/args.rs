@@ -60,6 +60,14 @@ pub enum Commands {
     /// Clean the dotconfigs directory
     #[clap(short_flag = 'C')]
     Clean,
+
+    /// Status of the dotfiles
+    #[clap(short_flag = 's')]
+    Status,
+
+    /// Initialize the files list
+    #[clap(short_flag = 'i')]
+    Init,
 }
 
 #[derive(Args)]
@@ -90,6 +98,8 @@ impl fmt::Display for Commands {
             Commands::Add(_) => write!(f, "add"),
             Commands::Edit => write!(f, "edit"),
             Commands::Clean => write!(f, "clean"),
+            Commands::Status => write!(f, "status"),
+            Commands::Init => write!(f, "init"),
         }
     }
 }

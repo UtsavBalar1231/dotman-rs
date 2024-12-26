@@ -33,6 +33,8 @@ fn main() -> Result<(), ConfigError> {
         Commands::Add(args::AddArgs { name, path }) => config.add_config(name, path),
         Commands::Edit => config.edit_config(),
         Commands::Clean => config.clean_configs(),
+        Commands::Status => config.status(),
+        Commands::Init => config.init_metadata(),
     }?;
 
     println!(
