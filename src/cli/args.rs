@@ -100,8 +100,12 @@ pub struct BackupArgs {
     pub name: Option<String>,
     
     /// Package name for organized backups (e.g., 'nvim', 'zsh', 'kitty')
-    #[arg(long)]
+    #[arg(long, conflicts_with = "all_packages")]
     pub package: Option<String>,
+    
+    /// Backup all configured packages
+    #[arg(long, conflicts_with = "package")]
+    pub all_packages: bool,
     
     /// Backup description
     #[arg(short, long)]
@@ -146,8 +150,12 @@ pub struct RestoreArgs {
     pub backup: String,
     
     /// Package name for package-based restore
-    #[arg(long)]
+    #[arg(long, conflicts_with = "all_packages")]
     pub package: Option<String>,
+    
+    /// Restore all packages from backup
+    #[arg(long, conflicts_with = "package")]
+    pub all_packages: bool,
     
     /// Target directory for restoration
     #[arg(short, long)]

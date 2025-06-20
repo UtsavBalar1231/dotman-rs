@@ -187,8 +187,56 @@ impl CommandHandler {
         }
 
         // Determine backup paths and metadata
-        let (backup_paths, package_name, package_description, backup_name, backup_description) = if let Some(package_name) = &args.package {
-            // Package-based backup
+        let (backup_paths, package_name, package_description, backup_name, backup_description) = if args.all_packages {
+            // All packages backup
+            let all_packages = self.config.list_packages();
+            if all_packages.is_empty() {
+                return Err(anyhow::anyhow!("No packages configured. Use 'dotman package add' to create packages first."));
+            }
+            
+            let mut all_paths = Vec::new();
+            let mut all_descriptions = Vec::new();
+            let mut all_exclude_patterns = Vec::new();
+            let mut all_include_patterns = Vec::new();
+            
+            println!("[📦] Backing up all {} configured packages:", all_packages.len());
+            
+            // Clone the package names to avoid borrowing issues
+            let package_names: Vec<String> = all_packages.iter().map(|s| s.to_string()).collect();
+            
+            for package_name in &package_names {
+                if let Some(package_config) = self.config.get_package(package_name) {
+                    all_paths.extend(package_config.paths.clone());
+                    all_descriptions.push(format!("{}: {}", package_name, package_config.description));
+                    
+                    // Collect package-specific patterns
+                    if !package_config.exclude_patterns.is_empty() {
+                        all_exclude_patterns.extend(package_config.exclude_patterns.clone());
+                    }
+                    if !package_config.include_patterns.is_empty() {
+                        all_include_patterns.extend(package_config.include_patterns.clone());
+                    }
+                    
+                    println!("[📦]   - {}: {} ({} paths)", package_name, package_config.description, package_config.paths.len());
+                }
+            }
+            
+            // Apply all collected patterns after the loop
+            self.config.exclude_patterns.extend(all_exclude_patterns);
+            self.config.include_patterns.extend(all_include_patterns);
+            
+            let name = args.name.clone().unwrap_or_else(|| "all-packages".to_string());
+            let description = args.description.clone().unwrap_or_else(|| 
+                format!("All packages backup - {} - {}", 
+                    package_names.join(", "), 
+                    chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"))
+            );
+            
+            println!("[📦] Total paths to backup: {}", all_paths.len());
+            
+            (all_paths, None, Some(all_descriptions.join("; ")), Some(name), Some(description))
+        } else if let Some(package_name) = &args.package {
+            // Single package backup
             if let Some(package_config) = self.config.get_package(package_name) {
                 // Clone all needed values to avoid borrowing issues
                 let paths = package_config.paths.clone();
@@ -221,7 +269,7 @@ impl CommandHandler {
         } else {
             // Regular path-based backup
             if args.paths.is_empty() {
-                return Err(anyhow::anyhow!("No paths specified for backup. Use --package <name> for package backup or specify paths directly."));
+                return Err(anyhow::anyhow!("No paths specified for backup. Use --package <name> for single package backup, --all-packages for all packages, or specify paths directly."));
             }
             (args.paths.clone(), None, None, args.name.clone(), args.description.clone())
         };
@@ -320,8 +368,167 @@ impl CommandHandler {
         let restore_manager = RestoreManager::new(filesystem, progress_reporter, self.config.clone());
 
         // Perform restore based on whether this is a package restore or general restore
-        let results = if let Some(package_name) = &args.package {
-            // Package-based restore - restore specific files from the package
+        let results = if args.all_packages {
+            // All packages restore - restore all configured packages
+            let all_packages = self.config.list_packages();
+            if all_packages.is_empty() {
+                return Err(anyhow::anyhow!("No packages configured. Cannot restore all packages."));
+            }
+            
+            let mut all_results = Vec::new();
+            
+            println!("[📦] Restoring all {} configured packages:", all_packages.len());
+            
+            for package_name in &all_packages {
+                if let Some(package_config) = self.config.get_package(package_name) {
+                    println!("[📦] Restoring package: {} ({} paths)", package_name, package_config.paths.len());
+                    
+                    // For each path in the package configuration
+                    for original_path in &package_config.paths {
+                        if original_path.is_file() {
+                            // Handle individual file
+                            if let Some(backup_file_path) = self.find_file_in_backup(original_path, &backup_dir).await? {
+                                let target_path = if args.in_place {
+                                    original_path.clone()
+                                } else if let Some(ref target_dir) = args.target {
+                                    if original_path.is_absolute() {
+                                        let relative_path = original_path.strip_prefix("/").unwrap_or(original_path);
+                                        target_dir.join(relative_path)
+                                    } else {
+                                        target_dir.join(original_path)
+                                    }
+                                } else {
+                                    let relative_path = original_path.strip_prefix("/").unwrap_or(original_path);
+                                    PathBuf::from("./restored").join(relative_path)
+                                };
+                                
+                                match self.restore_single_file(&backup_file_path, &target_path, args.overwrite).await {
+                                    Ok(()) => {
+                                        all_results.push(OperationResult {
+                                            operation_type: OperationType::Restore,
+                                            path: target_path.clone(),
+                                            success: true,
+                                            error: None,
+                                            details: Some(format!("Restored from {}", backup_file_path.display())),
+                                            required_privileges: false,
+                                            duration: None,
+                                            bytes_processed: None,
+                                        });
+                                        println!("    [✓] Restored: {} -> {}", original_path.display(), target_path.display());
+                                    }
+                                    Err(e) => {
+                                        all_results.push(OperationResult {
+                                            operation_type: OperationType::Restore,
+                                            path: target_path.clone(),
+                                            success: false,
+                                            error: Some(e.to_string()),
+                                            details: None,
+                                            required_privileges: false,
+                                            duration: None,
+                                            bytes_processed: None,
+                                        });
+                                        println!("    [✗] Failed to restore: {} -> {}: {}", original_path.display(), target_path.display(), e);
+                                    }
+                                }
+                            } else {
+                                all_results.push(OperationResult {
+                                    operation_type: OperationType::Restore,
+                                    path: original_path.clone(),
+                                    success: false,
+                                    error: Some("File not found in backup".to_string()),
+                                    details: None,
+                                    required_privileges: false,
+                                    duration: None,
+                                    bytes_processed: None,
+                                });
+                                println!("    [✗] File not found in backup: {}", original_path.display());
+                            }
+                        } else if original_path.is_dir() {
+                            // Handle directory - find all files that were backed up from this directory
+                            let backed_up_files = self.find_all_files_in_backup_directory(original_path, &backup_dir).await?;
+                            
+                            if backed_up_files.is_empty() {
+                                all_results.push(OperationResult {
+                                    operation_type: OperationType::Restore,
+                                    path: original_path.clone(),
+                                    success: false,
+                                    error: Some("No files found in backup for this directory".to_string()),
+                                    details: None,
+                                    required_privileges: false,
+                                    duration: None,
+                                    bytes_processed: None,
+                                });
+                                println!("    [✗] No files found in backup for directory: {}", original_path.display());
+                            } else {
+                                // Restore each file from the directory
+                                for (backup_file_path, original_file_path) in backed_up_files {
+                                    let target_path = if args.in_place {
+                                        original_file_path.clone()
+                                    } else if let Some(ref target_dir) = args.target {
+                                        if original_file_path.is_absolute() {
+                                            let relative_path = original_file_path.strip_prefix("/").unwrap_or(&original_file_path);
+                                            target_dir.join(relative_path)
+                                        } else {
+                                            target_dir.join(&original_file_path)
+                                        }
+                                    } else {
+                                        let relative_path = original_file_path.strip_prefix("/").unwrap_or(&original_file_path);
+                                        PathBuf::from("./restored").join(relative_path)
+                                    };
+                                    
+                                    match self.restore_single_file(&backup_file_path, &target_path, args.overwrite).await {
+                                        Ok(()) => {
+                                            all_results.push(OperationResult {
+                                                operation_type: OperationType::Restore,
+                                                path: target_path.clone(),
+                                                success: true,
+                                                error: None,
+                                                details: Some(format!("Restored from {}", backup_file_path.display())),
+                                                required_privileges: false,
+                                                duration: None,
+                                                bytes_processed: None,
+                                            });
+                                            println!("    [✓] Restored: {} -> {}", original_file_path.display(), target_path.display());
+                                        }
+                                        Err(e) => {
+                                            all_results.push(OperationResult {
+                                                operation_type: OperationType::Restore,
+                                                path: target_path.clone(),
+                                                success: false,
+                                                error: Some(e.to_string()),
+                                                details: None,
+                                                required_privileges: false,
+                                                duration: None,
+                                                bytes_processed: None,
+                                            });
+                                            println!("    [✗] Failed to restore: {} -> {}: {}", original_file_path.display(), target_path.display(), e);
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // Path doesn't exist in current filesystem
+                            all_results.push(OperationResult {
+                                operation_type: OperationType::Restore,
+                                path: original_path.clone(),
+                                success: false,
+                                error: Some("Path does not exist in current filesystem".to_string()),
+                                details: None,
+                                required_privileges: false,
+                                duration: None,
+                                bytes_processed: None,
+                            });
+                            println!("    [✗] Path does not exist: {}", original_path.display());
+                        }
+                    }
+                } else {
+                    println!("[⚠️] Package '{}' not found in current configuration, skipping", package_name);
+                }
+            }
+            
+            all_results
+        } else if let Some(package_name) = &args.package {
+            // Single package restore - restore specific files from the package
             if let Some(package_config) = self.config.get_package(package_name) {
                 let mut all_results = Vec::new();
                 
