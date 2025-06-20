@@ -385,232 +385,37 @@ impl CommandHandler {
                     
                     // For each path in the package configuration
                     for original_path in &package_config.paths {
-                        if original_path.is_file() {
-                            // Handle individual file
+                        // First, try to find files in backup for this path
+                        let backup_files = if original_path.is_file() || !original_path.exists() {
+                            // For files or non-existent paths, check if there's a backup file
                             if let Some(backup_file_path) = self.find_file_in_backup(original_path, &backup_dir).await? {
-                                let target_path = if args.in_place {
-                                    original_path.clone()
-                                } else if let Some(ref target_dir) = args.target {
-                                    if original_path.is_absolute() {
-                                        let relative_path = original_path.strip_prefix("/").unwrap_or(original_path);
-                                        target_dir.join(relative_path)
-                                    } else {
-                                        target_dir.join(original_path)
-                                    }
-                                } else {
-                                    let relative_path = original_path.strip_prefix("/").unwrap_or(original_path);
-                                    PathBuf::from("./restored").join(relative_path)
-                                };
-                                
-                                match self.restore_single_file(&backup_file_path, &target_path, args.overwrite).await {
-                                    Ok(()) => {
-                                        all_results.push(OperationResult {
-                                            operation_type: OperationType::Restore,
-                                            path: target_path.clone(),
-                                            success: true,
-                                            error: None,
-                                            details: Some(format!("Restored from {}", backup_file_path.display())),
-                                            required_privileges: false,
-                                            duration: None,
-                                            bytes_processed: None,
-                                        });
-                                        println!("    [✓] Restored: {} -> {}", original_path.display(), target_path.display());
-                                    }
-                                    Err(e) => {
-                                        all_results.push(OperationResult {
-                                            operation_type: OperationType::Restore,
-                                            path: target_path.clone(),
-                                            success: false,
-                                            error: Some(e.to_string()),
-                                            details: None,
-                                            required_privileges: false,
-                                            duration: None,
-                                            bytes_processed: None,
-                                        });
-                                        println!("    [✗] Failed to restore: {} -> {}: {}", original_path.display(), target_path.display(), e);
-                                    }
-                                }
+                                vec![(backup_file_path, original_path.clone())]
                             } else {
-                                all_results.push(OperationResult {
-                                    operation_type: OperationType::Restore,
-                                    path: original_path.clone(),
-                                    success: false,
-                                    error: Some("File not found in backup".to_string()),
-                                    details: None,
-                                    required_privileges: false,
-                                    duration: None,
-                                    bytes_processed: None,
-                                });
-                                println!("    [✗] File not found in backup: {}", original_path.display());
+                                Vec::new()
                             }
                         } else if original_path.is_dir() {
-                            // Handle directory - find all files that were backed up from this directory
-                            let backed_up_files = self.find_all_files_in_backup_directory(original_path, &backup_dir).await?;
-                            
-                            if backed_up_files.is_empty() {
-                                all_results.push(OperationResult {
-                                    operation_type: OperationType::Restore,
-                                    path: original_path.clone(),
-                                    success: false,
-                                    error: Some("No files found in backup for this directory".to_string()),
-                                    details: None,
-                                    required_privileges: false,
-                                    duration: None,
-                                    bytes_processed: None,
-                                });
-                                println!("    [✗] No files found in backup for directory: {}", original_path.display());
-                            } else {
-                                // Restore each file from the directory
-                                for (backup_file_path, original_file_path) in backed_up_files {
-                                    let target_path = if args.in_place {
-                                        original_file_path.clone()
-                                    } else if let Some(ref target_dir) = args.target {
-                                        if original_file_path.is_absolute() {
-                                            let relative_path = original_file_path.strip_prefix("/").unwrap_or(&original_file_path);
-                                            target_dir.join(relative_path)
-                                        } else {
-                                            target_dir.join(&original_file_path)
-                                        }
-                                    } else {
-                                        let relative_path = original_file_path.strip_prefix("/").unwrap_or(&original_file_path);
-                                        PathBuf::from("./restored").join(relative_path)
-                                    };
-                                    
-                                    match self.restore_single_file(&backup_file_path, &target_path, args.overwrite).await {
-                                        Ok(()) => {
-                                            all_results.push(OperationResult {
-                                                operation_type: OperationType::Restore,
-                                                path: target_path.clone(),
-                                                success: true,
-                                                error: None,
-                                                details: Some(format!("Restored from {}", backup_file_path.display())),
-                                                required_privileges: false,
-                                                duration: None,
-                                                bytes_processed: None,
-                                            });
-                                            println!("    [✓] Restored: {} -> {}", original_file_path.display(), target_path.display());
-                                        }
-                                        Err(e) => {
-                                            all_results.push(OperationResult {
-                                                operation_type: OperationType::Restore,
-                                                path: target_path.clone(),
-                                                success: false,
-                                                error: Some(e.to_string()),
-                                                details: None,
-                                                required_privileges: false,
-                                                duration: None,
-                                                bytes_processed: None,
-                                            });
-                                            println!("    [✗] Failed to restore: {} -> {}: {}", original_file_path.display(), target_path.display(), e);
-                                        }
-                                    }
-                                }
-                            }
+                            // For existing directories, find all files that were backed up from this directory
+                            self.find_all_files_in_backup_directory(original_path, &backup_dir).await?
                         } else {
-                            // Path doesn't exist in current filesystem
+                            Vec::new()
+                        };
+
+                        if backup_files.is_empty() {
+                            // No files found in backup for this path
                             all_results.push(OperationResult {
                                 operation_type: OperationType::Restore,
                                 path: original_path.clone(),
                                 success: false,
-                                error: Some("Path does not exist in current filesystem".to_string()),
+                                error: Some("No files found in backup for this path".to_string()),
                                 details: None,
                                 required_privileges: false,
                                 duration: None,
                                 bytes_processed: None,
                             });
-                            println!("    [✗] Path does not exist: {}", original_path.display());
-                        }
-                    }
-                } else {
-                    println!("[⚠️] Package '{}' not found in current configuration, skipping", package_name);
-                }
-            }
-            
-            all_results
-        } else if let Some(package_name) = &args.package {
-            // Single package restore - restore specific files from the package
-            if let Some(package_config) = self.config.get_package(package_name) {
-                let mut all_results = Vec::new();
-                
-                // For each path in the package configuration
-                for original_path in &package_config.paths {
-                    if original_path.is_file() {
-                        // Handle individual file
-                        if let Some(backup_file_path) = self.find_file_in_backup(original_path, &backup_dir).await? {
-                            let target_path = if args.in_place {
-                                original_path.clone()
-                            } else if let Some(ref target_dir) = args.target {
-                                if original_path.is_absolute() {
-                                    let relative_path = original_path.strip_prefix("/").unwrap_or(original_path);
-                                    target_dir.join(relative_path)
-                                } else {
-                                    target_dir.join(original_path)
-                                }
-                            } else {
-                                let relative_path = original_path.strip_prefix("/").unwrap_or(original_path);
-                                PathBuf::from("./restored").join(relative_path)
-                            };
-                            
-                            match self.restore_single_file(&backup_file_path, &target_path, args.overwrite).await {
-                                Ok(()) => {
-                                    all_results.push(OperationResult {
-                                        operation_type: OperationType::Restore,
-                                        path: target_path.clone(),
-                                        success: true,
-                                        error: None,
-                                        details: Some(format!("Restored from {}", backup_file_path.display())),
-                                        required_privileges: false,
-                                        duration: None,
-                                        bytes_processed: None,
-                                    });
-                                    println!("  [✓] Restored: {} -> {}", original_path.display(), target_path.display());
-                                }
-                                Err(e) => {
-                                    all_results.push(OperationResult {
-                                        operation_type: OperationType::Restore,
-                                        path: target_path.clone(),
-                                        success: false,
-                                        error: Some(e.to_string()),
-                                        details: None,
-                                        required_privileges: false,
-                                        duration: None,
-                                        bytes_processed: None,
-                                    });
-                                    println!("  [✗] Failed to restore: {} -> {}: {}", original_path.display(), target_path.display(), e);
-                                }
-                            }
+                            println!("  [✗] No files found in backup: {}", original_path.display());
                         } else {
-                            all_results.push(OperationResult {
-                                operation_type: OperationType::Restore,
-                                path: original_path.clone(),
-                                success: false,
-                                error: Some("File not found in backup".to_string()),
-                                details: None,
-                                required_privileges: false,
-                                duration: None,
-                                bytes_processed: None,
-                            });
-                            println!("  [✗] File not found in backup: {}", original_path.display());
-                        }
-                    } else if original_path.is_dir() {
-                        // Handle directory - find all files that were backed up from this directory
-                        let backed_up_files = self.find_all_files_in_backup_directory(original_path, &backup_dir).await?;
-                        
-                        if backed_up_files.is_empty() {
-                            all_results.push(OperationResult {
-                                operation_type: OperationType::Restore,
-                                path: original_path.clone(),
-                                success: false,
-                                error: Some("No files found in backup for this directory".to_string()),
-                                details: None,
-                                required_privileges: false,
-                                duration: None,
-                                bytes_processed: None,
-                            });
-                            println!("  [✗] No files found in backup for directory: {}", original_path.display());
-                        } else {
-                            // Restore each file from the directory
-                            for (backup_file_path, original_file_path) in backed_up_files {
+                            // Restore each backup file
+                            for (backup_file_path, original_file_path) in backup_files {
                                 let target_path = if args.in_place {
                                     original_file_path.clone()
                                 } else if let Some(ref target_dir) = args.target {
@@ -655,19 +460,94 @@ impl CommandHandler {
                                 }
                             }
                         }
+                    }
+                } else {
+                    println!("[⚠️] Package '{}' not found in current configuration, skipping", package_name);
+                }
+            }
+            
+            all_results
+        } else if let Some(package_name) = &args.package {
+            // Single package restore - restore specific files from the package
+            if let Some(package_config) = self.config.get_package(package_name) {
+                let mut all_results = Vec::new();
+                
+                // For each path in the package configuration
+                for original_path in &package_config.paths {
+                    // First, try to find files in backup for this path
+                    let backup_files = if original_path.is_file() || !original_path.exists() {
+                        // For files or non-existent paths, check if there's a backup file
+                        if let Some(backup_file_path) = self.find_file_in_backup(original_path, &backup_dir).await? {
+                            vec![(backup_file_path, original_path.clone())]
+                        } else {
+                            Vec::new()
+                        }
+                    } else if original_path.is_dir() {
+                        // For existing directories, find all files that were backed up from this directory
+                        self.find_all_files_in_backup_directory(original_path, &backup_dir).await?
                     } else {
-                        // Path doesn't exist in current filesystem
+                        Vec::new()
+                    };
+
+                    if backup_files.is_empty() {
+                        // No files found in backup for this path
                         all_results.push(OperationResult {
                             operation_type: OperationType::Restore,
                             path: original_path.clone(),
                             success: false,
-                            error: Some("Path does not exist in current filesystem".to_string()),
+                            error: Some("No files found in backup for this path".to_string()),
                             details: None,
                             required_privileges: false,
                             duration: None,
                             bytes_processed: None,
                         });
-                        println!("  [✗] Path does not exist: {}", original_path.display());
+                        println!("    [✗] No files found in backup: {}", original_path.display());
+                    } else {
+                        // Restore each backup file
+                        for (backup_file_path, original_file_path) in backup_files {
+                            let target_path = if args.in_place {
+                                original_file_path.clone()
+                            } else if let Some(ref target_dir) = args.target {
+                                if original_file_path.is_absolute() {
+                                    let relative_path = original_file_path.strip_prefix("/").unwrap_or(&original_file_path);
+                                    target_dir.join(relative_path)
+                                } else {
+                                    target_dir.join(&original_file_path)
+                                }
+                            } else {
+                                let relative_path = original_file_path.strip_prefix("/").unwrap_or(&original_file_path);
+                                PathBuf::from("./restored").join(relative_path)
+                            };
+                            
+                            match self.restore_single_file(&backup_file_path, &target_path, args.overwrite).await {
+                                Ok(()) => {
+                                    all_results.push(OperationResult {
+                                        operation_type: OperationType::Restore,
+                                        path: target_path.clone(),
+                                        success: true,
+                                        error: None,
+                                        details: Some(format!("Restored from {}", backup_file_path.display())),
+                                        required_privileges: false,
+                                        duration: None,
+                                        bytes_processed: None,
+                                    });
+                                    println!("    [✓] Restored: {} -> {}", original_file_path.display(), target_path.display());
+                                }
+                                Err(e) => {
+                                    all_results.push(OperationResult {
+                                        operation_type: OperationType::Restore,
+                                        path: target_path.clone(),
+                                        success: false,
+                                        error: Some(e.to_string()),
+                                        details: None,
+                                        required_privileges: false,
+                                        duration: None,
+                                        bytes_processed: None,
+                                    });
+                                    println!("    [✗] Failed to restore: {} -> {}: {}", original_file_path.display(), target_path.display(), e);
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -2153,11 +2033,22 @@ impl CommandHandler {
         })
     }
 
-    /// Restore a single file from backup to target location
-    async fn restore_single_file(&self, backup_file_path: &Path, target_path: &Path, overwrite: bool) -> anyhow::Result<()> {
-        // Check if target file exists
+    /// Restore a single file or directory from backup to target location
+    async fn restore_single_file(&self, backup_path: &Path, target_path: &Path, overwrite: bool) -> anyhow::Result<()> {
+        // Check if target exists and handle overwrite logic
         if target_path.exists() && !overwrite {
-            return Err(anyhow::anyhow!("Target file exists and overwrite not specified: {}", target_path.display()));
+            return Err(anyhow::anyhow!("Target exists and overwrite not specified: {}", target_path.display()));
+        }
+        
+        // Remove existing target if overwrite is enabled
+        if target_path.exists() && overwrite {
+            if target_path.is_dir() {
+                tokio::fs::remove_dir_all(target_path).await
+                    .context(format!("Failed to remove existing directory: {}", target_path.display()))?;
+            } else {
+                tokio::fs::remove_file(target_path).await
+                    .context(format!("Failed to remove existing file: {}", target_path.display()))?;
+            }
         }
         
         // Create parent directory if needed
@@ -2166,11 +2057,47 @@ impl CommandHandler {
                 .context(format!("Failed to create parent directory: {}", parent.display()))?;
         }
         
-        // Copy file from backup to target
-        tokio::fs::copy(backup_file_path, target_path).await
-            .context(format!("Failed to copy {} to {}", backup_file_path.display(), target_path.display()))?;
+        // Check if backup is a directory or file
+        if backup_path.is_dir() {
+            self.copy_directory_recursive(backup_path, target_path).await
+                .context(format!("Failed to copy directory {} to {}", backup_path.display(), target_path.display()))?;
+        } else {
+            // Copy file from backup to target
+            tokio::fs::copy(backup_path, target_path).await
+                .context(format!("Failed to copy file {} to {}", backup_path.display(), target_path.display()))?;
+        }
         
         Ok(())
+    }
+
+    /// Recursively copy a directory from source to destination
+    fn copy_directory_recursive<'a>(&'a self, src: &'a Path, dst: &'a Path) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + 'a>> {
+        Box::pin(async move {
+            // Create the destination directory
+            tokio::fs::create_dir_all(dst).await
+                .context(format!("Failed to create directory: {}", dst.display()))?;
+            
+            // Read the source directory
+            let mut entries = tokio::fs::read_dir(src).await
+                .context(format!("Failed to read directory: {}", src.display()))?;
+            
+            while let Some(entry) = entries.next_entry().await? {
+                let entry_path = entry.path();
+                let file_name = entry.file_name();
+                let dst_path = dst.join(&file_name);
+                
+                if entry_path.is_dir() {
+                    // Recursively copy subdirectory
+                    self.copy_directory_recursive(&entry_path, &dst_path).await?;
+                } else {
+                    // Copy file
+                    tokio::fs::copy(&entry_path, &dst_path).await
+                        .context(format!("Failed to copy file {} to {}", entry_path.display(), dst_path.display()))?;
+                }
+            }
+            
+            Ok(())
+        })
     }
 }
 
