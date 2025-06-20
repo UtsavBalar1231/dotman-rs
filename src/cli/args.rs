@@ -145,6 +145,10 @@ pub struct RestoreArgs {
     /// Backup path or name to restore from
     pub backup: String,
     
+    /// Package name for package-based restore
+    #[arg(long)]
+    pub package: Option<String>,
+    
     /// Target directory for restoration
     #[arg(short, long)]
     pub target: Option<PathBuf>,
@@ -443,6 +447,10 @@ pub enum PackageAction {
 
 #[derive(Args, Debug)]
 pub struct StatusArgs {
+    /// Package name to check status for
+    #[arg(long)]
+    pub package: Option<String>,
+    
     /// Paths to check status for
     pub paths: Vec<PathBuf>,
     
@@ -467,6 +475,10 @@ pub struct StatusArgs {
 pub struct DiffArgs {
     /// Backup path or name to compare against current state
     pub backup: String,
+    
+    /// Package name for package-based diff
+    #[arg(long)]
+    pub package: Option<String>,
     
     /// Compare only specific files
     pub files: Vec<PathBuf>,

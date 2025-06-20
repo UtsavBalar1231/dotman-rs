@@ -35,6 +35,14 @@ pub struct BackupSession {
     pub total_size: u64,
     pub processed_size: u64,
     pub errors: Vec<String>,
+    /// Package name if this is a package backup
+    pub package_name: Option<String>,
+    /// Package description if this is a package backup
+    pub package_description: Option<String>,
+    /// Custom backup name/tag
+    pub backup_name: Option<String>,
+    /// Backup description
+    pub backup_description: Option<String>,
 }
 
 impl<F, P> BackupManager<F, P> 
@@ -54,9 +62,35 @@ where
     /// Start a new backup session
     #[instrument(skip(self))]
     pub async fn start_backup_session(&self, source_paths: Vec<PathBuf>) -> Result<BackupSession> {
+        self.start_backup_session_with_metadata(source_paths, None, None, None, None).await
+    }
+
+    /// Start a new backup session with package and naming metadata
+    #[instrument(skip(self))]
+    pub async fn start_backup_session_with_metadata(
+        &self, 
+        source_paths: Vec<PathBuf>,
+        package_name: Option<String>,
+        package_description: Option<String>,
+        backup_name: Option<String>,
+        backup_description: Option<String>,
+    ) -> Result<BackupSession> {
         let session_id = Uuid::new_v4();
-        let backup_dir = self.config.backup_dir
-            .join(format!("backup-{}", session_id));
+        
+        // Create a more descriptive backup directory name
+        let backup_dir_name = if let Some(ref pkg_name) = package_name {
+            if let Some(ref name) = backup_name {
+                format!("{}-{}", name, session_id)
+            } else {
+                format!("package-{}-{}", pkg_name, chrono::Utc::now().format("%Y%m%d-%H%M%S"))
+            }
+        } else if let Some(ref name) = backup_name {
+            format!("{}-{}", name, session_id)
+        } else {
+            format!("backup-{}", session_id)
+        };
+        
+        let backup_dir = self.config.backup_dir.join(backup_dir_name);
 
         info!(session_id = %session_id, "Starting backup session");
 
@@ -76,6 +110,10 @@ where
             total_size,
             processed_size: 0,
             errors: Vec::new(),
+            package_name,
+            package_description,
+            backup_name,
+            backup_description,
         };
 
         self.progress_reporter.report_progress(&ProgressInfo {
@@ -89,7 +127,6 @@ where
         if self.config.max_backup_versions > 0 {
             self.cleanup_old_backups(&backup_dir).await?;
         }
-        let max_versions = self.config.max_backup_versions;
 
         Ok(session)
     }

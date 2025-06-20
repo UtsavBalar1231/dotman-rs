@@ -305,20 +305,24 @@ mod types_tests {
     #[test]
     fn test_backup_session() {
         let session = BackupSession {
-            id: Uuid::new_v4(),
-            started_at: Utc::now(),
-            source_paths: vec![PathBuf::from("/test")],
-            backup_dir: PathBuf::from("/backup"),
-            total_files: 5,
-            processed_files: 3,
-            total_size: 2048,
-            processed_size: 1024,
-            errors: vec!["Test error".to_string()],
+            id: uuid::Uuid::new_v4(),
+            started_at: chrono::Utc::now(),
+            source_paths: vec![PathBuf::from("/test/path")],
+            backup_dir: PathBuf::from("/backup/dir"),
+            total_files: 100,
+            processed_files: 50,
+            total_size: 1024,
+            processed_size: 512,
+            errors: vec![],
+            package_name: None,
+            package_description: None,
+            backup_name: None,
+            backup_description: None,
         };
         
-        assert_eq!(session.total_files, 5);
-        assert_eq!(session.processed_files, 3);
-        assert_eq!(session.errors.len(), 1);
+        assert_eq!(session.total_files, 100);
+        assert_eq!(session.processed_files, 50);
+        assert_eq!(session.errors.len(), 0);
     }
 
     #[test]

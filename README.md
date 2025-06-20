@@ -325,3 +325,145 @@ dotman-rs status
 ### Commands
 
 #### `
+
+## Individual Package Management
+
+Dotman-rs supports individual package backup and restore operations, allowing you to manage specific configurations independently. This is particularly useful for backing up and restoring individual applications like `kitty`, `nvim`, `zsh`, etc.
+
+### Creating Package Configurations
+
+Define packages with custom names and paths:
+
+```bash
+# Create a package for Neovim configuration
+dotman-rs package add nvim ~/.config/nvim --description "Neovim configuration"
+
+# Create a package for Kitty terminal
+dotman-rs package add kitty ~/.config/kitty --description "Kitty terminal configuration"
+
+# Create a package for Zsh configuration (multiple paths)
+dotman-rs package add zsh ~/.config/zsh ~/.zshrc --description "Zsh shell configuration"
+```
+
+### Individual Package Backup
+
+Backup specific packages independently:
+
+```bash
+# Backup only nvim configuration
+dotman-rs backup --package nvim
+
+# Backup kitty configuration
+dotman-rs backup --package kitty
+
+# Backup with custom description
+dotman-rs backup --package zsh --description "Pre-update backup"
+```
+
+Package backups are stored with descriptive names like `package-nvim-{uuid}` for easy identification.
+
+### Change Detection and Status
+
+Check what has changed since your last backup:
+
+```bash
+# Check status of nvim package
+dotman-rs status --package nvim
+
+# Check status with detailed output
+dotman-rs status --package kitty --detailed
+
+# Check only changed files
+dotman-rs status --package zsh --changed-only
+```
+
+The status command shows:
+- **[=]** Unchanged files
+- **[M]** Modified files (different from backup)
+- **[+]** New files (not in backup)
+- **[-]** Missing files (in backup but not current)
+
+### Compare with Backup (Diff)
+
+View detailed differences between current files and backup:
+
+```bash
+# Show differences for nvim package
+dotman-rs diff package-nvim-{backup-id} --package nvim
+
+# Show differences with timestamps
+dotman-rs diff package-kitty-{backup-id} --package kitty --show-timestamps
+
+# Show all files including identical ones
+dotman-rs diff package-zsh-{backup-id} --package zsh --show-identical
+```
+
+### Individual Package Restore
+
+Restore specific packages from backup:
+
+```bash
+# Restore nvim configuration to original location
+dotman-rs restore package-nvim-{backup-id} --package nvim --in-place
+
+# Restore to a different location for testing
+dotman-rs restore package-kitty-{backup-id} --package kitty --target ~/test-restore
+
+# Restore with overwrite protection
+dotman-rs restore package-zsh-{backup-id} --package zsh --in-place --backup-existing
+
+# Force restore (overwrite existing files)
+dotman-rs restore package-nvim-{backup-id} --package nvim --in-place --overwrite
+```
+
+### Package Management Commands
+
+```bash
+# List all package configurations
+dotman-rs package list
+
+# Show details of a specific package
+dotman-rs package show nvim
+
+# Edit package configuration (add/remove paths)
+dotman-rs package edit nvim --add-paths ~/.config/nvim/after
+
+# Remove a package configuration
+dotman-rs package remove nvim
+```
+
+### Workflow Example
+
+Here's a typical workflow for managing individual packages:
+
+```bash
+# 1. Create package configurations
+dotman-rs package add nvim ~/.config/nvim --description "Neovim configuration"
+dotman-rs package add kitty ~/.config/kitty --description "Kitty terminal"
+
+# 2. Initial backup
+dotman-rs backup --package nvim
+dotman-rs backup --package kitty
+
+# 3. Make changes to your configurations...
+# (edit files, install plugins, etc.)
+
+# 4. Check what changed
+dotman-rs status --package nvim
+dotman-rs status --package kitty --changed-only
+
+# 5. Create new backup if satisfied with changes
+dotman-rs backup --package nvim --description "Added new plugins"
+
+# 6. Or restore previous version if needed
+dotman-rs restore package-nvim-{previous-backup-id} --package nvim --in-place --overwrite
+```
+
+### Benefits of Individual Package Management
+
+- **Granular Control**: Backup and restore specific applications independently
+- **Change Tracking**: See exactly what changed in each package since last backup
+- **Selective Restore**: Restore only the configurations you need
+- **Organized Backups**: Package backups are clearly labeled and easy to identify
+- **Conflict Prevention**: Test configurations in isolated directories before applying
+- **Version History**: Maintain multiple backup versions for each package
