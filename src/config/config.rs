@@ -67,13 +67,17 @@ impl Default for Config {
                 .unwrap_or_else(|| PathBuf::from("."))
                 .join(".dotman"),
             include_patterns: vec![
-                ".*".to_string(), // Include all dotfiles by default
+                "*".to_string(), // Include all files by default
             ],
             exclude_patterns: vec![
                 ".git/*".to_string(),
                 ".DS_Store".to_string(),
                 "*.tmp".to_string(),
                 "*.log".to_string(),
+                "target/*".to_string(),  // Rust build artifacts
+                "node_modules/*".to_string(),  // Node.js dependencies
+                "*.pyc".to_string(),  // Python compiled files
+                "__pycache__/*".to_string(),  // Python cache
             ],
             follow_symlinks: true,
             preserve_permissions: true,

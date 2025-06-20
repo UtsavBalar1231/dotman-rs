@@ -223,25 +223,17 @@ pub struct VerifyArgs {
 
 #[derive(Args, Debug)]
 pub struct CleanArgs {
-    /// Number of backups to keep
+    /// Number of backups to keep (remove older ones)
     #[arg(short, long)]
-    pub keep: Option<usize>,
+    pub keep_last: Option<usize>,
     
     /// Remove backups older than specified days
     #[arg(long)]
-    pub older_than: Option<u32>,
+    pub older_than_days: Option<u32>,
     
-    /// Remove corrupted backups
-    #[arg(long)]
-    pub corrupted: bool,
-    
-    /// Remove temporary files
-    #[arg(long)]
-    pub temp: bool,
-    
-    /// Show what would be removed without actually removing
-    #[arg(long)]
-    pub dry_run: bool,
+    /// Force deletion without confirmation
+    #[arg(short, long)]
+    pub force: bool,
 }
 
 #[derive(Args, Debug)]
@@ -379,26 +371,19 @@ pub struct StatusArgs {
 
 #[derive(Args, Debug)]
 pub struct DiffArgs {
-    /// First path/backup to compare
-    pub source: String,
-    
-    /// Second path/backup to compare (optional, defaults to current state)
-    pub target: Option<String>,
-    
-    /// Show context lines
-    #[arg(short, long, default_value = "3")]
-    pub context: usize,
-    
-    /// Use unified diff format
-    #[arg(short, long)]
-    pub unified: bool,
+    /// Backup path or name to compare against current state
+    pub backup: String,
     
     /// Compare only specific files
     pub files: Vec<PathBuf>,
     
-    /// Ignore whitespace differences
+    /// Show timestamps in differences
     #[arg(short, long)]
-    pub ignore_whitespace: bool,
+    pub show_timestamps: bool,
+    
+    /// Show identical files
+    #[arg(long)]
+    pub show_identical: bool,
 }
 
 /// Parse command line arguments

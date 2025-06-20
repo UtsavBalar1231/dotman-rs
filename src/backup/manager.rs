@@ -176,6 +176,8 @@ where
         let relative_path = self.get_relative_backup_path(source_path)?;
         let target_path = backup_dir.join(&relative_path);
 
+        debug!("Backing up file: {} -> {}", source_path.display(), target_path.display());
+
         // Ensure parent directory exists
         if let Some(parent) = target_path.parent() {
             self.filesystem.create_dir_all(parent).await?;
@@ -197,10 +199,11 @@ where
             details: None,
         });
 
+        info!("Successfully backed up file: {} to {}", source_path.display(), target_path.display());
         Ok(())
     }
 
-    /// Backup a directory recursively
+    /// Backup a directory and its contents
     async fn backup_directory(
         &self,
         source_path: &Path,
@@ -208,23 +211,26 @@ where
         session: &mut BackupSession,
     ) -> Result<()> {
         let relative_path = self.get_relative_backup_path(source_path)?;
-        let target_path = backup_dir.join(&relative_path);
+        let target_dir = backup_dir.join(&relative_path);
 
-        // Create target directory
-        self.filesystem.create_dir_all(&target_path).await?;
+        debug!("Backing up directory: {} -> {}", source_path.display(), target_dir.display());
 
-        // Get directory entries
-        let entries = self.filesystem.list_dir(source_path).await?;
+        // Create the directory
+        self.filesystem.create_dir_all(&target_dir).await?;
 
-        for entry in entries {
-            let entry_path = source_path.join(&entry);
-            self.backup_path(&entry_path, backup_dir, session).await?;
+        // Recursively backup directory contents
+        if let Ok(entries) = self.filesystem.list_dir(source_path).await {
+            for entry in entries {
+                let entry_path = source_path.join(&entry);
+                self.backup_path(&entry_path, backup_dir, session).await?;
+            }
         }
 
+        info!("Successfully backed up directory: {}", source_path.display());
         Ok(())
     }
 
-    /// Backup a symlink
+    /// Backup a symbolic link
     async fn backup_symlink(
         &self,
         source_path: &Path,
@@ -234,37 +240,41 @@ where
         let relative_path = self.get_relative_backup_path(source_path)?;
         let target_path = backup_dir.join(&relative_path);
 
+        debug!("Backing up symlink: {} -> {}", source_path.display(), target_path.display());
+
+        // Read the symlink target
+        let link_target = self.filesystem.read_symlink(source_path).await?;
+
         // Ensure parent directory exists
         if let Some(parent) = target_path.parent() {
             self.filesystem.create_dir_all(parent).await?;
         }
 
-        // Read symlink target
-        let link_target = self.filesystem.read_symlink(source_path).await?;
-
-        // Create symlink in backup
+        // Create the symlink in backup
         self.filesystem.create_symlink(&link_target, &target_path).await?;
 
+        // Update progress
         session.processed_files += 1;
 
         self.progress_reporter.report_progress(&ProgressInfo {
             current: session.processed_files,
             total: session.total_files,
             message: format!("Backed up symlink: {}", source_path.display()),
-            details: Some(format!("Target: {}", link_target.display())),
+            details: None,
         });
 
+        info!("Successfully backed up symlink: {} to {}", source_path.display(), target_path.display());
         Ok(())
     }
 
-    /// Calculate total size and file count for backup
+    /// Calculate total files and size for backup operation
     async fn calculate_backup_size(&self, source_paths: &[PathBuf]) -> Result<(u64, u64)> {
-        let mut total_files = 0u64;
-        let mut total_size = 0u64;
+        let mut total_files = 0;
+        let mut total_size = 0;
 
-        for path in source_paths {
-            if self.filesystem.exists(path).await? {
-                let (files, size) = self.calculate_path_size(path).await?;
+        for source_path in source_paths {
+            if self.filesystem.exists(source_path).await? {
+                let (files, size) = self.calculate_path_size(source_path).await?;
                 total_files += files;
                 total_size += size;
             }
@@ -276,32 +286,34 @@ where
     /// Calculate size and file count for a single path
     fn calculate_path_size<'a>(&'a self, path: &'a Path) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(u64, u64)>> + Send + 'a>> {
         Box::pin(async move {
-        if self.should_exclude_path(path)? {
+        if !self.filesystem.exists(path).await? {
             return Ok((0, 0));
         }
 
         let metadata = self.filesystem.metadata(path).await?;
-        
+
         match metadata.file_type {
             crate::core::types::FileType::File => {
                 Ok((1, metadata.size))
             }
             crate::core::types::FileType::Directory => {
-                let mut total_files = 0u64;
-                let mut total_size = 0u64;
+                let mut total_files = 0;
+                let mut total_size = 0;
 
-                let entries = self.filesystem.list_dir(path).await?;
-                for entry in entries {
-                    let entry_path = path.join(&entry);
-                    let (files, size) = self.calculate_path_size(&entry_path).await?;
-                    total_files += files;
-                    total_size += size;
+                if let Ok(entries) = self.filesystem.list_dir(path).await {
+                    for entry in entries {
+                        let entry_path = path.join(&entry);
+                        let (files, size) = self.calculate_path_size(&entry_path).await?;
+                        total_files += files;
+                        total_size += size;
+                    }
                 }
 
                 Ok((total_files, total_size))
             }
             crate::core::types::FileType::Symlink { .. } => {
-                Ok((1, 0)) // Symlinks don't have size
+                // Symlinks are counted as 1 file, but we could also read the target size
+                Ok((1, metadata.size))
             }
             _ => Ok((0, 0)),
         }
@@ -342,7 +354,12 @@ where
 
     /// Get relative path for backup storage
     fn get_relative_backup_path(&self, source_path: &Path) -> Result<PathBuf> {
-        // Convert absolute path to relative path for backup storage
+        // For relative paths, use them as-is
+        if source_path.is_relative() {
+            return Ok(source_path.to_path_buf());
+        }
+        
+        // For absolute paths, convert to relative path for backup storage
         // Remove leading slash to avoid issues with path joining
         let path_str = source_path.to_string_lossy();
         let relative_str = path_str.strip_prefix('/').unwrap_or(&path_str);
