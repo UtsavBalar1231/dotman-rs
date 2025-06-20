@@ -1,43 +1,87 @@
 [package]
 name = "dotman-rs"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
 license = "MIT"
 readme = "README.md"
-description = "Easily Manage dotfiles across machines"
+description = "A robust dotfiles management system with comprehensive file type support"
 categories = ["command-line-utilities"]
 authors = ["Utsav Balar <utsavbalar1231@gmail.com>"]
 
 [dependencies]
+# Core async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Serialization and configuration
+serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Command line interface
+clap = { version = "4.0", features = ["derive"] }
+
+# File system and permissions
+walkdir = "2.3"
+nix = { version = "0.28", features = ["fs", "user"] }
+
+# Hashing and integrity
 blake3 = "1.5"
+sha2 = "0.10"
+
+# Path expansion
+shellexpand = "3.1"
 dirs = "5.0"
-walkdir = "2.5"
+
+# Parallel processing
 rayon = "1.10"
-thiserror = "2.0"
-fs_extra = "1.3"
-shellexpand = "3.1.0"
+futures = "0.3"
+
+# Async trait support
+async-trait = "0.1"
+
+# JSON handling for metadata
+serde_with = "3.4"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID for transaction IDs
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Temporary file handling
+tempfile = "3.8"
+
+# Compression (optional)
+flate2 = { version = "1.0", optional = true }
+tar = { version = "0.4", optional = true }
+
+# Encryption (optional)
+ring = { version = "0.17", optional = true }
+
+# Additional dependencies
+glob = "0.3"
 
 [dev-dependencies]
 tempfile = "3.14"
+tokio-test = "0.4"
+mockall = "0.13"
+proptest = "1.0"
+
+[features]
+default = ["compression"]
+compression = ["flate2", "tar"]
+encryption = ["ring"]
 
 [profile.release]
 lto = true
 opt-level = 3
 codegen-units = 1
-
-[dependencies.serde]
-version = "1.0"
-features = ["derive"]
-
-[dependencies.clap]
-version = "4.5"
-features = ["derive"]
-
-[dependencies.digest]
-version = "0.10"
-features = ["alloc"]
-
-[dependencies.dashmap]
-version = "6.1"
-features = ["serde", "rayon", "inline"]
+panic = "abort"

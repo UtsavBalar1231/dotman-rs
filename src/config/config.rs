@@ -1,759 +1,315 @@
-use crate::{
-    config::{
-        config_cache::{CacheEntry, ConfigCacheSerde},
-        config_entry::{ConfType, ConfigEntry},
-        dotconfig_path::DotconfigPath,
-    },
-    errors::ConfigError,
-    file_manager, hasher,
-};
-use dashmap::DashMap;
-use rayon::prelude::*;
+use std::path::{Path, PathBuf};
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use std::{fmt, fs, io::Write, path, sync};
+use tokio::fs;
+use crate::core::error::{DotmanError, Result};
 
-#[derive(Deserialize, Serialize, Clone)]
-pub struct Config {
-    #[serde(skip)]
-    path: path::PathBuf,
-    #[serde(skip)]
-    hash_cache: sync::Arc<DashMap<path::PathBuf, CacheEntry>>,
-    pub dotconfigs_path: DotconfigPath,
-    pub configs: Vec<ConfigEntry>,
+/// Compression configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompressionConfig {
+    /// Whether compression is enabled
+    pub enabled: bool,
+    /// Compression level (0-9)
+    pub level: u32,
 }
 
-impl fmt::Display for Config {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", toml::to_string_pretty(self).unwrap())
+impl Default for CompressionConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            level: 6,
+        }
     }
 }
 
-#[derive(Deserialize, Serialize)]
-struct TrackedFiles {
-    files: DashMap<String, Vec<String>>, // Maps config name to a list of tracked file paths
+/// Main configuration structure for dotman-rs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Config {
+    /// Backup directory path
+    pub backup_dir: PathBuf,
+    /// Configuration directory path
+    pub config_dir: PathBuf,
+    /// Include patterns (glob patterns)
+    pub include_patterns: Vec<String>,
+    /// Exclude patterns (glob patterns)
+    pub exclude_patterns: Vec<String>,
+    /// Whether to follow symlinks
+    pub follow_symlinks: bool,
+    /// Whether to preserve file permissions
+    pub preserve_permissions: bool,
+    /// Whether to create backups of existing files before restore
+    pub create_backups: bool,
+    /// Whether to verify file integrity after operations
+    pub verify_integrity: bool,
+    /// Operation mode for the current session
+    pub operation_mode: crate::core::types::OperationMode,
+    /// Maximum number of backup versions to keep
+    pub max_backup_versions: u32,
+    /// Whether to use compression for backups
+    pub enable_compression: bool,
+    /// Whether to enable encryption for sensitive files
+    pub enable_encryption: bool,
+    /// Logging configuration
+    pub log_level: String,
+    /// Custom backup patterns
+    pub backup_patterns: HashMap<String, String>,
+    /// Compression configuration
+    pub compression: CompressionConfig,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            backup_dir: dirs::home_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join(".dotman/backups"),
+            config_dir: dirs::home_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join(".dotman"),
+            include_patterns: vec![
+                ".*".to_string(), // Include all dotfiles by default
+            ],
+            exclude_patterns: vec![
+                ".git/*".to_string(),
+                ".DS_Store".to_string(),
+                "*.tmp".to_string(),
+                "*.log".to_string(),
+            ],
+            follow_symlinks: true,
+            preserve_permissions: true,
+            create_backups: true,
+            verify_integrity: true,
+            operation_mode: crate::core::types::OperationMode::Default,
+            max_backup_versions: 5,
+            enable_compression: false,
+            enable_encryption: false,
+            log_level: "info".to_string(),
+            backup_patterns: HashMap::new(),
+            compression: CompressionConfig::default(),
+        }
+    }
 }
 
 impl Config {
-    pub fn get_config_path(config_path: Option<&str>) -> Result<path::PathBuf, ConfigError> {
-        let config_path_name = format!("{}/config.toml", env!("CARGO_PKG_NAME"));
-
-        if let Some(path) = config_path {
-            return Ok(path::PathBuf::from(path));
-        }
-
-        if let Ok(path) = std::env::var("DOTMAN_CONFIG_PATH") {
-            // Check if path is valid
-            let path = path::PathBuf::from(path);
-            if path.exists() {
-                return Ok(path);
-            } else {
-                eprintln!(
-                    "Config file set in $DOTMAN_CONFIG_PATH, but not found: {}",
-                    path.display()
-                );
-
-                return Err(ConfigError::ConfigFileNotFound(path));
-            }
-        }
-
-        Ok(dirs::config_dir()
-            .unwrap_or_else(|| dirs::home_dir().unwrap())
-            .join(config_path_name))
+    /// Create a new configuration with default values
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    pub fn new(path: path::PathBuf, dotconfigs_path: DotconfigPath) -> Self {
-        Self {
-            path,
-            dotconfigs_path,
-            hash_cache: sync::Arc::new(DashMap::new()),
-            configs: Vec::new(),
-        }
-    }
-
-    fn load_hash_cache(&mut self) -> Result<(), ConfigError> {
-        let cache_path = get_cache_path(&self.path);
-
-        if cache_path.exists() {
-            let content = fs::read_to_string(cache_path)?;
-            let serde_wrapper: ConfigCacheSerde = toml::from_str(&content).unwrap_or_default();
-            self.hash_cache = sync::Arc::new(serde_wrapper.to_dashmap());
-        } else {
-            self.hash_cache = sync::Arc::new(DashMap::new());
-        }
-
-        Ok(())
-    }
-
-    fn save_hash_cache(&self) -> Result<(), ConfigError> {
-        if self.hash_cache.is_empty() {
-            return Ok(());
-        }
-
-        let cache_path = get_cache_path(&self.path);
-        if !cache_path.exists() {
-            fs::create_dir_all(cache_path.parent().unwrap())?;
-        }
-
-        let serde_wrapper = ConfigCacheSerde::from_dashmap(&self.hash_cache);
-        let content = toml::to_string_pretty(&serde_wrapper)?;
-        fs::write(cache_path, content)?;
-
-        Ok(())
-    }
-
-    pub fn pull_config(&mut self, clean: bool) -> Result<Option<path::PathBuf>, ConfigError> {
-        self.load_hash_cache()?;
-
-        let tracking_path = &self.dotconfigs_path.get_path();
-        if !tracking_path.exists() {
-            fs::create_dir_all(tracking_path)?;
-        }
-
-        // Process each config entry in parallel
-        let copied_paths: Vec<Option<path::PathBuf>> = self
-            .configs
-            .par_iter_mut()
-            .map(|entry| {
-                let src_path = &entry.path;
-
-                // Determine the destination path
-                let dest_path = if entry.conf_type == ConfType::File {
-                    tracking_path.join(&entry.name) // Copy file directly to `tracking_path/name`
-                } else {
-                    tracking_path.join(&entry.name) // Copy directory to `tracking_path/name`
-                };
-
-                // Get the current hash based on file or directory type
-                let current_hash = match src_path.metadata() {
-                    Ok(metadata) if metadata.is_file() => {
-                        hasher::get_file_hash(src_path, &self.hash_cache).unwrap_or_default()
-                    }
-                    Ok(metadata) if metadata.is_dir() => {
-                        hasher::get_complete_dir_hash(src_path, &self.hash_cache)
-                            .unwrap_or_default()
-                    }
-                    _ => {
-                        return Err(ConfigError::InvalidPath(format!(
-                            "Path is not a valid file or directory: {}",
-                            src_path.display()
-                        )));
-                    }
-                };
-
-                // Check if copying is needed
-                let needs_pull = entry.hash != current_hash
-                    || clean
-                    || self.hash_cache.is_empty()
-                    || entry.hash.is_empty()
-                    || !dest_path.exists();
-
-                if needs_pull {
-                    println!(
-                        "Pulling {}: {}",
-                        if src_path.is_file() { "file" } else { "dir" },
-                        src_path.display()
-                    );
-
-                    // Clean the destination if required
-                    if clean {
-                        file_manager::fs_remove_recursive(&dest_path)?;
-                    }
-
-                    // Recursively copy to destination
-                    file_manager::fs_copy_recursive(src_path, &dest_path)?;
-
-                    entry.hash = current_hash;
-                    Ok(Some(dest_path))
-                } else {
-                    println!("No changes detected for: {}", entry.name);
-                    Ok(None)
-                }
-            })
-            .collect::<Result<Vec<_>, ConfigError>>()?;
-
-        // Collect the first non-None copied path
-        let copied_path = copied_paths.into_iter().flatten().next();
-
-        // Save updated configurations and hash cache
-        self.save_hash_cache()?;
-        self.save_config()?;
-
-        Ok(copied_path)
-    }
-
-    pub fn push_config(&self, clean: bool) -> Result<(), ConfigError> {
-        let tracking_path = &self.dotconfigs_path.get_path();
-
-        if !tracking_path.exists() {
-            fs::create_dir_all(tracking_path)?;
-        }
-
-        for entry in &self.configs {
-            let name_based_src = tracking_path.join(&entry.name);
-            let fallback_src = tracking_path.join(entry.path.file_name().ok_or_else(|| {
-                ConfigError::InvalidPath(format!(
-                    "Failed to extract file name from path: {:?}",
-                    entry.path
-                ))
-            })?);
-
-            // Determine the actual source path to use
-            let src_path = if name_based_src.exists() {
-                name_based_src
-            } else {
-                fallback_src
-            };
-
-            // Destination path is the original path from the configuration entry
-            let dst_path = &entry.path;
-
-            // If `clean` is true or if overwrite support is enabled, remove the destination path
-            if clean || dst_path.exists() {
-                file_manager::fs_remove_recursive(dst_path)?;
-            }
-
-            // Ensure the source path exists before attempting to copy
-            if !src_path.exists() {
-                return Err(ConfigError::InvalidPath(format!(
-                    "Source path does not exist: {:?}",
-                    src_path
-                )));
-            }
-
-            println!("Pushing from {:?} to {:?}", src_path, dst_path);
-
-            file_manager::fs_copy_recursive(&src_path, dst_path)?;
-        }
-
-        self.save_config()
-    }
-
-    pub fn add_config(&mut self, name: &str, path: &str) -> Result<(), ConfigError> {
-        // Expand the path to its absolute form
-        let expanded_path = Self::expand_path(path)?;
-
-        if self
-            .configs
-            .iter()
-            .any(|c| c.name == name || c.path.to_str().unwrap() == path)
-        {
-            return Err(ConfigError::InvalidConfig(format!(
-                "Config with name {} already exists",
-                name
-            )));
-        }
-
-        if !expanded_path.exists() {
-            return Err(ConfigError::InvalidPath(format!(
-                "Path does not exist: {}",
-                expanded_path.display()
-            )));
-        }
-
-        let new_entry = ConfigEntry {
-            name: name.to_string(),
-            path: expanded_path.clone(),
-            hash: hasher::get_complete_dir_hash(&expanded_path, &self.hash_cache)
-                .unwrap_or_default(),
-            conf_type: ConfType::get_conf_type(&expanded_path),
-        };
-
-        self.configs.push(new_entry.clone());
-
-        println!("Added config: {}", new_entry);
-        self.save_config()
-    }
-
-    // Helper function to expand the path
-    fn expand_path(path_str: &str) -> Result<path::PathBuf, ConfigError> {
-        // Handle ~ (home directory)
-        let path_str = if path_str.starts_with("~/") {
-            match dirs::home_dir() {
-                Some(home) => path_str.replacen("~", &home.to_string_lossy(), 1),
-                None => {
-                    return Err(ConfigError::InvalidPath(
-                        "Could not determine home directory".to_string(),
-                    ))
-                }
-            }
-        } else {
-            path_str.to_string()
-        };
-
-        // Handle environment variables
-        let path_str = shellexpand::env(&path_str)
-            .map_err(|e| {
-                ConfigError::InvalidPath(format!("Failed to expand environment variables: {}", e))
-            })?
-            .to_string();
-
-        // Convert to absolute path
-        let abs_path = path::Path::new(&path_str)
-            .canonicalize()
-            .map_err(|e| ConfigError::InvalidPath(format!("Failed to canonicalize path: {}", e)))?;
-
-        Ok(abs_path)
-    }
-
-    pub fn edit_config(&self) -> Result<(), ConfigError> {
-        let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
-        std::process::Command::new(editor)
-            .arg(&self.path)
-            .status()?;
-        Ok(())
-    }
-
-    pub fn fix_config(&self) -> Result<(), ConfigError> {
-        let valid_configs: Vec<_> = self
-            .configs
-            .iter()
-            .filter(|entry| entry.path.exists())
-            .cloned()
-            .collect();
-
-        let fixed_config = Self {
-            path: self.path.clone(),
-            dotconfigs_path: self.dotconfigs_path.clone(),
-            hash_cache: self.hash_cache.clone(),
-            configs: valid_configs,
-        };
-
-        fixed_config.save_config()
-    }
-
-    fn save_config(&self) -> Result<(), ConfigError> {
-        println!("Saving config: {}", self.path.display());
-
-        let mut serialized = toml::to_string_pretty(self)?;
-
-        let home_dir = dirs::home_dir().unwrap_or_else(|| path::PathBuf::from("/"));
-
-        // Replace occurrences of the actual home directory with $HOME
-        serialized = serialized.replace(&*home_dir.to_string_lossy(), "$HOME");
-
-        let mut file = fs::File::create(&self.path)?;
-        file.write_all(serialized.as_bytes())?;
-
-        Ok(())
-    }
-
-    pub fn clear_config(&self) -> Result<(), ConfigError> {
-        let mut cleared_config = self.clone();
-
-        for entry in &mut cleared_config.configs {
-            entry.hash = String::new();
-        }
-
-        println!("{}", cleared_config);
-
-        cleared_config.save_config()
-    }
-
-    pub fn print_config(config: Option<&Config>) -> Result<(), ConfigError> {
-        if let Some(config) = config {
-            println!("{}", config);
-        } else {
-            let cwd = std::env::current_dir().unwrap_or_else(|_| path::PathBuf::from("."));
-            let new_config = Config::new(path::PathBuf::new(), DotconfigPath::Local(cwd));
-            let toml_config = toml::to_string_pretty(&new_config)?;
-            println!("{}", toml_config);
-        }
-        Ok(())
-    }
-
-    pub fn load_config(config_path: &path::Path) -> Result<Config, ConfigError> {
-        let mut content = fs::read_to_string(config_path)?;
-        let home_dir = dirs::home_dir().unwrap();
-        let replacements = [
-            ("~", &home_dir.to_string_lossy()),
-            ("$HOME", &home_dir.to_string_lossy()),
-        ];
-
-        content = replacements
-            .iter()
-            .fold(content, |acc, &(from, to)| acc.replace(from, to));
-
-        let mut config: Config = toml::from_str(&content)?;
-
-        config.path = config_path.to_path_buf();
-
+    /// Load configuration from file
+    pub async fn load_from_file(path: &PathBuf) -> Result<Self> {
+        let content = fs::read_to_string(path).await
+            .map_err(|e| DotmanError::config(format!("Failed to read config file: {}", e)))?;
+        
+        let config: Config = toml::from_str(&content)
+            .map_err(|e| DotmanError::config(format!("Failed to parse config file: {}", e)))?;
+        
+        config.validate()?;
         Ok(config)
     }
 
-    pub fn clean_configs(&mut self) -> Result<(), ConfigError> {
-        let tracking_path = &self.dotconfigs_path.get_path();
-        // Delete all the configs in the tracking directory
-        file_manager::fs_remove_recursive(tracking_path)?;
-        // Recreate the tracking directory
-        fs::create_dir_all(tracking_path)?;
-
+    /// Save configuration to file
+    pub async fn save_to_file(&self, path: &PathBuf) -> Result<()> {
+        self.validate()?;
+        
+        let content = toml::to_string_pretty(self)
+            .map_err(|e| DotmanError::config(format!("Failed to serialize config: {}", e)))?;
+        
+        // Ensure parent directory exists
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).await
+                .map_err(|e| DotmanError::config(format!("Failed to create config directory: {}", e)))?;
+        }
+        
+        fs::write(path, content).await
+            .map_err(|e| DotmanError::config(format!("Failed to write config file: {}", e)))?;
+        
         Ok(())
     }
 
-    pub fn status(&self) -> Result<(), ConfigError> {
-        let metadata_path = get_metadata_path(&self.path);
-        let metadata_content = fs::read_to_string(metadata_path)?;
-        let tracked_files: TrackedFiles = toml::from_str(&metadata_content)?;
+    /// Validate the configuration
+    pub fn validate(&self) -> Result<()> {
+        // Validate max versions
+        if self.max_backup_versions == 0 {
+            return Err(DotmanError::config("Maximum versions must be greater than 0"));
+        }
 
-        for config_entry in &self.configs {
-            let resolved_path =
-                shellexpand::tilde(&config_entry.path.to_string_lossy()).to_string();
+        // Validate backup directory
+        if !self.backup_dir.is_absolute() {
+            return Err(DotmanError::config("Backup directory must be an absolute path"));
+        }
 
-            // Get tracked file paths and their hashes.
-            let tracked_files_map = tracked_files
-                .files
-                .get(&config_entry.name)
-                .map(|ref_val| {
-                    ref_val
-                        .value()
-                        .iter()
-                        .map(|file_path| {
-                            // Attempt to get hash from cache first
-                            if let Some(_cache_entry) =
-                                self.hash_cache.get(&path::PathBuf::from(file_path))
-                            {
-                                Ok((file_path.clone(), self.hash_cache.clone()))
-                            } else {
-                                // If not in cache, calculate and insert into cache
-                                let hash = hasher::get_complete_dir_hash(
-                                    &path::PathBuf::from(file_path),
-                                    &sync::Arc::clone(&self.hash_cache),
-                                )?;
+        // Validate log level
+        match self.log_level.to_lowercase().as_str() {
+            "trace" | "debug" | "info" | "warn" | "error" => {},
+            _ => return Err(DotmanError::config("Invalid log level")),
+        }
 
-                                let metadata = fs::metadata(&file_path)?;
-                                let modified = metadata.modified()?;
-                                self.hash_cache.insert(
-                                    file_path.into(),
-                                    CacheEntry::from(&hash.clone(), modified),
-                                );
-
-                                Ok((file_path.clone(), self.hash_cache.clone()))
-                            }
-                        })
-                        .collect::<Result<DashMap<String, _>, ConfigError>>()
-                })
-                .unwrap_or_else(|| Ok(DashMap::new()))?; // Handle case where config entry is not tracked
-
-            // Collect current file paths and calculate their hashes.
-            let current_files_map = DashMap::new();
-            if config_entry.path.is_dir() {
-                for entry in fs::read_dir(&resolved_path)? {
-                    let entry = entry?;
-                    if entry.file_type()?.is_file() {
-                        let file_path = entry.path().to_string_lossy().to_string();
-                        // Attempt to use cache or calculate hash
-                        let hash = if let Some(cached_hash) =
-                            self.hash_cache.get(&path::PathBuf::from(&file_path))
-                        {
-                            cached_hash.clone()
-                        } else {
-                            let calculated_hash = hasher::get_complete_dir_hash(
-                                &path::PathBuf::from(&file_path),
-                                &sync::Arc::clone(&self.hash_cache),
-                            )?;
-
-                            let metadata = fs::metadata(&file_path)?;
-                            let modified = metadata.modified()?;
-                            let cache_entry = CacheEntry::from(&calculated_hash, modified);
-                            self.hash_cache
-                                .insert(file_path.clone().into(), cache_entry.clone());
-                            cache_entry
-                        };
-                        println!("DIR FILE: {}: {}", config_entry.name, hash);
-                        current_files_map.insert(file_path.clone(), hash);
-                    }
-                }
-            } else if config_entry.path.is_file() {
-                let hash = if let Some(cached_hash) =
-                    self.hash_cache.get(&path::PathBuf::from(&resolved_path))
-                {
-                    cached_hash.clone()
-                } else {
-                    let calculated_hash = hasher::get_file_hash(
-                        &path::PathBuf::from(&resolved_path),
-                        &sync::Arc::clone(&self.hash_cache),
-                    )?;
-
-                    let metadata = fs::metadata(&resolved_path)?;
-                    let modified = metadata.modified()?;
-
-                    let cache_entry = CacheEntry::from(&calculated_hash, modified);
-                    self.hash_cache
-                        .insert(resolved_path.clone().into(), cache_entry.clone());
-                    cache_entry
-                };
-                println!("FILE: {}: {}", config_entry.name, hash);
-                current_files_map.insert(resolved_path, hash);
-            } else {
-                unreachable!("ERROR: Not a file or directory");
-            }
-
-            // Detect changes using the hashmaps.
-            let added_files: Vec<_> = current_files_map
-                .iter()
-                .map(|entry| entry.key().clone())
-                .filter(|file| !tracked_files_map.contains_key(file))
-                .collect();
-
-            let deleted_files: Vec<_> = tracked_files_map
-                .iter()
-                .map(|entry| entry.key().clone())
-                .filter(|file| !current_files_map.contains_key(file))
-                .collect();
-
-            let modified_files: Vec<_> = current_files_map
-                .iter()
-                .filter(|entry| {
-                    tracked_files_map
-                        .get(entry.key().as_str())
-                        .map_or(false, |old_hash| {
-                            let old_hash_value = old_hash
-                                .value()
-                                .get(&path::PathBuf::from(entry.key()))
-                                .map_or(String::new(), |entry| entry.clone().hash);
-
-                            entry.value().to_string() != old_hash_value
-                        })
-                })
-                .map(|entry| entry.key().clone())
-                .collect();
-
-            // Report changes.
-            if !added_files.is_empty() {
-                println!("[{}] Added files:", config_entry.name);
-                for file in &added_files {
-                    println!("  {}", file);
-                }
-            }
-
-            if !deleted_files.is_empty() {
-                println!("[{}] Deleted files:", config_entry.name);
-                for file in &deleted_files {
-                    println!("  {}", file);
-                }
-            }
-
-            if !modified_files.is_empty() {
-                println!("[{}] Modified files:", config_entry.name);
-                for file in &modified_files {
-                    println!("  {}", file);
-                }
-            }
-
-            if added_files.is_empty() && deleted_files.is_empty() && modified_files.is_empty() {
-                println!("[{}] No changes detected.", config_entry.name);
-            }
+        // Validate compression configuration
+        if self.compression.enabled && self.compression.level > 9 {
+            return Err(DotmanError::config("Compression level must be between 0 and 9"));
         }
 
         Ok(())
     }
 
-    pub fn init_metadata(&self) -> Result<(), ConfigError> {
-        let tracked_files = DashMap::new();
+    /// Get the default configuration file path
+    pub fn default_config_path() -> PathBuf {
+        dirs::config_dir()
+            .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
+            .join("dotman")
+            .join("config.toml")
+    }
 
-        for config_entry in &self.configs {
-            let mut files = Vec::new();
-            let resolved_path =
-                shellexpand::tilde(&config_entry.path.to_string_lossy()).to_string();
+    /// Merge another configuration into this one, overriding fields
+    pub fn merge(&mut self, other: Config) {
+        self.backup_dir = other.backup_dir;
+        self.config_dir = other.config_dir;
+        self.include_patterns = other.include_patterns;
+        self.exclude_patterns = other.exclude_patterns;
+        self.follow_symlinks = other.follow_symlinks;
+        self.preserve_permissions = other.preserve_permissions;
+        self.create_backups = other.create_backups;
+        self.verify_integrity = other.verify_integrity;
+        self.operation_mode = other.operation_mode;
+        self.max_backup_versions = other.max_backup_versions;
+        self.enable_compression = other.enable_compression;
+        self.enable_encryption = other.enable_encryption;
+        self.log_level = other.log_level;
+        self.backup_patterns = other.backup_patterns;
+        self.compression = other.compression;
+    }
 
-            match config_entry.conf_type {
-                ConfType::Dir => {
-                    for entry in fs::read_dir(&resolved_path)? {
-                        let entry = entry?;
-                        if entry.file_type()?.is_file() {
-                            files.push(entry.path().to_string_lossy().to_string());
-                        }
-                    }
-                }
-                ConfType::File => {
-                    files.push(resolved_path.clone());
-                }
-
-                _ => unreachable!(),
+    /// Check if a path should be included based on patterns
+    pub fn should_include(&self, path: &PathBuf) -> bool {
+        let path_str = path.to_string_lossy();
+        
+        // Check exclude patterns first
+        for pattern in &self.exclude_patterns {
+            if glob_match(pattern, &path_str) {
+                return false;
             }
-            tracked_files.insert(config_entry.name.clone(), files);
         }
+        
+        // Check include patterns
+        for pattern in &self.include_patterns {
+            if glob_match(pattern, &path_str) {
+                return true;
+            }
+        }
+        
+        false
+    }
 
-        // Save to metadata file
-        let metadata_path = get_metadata_path(&self.path);
-        let tracked_files_struct = TrackedFiles {
-            files: tracked_files,
-        };
-        let toml_content = toml::to_string(&tracked_files_struct)?;
-        fs::write(&metadata_path, toml_content)?;
+    /// Get the backup directory for a specific profile
+    pub fn backup_dir_for_profile(&self, profile: &str) -> PathBuf {
+        self.backup_dir.join(profile)
+    }
 
-        println!("Tracking initialized: {}", metadata_path.display());
+    /// Get the configuration directory
+    pub fn config_dir() -> PathBuf {
+        dirs::config_dir()
+            .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
+            .join("dotman")
+    }
 
-        Ok(())
+    /// Save configuration to a file
+    pub async fn save(&self, path: &Path) -> Result<()> {
+        let toml_content = toml::to_string(self)
+            .map_err(|e| DotmanError::config(format!("Failed to serialize config: {}", e)))?;
+        
+        // Ensure directory exists
+        if let Some(parent) = path.parent() {
+            tokio::fs::create_dir_all(parent).await
+                .map_err(|e| DotmanError::filesystem(format!("Failed to create config directory: {}", e)))?;
+        }
+        
+        tokio::fs::write(path, toml_content).await
+            .map_err(|e| DotmanError::filesystem(format!("Failed to write config file: {}", e)))
+    }
+
+    /// Load configuration from a file
+    pub async fn load(path: &Path) -> Result<Self> {
+        let content = tokio::fs::read_to_string(path).await
+            .map_err(|e| DotmanError::filesystem(format!("Failed to read config file: {}", e)))?;
+        
+        toml::from_str(&content)
+            .map_err(|e| DotmanError::config(format!("Failed to parse config: {}", e)))
     }
 }
 
-fn get_metadata_path(path: &path::PathBuf) -> path::PathBuf {
-    path.to_string_lossy()
-        .to_string()
-        .replace(".toml", "_tracked_files.toml")
-        .into()
-}
-
-fn get_cache_path(original_path: &path::Path) -> path::PathBuf {
-    let path_buf = original_path
-        .to_string_lossy()
-        .to_string()
-        .replace(".toml", "_cache.toml");
-
-    path::PathBuf::from(path_buf)
+/// Simple glob pattern matching
+fn glob_match(pattern: &str, text: &str) -> bool {
+    // Simple implementation - for production use, consider using the `glob` crate
+    if pattern == "*" || pattern == ".*" {
+        return true;
+    }
+    
+    if pattern.contains('*') {
+        let parts: Vec<&str> = pattern.split('*').collect();
+        if parts.len() == 2 {
+            let (prefix, suffix) = (parts[0], parts[1]);
+            return text.starts_with(prefix) && text.ends_with(suffix);
+        }
+    }
+    
+    text == pattern
 }
 
 #[cfg(test)]
 mod tests {
-    use fs::File;
+    use super::*;
     use tempfile::tempdir;
 
-    use super::*;
+    #[test]
+    fn test_config_default() {
+        let config = Config::default();
+        assert!(config.backup_dir.ends_with(".dotman/backups"));
+        assert!(!config.include_patterns.is_empty());
+        assert!(!config.exclude_patterns.is_empty());
+    }
 
     #[test]
-    fn test_config_get_config_path_with_env() {
+    fn test_config_validation() {
+        let mut config = Config::default();
+        
+        // Valid configuration should pass
+        assert!(config.validate().is_ok());
+        
+        // Invalid compression level should fail
+        config.compression.level = 15;
+        config.compression.enabled = true;
+        assert!(config.validate().is_err());
+    }
+
+    #[tokio::test]
+    async fn test_config_save_load() {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
-        File::create(&config_path).unwrap();
-
-        std::env::set_var(
-            "DOTMAN_CONFIG_PATH",
-            config_path.to_str().expect("Unable to get config path"),
-        );
-        let path = Config::get_config_path(None);
-
-        assert!(path.is_ok());
-        let path = path.unwrap();
-        assert_eq!(path, config_path);
-        std::env::remove_var("DOTMAN_CONFIG_PATH");
+        
+        let original_config = Config::default();
+        original_config.save_to_file(&config_path).await.unwrap();
+        
+        let loaded_config = Config::load_from_file(&config_path).await.unwrap();
+        assert_eq!(original_config.backup_dir, loaded_config.backup_dir);
     }
 
     #[test]
-    fn test_config_get_config_path_with_arg() {
-        let temp_dir = tempdir().unwrap();
-        let config_path = temp_dir.path().join("my_config.toml");
-        File::create(&config_path).unwrap();
-
-        let path = Config::get_config_path(Some(config_path.to_str().unwrap()));
-
-        assert!(path.is_ok());
-        let path = path.unwrap();
-        assert_eq!(path, config_path);
+    fn test_should_include() {
+        let config = Config::default();
+        
+        // Should include dotfiles
+        assert!(config.should_include(&PathBuf::from(".bashrc")));
+        
+        // Should exclude .git files
+        assert!(!config.should_include(&PathBuf::from(".git/config")));
     }
 
     #[test]
-    fn test_config_new() {
-        let temp_dir = tempdir().unwrap();
-        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().to_path_buf());
-        let config_path = temp_dir.path().join("config.toml");
-        File::create(&config_path).unwrap();
-
-        let config = Config::new(config_path, dotconfigs_path.clone());
-        assert_eq!(config.configs.len(), 0);
-        assert_eq!(
-            config.dotconfigs_path.get_path(),
-            dotconfigs_path.get_path()
-        );
+    fn test_glob_match() {
+        assert!(glob_match("*.txt", "file.txt"));
+        assert!(glob_match(".*", ".bashrc"));
+        assert!(!glob_match("*.txt", "file.rs"));
+        assert!(glob_match("exact", "exact"));
     }
-
-    #[test]
-    fn test_config_pull_push_config() {
-        // Create a temporary directory for dotfiles tracking
-        let temp_dir = tempdir().unwrap();
-        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().join("dotfiles"));
-        fs::create_dir_all(&dotconfigs_path.get_path()).unwrap();
-
-        let config_path = temp_dir.path().join("config.toml");
-        File::create(&config_path).unwrap();
-
-        let mut config = Config::new(config_path.clone(), dotconfigs_path);
-        let test_file_path = temp_dir.path().join("test_file.txt");
-        let mut test_file = File::create(&test_file_path).unwrap();
-        writeln!(test_file, "test content").unwrap();
-
-        config
-            .add_config("test_file", test_file_path.to_str().unwrap())
-            .unwrap();
-
-        config.clear_config().unwrap();
-        config.pull_config(false).unwrap();
-        let pulled_file = config.dotconfigs_path.get_path().join("test_file");
-        assert!(pulled_file.exists());
-
-        let new_test_file_path = temp_dir.path().join("new_test_file.txt");
-        File::create(&new_test_file_path).unwrap();
-        config.configs[0].path = new_test_file_path.clone();
-
-        Config::print_config(Some(&config)).unwrap();
-
-        config.push_config(false).unwrap();
-
-        assert!(new_test_file_path.exists());
-    }
-
-    #[test]
-    fn test_config_clear_config() {
-        let temp_dir = tempdir().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-        File::create(&config_path).unwrap();
-        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().to_path_buf());
-        fs::create_dir_all(&dotconfigs_path.get_path()).unwrap();
-        let mut config = Config::new(config_path.clone(), dotconfigs_path);
-        let test_file_path = temp_dir.path().join("test_file.txt");
-        File::create(&test_file_path).unwrap();
-        config
-            .add_config("test_file", test_file_path.to_str().unwrap())
-            .unwrap();
-        config.pull_config(false).unwrap();
-        let loaded_config = Config::load_config(&config_path).unwrap();
-        assert!(!loaded_config.configs[0].hash.is_empty());
-        loaded_config.clear_config().unwrap();
-        let loaded_config = Config::load_config(&config_path).unwrap();
-        assert!(loaded_config.configs[0].hash.is_empty());
-    }
-    #[test]
-    fn test_config_add_config() {
-        let temp_dir = tempdir().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().to_path_buf());
-        fs::create_dir_all(&dotconfigs_path.get_path()).unwrap();
-
-        let mut config = Config::new(config_path.clone(), dotconfigs_path);
-        let config_len_before = config.configs.len();
-
-        let test_file_path = temp_dir.path().join("test_file.txt");
-        File::create(&test_file_path).unwrap();
-
-        config
-            .add_config("test_file", test_file_path.to_str().unwrap())
-            .unwrap();
-
-        // Now check the *same* config instance
-        assert_eq!(config.configs.len(), config_len_before + 1);
-        assert_eq!(config.configs[0].name, "test_file");
-
-        let result = config.add_config("test_file", test_file_path.to_str().unwrap());
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Config with name test_file already exists"));
-
-        let non_existent_path = temp_dir.path().join("non_existent_file.txt");
-        let result = config.add_config("non_existent", non_existent_path.to_str().unwrap());
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_config_load_save_config() {
-        let temp_dir = tempdir().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-        let dotconfigs_path = DotconfigPath::Local(temp_dir.path().join("dotfiles"));
-        fs::create_dir_all(&dotconfigs_path.get_path()).unwrap();
-        let config = Config::new(config_path.clone(), dotconfigs_path);
-        config.save_config().unwrap();
-        let loaded_config = Config::load_config(&config_path).unwrap();
-        assert_eq!(config.configs.len(), loaded_config.configs.len());
-    }
-}
+} 

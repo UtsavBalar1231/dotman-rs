@@ -1,46 +1,29 @@
-use args::Commands;
-use dotman_rs::config::*;
-use dotman_rs::errors::ConfigError;
-use std::path::PathBuf;
-mod args;
+use dotman_rs::cli::{parse_args, CommandHandler};
+use anyhow::Result;
 
-fn main() -> Result<(), ConfigError> {
-    let env_args = args::get_env_args();
-    let config_path: PathBuf = Config::get_config_path(env_args.config_path.as_deref())?;
-    let args = env_args.command;
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Parse command line arguments
+    let args = parse_args();
 
-    if matches!(args, Commands::PrintNew) {
-        Config::print_config(None)?;
-        return Ok(());
-    }
+    // Initialize logging based on verbosity
+    let log_level = match args.verbose {
+        0 => "warn",
+        1 => "info", 
+        2 => "debug",
+        _ => "trace",
+    };
 
-    if !config_path.exists() {
-        eprintln!("Config file not found: {}", config_path.display());
-        return Ok(());
-    }
+    tracing_subscriber::fmt()
+        .with_env_filter(log_level)
+        .with_target(false)
+        .init();
 
-    let mut config = Config::load_config(&config_path)?;
+    // Initialize command handler
+    let mut handler = CommandHandler::new(&args).await?;
 
-    match &args {
-        Commands::LocalPush => config.push_config(false),
-        Commands::LocalPull => config.pull_config(false).map(|_| ()),
-        Commands::ForcePull => config.pull_config(true).map(|_| ()),
-        Commands::ForcePush => config.push_config(true),
-        Commands::ClearMetadata => config.clear_config(),
-        Commands::PrintNew => Config::print_config(None),
-        Commands::PrintConfig => Config::print_config(Some(&config)),
-        Commands::FixConfig => config.fix_config(),
-        Commands::Add(args::AddArgs { name, path }) => config.add_config(name, path),
-        Commands::Edit => config.edit_config(),
-        Commands::Clean => config.clean_configs(),
-        Commands::Status => config.status(),
-        Commands::Init => config.init_metadata(),
-    }?;
+    // Execute the command
+    handler.execute(&args).await?;
 
-    println!(
-        "{} {} completed successfully.",
-        env!("CARGO_PKG_NAME"),
-        &args
-    );
     Ok(())
 }

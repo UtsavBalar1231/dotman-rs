@@ -1,9 +1,10 @@
 #![allow(clippy::module_inception)]
 pub mod config;
-pub mod config_cache;
-pub mod config_entry;
-pub mod dotconfig_path;
+pub mod profile;
+pub mod entry;
+pub mod migration;
 
 pub use config::Config;
-pub use config_entry::{ConfType, ConfigEntry};
-pub use dotconfig_path::DotconfigPath;
+pub use profile::{Profile, ProfileManager};
+pub use entry::ConfigEntry;
+pub use migration::{ConfigMigration, MigrationInfo};
