@@ -61,6 +61,9 @@ pub enum Command {
     /// Profile management
     Profile(ProfileArgs),
     
+    /// Package management
+    Package(PackageArgs),
+    
     /// Show status of dotfiles
     Status(StatusArgs),
     
@@ -95,6 +98,10 @@ pub struct BackupArgs {
     /// Backup name/tag
     #[arg(short, long)]
     pub name: Option<String>,
+    
+    /// Package name for organized backups (e.g., 'nvim', 'zsh', 'kitty')
+    #[arg(long)]
+    pub package: Option<String>,
     
     /// Backup description
     #[arg(short, long)]
@@ -198,6 +205,9 @@ pub enum ListTarget {
     
     /// List available profiles
     Profiles,
+    
+    /// List available package configurations
+    Packages,
     
     /// List configuration entries
     Config,
@@ -344,6 +354,90 @@ pub enum ProfileAction {
         
         /// New profile name
         new_name: String,
+    },
+}
+
+#[derive(Args, Debug)]
+pub struct PackageArgs {
+    /// Package command
+    #[command(subcommand)]
+    pub action: PackageAction,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum PackageAction {
+    /// List available packages
+    List,
+    
+    /// Add a new package configuration
+    Add {
+        /// Package name
+        name: String,
+        
+        /// Package description
+        #[arg(short, long)]
+        description: Option<String>,
+        
+        /// Paths to include in this package
+        paths: Vec<PathBuf>,
+        
+        /// Exclude patterns (glob)
+        #[arg(short, long, action = clap::ArgAction::Append)]
+        exclude: Vec<String>,
+        
+        /// Include patterns (glob)
+        #[arg(long, action = clap::ArgAction::Append)]
+        include: Vec<String>,
+    },
+    
+    /// Remove a package configuration
+    Remove {
+        /// Package name
+        name: String,
+        
+        /// Force removal without confirmation
+        #[arg(short, long)]
+        force: bool,
+    },
+    
+    /// Show package details
+    Show {
+        /// Package name
+        name: String,
+    },
+    
+    /// Edit package configuration
+    Edit {
+        /// Package name
+        name: String,
+        
+        /// New description
+        #[arg(short, long)]
+        description: Option<String>,
+        
+        /// Add paths to package
+        #[arg(long, action = clap::ArgAction::Append)]
+        add_paths: Vec<PathBuf>,
+        
+        /// Remove paths from package
+        #[arg(long, action = clap::ArgAction::Append)]
+        remove_paths: Vec<PathBuf>,
+        
+        /// Add exclude patterns
+        #[arg(long, action = clap::ArgAction::Append)]
+        add_exclude: Vec<String>,
+        
+        /// Remove exclude patterns
+        #[arg(long, action = clap::ArgAction::Append)]
+        remove_exclude: Vec<String>,
+        
+        /// Add include patterns
+        #[arg(long, action = clap::ArgAction::Append)]
+        add_include: Vec<String>,
+        
+        /// Remove include patterns
+        #[arg(long, action = clap::ArgAction::Append)]
+        remove_include: Vec<String>,
     },
 }
 

@@ -103,21 +103,9 @@ where
             return Ok(session);
         }
 
-        // Perform the actual restore
-        let target_paths = session.target_paths.clone();
+        // Perform the actual restore by walking through the backup directory
         let backup_path = session.backup_path.clone();
-        for target_path in &target_paths {
-            match self.restore_path(&backup_path, &mut session).await {
-                Ok(_) => {
-                    debug!("Successfully restored: {}", target_path.display());
-                }
-                Err(e) => {
-                    let error_msg = format!("Failed to restore {}: {}", target_path.display(), e);
-                    error!("{}", error_msg);
-                    session.errors.push(error_msg);
-                }
-            }
-        }
+        self.restore_directory_contents(&backup_path, &mut session).await?;
 
         info!(
             session_id = %session.id,
@@ -127,6 +115,41 @@ where
         );
 
         Ok(session)
+    }
+
+    /// Restore all contents of a backup directory
+    fn restore_directory_contents<'a>(
+        &'a self,
+        backup_path: &'a Path,
+        session: &'a mut RestoreSession,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send + 'a>> {
+        Box::pin(async move {
+            let entries = self.filesystem.list_dir(backup_path).await?;
+
+            for entry in entries {
+                let backup_entry_path = backup_path.join(&entry.path);
+                
+                // Skip session metadata file
+                if let Some(filename) = entry.path.file_name() {
+                    if filename == "session_metadata.json" {
+                        continue;
+                    }
+                }
+                
+                match self.restore_path(&backup_entry_path, session).await {
+                    Ok(_) => {
+                        debug!("Successfully restored: {}", backup_entry_path.display());
+                    }
+                    Err(e) => {
+                        let error_msg = format!("Failed to restore {}: {}", backup_entry_path.display(), e);
+                        error!("{}", error_msg);
+                        session.errors.push(error_msg);
+                    }
+                }
+            }
+
+            Ok(())
+        })
     }
 
     /// Detect conflicts between backup and existing files

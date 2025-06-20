@@ -25,7 +25,7 @@ pub struct Profile {
 }
 
 /// Configuration overrides for specific environments
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConfigOverride {
     /// Override backup directory
     pub backup_dir: Option<PathBuf>,

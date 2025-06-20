@@ -16,17 +16,19 @@ use crate::core::{
 pub struct FileSystemImpl {
     /// Whether to perform actual operations or just simulate them
     dry_run: bool,
+    /// In-memory storage for dry run mode (path -> contents)
+    dry_run_files: std::sync::Arc<std::sync::Mutex<HashMap<PathBuf, Vec<u8>>>>,
 }
 
 impl FileSystemImpl {
     /// Create a new file system instance
     pub fn new() -> Self {
-        Self { dry_run: false }
+        Self { dry_run: false, dry_run_files: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())) }
     }
 
     /// Create a new file system instance in dry-run mode
     pub fn new_dry_run() -> Self {
-        Self { dry_run: true }
+        Self { dry_run: true, dry_run_files: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())) }
     }
 
     /// Convert system metadata to our FileMetadata type
@@ -211,7 +213,12 @@ impl Default for FileSystemImpl {
 #[async_trait]
 impl FileSystem for FileSystemImpl {
     async fn exists(&self, path: &Path) -> Result<bool> {
-        Ok(tokio::fs::metadata(path).await.is_ok())
+        if self.dry_run {
+            let files = self.dry_run_files.lock().unwrap();
+            Ok(files.contains_key(path))
+        } else {
+            Ok(tokio::fs::metadata(path).await.is_ok())
+        }
     }
 
     async fn create_dir_all(&self, path: &Path) -> Result<()> {
@@ -314,6 +321,8 @@ impl FileSystem for FileSystemImpl {
     async fn write_file(&self, path: &Path, contents: &[u8]) -> Result<()> {
         if self.dry_run {
             debug!("DRY RUN: Would write {} bytes to {}", contents.len(), path.display());
+            let mut files = self.dry_run_files.lock().unwrap();
+            files.insert(path.to_path_buf(), contents.to_vec());
             return Ok(());
         }
 
@@ -479,12 +488,11 @@ mod tests {
 
         let test_file = temp_dir.path().join("test.txt");
 
-        // In dry run mode, operations should not actually happen
+        // In dry run mode, files should be tracked in memory
         fs.write_file(&test_file, b"test").await.unwrap();
-        assert!(!fs.exists(&test_file).await.unwrap());
-
-        fs.create_dir_all(&test_file.parent().unwrap()).await.unwrap();
-        // Directory creation is also dry run, so it shouldn't exist
-        // But we can't test this easily without more complex setup
+        
+        // File should exist in dry run filesystem but not on actual filesystem
+        assert!(fs.exists(&test_file).await.unwrap());
+        assert!(!test_file.exists()); // Real filesystem check
     }
 } 

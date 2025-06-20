@@ -1,6 +1,6 @@
 [package]
 name = "dotman-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 readme = "README.md"
@@ -70,7 +70,7 @@ ring = { version = "0.17", optional = true }
 glob = "0.3"
 
 [dev-dependencies]
-tempfile = "3.14"
+tempfile = "3.8"
 tokio-test = "0.4"
 mockall = "0.13"
 proptest = "1.0"

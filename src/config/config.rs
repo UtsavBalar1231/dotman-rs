@@ -4,6 +4,33 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use crate::core::error::{DotmanError, Result};
 
+/// Package configuration for organized backups
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PackageConfig {
+    /// Package name
+    pub name: String,
+    /// Description of what this package contains
+    pub description: String,
+    /// Paths to include in this package backup
+    pub paths: Vec<PathBuf>,
+    /// Package-specific exclude patterns
+    pub exclude_patterns: Vec<String>,
+    /// Package-specific include patterns
+    pub include_patterns: Vec<String>,
+}
+
+impl PackageConfig {
+    pub fn new(name: String, description: String, paths: Vec<PathBuf>) -> Self {
+        Self {
+            name,
+            description,
+            paths,
+            exclude_patterns: Vec::new(),
+            include_patterns: Vec::new(),
+        }
+    }
+}
+
 /// Compression configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompressionConfig {
@@ -55,10 +82,15 @@ pub struct Config {
     pub backup_patterns: HashMap<String, String>,
     /// Compression configuration
     pub compression: CompressionConfig,
+    /// Package configurations for organized backups
+    pub packages: HashMap<String, PackageConfig>,
 }
 
 impl Default for Config {
     fn default() -> Self {
+        // Start with empty packages - users will define their own
+        let packages = HashMap::new();
+
         Self {
             backup_dir: dirs::home_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
@@ -90,6 +122,7 @@ impl Default for Config {
             log_level: "info".to_string(),
             backup_patterns: HashMap::new(),
             compression: CompressionConfig::default(),
+            packages,
         }
     }
 }
@@ -165,8 +198,28 @@ impl Config {
             .join("config.toml")
     }
 
+    /// Get package configuration by name
+    pub fn get_package(&self, name: &str) -> Option<&PackageConfig> {
+        self.packages.get(name)
+    }
+
+    /// Add or update a package configuration
+    pub fn set_package(&mut self, package: PackageConfig) {
+        self.packages.insert(package.name.clone(), package);
+    }
+
+    /// Remove a package configuration
+    pub fn remove_package(&mut self, name: &str) -> Option<PackageConfig> {
+        self.packages.remove(name)
+    }
+
+    /// List all available package names
+    pub fn list_packages(&self) -> Vec<&String> {
+        self.packages.keys().collect()
+    }
+
     /// Merge another configuration into this one, overriding fields
-    pub fn merge(&mut self, other: Config) {
+    pub fn merge_config(&mut self, other: Config) {
         self.backup_dir = other.backup_dir;
         self.config_dir = other.config_dir;
         self.include_patterns = other.include_patterns;
@@ -182,6 +235,37 @@ impl Config {
         self.log_level = other.log_level;
         self.backup_patterns = other.backup_patterns;
         self.compression = other.compression;
+        self.packages = other.packages;
+    }
+
+    /// Merge configuration overrides into this configuration
+    pub fn merge(&mut self, override_config: crate::config::profile::ConfigOverride) {
+        if let Some(backup_dir) = override_config.backup_dir {
+            self.backup_dir = backup_dir;
+        }
+        if let Some(include_patterns) = override_config.include_patterns {
+            self.include_patterns = include_patterns;
+        }
+        if let Some(exclude_patterns) = override_config.exclude_patterns {
+            self.exclude_patterns = exclude_patterns;
+        }
+        if let Some(follow_symlinks) = override_config.follow_symlinks {
+            self.follow_symlinks = follow_symlinks;
+        }
+        if let Some(preserve_permissions) = override_config.preserve_permissions {
+            self.preserve_permissions = preserve_permissions;
+        }
+        if let Some(create_backups) = override_config.create_backups {
+            self.create_backups = create_backups;
+        }
+        if let Some(verify_integrity) = override_config.verify_integrity {
+            self.verify_integrity = verify_integrity;
+        }
+        if let Some(max_backup_versions) = override_config.max_backup_versions {
+            if let Some(versions) = max_backup_versions {
+                self.max_backup_versions = versions;
+            }
+        }
     }
 
     /// Check if a path should be included based on patterns

@@ -1,18 +1,28 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::collections::HashMap;
+use std::io::{self, Write};
 use tracing::info;
 use anyhow::{Result, Context};
+use chrono::{DateTime, Local, Utc};
+use uuid::Uuid;
 
+use crate::cli::args::*;
+use crate::backup::manager::BackupManager;
+use crate::restore::manager::RestoreManager;
+use crate::config::{Config, profile::Profile, ProfileManager};
+use crate::config::config::PackageConfig;
 use crate::core::{
+    error::{DotmanError, Result as DotmanResult},
     types::{OperationMode, ProgressInfo},
     traits::{BackupEngine, RestoreEngine, ProgressReporter, FileSystem},
 };
-use crate::config::{Config, Profile, ProfileManager};
-use crate::backup::{BackupManager, DefaultBackupEngine};
-use crate::restore::{RestoreManager, DefaultRestoreEngine};
-use crate::filesystem::FileSystemImpl;
-use crate::cli::args::*;
+use crate::{FileSystemImpl};
+use crate::backup::engine::DefaultBackupEngine;
+use crate::restore::engine::DefaultRestoreEngine;
+use crate::core::PrivilegeManager;
 
 /// Simple progress reporter for CLI
+#[derive(Clone)]
 pub struct CliProgressReporter {
     verbose: bool,
 }
@@ -52,7 +62,7 @@ pub struct CommandHandler {
 
 impl CommandHandler {
     /// Create a new command handler
-    pub async fn new(args: &DotmanArgs) -> Result<Self> {
+    pub async fn new(args: &DotmanArgs) -> anyhow::Result<Self> {
         // Load configuration
         let config_path = args.config.clone().unwrap_or_else(|| {
             dirs::config_dir()
@@ -100,7 +110,7 @@ impl CommandHandler {
     }
 
     /// Execute the main command
-    pub async fn execute(&mut self, args: &DotmanArgs) -> Result<()> {
+    pub async fn execute(&mut self, args: &DotmanArgs) -> anyhow::Result<()> {
         match &args.command {
             Command::Init(init_args) => self.handle_init(init_args).await,
             Command::Backup(backup_args) => self.handle_backup(backup_args).await,
@@ -110,13 +120,14 @@ impl CommandHandler {
             Command::Clean(clean_args) => self.handle_clean(clean_args).await,
             Command::Config(config_args) => self.handle_config(config_args).await,
             Command::Profile(profile_args) => self.handle_profile(profile_args).await,
+            Command::Package(package_args) => self.handle_package(package_args).await,
             Command::Status(status_args) => self.handle_status(status_args).await,
             Command::Diff(diff_args) => self.handle_diff(diff_args).await,
         }
     }
 
     /// Handle init command
-    async fn handle_init(&mut self, args: &InitArgs) -> Result<()> {
+    async fn handle_init(&mut self, args: &InitArgs) -> anyhow::Result<()> {
         info!("Initializing dotman configuration");
 
         let target_dir = args.target.clone().unwrap_or_else(|| {
@@ -155,16 +166,16 @@ impl CommandHandler {
                 .context("Failed to set active profile")?;
         }
 
-        println!("✓ Dotman initialized in {}", target_dir.display());
+        println!("[✓] Dotman initialized in {}", target_dir.display());
         if let Some(profile) = &args.profile {
-            println!("✓ Created and activated profile: {}", profile);
+            println!("[✓] Created and activated profile: {}", profile);
         }
 
         Ok(())
     }
 
     /// Handle backup command
-    async fn handle_backup(&mut self, args: &BackupArgs) -> Result<()> {
+    async fn handle_backup(&mut self, args: &BackupArgs) -> anyhow::Result<()> {
         info!("Starting backup operation");
 
         // Apply profile if specified
@@ -172,12 +183,52 @@ impl CommandHandler {
             self.apply_profile(profile_name).await?;
         }
 
+        // Determine backup paths and name
+        let (backup_paths, backup_name, backup_description) = if let Some(package_name) = &args.package {
+            // Package-based backup
+            if let Some(package_config) = self.config.get_package(package_name) {
+                // Clone all needed values to avoid borrowing issues
+                let paths = package_config.paths.clone();
+                let package_description = package_config.description.clone();
+                let package_exclude = package_config.exclude_patterns.clone();
+                let package_include = package_config.include_patterns.clone();
+                
+                let name = args.name.clone().unwrap_or_else(|| format!("package-{}", package_name));
+                let description = args.description.clone().unwrap_or_else(|| 
+                    format!("{} - {}", package_description, chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"))
+                );
+                
+                // Apply package-specific patterns if any
+                if !package_exclude.is_empty() {
+                    self.config.exclude_patterns.extend(package_exclude);
+                }
+                if !package_include.is_empty() {
+                    self.config.include_patterns.extend(package_include);
+                }
+                
+                println!("[📦] Using package configuration: {}", package_name);
+                println!("[📦] Package description: {}", package_description);
+                println!("[📦] Backing up {} paths", paths.len());
+                
+                (paths, Some(name), Some(description))
+            } else {
+                return Err(anyhow::anyhow!("Package '{}' not found in configuration. Available packages: {:?}", 
+                    package_name, self.config.list_packages()));
+            }
+        } else {
+            // Regular path-based backup
+            if args.paths.is_empty() {
+                return Err(anyhow::anyhow!("No paths specified for backup. Use --package <name> for package backup or specify paths directly."));
+            }
+            (args.paths.clone(), args.name.clone(), args.description.clone())
+        };
+
         // Update config with command line options
         if !args.exclude.is_empty() {
-            self.config.exclude_patterns = args.exclude.clone();
+            self.config.exclude_patterns.extend(args.exclude.clone());
         }
         if !args.include.is_empty() {
-            self.config.include_patterns = args.include.clone();
+            self.config.include_patterns.extend(args.include.clone());
         }
         self.config.verify_integrity = args.verify;
 
@@ -193,19 +244,26 @@ impl CommandHandler {
         let backup_manager = BackupManager::new(filesystem, progress_reporter, self.config.clone());
 
         // Perform backup
-        let results = backup_manager.backup_files(args.paths.clone()).await
+        let results = backup_manager.backup_files(backup_paths).await
             .context("Backup operation failed")?;
 
         // Report results
         let successful = results.iter().filter(|r| r.success).count();
         let failed = results.iter().filter(|r| !r.success).count();
 
-        println!("✓ Backup completed: {} successful, {} failed", successful, failed);
+        println!("[✓] Backup completed: {} successful, {} failed", successful, failed);
+        
+        if let Some(name) = &backup_name {
+            println!("[✓] Backup name: {}", name);
+        }
+        if let Some(description) = &backup_description {
+            println!("[✓] Description: {}", description);
+        }
 
         if failed > 0 {
             println!("Failed operations:");
             for result in results.iter().filter(|r| !r.success) {
-                println!("  ✗ {}: {}", 
+                println!("  [✗] {}: {}", 
                     result.path.display(), 
                     result.error.as_ref().unwrap_or(&"Unknown error".to_string())
                 );
@@ -216,7 +274,7 @@ impl CommandHandler {
     }
 
     /// Handle restore command
-    async fn handle_restore(&mut self, args: &RestoreArgs) -> Result<()> {
+    async fn handle_restore(&mut self, args: &RestoreArgs) -> anyhow::Result<()> {
         info!("Starting restore operation");
 
         // Apply profile if specified
@@ -264,12 +322,12 @@ impl CommandHandler {
         let successful = results.iter().filter(|r| r.success).count();
         let failed = results.iter().filter(|r| !r.success).count();
 
-        println!("✓ Restore completed: {} successful, {} failed", successful, failed);
+        println!("[✓] Restore completed: {} successful, {} failed", successful, failed);
 
         if failed > 0 {
             println!("Failed operations:");
             for result in results.iter().filter(|r| !r.success) {
-                println!("  ✗ {}: {}", 
+                println!("  [✗] {}: {}", 
                     result.path.display(), 
                     result.error.as_ref().unwrap_or(&"Unknown error".to_string())
                 );
@@ -280,7 +338,7 @@ impl CommandHandler {
     }
 
     /// Handle list command
-    async fn handle_list(&self, args: &ListArgs) -> Result<()> {
+    async fn handle_list(&self, args: &ListArgs) -> anyhow::Result<()> {
         match &args.target {
             ListTarget::Backups => {
                 let backup_root = &self.config.backup_dir;
@@ -415,6 +473,36 @@ impl CommandHandler {
                     }
                 }
             }
+            ListTarget::Packages => {
+                let packages = &self.config.packages;
+                
+                if packages.is_empty() {
+                    println!("No package configurations found");
+                    return Ok(());
+                }
+
+                println!("Available package configurations:");
+                for (name, package_config) in packages {
+                    println!("📦 {} - {}", name, package_config.description);
+                    println!("   Paths ({}):", package_config.paths.len());
+                    for path in &package_config.paths {
+                        let exists_marker = if path.exists() { "✓" } else { "✗" };
+                        println!("     {} {}", exists_marker, path.display());
+                    }
+                    if !package_config.exclude_patterns.is_empty() {
+                        println!("   Exclude patterns: {:?}", package_config.exclude_patterns);
+                    }
+                    if !package_config.include_patterns.is_empty() {
+                        println!("   Include patterns: {:?}", package_config.include_patterns);
+                    }
+                    println!();
+                }
+                
+                println!("Usage examples:");
+                for name in packages.keys() {
+                    println!("  dotman-rs backup --package {}", name);
+                }
+            }
             ListTarget::Config => {
                 println!("Configuration:");
                 println!("  Config dir: {}", self.config.config_dir.display());
@@ -439,7 +527,7 @@ impl CommandHandler {
     }
 
     /// Handle verify command
-    async fn handle_verify(&self, args: &VerifyArgs) -> Result<()> {
+    async fn handle_verify(&self, args: &VerifyArgs) -> anyhow::Result<()> {
         let backup_path = self.resolve_backup_path(&args.backup).await?;
         
         let filesystem = FileSystemImpl::new();
@@ -450,9 +538,9 @@ impl CommandHandler {
             .context("Verification failed")?;
 
         if is_valid {
-            println!("✓ Backup is valid");
+            println!("[✓] Backup is valid");
         } else {
-            println!("✗ Backup verification failed");
+            println!("[✗] Backup verification failed");
             return Err(anyhow::anyhow!("Backup verification failed"));
         }
 
@@ -460,7 +548,7 @@ impl CommandHandler {
     }
 
     /// Handle clean command
-    async fn handle_clean(&self, args: &CleanArgs) -> Result<()> {
+    async fn handle_clean(&self, args: &CleanArgs) -> anyhow::Result<()> {
         info!("Starting backup cleanup");
 
         let backup_root = &self.config.backup_dir;
@@ -578,16 +666,16 @@ impl CommandHandler {
 
         let space_mb = total_space_freed / (1024 * 1024);
         if self.dry_run {
-            println!("✓ Dry run: Would clean {} backups, freeing {} MB", cleaned_count, space_mb);
+            println!("[✓] Dry run: Would clean {} backups, freeing {} MB", cleaned_count, space_mb);
         } else {
-            println!("✓ Cleaned {} backups, freed {} MB", cleaned_count, space_mb);
+            println!("[✓] Cleaned {} backups, freed {} MB", cleaned_count, space_mb);
         }
 
         Ok(())
     }
 
     /// Handle config command
-    async fn handle_config(&mut self, args: &ConfigArgs) -> Result<()> {
+    async fn handle_config(&mut self, args: &ConfigArgs) -> anyhow::Result<()> {
         match &args.action {
             ConfigAction::Show { key } => {
                 if let Some(key) = key {
@@ -632,45 +720,45 @@ impl CommandHandler {
                 match key.as_str() {
                     "backup_dir" => {
                         self.config.backup_dir = PathBuf::from(value);
-                        println!("✓ Set backup_dir = {}", value);
+                        println!("[✓] Set backup_dir = {}", value);
                     },
                     "config_dir" => {
                         self.config.config_dir = PathBuf::from(value);
-                        println!("✓ Set config_dir = {}", value);
+                        println!("[✓] Set config_dir = {}", value);
                     },
                     "max_backup_versions" => {
                         let versions: u32 = value.parse()
                             .context("Invalid number for max_backup_versions")?;
                         self.config.max_backup_versions = versions;
-                        println!("✓ Set max_backup_versions = {}", versions);
+                        println!("[✓] Set max_backup_versions = {}", versions);
                     },
                     "log_level" => {
                         self.config.log_level = value.clone();
-                        println!("✓ Set log_level = {}", value);
+                        println!("[✓] Set log_level = {}", value);
                     },
                     "verify_integrity" => {
                         let verify: bool = value.parse()
                             .context("Invalid boolean for verify_integrity (use true/false)")?;
                         self.config.verify_integrity = verify;
-                        println!("✓ Set verify_integrity = {}", verify);
+                        println!("[✓] Set verify_integrity = {}", verify);
                     },
                     "preserve_permissions" => {
                         let preserve: bool = value.parse()
                             .context("Invalid boolean for preserve_permissions (use true/false)")?;
                         self.config.preserve_permissions = preserve;
-                        println!("✓ Set preserve_permissions = {}", preserve);
+                        println!("[✓] Set preserve_permissions = {}", preserve);
                     },
                     "create_backups" => {
                         let create: bool = value.parse()
                             .context("Invalid boolean for create_backups (use true/false)")?;
                         self.config.create_backups = create;
-                        println!("✓ Set create_backups = {}", create);
+                        println!("[✓] Set create_backups = {}", create);
                     },
                     "follow_symlinks" => {
                         let follow: bool = value.parse()
                             .context("Invalid boolean for follow_symlinks (use true/false)")?;
                         self.config.follow_symlinks = follow;
-                        println!("✓ Set follow_symlinks = {}", follow);
+                        println!("[✓] Set follow_symlinks = {}", follow);
                     },
                     _ => {
                         return Err(anyhow::anyhow!("Unknown configuration key: {}", key));
@@ -700,11 +788,11 @@ impl CommandHandler {
                 match key.as_str() {
                     "include_patterns" => {
                         self.config.include_patterns.clear();
-                        println!("✓ Cleared include_patterns");
+                        println!("[✓] Cleared include_patterns");
                     },
                     "exclude_patterns" => {
                         self.config.exclude_patterns.clear();
-                        println!("✓ Cleared exclude_patterns");
+                        println!("[✓] Cleared exclude_patterns");
                     },
                     _ => {
                         return Err(anyhow::anyhow!("Cannot unset key '{}' (only patterns can be cleared)", key));
@@ -735,13 +823,13 @@ impl CommandHandler {
                 self.config = Config::load(&config_path).await
                     .context("Failed to reload configuration after editing")?;
 
-                println!("✓ Configuration reloaded");
+                println!("[✓] Configuration reloaded");
             }
             ConfigAction::Validate => {
                 match self.config.validate() {
-                    Ok(_) => println!("✓ Configuration is valid"),
+                    Ok(_) => println!("[✓] Configuration is valid"),
                     Err(e) => {
-                        println!("✗ Configuration validation failed: {}", e);
+                        println!("[✗] Configuration validation failed: {}", e);
                         return Err(e.into());
                     }
                 }
@@ -755,7 +843,7 @@ impl CommandHandler {
                     self.config.save(&config_path).await
                         .context("Failed to save reset configuration")?;
                     
-                    println!("✓ Configuration reset to defaults");
+                    println!("[✓] Configuration reset to defaults");
                 } else {
                     println!("Configuration reset cancelled");
                 }
@@ -766,7 +854,7 @@ impl CommandHandler {
     }
 
     /// Handle profile command
-    async fn handle_profile(&mut self, args: &ProfileArgs) -> Result<()> {
+    async fn handle_profile(&mut self, args: &ProfileArgs) -> anyhow::Result<()> {
         match &args.action {
             ProfileAction::List => {
                 let profiles = self.profile_manager.list_profiles();
@@ -797,13 +885,13 @@ impl CommandHandler {
                 self.profile_manager.create_profile(name.clone(), profile).await
                     .context("Failed to create profile")?;
                 
-                println!("✓ Created profile: {}", name);
+                println!("[✓] Created profile: {}", name);
             }
             ProfileAction::Delete { name, force } => {
                 if *force || self.force || self.confirm(&format!("Delete profile '{}'?", name)).await? {
                     self.profile_manager.remove_profile(name).await
                         .context("Failed to delete profile")?;
-                    println!("✓ Deleted profile: {}", name);
+                    println!("[✓] Deleted profile: {}", name);
                 } else {
                     println!("Profile deletion cancelled");
                 }
@@ -811,7 +899,7 @@ impl CommandHandler {
             ProfileAction::Switch { name } => {
                 self.profile_manager.set_active_profile(name).await
                     .context("Failed to switch profile")?;
-                println!("✓ Switched to profile: {}", name);
+                println!("[✓] Switched to profile: {}", name);
             }
             ProfileAction::Current => {
                 if let Some(active) = self.profile_manager.get_active_profile() {
@@ -826,7 +914,240 @@ impl CommandHandler {
             ProfileAction::Rename { old_name, new_name } => {
                 self.profile_manager.rename_profile(old_name, new_name).await
                     .context("Failed to rename profile")?;
-                println!("✓ Renamed profile: {} -> {}", old_name, new_name);
+                println!("[✓] Renamed profile: {} -> {}", old_name, new_name);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Handle package command
+    async fn handle_package(&mut self, args: &PackageArgs) -> anyhow::Result<()> {
+        match &args.action {
+            PackageAction::List => {
+                let packages = &self.config.packages;
+                
+                if packages.is_empty() {
+                    println!("No package configurations found");
+                    println!("\nTo add a package configuration:");
+                    println!("  dotman-rs package add <name> <paths...> --description \"Description\"");
+                    println!("\nExample:");
+                    println!("  dotman-rs package add nvim ~/.config/nvim --description \"Neovim configuration\"");
+                    return Ok(());
+                }
+
+                println!("Available package configurations:");
+                for (name, package_config) in packages {
+                    println!("📦 {} - {}", name, package_config.description);
+                    println!("   Paths ({}):", package_config.paths.len());
+                    for path in &package_config.paths {
+                        let exists_marker = if path.exists() { "✓" } else { "✗" };
+                        println!("     {} {}", exists_marker, path.display());
+                    }
+                    if !package_config.exclude_patterns.is_empty() {
+                        println!("   Exclude patterns: {:?}", package_config.exclude_patterns);
+                    }
+                    if !package_config.include_patterns.is_empty() {
+                        println!("   Include patterns: {:?}", package_config.include_patterns);
+                    }
+                    println!();
+                }
+                
+                println!("Usage examples:");
+                for name in packages.keys() {
+                    println!("  dotman-rs backup --package {}", name);
+                }
+            }
+            PackageAction::Add { name, description, paths, exclude, include } => {
+                if self.config.packages.contains_key(name) {
+                    if !self.force {
+                        return Err(anyhow::anyhow!("Package '{}' already exists. Use --force to overwrite or 'package edit' to modify", name));
+                    }
+                }
+
+                let package_description = description.clone().unwrap_or_else(|| format!("Package configuration for {}", name));
+                
+                let mut package_config = PackageConfig::new(
+                    name.clone(),
+                    package_description,
+                    paths.clone(),
+                );
+                
+                package_config.exclude_patterns = exclude.clone();
+                package_config.include_patterns = include.clone();
+                
+                self.config.set_package(package_config);
+                
+                // Save configuration
+                let config_path = self.config.config_dir.join("config.toml");
+                self.config.save(&config_path).await
+                    .context("Failed to save configuration")?;
+                
+                println!("[✓] Added package configuration: {}", name);
+                println!("    Description: {}", self.config.get_package(name).unwrap().description);
+                println!("    Paths: {}", paths.len());
+                for path in paths {
+                    println!("      {}", path.display());
+                }
+                if !exclude.is_empty() {
+                    println!("    Exclude patterns: {:?}", exclude);
+                }
+                if !include.is_empty() {
+                    println!("    Include patterns: {:?}", include);
+                }
+            }
+            PackageAction::Remove { name, force } => {
+                if !self.config.packages.contains_key(name) {
+                    return Err(anyhow::anyhow!("Package '{}' does not exist", name));
+                }
+
+                if !force && !self.force {
+                    let confirm = self.confirm(&format!("Remove package configuration '{}'?", name)).await?;
+                    if !confirm {
+                        println!("Operation cancelled");
+                        return Ok(());
+                    }
+                }
+
+                self.config.remove_package(name);
+                
+                // Save configuration
+                let config_path = self.config.config_dir.join("config.toml");
+                self.config.save(&config_path).await
+                    .context("Failed to save configuration")?;
+                
+                println!("[✓] Removed package configuration: {}", name);
+            }
+            PackageAction::Show { name } => {
+                if let Some(package_config) = self.config.get_package(name) {
+                    println!("Package: {}", name);
+                    println!("Description: {}", package_config.description);
+                    println!("Paths ({}):", package_config.paths.len());
+                    for path in &package_config.paths {
+                        let exists_marker = if path.exists() { "✓" } else { "✗" };
+                        println!("  {} {}", exists_marker, path.display());
+                    }
+                    if !package_config.exclude_patterns.is_empty() {
+                        println!("Exclude patterns:");
+                        for pattern in &package_config.exclude_patterns {
+                            println!("  {}", pattern);
+                        }
+                    }
+                    if !package_config.include_patterns.is_empty() {
+                        println!("Include patterns:");
+                        for pattern in &package_config.include_patterns {
+                            println!("  {}", pattern);
+                        }
+                    }
+                    
+                    println!("\nUsage:");
+                    println!("  dotman-rs backup --package {}", name);
+                } else {
+                    return Err(anyhow::anyhow!("Package '{}' does not exist", name));
+                }
+            }
+            PackageAction::Edit { 
+                name, 
+                description, 
+                add_paths, 
+                remove_paths, 
+                add_exclude, 
+                remove_exclude, 
+                add_include, 
+                remove_include 
+            } => {
+                if !self.config.packages.contains_key(name) {
+                    return Err(anyhow::anyhow!("Package '{}' does not exist", name));
+                }
+
+                let mut package_config = self.config.get_package(name).unwrap().clone();
+                let mut changes_made = false;
+
+                // Update description
+                if let Some(new_desc) = description {
+                    package_config.description = new_desc.clone();
+                    changes_made = true;
+                    println!("Updated description: {}", new_desc);
+                }
+
+                // Add paths
+                for path in add_paths {
+                    if !package_config.paths.contains(path) {
+                        package_config.paths.push(path.clone());
+                        changes_made = true;
+                        println!("Added path: {}", path.display());
+                    } else {
+                        println!("Path already exists: {}", path.display());
+                    }
+                }
+
+                // Remove paths
+                for path in remove_paths {
+                    if let Some(pos) = package_config.paths.iter().position(|p| p == path) {
+                        package_config.paths.remove(pos);
+                        changes_made = true;
+                        println!("Removed path: {}", path.display());
+                    } else {
+                        println!("Path not found: {}", path.display());
+                    }
+                }
+
+                // Add exclude patterns
+                for pattern in add_exclude {
+                    if !package_config.exclude_patterns.contains(pattern) {
+                        package_config.exclude_patterns.push(pattern.clone());
+                        changes_made = true;
+                        println!("Added exclude pattern: {}", pattern);
+                    } else {
+                        println!("Exclude pattern already exists: {}", pattern);
+                    }
+                }
+
+                // Remove exclude patterns
+                for pattern in remove_exclude {
+                    if let Some(pos) = package_config.exclude_patterns.iter().position(|p| p == pattern) {
+                        package_config.exclude_patterns.remove(pos);
+                        changes_made = true;
+                        println!("Removed exclude pattern: {}", pattern);
+                    } else {
+                        println!("Exclude pattern not found: {}", pattern);
+                    }
+                }
+
+                // Add include patterns
+                for pattern in add_include {
+                    if !package_config.include_patterns.contains(pattern) {
+                        package_config.include_patterns.push(pattern.clone());
+                        changes_made = true;
+                        println!("Added include pattern: {}", pattern);
+                    } else {
+                        println!("Include pattern already exists: {}", pattern);
+                    }
+                }
+
+                // Remove include patterns
+                for pattern in remove_include {
+                    if let Some(pos) = package_config.include_patterns.iter().position(|p| p == pattern) {
+                        package_config.include_patterns.remove(pos);
+                        changes_made = true;
+                        println!("Removed include pattern: {}", pattern);
+                    } else {
+                        println!("Include pattern not found: {}", pattern);
+                    }
+                }
+
+                if changes_made {
+                    self.config.set_package(package_config);
+                    
+                    // Save configuration
+                    let config_path = self.config.config_dir.join("config.toml");
+                    self.config.save(&config_path).await
+                        .context("Failed to save configuration")?;
+                    
+                    println!("[✓] Updated package configuration: {}", name);
+                } else {
+                    println!("No changes made to package: {}", name);
+                }
             }
         }
 
@@ -834,7 +1155,7 @@ impl CommandHandler {
     }
 
     /// Handle status command
-    async fn handle_status(&self, _args: &StatusArgs) -> Result<()> {
+    async fn handle_status(&self, _args: &StatusArgs) -> anyhow::Result<()> {
         println!("Dotman Status Report");
         println!("===================");
 
@@ -847,8 +1168,8 @@ impl CommandHandler {
         let config_exists = self.filesystem.exists(&self.config.config_dir).await?;
         let backup_exists = self.filesystem.exists(&self.config.backup_dir).await?;
         
-        println!("  Config dir exists: {}", if config_exists { "✓" } else { "✗" });
-        println!("  Backup dir exists: {}", if backup_exists { "✓" } else { "✗" });
+        println!("  Config dir exists: {}", if config_exists { "[✓]" } else { "[✗]" });
+        println!("  Backup dir exists: {}", if backup_exists { "[✓]" } else { "[✗]" });
 
         // Profile status
         println!("\nProfiles:");
@@ -923,8 +1244,8 @@ impl CommandHandler {
         // Configuration validation
         println!("\nConfiguration Validation:");
         match self.config.validate() {
-            Ok(_) => println!("  ✓ Configuration is valid"),
-            Err(e) => println!("  ✗ Configuration error: {}", e),
+            Ok(_) => println!("  [✓] Configuration is valid"),
+            Err(e) => println!("  [✗] Configuration error: {}", e),
         }
 
         // System information
@@ -938,7 +1259,7 @@ impl CommandHandler {
     }
 
     /// Handle diff command
-    async fn handle_diff(&self, args: &DiffArgs) -> Result<()> {
+    async fn handle_diff(&self, args: &DiffArgs) -> anyhow::Result<()> {
         let backup_path = self.resolve_backup_path(&args.backup).await?;
         
         println!("Comparing backup '{}' with current files", args.backup);
@@ -980,7 +1301,7 @@ impl CommandHandler {
             // Check if current file exists
             if !self.filesystem.exists(&current_path).await? {
                 differences_found = true;
-                println!("✗ MISSING: {} (exists in backup, not in current)", current_path.display());
+                println!("[✗] MISSING: {} (exists in backup, not in current)", current_path.display());
                 continue;
             }
 
@@ -1025,7 +1346,7 @@ impl CommandHandler {
             if args.show_identical && 
                backup_metadata.size == current_metadata.size &&
                backup_metadata.modified == current_metadata.modified {
-                println!("✓ SAME: {}", current_path.display());
+                println!("[✓] SAME: {}", current_path.display());
             }
         }
 
@@ -1046,14 +1367,14 @@ impl CommandHandler {
         }
 
         if !differences_found {
-            println!("✓ No differences found between backup and current files");
+            println!("[✓] No differences found between backup and current files");
         }
 
         Ok(())
     }
 
     /// Apply a profile to current configuration
-    async fn apply_profile(&mut self, profile_name: &str) -> Result<()> {
+    async fn apply_profile(&mut self, profile_name: &str) -> anyhow::Result<()> {
         let profile = self.profile_manager.get_profile(profile_name)
             .ok_or_else(|| anyhow::anyhow!("Profile '{}' not found", profile_name))?;
 
@@ -1064,7 +1385,7 @@ impl CommandHandler {
     }
 
     /// Resolve backup path from name or path
-    async fn resolve_backup_path(&self, backup: &str) -> Result<PathBuf> {
+    async fn resolve_backup_path(&self, backup: &str) -> anyhow::Result<PathBuf> {
         let path = PathBuf::from(backup);
         
         if path.is_absolute() && path.exists() {
@@ -1081,7 +1402,7 @@ impl CommandHandler {
     }
 
     /// Ask user for confirmation
-    async fn confirm(&self, message: &str) -> Result<bool> {
+    async fn confirm(&self, message: &str) -> anyhow::Result<bool> {
         if !self.force {
             print!("{} (y/N): ", message);
             let mut input = String::new();
@@ -1093,7 +1414,7 @@ impl CommandHandler {
     }
 
     /// Calculate the total size of all files in a directory recursively
-    fn calculate_directory_size<'a>(&'a self, dir_path: &'a std::path::Path) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<u64>> + Send + 'a>> {
+    fn calculate_directory_size<'a>(&'a self, dir_path: &'a std::path::Path) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<u64>> + Send + 'a>> {
         Box::pin(async move {
         let mut total_size = 0;
         
@@ -1126,7 +1447,7 @@ impl CommandHandler {
     }
 
     /// Count the total number of files in a directory recursively
-    fn count_files_in_directory<'a>(&'a self, dir_path: &'a std::path::Path) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<u64>> + Send + 'a>> {
+    fn count_files_in_directory<'a>(&'a self, dir_path: &'a std::path::Path) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<u64>> + Send + 'a>> {
         Box::pin(async move {
         let mut total_files = 0;
         
