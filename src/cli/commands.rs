@@ -385,20 +385,19 @@ impl CommandHandler {
                     
                     // For each path in the package configuration
                     for original_path in &package_config.paths {
-                        // First, try to find files in backup for this path
-                        let backup_files = if original_path.is_file() || !original_path.exists() {
-                            // For files or non-existent paths, check if there's a backup file
-                            if let Some(backup_file_path) = self.find_file_in_backup(original_path, &backup_dir).await? {
-                                vec![(backup_file_path, original_path.clone())]
-                            } else {
-                                Vec::new()
-                            }
-                        } else if original_path.is_dir() {
-                            // For existing directories, find all files that were backed up from this directory
-                            self.find_all_files_in_backup_directory(original_path, &backup_dir).await?
-                        } else {
-                            Vec::new()
-                        };
+                        // Always try to find files in backup for this path, regardless of current filesystem state
+                        // This is critical for restoring on fresh systems where directories don't exist yet
+                        let mut backup_files = Vec::new();
+                        
+                        // First, try to find a single file backup
+                        if let Some(backup_file_path) = self.find_file_in_backup(original_path, &backup_dir).await? {
+                            backup_files.push((backup_file_path, original_path.clone()));
+                        }
+                        
+                        // If no single file found, try to find directory contents in backup
+                        if backup_files.is_empty() {
+                            backup_files = self.find_all_files_in_backup_directory(original_path, &backup_dir).await?;
+                        }
 
                         if backup_files.is_empty() {
                             // No files found in backup for this path
@@ -474,20 +473,19 @@ impl CommandHandler {
                 
                 // For each path in the package configuration
                 for original_path in &package_config.paths {
-                    // First, try to find files in backup for this path
-                    let backup_files = if original_path.is_file() || !original_path.exists() {
-                        // For files or non-existent paths, check if there's a backup file
-                        if let Some(backup_file_path) = self.find_file_in_backup(original_path, &backup_dir).await? {
-                            vec![(backup_file_path, original_path.clone())]
-                        } else {
-                            Vec::new()
-                        }
-                    } else if original_path.is_dir() {
-                        // For existing directories, find all files that were backed up from this directory
-                        self.find_all_files_in_backup_directory(original_path, &backup_dir).await?
-                    } else {
-                        Vec::new()
-                    };
+                    // Always try to find files in backup for this path, regardless of current filesystem state
+                    // This is critical for restoring on fresh systems where directories don't exist yet
+                    let mut backup_files = Vec::new();
+                    
+                    // First, try to find a single file backup
+                    if let Some(backup_file_path) = self.find_file_in_backup(original_path, &backup_dir).await? {
+                        backup_files.push((backup_file_path, original_path.clone()));
+                    }
+                    
+                    // If no single file found, try to find directory contents in backup
+                    if backup_files.is_empty() {
+                        backup_files = self.find_all_files_in_backup_directory(original_path, &backup_dir).await?;
+                    }
 
                     if backup_files.is_empty() {
                         // No files found in backup for this path
