@@ -401,13 +401,14 @@ impl CommandHandler {
 
                         if backup_files.is_empty() {
                             // No files found in backup for this path
+                            let requires_privileges = crate::utils::PrivilegeUtility::path_requires_sudo(original_path);
                             all_results.push(OperationResult {
                                 operation_type: OperationType::Restore,
                                 path: original_path.clone(),
                                 success: false,
                                 error: Some("No files found in backup for this path".to_string()),
                                 details: None,
-                                required_privileges: false,
+                                required_privileges: requires_privileges,
                                 duration: None,
                                 bytes_processed: None,
                             });
@@ -429,6 +430,9 @@ impl CommandHandler {
                                     PathBuf::from("./restored").join(relative_path)
                                 };
                                 
+                                // Check if this path requires privileges
+                                let requires_privileges = crate::utils::PrivilegeUtility::path_requires_sudo(&target_path);
+                                
                                 match self.restore_single_file(&backup_file_path, &target_path, args.overwrite).await {
                                     Ok(()) => {
                                         all_results.push(OperationResult {
@@ -437,7 +441,7 @@ impl CommandHandler {
                                             success: true,
                                             error: None,
                                             details: Some(format!("Restored from {}", backup_file_path.display())),
-                                            required_privileges: false,
+                                            required_privileges: requires_privileges,
                                             duration: None,
                                             bytes_processed: None,
                                         });
@@ -450,7 +454,7 @@ impl CommandHandler {
                                             success: false,
                                             error: Some(e.to_string()),
                                             details: None,
-                                            required_privileges: false,
+                                            required_privileges: requires_privileges,
                                             duration: None,
                                             bytes_processed: None,
                                         });
@@ -489,13 +493,14 @@ impl CommandHandler {
 
                     if backup_files.is_empty() {
                         // No files found in backup for this path
+                        let requires_privileges = crate::utils::PrivilegeUtility::path_requires_sudo(original_path);
                         all_results.push(OperationResult {
                             operation_type: OperationType::Restore,
                             path: original_path.clone(),
                             success: false,
                             error: Some("No files found in backup for this path".to_string()),
                             details: None,
-                            required_privileges: false,
+                            required_privileges: requires_privileges,
                             duration: None,
                             bytes_processed: None,
                         });
@@ -517,6 +522,9 @@ impl CommandHandler {
                                 PathBuf::from("./restored").join(relative_path)
                             };
                             
+                            // Check if this path requires privileges
+                            let requires_privileges = crate::utils::PrivilegeUtility::path_requires_sudo(&target_path);
+                            
                             match self.restore_single_file(&backup_file_path, &target_path, args.overwrite).await {
                                 Ok(()) => {
                                     all_results.push(OperationResult {
@@ -525,7 +533,7 @@ impl CommandHandler {
                                         success: true,
                                         error: None,
                                         details: Some(format!("Restored from {}", backup_file_path.display())),
-                                        required_privileges: false,
+                                        required_privileges: requires_privileges,
                                         duration: None,
                                         bytes_processed: None,
                                     });
@@ -538,7 +546,7 @@ impl CommandHandler {
                                         success: false,
                                         error: Some(e.to_string()),
                                         details: None,
-                                        required_privileges: false,
+                                        required_privileges: requires_privileges,
                                         duration: None,
                                         bytes_processed: None,
                                     });
@@ -2033,6 +2041,25 @@ impl CommandHandler {
 
     /// Restore a single file or directory from backup to target location
     async fn restore_single_file(&self, backup_path: &Path, target_path: &Path, overwrite: bool) -> anyhow::Result<()> {
+        use crate::utils::PrivilegeUtility;
+        
+        // Check if target path requires elevated privileges
+        let requires_privileges = PrivilegeUtility::path_requires_sudo(target_path);
+        
+        // If we need privileges but don't have them, request sudo access
+        if requires_privileges && !PrivilegeUtility::is_root() {
+            if !PrivilegeUtility::has_sudo() {
+                return Err(anyhow::anyhow!(
+                    "Target path '{}' requires elevated privileges, but sudo is not available", 
+                    target_path.display()
+                ));
+            }
+            
+            // Request sudo password upfront if needed
+            PrivilegeUtility::request_sudo_password().await
+                .context("Failed to obtain elevated privileges")?;
+        }
+        
         // Check if target exists and handle overwrite logic
         if target_path.exists() && !overwrite {
             return Err(anyhow::anyhow!("Target exists and overwrite not specified: {}", target_path.display()));
@@ -2040,29 +2067,50 @@ impl CommandHandler {
         
         // Remove existing target if overwrite is enabled
         if target_path.exists() && overwrite {
-            if target_path.is_dir() {
-                tokio::fs::remove_dir_all(target_path).await
-                    .context(format!("Failed to remove existing directory: {}", target_path.display()))?;
+            if requires_privileges && !PrivilegeUtility::is_root() {
+                // Use sudo to remove existing files/directories
+                PrivilegeUtility::sudo_remove(target_path).await
+                    .context(format!("Failed to remove existing target with sudo: {}", target_path.display()))?;
             } else {
-                tokio::fs::remove_file(target_path).await
-                    .context(format!("Failed to remove existing file: {}", target_path.display()))?;
+                // Use regular filesystem operations
+                if target_path.is_dir() {
+                    tokio::fs::remove_dir_all(target_path).await
+                        .context(format!("Failed to remove existing directory: {}", target_path.display()))?;
+                } else {
+                    tokio::fs::remove_file(target_path).await
+                        .context(format!("Failed to remove existing file: {}", target_path.display()))?;
+                }
             }
         }
         
         // Create parent directory if needed
         if let Some(parent) = target_path.parent() {
-            tokio::fs::create_dir_all(parent).await
-                .context(format!("Failed to create parent directory: {}", parent.display()))?;
+            if requires_privileges && !PrivilegeUtility::is_root() {
+                // Use sudo to create parent directories
+                PrivilegeUtility::sudo_mkdir(parent).await
+                    .context(format!("Failed to create parent directory with sudo: {}", parent.display()))?;
+            } else {
+                // Use regular filesystem operations
+                tokio::fs::create_dir_all(parent).await
+                    .context(format!("Failed to create parent directory: {}", parent.display()))?;
+            }
         }
         
         // Check if backup is a directory or file
         if backup_path.is_dir() {
-            self.copy_directory_recursive(backup_path, target_path).await
+            self.copy_directory_recursive_with_privileges(backup_path, target_path, requires_privileges).await
                 .context(format!("Failed to copy directory {} to {}", backup_path.display(), target_path.display()))?;
         } else {
             // Copy file from backup to target
-            tokio::fs::copy(backup_path, target_path).await
-                .context(format!("Failed to copy file {} to {}", backup_path.display(), target_path.display()))?;
+            if requires_privileges && !PrivilegeUtility::is_root() {
+                // Use sudo to copy file
+                PrivilegeUtility::sudo_copy(backup_path, target_path).await
+                    .context(format!("Failed to copy file with sudo {} to {}", backup_path.display(), target_path.display()))?;
+            } else {
+                // Use regular filesystem operations
+                tokio::fs::copy(backup_path, target_path).await
+                    .context(format!("Failed to copy file {} to {}", backup_path.display(), target_path.display()))?;
+            }
         }
         
         Ok(())
@@ -2071,9 +2119,23 @@ impl CommandHandler {
     /// Recursively copy a directory from source to destination
     fn copy_directory_recursive<'a>(&'a self, src: &'a Path, dst: &'a Path) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + 'a>> {
         Box::pin(async move {
+            self.copy_directory_recursive_with_privileges(src, dst, false).await
+        })
+    }
+
+    /// Recursively copy a directory from source to destination with privilege handling
+    fn copy_directory_recursive_with_privileges<'a>(&'a self, src: &'a Path, dst: &'a Path, requires_privileges: bool) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<()>> + Send + 'a>> {
+        Box::pin(async move {
+            use crate::utils::PrivilegeUtility;
+            
             // Create the destination directory
-            tokio::fs::create_dir_all(dst).await
-                .context(format!("Failed to create directory: {}", dst.display()))?;
+            if requires_privileges && !PrivilegeUtility::is_root() {
+                PrivilegeUtility::sudo_mkdir(dst).await
+                    .context(format!("Failed to create directory with sudo: {}", dst.display()))?;
+            } else {
+                tokio::fs::create_dir_all(dst).await
+                    .context(format!("Failed to create directory: {}", dst.display()))?;
+            }
             
             // Read the source directory
             let mut entries = tokio::fs::read_dir(src).await
@@ -2085,12 +2147,18 @@ impl CommandHandler {
                 let dst_path = dst.join(&file_name);
                 
                 if entry_path.is_dir() {
-                    // Recursively copy subdirectory
-                    self.copy_directory_recursive(&entry_path, &dst_path).await?;
+                    // Recursively copy subdirectory - check if child path also requires privileges
+                    let child_requires_privileges = requires_privileges || PrivilegeUtility::path_requires_sudo(&dst_path);
+                    self.copy_directory_recursive_with_privileges(&entry_path, &dst_path, child_requires_privileges).await?;
                 } else {
                     // Copy file
-                    tokio::fs::copy(&entry_path, &dst_path).await
-                        .context(format!("Failed to copy file {} to {}", entry_path.display(), dst_path.display()))?;
+                    if requires_privileges && !PrivilegeUtility::is_root() {
+                        PrivilegeUtility::sudo_copy(&entry_path, &dst_path).await
+                            .context(format!("Failed to copy file with sudo {} to {}", entry_path.display(), dst_path.display()))?;
+                    } else {
+                        tokio::fs::copy(&entry_path, &dst_path).await
+                            .context(format!("Failed to copy file {} to {}", entry_path.display(), dst_path.display()))?;
+                    }
                 }
             }
             
