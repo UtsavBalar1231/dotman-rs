@@ -1,7 +1,7 @@
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use dotman::storage::FileEntry;
 use dotman::storage::file_ops::{hash_file, hash_files_parallel};
 use dotman::storage::index::{ConcurrentIndex, Index};
-use dotman::storage::FileEntry;
 use std::fs;
 use std::hint::black_box;
 use std::path::PathBuf;

@@ -1,7 +1,7 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use dotman::config::parser::parse_config_file;
 use std::fs;
-use std::path::Path;
+use std::hint::black_box;
 use tempfile::tempdir;
 
 fn create_test_config(size: usize) -> String {

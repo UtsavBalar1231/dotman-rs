@@ -1,9 +1,9 @@
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use dotman::DotmanContext;
 use dotman::commands;
 use dotman::config::Config;
 use std::fs;
-use std::path::PathBuf;
+use std::hint::black_box;
 use tempfile::tempdir;
 
 fn setup_test_context() -> (tempfile::TempDir, DotmanContext) {
