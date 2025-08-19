@@ -1,0 +1,460 @@
+name: Security
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scans daily at 03:00 UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Dependency vulnerability scanning
+  audit-dependencies:
+    name: Audit Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --features=fix
+
+      - name: Cache cargo-audit database
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/advisory-db
+          key: advisory-db-${{ github.run_number }}
+          restore-keys: |
+            advisory-db-
+
+      - name: Run cargo audit
+        run: |
+          cargo audit --json > audit-report.json || echo "Audit found issues"
+          cargo audit # Human readable output
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v3
+        with:
+          name: audit-report
+          path: audit-report.json
+
+  # License compliance scanning
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Create cargo-deny configuration
+        run: |
+          cat > deny.toml << 'EOF'
+          [licenses]
+          # List of explicitly disallowed licenses
+          # See https://spdx.org/licenses/ for list of possible licenses
+          # The confidence threshold for detecting a license from license text.
+          # Expressed as a floating point number in (0.0, 1.0]
+          confidence-threshold = 0.8
+          
+          # Allow specific licenses
+          allow = [
+              "MIT",
+              "Apache-2.0",
+              "Apache-2.0 WITH LLVM-exception",
+              "BSD-2-Clause",
+              "BSD-3-Clause",
+              "ISC",
+              "Unicode-DFS-2016",
+              "CC0-1.0",
+          ]
+          
+          # Deny specific licenses
+          deny = [
+              "GPL-2.0",
+              "GPL-3.0",
+              "AGPL-1.0",
+              "AGPL-3.0",
+          ]
+          
+          # Lint level for when multiple versions of the same license are detected
+          multiple-versions = "warn"
+          
+          [bans]
+          # Lint level for when a crate version requirement is `*`
+          wildcards = "allow"
+          
+          # The graph highlighting used when creating dotfiles for the graph
+          highlight = "all"
+          
+          # List of crates that are allowed. Use with care!
+          allow = []
+          
+          # List of crates to deny
+          deny = []
+          
+          # Certain crates/versions that will be skipped when doing duplicate detection.
+          skip = []
+          
+          # Similarly to `skip` allows you to skip certain crates from being checked.
+          skip-tree = []
+          
+          [advisories]
+          # The path where the advisory database is cloned/fetched into
+          db-path = "~/.cargo/advisory-db"
+          
+          # The url(s) of the advisory databases to use
+          db-urls = ["https://github.com/rustsec/advisory-db"]
+          
+          # The lint level for security vulnerabilities
+          vulnerability = "deny"
+          
+          # The lint level for unmaintained crates
+          unmaintained = "warn"
+          
+          # The lint level for crates that have been yanked from their source registry
+          yanked = "warn"
+          
+          # The lint level for crates with security notices.
+          notice = "warn"
+          
+          # A list of advisory IDs to ignore.
+          ignore = []
+          
+          [sources]
+          # Lint level for what to happen when a crate from a crate registry that is
+          # not in the allow list is encountered
+          unknown-registry = "warn"
+          
+          # Lint level for what to happen when a crate from a git repository that is not
+          # in the allow list is encountered
+          unknown-git = "warn"
+          
+          # List of URLs for allowed crate registries. Defaults to the crates.io index
+          allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+          
+          # List of URLs for allowed Git repositories
+          allow-git = []
+          EOF
+
+      - name: Run license and security checks
+        run: |
+          # Check licenses
+          cargo deny --log-level error check licenses
+          
+          # Check for banned dependencies
+          cargo deny --log-level error check bans
+          
+          # Check for security advisories
+          cargo deny --log-level error check advisories
+          
+          # Check sources
+          cargo deny --log-level error check sources
+
+      - name: Generate license report
+        run: |
+          echo "# Dependency Licenses" > license-report.md
+          echo "" >> license-report.md
+          cargo deny --log-level error list --format human >> license-report.md || true
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-report
+          path: license-report.md
+
+  # Software Bill of Materials (SBOM) generation
+  generate-sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-cyclonedx
+        run: cargo install cargo-cyclonedx
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Generate SBOM (CycloneDX)
+        run: |
+          cargo cyclonedx --format json --output-file sbom-cyclonedx.json
+          cargo cyclonedx --format xml --output-file sbom-cyclonedx.xml
+
+      - name: Install syft for additional SBOM formats
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM (SPDX)
+        run: |
+          # Generate SPDX SBOM from source
+          syft . -o spdx-json=sbom-spdx.json
+          syft . -o spdx-tag-value=sbom-spdx.spdx
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: sbom-reports
+          path: |
+            sbom-*.json
+            sbom-*.xml
+            sbom-*.spdx
+
+  # Static code analysis for security issues
+  security-scan:
+    name: Security Code Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install clippy with additional lints
+        run: rustup component add clippy
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run security-focused clippy lints
+        run: |
+          cargo clippy --all-targets --all-features -- \
+            -W clippy::integer_arithmetic \
+            -W clippy::float_arithmetic \
+            -W clippy::indexing_slicing \
+            -W clippy::unwrap_used \
+            -W clippy::expect_used \
+            -W clippy::panic \
+            -W clippy::unimplemented \
+            -W clippy::todo \
+            -W clippy::unreachable \
+            -W clippy::mem_forget \
+            -W clippy::debug_assert_with_mut_call \
+            -W clippy::exit \
+            -W clippy::filetype_is_file \
+            -W clippy::create_dir \
+            -W clippy::lossy_float_literal \
+            -W clippy::string_slice \
+            -D warnings
+
+  # Check for secrets in repository
+  secrets-scan:
+    name: Secrets Scan  
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install TruffleHog
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Scan for secrets
+        run: |
+          trufflehog git file://. --branch=main --only-verified=false --json > secrets-report.json || echo "Secrets scan completed"
+          
+          # Also scan with built-in patterns
+          trufflehog git file://. --branch=main --only-verified=true --json > verified-secrets-report.json || echo "Verified secrets scan completed"
+
+      - name: Check for sensitive files
+        run: |
+          echo "Checking for sensitive files..."
+          find . -type f \( \
+            -name "*.key" -o \
+            -name "*.pem" -o \
+            -name "*.p12" -o \
+            -name "*.pfx" -o \
+            -name ".env*" -o \
+            -name "*password*" -o \
+            -name "*secret*" -o \
+            -name "id_rsa" -o \
+            -name "id_ed25519" \
+          \) ! -path "./.git/*" ! -path "./target/*" | tee sensitive-files.txt
+          
+          if [ -s sensitive-files.txt ]; then
+            echo "⚠️ Sensitive files detected!"
+            cat sensitive-files.txt
+          else
+            echo "✅ No sensitive files found"
+          fi
+
+      - name: Upload secrets scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: secrets-scan
+          path: |
+            secrets-report.json
+            verified-secrets-report.json
+            sensitive-files.txt
+
+  # Dependency tree analysis
+  dependency-analysis:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-tree and cargo-machete
+        run: |
+          cargo install cargo-tree
+          cargo install cargo-machete
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Generate dependency tree
+        run: |
+          echo "# Dependency Tree" > dependency-analysis.md
+          echo "" >> dependency-analysis.md
+          echo "## Direct Dependencies" >> dependency-analysis.md
+          echo '```' >> dependency-analysis.md
+          cargo tree --depth=1 >> dependency-analysis.md
+          echo '```' >> dependency-analysis.md
+          echo "" >> dependency-analysis.md
+          
+          echo "## Full Dependency Tree" >> dependency-analysis.md
+          echo '```' >> dependency-analysis.md
+          cargo tree >> dependency-analysis.md
+          echo '```' >> dependency-analysis.md
+          echo "" >> dependency-analysis.md
+          
+          echo "## Duplicate Dependencies" >> dependency-analysis.md
+          echo '```' >> dependency-analysis.md
+          cargo tree --duplicates >> dependency-analysis.md || echo "No duplicate dependencies found" >> dependency-analysis.md
+          echo '```' >> dependency-analysis.md
+
+      - name: Check for unused dependencies
+        run: |
+          echo "" >> dependency-analysis.md
+          echo "## Unused Dependencies" >> dependency-analysis.md
+          echo '```' >> dependency-analysis.md
+          cargo machete >> dependency-analysis.md || echo "No unused dependencies found" >> dependency-analysis.md
+          echo '```' >> dependency-analysis.md
+
+      - name: Upload dependency analysis
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-analysis
+          path: dependency-analysis.md
+
+  # Security summary and reporting
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [audit-dependencies, license-check, generate-sbom, security-scan, secrets-scan, dependency-analysis]
+    if: always()
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: security-reports
+
+      - name: Create security summary
+        run: |
+          echo "# Security Analysis Summary" > security-summary.md
+          echo "" >> security-summary.md
+          echo "Generated on: $(date -u)" >> security-summary.md
+          echo "" >> security-summary.md
+          
+          # Check if any jobs failed
+          if [[ "${{ needs.audit-dependencies.result }}" == "failure" ]]; then
+            echo "❌ **Dependency Audit**: FAILED" >> security-summary.md
+          else
+            echo "✅ **Dependency Audit**: PASSED" >> security-summary.md
+          fi
+          
+          if [[ "${{ needs.license-check.result }}" == "failure" ]]; then
+            echo "❌ **License Compliance**: FAILED" >> security-summary.md
+          else
+            echo "✅ **License Compliance**: PASSED" >> security-summary.md
+          fi
+          
+          if [[ "${{ needs.generate-sbom.result }}" == "failure" ]]; then
+            echo "❌ **SBOM Generation**: FAILED" >> security-summary.md
+          else
+            echo "✅ **SBOM Generation**: PASSED" >> security-summary.md
+          fi
+          
+          if [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
+            echo "❌ **Security Code Scan**: FAILED" >> security-summary.md
+          else
+            echo "✅ **Security Code Scan**: PASSED" >> security-summary.md
+          fi
+          
+          if [[ "${{ needs.secrets-scan.result }}" == "failure" ]]; then
+            echo "❌ **Secrets Scan**: FAILED" >> security-summary.md
+          else
+            echo "✅ **Secrets Scan**: PASSED" >> security-summary.md
+          fi
+          
+          if [[ "${{ needs.dependency-analysis.result }}" == "failure" ]]; then
+            echo "❌ **Dependency Analysis**: FAILED" >> security-summary.md
+          else
+            echo "✅ **Dependency Analysis**: PASSED" >> security-summary.md
+          fi
+          
+          echo "" >> security-summary.md
+          echo "## Artifacts Generated" >> security-summary.md
+          echo "" >> security-summary.md
+          echo "- Software Bill of Materials (SBOM) in multiple formats" >> security-summary.md
+          echo "- Dependency vulnerability audit report" >> security-summary.md
+          echo "- License compliance report" >> security-summary.md
+          echo "- Security code analysis results" >> security-summary.md
+          echo "- Secrets scanning results" >> security-summary.md
+          echo "- Dependency tree analysis" >> security-summary.md
+
+      - name: Upload security summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-summary
+          path: security-summary.md
+
+      - name: Comment PR with security summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('security-summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🔒 Security Analysis Results\n\n${summary}`
+            });

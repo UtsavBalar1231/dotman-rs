@@ -1,0 +1,93 @@
+version: 2
+
+updates:
+  # Rust dependencies (Cargo.toml)
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "UtsavBalar1231"
+    assignees:
+      - "UtsavBalar1231"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+    groups:
+      # Group patch updates together to reduce PR noise
+      patch-updates:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+      # Group development dependencies
+      dev-dependencies:
+        applies-to: version-updates
+        dependency-type: "development"
+      # Group security updates for immediate attention
+      security-updates:
+        applies-to: security-updates
+    ignore:
+      # Ignore specific packages that require manual review
+      - dependency-name: "serde*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tokio*"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "05:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "UtsavBalar1231"
+    assignees:
+      - "UtsavBalar1231"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      # Group all action updates together
+      actions-updates:
+        patterns:
+          - "*"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/containers"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "05:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "UtsavBalar1231"
+    assignees:
+      - "UtsavBalar1231"
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # Add more package ecosystems as needed
+  # - package-ecosystem: "npm"
+  #   directory: "/docs" # If you add Node.js docs tooling
+  #   schedule:
+  #     interval: "weekly"

@@ -1,0 +1,185 @@
+name: Feature Request
+description: Suggest a new feature for dotman
+title: "[Feature]: "
+labels: ["enhancement", "triage-needed"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! 🚀
+        
+        Please provide as much detail as possible to help us understand your request.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues and discussions to avoid duplicates
+          required: true
+        - label: I have checked the project roadmap and documentation
+          required: true
+        - label: This is a feature request, not a bug report
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Describe the problem clearly.
+      placeholder: |
+        I'm frustrated when...
+        I need to do X but currently have to...
+        The current workflow is inefficient because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see implemented
+      placeholder: |
+        I would like dotman to...
+        The feature should work by...
+        Users should be able to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Describe alternative solutions or workarounds you've considered
+      placeholder: |
+        Other approaches could include...
+        I've tried using X but...
+        Similar tools handle this by...
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: Which category does this feature belong to?
+      options:
+        - Core functionality
+        - Performance optimization
+        - User interface/experience
+        - Configuration management
+        - Remote synchronization
+        - Security and privacy
+        - Integration with other tools
+        - Documentation
+        - Developer experience
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How important is this feature to you?
+      options:
+        - label: Critical - I cannot use dotman effectively without this
+        - label: High - This would significantly improve my workflow
+        - label: Medium - This would be a nice improvement
+        - label: Low - This is a minor enhancement
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Provide specific examples of how this feature would be used
+      placeholder: |
+        Example 1: When managing multiple machine configurations...
+        Example 2: In a team environment where...
+        Example 3: For users who need to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: mockup
+    attributes:
+      label: User Interface / Command Examples
+      description: If applicable, show how the feature might look or work
+      placeholder: |
+        Command interface:
+        $ dot new-command --option value
+        
+        Configuration:
+        [new-feature]
+        setting = "value"
+        
+        Output:
+        Feature successfully executed!
+      render: shell
+
+  - type: textarea
+    id: technical-considerations
+    attributes:
+      label: Technical Considerations
+      description: Any technical details, constraints, or requirements you're aware of
+      placeholder: |
+        - Should work on all supported platforms
+        - May require new dependencies: X, Y, Z
+        - Performance impact considerations
+        - Compatibility with existing features
+        - Security implications
+
+  - type: checkboxes
+    id: compatibility
+    attributes:
+      label: Platform Compatibility
+      description: Which platforms should support this feature?
+      options:
+        - label: Linux
+        - label: macOS
+        - label: Windows (if applicable)
+        - label: All platforms
+
+  - type: textarea
+    id: implementation-ideas
+    attributes:
+      label: Implementation Ideas
+      description: If you have ideas about how this could be implemented (optional)
+      placeholder: |
+        This could be implemented by...
+        Similar to how X works in...
+        Might use libraries like...
+
+  - type: textarea
+    id: documentation
+    attributes:
+      label: Documentation Requirements
+      description: What documentation would be needed for this feature?
+      placeholder: |
+        - Command reference updates
+        - Configuration examples  
+        - Tutorial or guide sections
+        - FAQ entries
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you like to contribute to implementing this feature?
+      options:
+        - label: I'm willing to submit a PR to implement this feature
+        - label: I can help with testing and feedback
+        - label: I can contribute to documentation
+        - label: I can provide detailed requirements
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might be helpful
+      placeholder: |
+        - Links to similar features in other tools
+        - Related discussions or issues
+        - Timeline requirements
+        - Impact on current users

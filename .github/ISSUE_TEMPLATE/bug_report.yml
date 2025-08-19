@@ -1,0 +1,147 @@
+name: Bug Report
+description: Report a bug in dotman
+title: "[Bug]: "
+labels: ["bug", "triage-needed"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! 🐛
+        
+        Before submitting, please search existing issues to avoid duplicates.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I am running the latest version of dotman
+          required: true
+        - label: I have read the documentation and troubleshooting guide
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Describe what happened and what you expected to happen...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the bug
+      placeholder: |
+        1. Run command '...'
+        2. Navigate to '...'
+        3. See error '...'
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: Describe what should have happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened (including error messages)
+      placeholder: Describe what actually happened, include full error messages...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Information
+      description: Details about your system environment
+      value: |
+        - **OS**: (e.g., Ubuntu 22.04, macOS 13.0, Windows 11)
+        - **dotman version**: (run `dot --version`)
+        - **Installation method**: (cargo, binary download, package manager)
+        - **Terminal**: (bash, zsh, fish, PowerShell)
+        - **File system**: (ext4, APFS, NTFS)
+        - **Available disk space**: 
+        - **Memory (RAM)**: 
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log Output
+      description: Relevant log output with debug information
+      placeholder: |
+        Run with debug logging: RUST_LOG=debug dot <command>
+        Paste the output here...
+      render: shell
+
+  - type: textarea
+    id: dotman-status
+    attributes:
+      label: dotman Status
+      description: Output of `dot status` command (if relevant)
+      placeholder: |
+        $ dot status
+        (paste output here)
+      render: shell
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration
+      description: Your dotman configuration file content (remove sensitive information)
+      placeholder: |
+        $ cat ~/.config/dotman/config
+        (paste content here, remove any sensitive information)
+      render: toml
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any additional context, screenshots, or information
+      placeholder: |
+        - Performance impact (if any)
+        - Frequency of occurrence
+        - Workarounds tried
+        - Related issues or discussions
+
+  - type: checkboxes
+    id: severity
+    attributes:
+      label: Severity Assessment
+      description: How does this bug affect you?
+      options:
+        - label: Critical - Causes data loss or corruption
+        - label: High - Prevents core functionality from working
+        - label: Medium - Reduces functionality or causes inconvenience
+        - label: Low - Minor issue with easy workaround
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you like to contribute to fixing this issue?
+      options:
+        - label: I'm willing to submit a PR to fix this issue
+        - label: I can help test the fix
+        - label: I can provide additional debugging information
