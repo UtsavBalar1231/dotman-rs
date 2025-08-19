@@ -1,16 +1,46 @@
 [package]
 name = "dotman"
-version = "0.0.1-rc1"
+version = "0.0.1"
 edition = "2024"
-authors = ["UtsavBalar1231"]
-description = "Extremely fast dotfiles manager for Linux"
+rust-version = "1.91.0"
+authors = ["Utsav Balar <utsavbalar1231@gmail.com>"]
+description = "Blazingly fast dotfiles manager with git-like semantics"
+documentation = "https://docs.rs/dotman"
+homepage = "https://github.com/UtsavBalar1231/dotman-rs"
+repository = "https://github.com/UtsavBalar1231/dotman-rs"
 license = "MIT"
-repository = "https://github.com/UtsavBalar/dotman"
-keywords = ["dotfiles", "configuration", "manager", "cli"]
-categories = ["command-line-utilities", "filesystem"]
+readme = "README.md"
+keywords = ["dotfiles", "configuration", "manager", "cli", "git"]
+categories = ["command-line-utilities", "filesystem", "development-tools"]
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "Cargo.lock",
+    "README.md",
+    "LICENSE",
+    "CLAUDE.md"
+]
+exclude = [
+    "target/",
+    "tests/",
+    "benches/",
+    "examples/",
+    ".github/",
+    "packaging/",
+    "containers/",
+    "scripts/",
+    "install/",
+    "man/",
+    "completions/",
+    "dist/",
+    "*.md",
+    "!README.md",
+    "!CLAUDE.md"
+]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive", "env"] }
+clap_complete = "4.5"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.9"
 anyhow = "1.0"
@@ -60,6 +90,20 @@ strip = false
 [profile.bench]
 inherits = "release"
 
+# Production optimizations for different use cases
+[profile.dist]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+strip = "symbols"
+panic = "abort"
+
+[profile.dist-debug]
+inherits = "dist"
+debug = true
+strip = "none"
+
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 simd-json = "0.15"
 
@@ -77,3 +121,33 @@ harness = false
 [[bench]]
 name = "commands_bench"
 harness = false
+
+# Binary configuration
+[[bin]]
+name = "dot"
+path = "src/main.rs"
+
+# Metadata for crates.io
+[package.metadata]
+# Release configuration
+[package.metadata.release]
+pre-release-replacements = [
+    {file="README.md", search="dotman \\d+\\.\\d+\\.\\d+", replace="dotman {{version}}"},
+    {file="packaging/arch/PKGBUILD", search="pkgver=\\d+\\.\\d+\\.\\d+", replace="pkgver={{version}}"},
+    {file="packaging/rpm/dotman.spec", search="Version:\\s+\\d+\\.\\d+\\.\\d+", replace="Version:        {{version}}"},
+    {file="packaging/homebrew/dotman.rb", search="version \"\\d+\\.\\d+\\.\\d+\"", replace="version \"{{version}}\""},
+]
+pre-release-commit-message = "chore: Release {{version}}"
+tag-message = "Release {{version}}"
+tag-prefix = "v"
+publish = false  # We handle publishing through CI
+push = false     # We handle pushing through CI
+
+# Documentation configuration
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+# Performance optimizations for specific targets
+[package.metadata.cargo-machete]
+ignored = ["tempfile"]  # Used in dev builds and examples

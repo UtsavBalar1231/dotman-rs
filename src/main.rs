@@ -1,7 +1,9 @@
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{Generator, Shell, generate};
 use colored::Colorize;
 use dotman::{DotmanContext, commands};
+use std::io;
 use std::process;
 
 #[derive(Parser)]
@@ -130,6 +132,13 @@ enum Commands {
         #[arg(short, long)]
         force: bool,
     },
+
+    /// Generate shell completion scripts
+    Completion {
+        /// Shell to generate completions for
+        #[arg(value_enum)]
+        shell: Shell,
+    },
 }
 
 fn main() {
@@ -144,7 +153,7 @@ fn run() -> Result<()> {
 
     // Initialize context
     let context = match &cli.command {
-        Commands::Init { .. } => None,
+        Commands::Init { .. } | Commands::Completion { .. } => None,
         _ => Some(DotmanContext::new()?),
     };
 
@@ -201,7 +210,14 @@ fn run() -> Result<()> {
             let ctx = context.unwrap();
             commands::rm::execute(&ctx, &paths, cached, force)?;
         }
+        Commands::Completion { shell } => {
+            print_completions(shell, &mut Cli::command());
+        }
     }
 
     Ok(())
+}
+
+fn print_completions<G: Generator>(g: G, cmd: &mut clap::Command) {
+    generate(g, cmd, cmd.get_name().to_string(), &mut io::stdout());
 }
