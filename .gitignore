@@ -1,0 +1,10 @@
+# Ignore build artifacts
+target/
+**/*.proptest-regressions
+.bacon-locations
+
+# CLAUDE Code file
+CLAUDE.md
+
+# Extras
+DISCOVERED_BUGS.md

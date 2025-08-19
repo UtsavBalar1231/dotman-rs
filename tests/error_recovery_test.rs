@@ -1,0 +1,403 @@
+use anyhow::Result;
+use dotman::DotmanContext;
+use dotman::commands;
+use dotman::config::Config;
+use dotman::storage::index::Index;
+use dotman::storage::snapshots::SnapshotManager;
+use dotman::storage::{Commit, FileEntry};
+use std::fs;
+use std::path::PathBuf;
+use tempfile::tempdir;
+
+fn setup_corrupted_repo() -> Result<(tempfile::TempDir, DotmanContext)> {
+    let dir = tempdir()?;
+    let repo_path = dir.path().join(".dotman");
+    let config_path = dir.path().join("config.toml");
+
+    // Create repo structure
+    fs::create_dir_all(&repo_path)?;
+    fs::create_dir_all(repo_path.join("commits"))?;
+    fs::create_dir_all(repo_path.join("objects"))?;
+
+    let mut config = Config::default();
+    config.core.repo_path = repo_path.clone();
+    config.save(&config_path)?;
+
+    let context = DotmanContext {
+        repo_path,
+        config_path,
+        config,
+    };
+
+    Ok((dir, context))
+}
+
+#[test]
+fn test_recover_from_corrupted_index() -> Result<()> {
+    let (dir, ctx) = setup_corrupted_repo()?;
+
+    // Create valid index first
+    let mut index = Index::new();
+    index.add_entry(FileEntry {
+        path: PathBuf::from("test.txt"),
+        hash: "valid_hash".to_string(),
+        size: 100,
+        modified: 1234567890,
+        mode: 0o644,
+    });
+
+    let index_path = ctx.repo_path.join("index.bin");
+    index.save(&index_path)?;
+
+    // Corrupt the index file
+    fs::write(
+        &index_path,
+        b"This is corrupted binary data that's not valid bincode",
+    )?;
+
+    // Try to load corrupted index
+    let result = Index::load(&index_path);
+    assert!(result.is_err());
+
+    // Recovery strategy: create new empty index
+    let recovered_index = Index::new();
+    recovered_index.save(&index_path)?;
+
+    // Should now be able to use commands
+    let test_file = dir.path().join("new.txt");
+    fs::write(&test_file, "new content")?;
+
+    let paths = vec![test_file.to_string_lossy().to_string()];
+    commands::add::execute(&ctx, &paths, false)?;
+
+    Ok(())
+}
+
+#[test]
+fn test_recover_from_incomplete_commit() -> Result<()> {
+    let (_dir, ctx) = setup_corrupted_repo()?;
+
+    let snapshot_manager =
+        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+
+    // Create partial commit file (corrupted/incomplete)
+    let commits_dir = ctx.repo_path.join("commits");
+    let incomplete_commit = commits_dir.join("incomplete.zst");
+    fs::write(&incomplete_commit, b"incomplete compressed data")?;
+
+    // Try to load incomplete commit
+    let result = snapshot_manager.load_snapshot("incomplete");
+    assert!(result.is_err());
+
+    // Recovery: list valid snapshots should still work
+    let valid_snapshots = snapshot_manager.list_snapshots()?;
+
+    // Should detect the file but loading it will fail
+    assert!(valid_snapshots.contains(&"incomplete".to_string()));
+
+    // Clean up corrupted commit
+    snapshot_manager.delete_snapshot("incomplete")?;
+
+    // Verify it's gone
+    let after_cleanup = snapshot_manager.list_snapshots()?;
+    assert!(!after_cleanup.contains(&"incomplete".to_string()));
+
+    Ok(())
+}
+
+#[test]
+fn test_recover_from_missing_objects() -> Result<()> {
+    let (dir, ctx) = setup_corrupted_repo()?;
+
+    let snapshot_manager =
+        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+
+    // Create a file and commit
+    let test_file = dir.path().join("test.txt");
+    fs::write(&test_file, "test content")?;
+
+    let files = vec![FileEntry {
+        path: test_file.clone(),
+        hash: "test_hash".to_string(),
+        size: 12,
+        modified: 1234567890,
+        mode: 0o644,
+    }];
+
+    let commit = Commit {
+        id: "commit1".to_string(),
+        parent: None,
+        message: "Test commit".to_string(),
+        author: "Test".to_string(),
+        timestamp: 1234567890,
+        tree_hash: "tree1".to_string(),
+    };
+
+    snapshot_manager.create_snapshot(commit, &files)?;
+
+    // Delete object files to simulate corruption
+    let objects_dir = ctx.repo_path.join("objects");
+    if objects_dir.exists() {
+        for entry in fs::read_dir(&objects_dir)? {
+            let entry = entry?;
+            fs::remove_file(entry.path())?;
+        }
+    }
+
+    // Try to restore - should fail
+    let restore_result = snapshot_manager.restore_snapshot("commit1", dir.path());
+    assert!(restore_result.is_err());
+
+    // Recovery: recreate objects from existing files
+    let recovered_files = vec![FileEntry {
+        path: test_file.clone(),
+        hash: "recovered_hash".to_string(),
+        size: 12,
+        modified: 1234567890,
+        mode: 0o644,
+    }];
+
+    let recovery_commit = Commit {
+        id: "recovery".to_string(),
+        parent: Some("commit1".to_string()),
+        message: "Recovery commit".to_string(),
+        author: "Recovery".to_string(),
+        timestamp: 1234567891,
+        tree_hash: "recovery_tree".to_string(),
+    };
+
+    // This should work as it will recreate objects
+    snapshot_manager.create_snapshot(recovery_commit, &recovered_files)?;
+
+    Ok(())
+}
+
+#[test]
+fn test_recover_from_interrupted_operations() -> Result<()> {
+    let (dir, ctx) = setup_corrupted_repo()?;
+
+    // Simulate interrupted add operation by creating partial index
+    let index_path = ctx.repo_path.join("index.bin");
+    let temp_index_path = ctx.repo_path.join("index.bin.tmp");
+
+    // Create temporary index file (simulating interrupted write)
+    let mut temp_index = Index::new();
+    temp_index.add_entry(FileEntry {
+        path: PathBuf::from("partial.txt"),
+        hash: "partial".to_string(),
+        size: 50,
+        modified: 1234567890,
+        mode: 0o644,
+    });
+    temp_index.save(&temp_index_path)?;
+
+    // Recovery: if temp file exists, either:
+    // 1. Complete the operation (rename temp to real)
+    // 2. Discard the temp file
+
+    // Option 1: Complete the operation
+    if temp_index_path.exists() && !index_path.exists() {
+        fs::rename(&temp_index_path, &index_path)?;
+    }
+
+    // Verify recovery worked
+    let recovered = Index::load(&index_path)?;
+    assert_eq!(recovered.entries.len(), 1);
+
+    // Now normal operations should work
+    let test_file = dir.path().join("new.txt");
+    fs::write(&test_file, "content")?;
+
+    let paths = vec![test_file.to_string_lossy().to_string()];
+    commands::add::execute(&ctx, &paths, false)?;
+
+    Ok(())
+}
+
+#[test]
+fn test_recover_from_permission_issues() -> Result<()> {
+    let (dir, ctx) = setup_corrupted_repo()?;
+
+    // Create a file
+    let test_file = dir.path().join("test.txt");
+    fs::write(&test_file, "content")?;
+
+    // Add it
+    let paths = vec![test_file.to_string_lossy().to_string()];
+    commands::add::execute(&ctx, &paths, false)?;
+
+    // Make index read-only
+    let index_path = ctx.repo_path.join("index.bin");
+    let mut perms = fs::metadata(&index_path)?.permissions();
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        perms.set_mode(0o444); // Read-only
+        fs::set_permissions(&index_path, perms.clone())?;
+    }
+
+    // Try to add another file - should fail due to permission
+    let test_file2 = dir.path().join("test2.txt");
+    fs::write(&test_file2, "content2")?;
+
+    let paths2 = vec![test_file2.to_string_lossy().to_string()];
+    let result = commands::add::execute(&ctx, &paths2, false);
+
+    #[cfg(unix)]
+    {
+        assert!(result.is_err());
+
+        // Recovery: restore permissions
+        use std::os::unix::fs::PermissionsExt;
+        perms.set_mode(0o644);
+        fs::set_permissions(&index_path, perms)?;
+
+        // Should now work
+        let result2 = commands::add::execute(&ctx, &paths2, false);
+        assert!(result2.is_ok());
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_recover_from_disk_full() -> Result<()> {
+    // This test simulates disk full conditions
+    // In a real scenario, we'd use a limited filesystem
+
+    let (dir, ctx) = setup_corrupted_repo()?;
+
+    // Create a large file that might fail to write completely
+    let large_file = dir.path().join("large.dat");
+    let large_content = vec![0u8; 1_000_000]; // 1MB
+
+    // Simulate partial write by writing incomplete data
+    fs::write(&large_file, &large_content[..500_000])?; // Only half
+
+    // Try to add - hash will be different than expected
+    let paths = vec![large_file.to_string_lossy().to_string()];
+    let result = commands::add::execute(&ctx, &paths, false);
+
+    // Should succeed even with partial file
+    assert!(result.is_ok());
+
+    // Recovery: detect incomplete files by size mismatch
+    let index = Index::load(&ctx.repo_path.join("index.bin"))?;
+    if let Some(entry) = index.get_entry(&large_file) {
+        let actual_size = fs::metadata(&large_file)?.len();
+        if actual_size != entry.size {
+            // File is incomplete, re-add when space available
+            println!(
+                "Detected incomplete file: expected {} bytes, got {} bytes",
+                entry.size, actual_size
+            );
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_concurrent_access_recovery() -> Result<()> {
+    use std::sync::Arc;
+    use std::thread;
+    use std::time::Duration;
+
+    let (dir, ctx) = setup_corrupted_repo()?;
+    let ctx = Arc::new(ctx);
+
+    // Create test files
+    for i in 0..10 {
+        let file = dir.path().join(format!("file_{}.txt", i));
+        fs::write(&file, format!("content {}", i))?;
+    }
+
+    // Simulate concurrent access with potential conflicts
+    let handles: Vec<_> = (0..5)
+        .map(|thread_id| {
+            let ctx_clone = ctx.clone();
+            let dir_path = dir.path().to_path_buf();
+
+            thread::spawn(move || {
+                // Each thread tries to add different files
+                let file = dir_path.join(format!("file_{}.txt", thread_id));
+                let paths = vec![file.to_string_lossy().to_string()];
+
+                // Add some delay to increase chance of conflicts
+                thread::sleep(Duration::from_millis(10));
+
+                // Multiple attempts with retry logic
+                for attempt in 0..3 {
+                    match commands::add::execute(&ctx_clone, &paths, false) {
+                        Ok(_) => break,
+                        Err(e) => {
+                            if attempt == 2 {
+                                panic!("Failed after 3 attempts: {}", e);
+                            }
+                            thread::sleep(Duration::from_millis(50));
+                        }
+                    }
+                }
+            })
+        })
+        .collect();
+
+    // Wait for all threads
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    // Verify index is still consistent
+    let index = Index::load(&ctx.repo_path.join("index.bin"))?;
+    assert!(index.entries.len() >= 5);
+
+    Ok(())
+}
+
+#[test]
+fn test_recover_from_invalid_config() -> Result<()> {
+    let dir = tempdir()?;
+    let config_path = dir.path().join("config.toml");
+
+    // Write invalid config
+    fs::write(&config_path, "invalid toml content {{ broken")?;
+
+    // Try to load - should fail
+    let result = Config::load(&config_path);
+    assert!(result.is_err());
+
+    // Recovery: use defaults
+    let default_config = Config::default();
+    default_config.save(&config_path)?;
+
+    // Should now load successfully
+    let recovered = Config::load(&config_path)?;
+    assert_eq!(recovered.core.default_branch, "main");
+
+    Ok(())
+}
+
+#[test]
+fn test_garbage_collection_recovery() -> Result<()> {
+    let (_dir, ctx) = setup_corrupted_repo()?;
+
+    // Create orphaned objects
+    let objects_dir = ctx.repo_path.join("objects");
+    fs::write(objects_dir.join("orphan1.zst"), "orphaned data 1")?;
+    fs::write(objects_dir.join("orphan2.zst"), "orphaned data 2")?;
+    fs::write(objects_dir.join("orphan3.zst"), "orphaned data 3")?;
+
+    // Run garbage collection
+    let gc = dotman::storage::snapshots::GarbageCollector::new(ctx.repo_path.clone());
+    let deleted = gc.collect()?;
+
+    // Should have deleted all orphaned objects
+    assert_eq!(deleted, 3);
+
+    // Verify objects directory is clean
+    let remaining = fs::read_dir(&objects_dir)?.count();
+    assert_eq!(remaining, 0);
+
+    Ok(())
+}
