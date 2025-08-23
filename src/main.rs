@@ -108,6 +108,9 @@ enum Commands {
 
     /// Show commit logs
     Log {
+        /// Commit to start from (defaults to showing all commits)
+        target: Option<String>,
+
         #[arg(short = 'n', long, default_value = "10")]
         limit: usize,
 
@@ -200,9 +203,13 @@ fn run() -> Result<()> {
             let ctx = context.unwrap();
             commands::show::execute(&ctx, &object)?;
         }
-        Commands::Log { limit, oneline } => {
+        Commands::Log {
+            target,
+            limit,
+            oneline,
+        } => {
             let ctx = context.unwrap();
-            commands::log::execute(&ctx, limit, oneline)?;
+            commands::log::execute(&ctx, target.as_deref(), limit, oneline)?;
         }
         Commands::Diff { from, to } => {
             let ctx = context.unwrap();

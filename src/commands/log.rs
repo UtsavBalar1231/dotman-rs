@@ -1,10 +1,17 @@
 use crate::DotmanContext;
 use crate::storage::snapshots::SnapshotManager;
+use crate::utils::commit::resolve_partial_commit_id;
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
+use std::collections::HashSet;
 
-pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool) -> Result<()> {
+pub fn execute(
+    ctx: &DotmanContext,
+    target: Option<&str>,
+    limit: usize,
+    oneline: bool,
+) -> Result<()> {
     ctx.ensure_repo_exists()?;
 
     let snapshot_manager =
@@ -20,43 +27,123 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool) -> Result<()> {
     // Load and display commits
     let mut commits_displayed = 0;
 
-    for snapshot_id in snapshots.iter().rev().take(limit) {
-        let snapshot = snapshot_manager.load_snapshot(snapshot_id)?;
-        let commit = &snapshot.commit;
+    // If a target is specified, start from that commit and follow parent chain
+    if let Some(target_ref) = target {
+        // Resolve the target reference (HEAD or commit ID)
+        let resolved_id = resolve_partial_commit_id(&ctx.repo_path, target_ref)?;
 
-        if oneline {
-            // One-line format
-            // Show last 8 chars for better uniqueness (timestamp is first 16 chars)
-            let display_id = if commit.id.len() >= 8 {
-                &commit.id[commit.id.len() - 8..]
+        // If it's HEAD, read the actual commit from HEAD file
+        let start_commit_id = if resolved_id == "HEAD" {
+            let head_path = ctx.repo_path.join("HEAD");
+            if head_path.exists() {
+                std::fs::read_to_string(&head_path)?.trim().to_string()
             } else {
-                &commit.id
-            };
-            println!("{} {}", display_id.yellow(), commit.message);
+                anyhow::bail!("No commits yet (HEAD not found)");
+            }
         } else {
-            // Full format
-            println!("{} {}", "commit".yellow(), commit.id);
+            resolved_id
+        };
 
-            if let Some(parent) = &commit.parent {
-                println!("{}: {}", "Parent".bold(), &parent[..8.min(parent.len())]);
+        // Follow parent chain from the starting commit
+        let mut current_commit_id = Some(start_commit_id);
+        let mut visited = HashSet::new();
+
+        while let Some(commit_id) = current_commit_id {
+            if commits_displayed >= limit {
+                break;
             }
 
-            println!("{}: {}", "Author".bold(), commit.author);
+            // Prevent infinite loops
+            if visited.contains(&commit_id) {
+                break;
+            }
+            visited.insert(commit_id.clone());
 
-            let datetime = Local
-                .timestamp_opt(commit.timestamp, 0)
-                .single()
-                .unwrap_or_else(Local::now);
-            println!(
-                "{}: {}",
-                "Date".bold(),
-                datetime.format("%Y-%m-%d %H:%M:%S")
-            );
+            // Load the snapshot
+            let snapshot = match snapshot_manager.load_snapshot(&commit_id) {
+                Ok(s) => s,
+                Err(_) => break, // Stop if we can't load a commit
+            };
 
-            println!("\n    {}\n", commit.message);
+            let commit = &snapshot.commit;
+
+            if oneline {
+                // One-line format
+                // Show last 8 chars for better uniqueness (timestamp is first 16 chars)
+                let display_id = if commit.id.len() >= 8 {
+                    &commit.id[commit.id.len() - 8..]
+                } else {
+                    &commit.id
+                };
+                println!("{} {}", display_id.yellow(), commit.message);
+            } else {
+                // Full format
+                println!("{} {}", "commit".yellow(), commit.id);
+
+                if let Some(parent) = &commit.parent {
+                    println!("{}: {}", "Parent".bold(), &parent[..8.min(parent.len())]);
+                }
+
+                println!("{}: {}", "Author".bold(), commit.author);
+
+                let datetime = Local
+                    .timestamp_opt(commit.timestamp, 0)
+                    .single()
+                    .unwrap_or_else(Local::now);
+                println!(
+                    "{}: {}",
+                    "Date".bold(),
+                    datetime.format("%Y-%m-%d %H:%M:%S")
+                );
+
+                println!("\n    {}\n", commit.message);
+            }
+
+            commits_displayed += 1;
+
+            // Move to parent commit
+            current_commit_id = commit.parent.clone();
         }
+    } else {
+        // Original behavior: show all commits in reverse chronological order
+        for snapshot_id in snapshots.iter().rev().take(limit) {
+            let snapshot = snapshot_manager.load_snapshot(snapshot_id)?;
+            let commit = &snapshot.commit;
 
-        commits_displayed += 1;
+            if oneline {
+                // One-line format
+                // Show last 8 chars for better uniqueness (timestamp is first 16 chars)
+                let display_id = if commit.id.len() >= 8 {
+                    &commit.id[commit.id.len() - 8..]
+                } else {
+                    &commit.id
+                };
+                println!("{} {}", display_id.yellow(), commit.message);
+            } else {
+                // Full format
+                println!("{} {}", "commit".yellow(), commit.id);
+
+                if let Some(parent) = &commit.parent {
+                    println!("{}: {}", "Parent".bold(), &parent[..8.min(parent.len())]);
+                }
+
+                println!("{}: {}", "Author".bold(), commit.author);
+
+                let datetime = Local
+                    .timestamp_opt(commit.timestamp, 0)
+                    .single()
+                    .unwrap_or_else(Local::now);
+                println!(
+                    "{}: {}",
+                    "Date".bold(),
+                    datetime.format("%Y-%m-%d %H:%M:%S")
+                );
+
+                println!("\n    {}\n", commit.message);
+            }
+
+            commits_displayed += 1;
+        }
     }
 
     if commits_displayed == 0 {
