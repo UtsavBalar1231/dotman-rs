@@ -170,6 +170,49 @@ impl SnapshotManager {
         Ok(())
     }
 
+    pub fn restore_snapshot_with_cleanup(
+        &self,
+        snapshot_id: &str,
+        target_dir: &Path,
+        current_files: &[PathBuf],
+    ) -> Result<()> {
+        let snapshot = self.load_snapshot(snapshot_id)?;
+
+        // Get list of files in target snapshot
+        let snapshot_files: std::collections::HashSet<PathBuf> =
+            snapshot.files.keys().cloned().collect();
+
+        // Remove files that are in current but not in snapshot
+        for current_file in current_files {
+            // Convert to relative path if needed
+            let rel_path = if current_file.is_absolute() {
+                current_file
+                    .strip_prefix(target_dir)
+                    .unwrap_or(current_file)
+                    .to_path_buf()
+            } else {
+                current_file.clone()
+            };
+
+            if !snapshot_files.contains(&rel_path) {
+                let abs_path = if current_file.is_absolute() {
+                    current_file.clone()
+                } else {
+                    target_dir.join(current_file)
+                };
+
+                if abs_path.exists() {
+                    fs::remove_file(&abs_path)?;
+                }
+            }
+        }
+
+        // Now restore files from snapshot
+        self.restore_snapshot(snapshot_id, target_dir)?;
+
+        Ok(())
+    }
+
     fn store_file_content(&self, file_path: &Path, hash: &str) -> Result<String> {
         let objects_dir = self.repo_path.join("objects");
         let object_path = objects_dir.join(format!("{}.zst", hash));
