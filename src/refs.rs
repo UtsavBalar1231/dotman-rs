@@ -2,6 +2,8 @@ use anyhow::Result;
 use std::fs;
 use std::path::PathBuf;
 
+pub mod resolver;
+
 /// Manages git-like references (branches, HEAD, etc.)
 pub struct RefManager {
     repo_path: PathBuf,

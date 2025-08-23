@@ -1,6 +1,6 @@
 use crate::DotmanContext;
+use crate::refs::resolver::RefResolver;
 use crate::storage::snapshots::SnapshotManager;
-use crate::utils::commit::resolve_partial_commit_id;
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
@@ -29,20 +29,9 @@ pub fn execute(
 
     // If a target is specified, start from that commit and follow parent chain
     if let Some(target_ref) = target {
-        // Resolve the target reference (HEAD or commit ID)
-        let resolved_id = resolve_partial_commit_id(&ctx.repo_path, target_ref)?;
-
-        // If it's HEAD, read the actual commit from HEAD file
-        let start_commit_id = if resolved_id == "HEAD" {
-            let head_path = ctx.repo_path.join("HEAD");
-            if head_path.exists() {
-                std::fs::read_to_string(&head_path)?.trim().to_string()
-            } else {
-                anyhow::bail!("No commits yet (HEAD not found)");
-            }
-        } else {
-            resolved_id
-        };
+        // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
+        let resolver = RefResolver::new(ctx.repo_path.clone());
+        let start_commit_id = resolver.resolve(target_ref)?;
 
         // Follow parent chain from the starting commit
         let mut current_commit_id = Some(start_commit_id);

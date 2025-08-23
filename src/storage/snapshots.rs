@@ -268,6 +268,14 @@ impl SnapshotManager {
         Ok(content)
     }
 
+    pub fn snapshot_exists(&self, snapshot_id: &str) -> bool {
+        let snapshot_path = self
+            .repo_path
+            .join("commits")
+            .join(format!("{}.zst", snapshot_id));
+        snapshot_path.exists()
+    }
+
     pub fn list_snapshots(&self) -> Result<Vec<String>> {
         let commits_dir = self.repo_path.join("commits");
 

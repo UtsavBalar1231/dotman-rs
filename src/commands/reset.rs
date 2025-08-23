@@ -1,3 +1,4 @@
+use crate::refs::resolver::RefResolver;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
 use crate::{DotmanContext, INDEX_FILE};
@@ -11,11 +12,11 @@ pub fn execute(ctx: &DotmanContext, commit: &str, hard: bool, soft: bool) -> Res
         anyhow::bail!("Cannot use both --hard and --soft flags");
     }
 
-    let commit_id = if commit == "HEAD" {
-        get_head(ctx)?.ok_or_else(|| anyhow::anyhow!("No commits yet"))?
-    } else {
-        commit.to_string()
-    };
+    // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
+    let resolver = RefResolver::new(ctx.repo_path.clone());
+    let commit_id = resolver
+        .resolve(commit)
+        .with_context(|| format!("Failed to resolve reference: {}", commit))?;
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
@@ -101,19 +102,20 @@ pub fn execute(ctx: &DotmanContext, commit: &str, hard: bool, soft: bool) -> Res
     Ok(())
 }
 
-fn get_head(ctx: &DotmanContext) -> Result<Option<String>> {
-    let head_path = ctx.repo_path.join("HEAD");
-    if head_path.exists() {
-        let content = std::fs::read_to_string(&head_path)?;
-        Ok(Some(content.trim().to_string()))
-    } else {
-        Ok(None)
-    }
-}
-
 fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
-    let head_path = ctx.repo_path.join("HEAD");
-    std::fs::write(&head_path, commit_id)?;
+    use crate::refs::RefManager;
+    
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    
+    // Check if we're on a branch
+    if let Some(branch) = ref_manager.current_branch()? {
+        // Update the branch to point to the new commit
+        ref_manager.update_branch(&branch, commit_id)?;
+    } else {
+        // Detached HEAD - update HEAD directly
+        ref_manager.set_head_to_commit(commit_id)?;
+    }
+    
     Ok(())
 }
 
@@ -266,25 +268,22 @@ mod tests {
     }
 
     #[test]
-    fn test_get_head_exists() -> Result<()> {
+    fn test_ref_resolver_integration() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create HEAD file
-        let head_path = ctx.repo_path.join("HEAD");
-        fs::write(&head_path, "abc123")?;
+        // Create a test commit
+        create_test_snapshot(&ctx, "abc123", "Test commit")?;
+        
+        // Create refs structure
+        use crate::refs::RefManager;
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        ref_manager.init()?;
+        ref_manager.update_branch("main", "abc123")?;
 
-        let head = get_head(&ctx)?;
-        assert_eq!(head, Some("abc123".to_string()));
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_get_head_not_exists() -> Result<()> {
-        let (_temp, ctx) = setup_test_context()?;
-
-        let head = get_head(&ctx)?;
-        assert_eq!(head, None);
+        // Test that reset can resolve HEAD
+        let resolver = RefResolver::new(ctx.repo_path.clone());
+        let commit_id = resolver.resolve("HEAD")?;
+        assert_eq!(commit_id, "abc123");
 
         Ok(())
     }
@@ -292,14 +291,17 @@ mod tests {
     #[test]
     fn test_update_head() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
+        
+        // Initialize refs
+        use crate::refs::RefManager;
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        ref_manager.init()?;
 
         update_head(&ctx, "new_commit_id")?;
 
-        let head_path = ctx.repo_path.join("HEAD");
-        assert!(head_path.exists());
-
-        let content = fs::read_to_string(&head_path)?;
-        assert_eq!(content, "new_commit_id");
+        // Check that the branch was updated
+        let commit = ref_manager.get_branch_commit("main")?;
+        assert_eq!(commit, "new_commit_id");
 
         Ok(())
     }
@@ -319,23 +321,15 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_get_head_with_whitespace() -> Result<()> {
-        let (_temp, ctx) = setup_test_context()?;
-
-        // Create HEAD file with whitespace
-        let head_path = ctx.repo_path.join("HEAD");
-        fs::write(&head_path, "  abc123  \n")?;
-
-        let head = get_head(&ctx)?;
-        assert_eq!(head, Some("abc123".to_string()));
-
-        Ok(())
-    }
 
     #[test]
     fn test_update_head_overwrites() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
+        
+        // Initialize refs
+        use crate::refs::RefManager;
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        ref_manager.init()?;
 
         // Create initial HEAD
         update_head(&ctx, "old_commit")?;
@@ -343,9 +337,9 @@ mod tests {
         // Update to new commit
         update_head(&ctx, "new_commit")?;
 
-        let head_path = ctx.repo_path.join("HEAD");
-        let content = fs::read_to_string(&head_path)?;
-        assert_eq!(content, "new_commit");
+        // Check that the branch was updated
+        let commit = ref_manager.get_branch_commit("main")?;
+        assert_eq!(commit, "new_commit");
 
         Ok(())
     }

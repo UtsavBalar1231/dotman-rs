@@ -1,6 +1,6 @@
 use crate::DotmanContext;
+use crate::refs::resolver::RefResolver;
 use crate::storage::snapshots::SnapshotManager;
-use crate::utils::commit::resolve_partial_commit_id;
 use anyhow::{Context, Result};
 use chrono::{Local, TimeZone};
 use colored::Colorize;
@@ -8,20 +8,11 @@ use colored::Colorize;
 pub fn execute(ctx: &DotmanContext, object: &str) -> Result<()> {
     ctx.ensure_repo_exists()?;
 
-    // Resolve partial commit ID or HEAD
-    let resolved_id = resolve_partial_commit_id(&ctx.repo_path, object)?;
-
-    // If it's HEAD, read the actual commit from HEAD file
-    let commit_id = if resolved_id == "HEAD" {
-        let head_path = ctx.repo_path.join("HEAD");
-        if head_path.exists() {
-            std::fs::read_to_string(&head_path)?.trim().to_string()
-        } else {
-            anyhow::bail!("No commits yet (HEAD not found)");
-        }
-    } else {
-        resolved_id
-    };
+    // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
+    let resolver = RefResolver::new(ctx.repo_path.clone());
+    let commit_id = resolver
+        .resolve(object)
+        .with_context(|| format!("Failed to resolve reference: {}", object))?;
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
