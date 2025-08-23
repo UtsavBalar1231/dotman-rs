@@ -2,10 +2,9 @@
 name = "dotman"
 version = "0.0.1"
 edition = "2024"
-rust-version = "1.91.0"
 authors = ["Utsav Balar <utsavbalar1231@gmail.com>"]
 description = "Blazingly fast dotfiles manager with git-like semantics"
-documentation = "https://docs.rs/dotman"
+# documentation = "https://docs.rs/dotman"
 homepage = "https://github.com/UtsavBalar1231/dotman-rs"
 repository = "https://github.com/UtsavBalar1231/dotman-rs"
 license = "MIT"
@@ -68,7 +67,7 @@ tempfile = "3.10"
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }
 proptest = "1.4"
-tempdir = "0.3"
+tempfile = "3.20"
 assert_cmd = "2.0"
 predicates = "3.1"
 serial_test = "3.1"
@@ -150,4 +149,4 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 # Performance optimizations for specific targets
 [package.metadata.cargo-machete]
-ignored = ["tempfile"]  # Used in dev builds and examples
+ignored = ["tempfile"]
