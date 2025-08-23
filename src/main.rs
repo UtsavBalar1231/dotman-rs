@@ -44,10 +44,14 @@ enum Commands {
     /// Record changes to the repository
     Commit {
         #[arg(short, long)]
-        message: String,
+        message: Option<String>,
 
         #[arg(short, long)]
         all: bool,
+        
+        /// Amend the previous commit
+        #[arg(long)]
+        amend: bool,
     },
 
     /// Switch branches or restore working tree files
@@ -157,7 +161,7 @@ enum Commands {
     /// Get and set repository or user options
     Config {
         /// Configuration key
-        key: String,
+        key: Option<String>,
 
         /// Configuration value to set
         value: Option<String>,
@@ -165,6 +169,10 @@ enum Commands {
         /// Unset the configuration key
         #[arg(long)]
         unset: bool,
+        
+        /// List all configuration values
+        #[arg(short, long)]
+        list: bool,
     },
 
     /// Generate shell completion scripts
@@ -297,9 +305,14 @@ fn run() -> Result<()> {
             let ctx = context.unwrap();
             commands::status::execute(&ctx, short, untracked)?;
         }
-        Commands::Commit { message, all } => {
+        Commands::Commit { message, all, amend } => {
             let ctx = context.unwrap();
-            commands::commit::execute(&ctx, &message, all)?;
+            if amend {
+                commands::commit::execute_amend(&ctx, message.as_deref(), all)?;
+            } else {
+                let msg = message.ok_or_else(|| anyhow::anyhow!("Commit message is required (use -m)"))?;
+                commands::commit::execute(&ctx, &msg, all)?;
+            }
         }
         Commands::Checkout { target, force } => {
             let ctx = context.unwrap();
@@ -360,9 +373,9 @@ fn run() -> Result<()> {
                 }
             }
         }
-        Commands::Config { key, value, unset } => {
+        Commands::Config { key, value, unset, list } => {
             let mut ctx = context.unwrap();
-            commands::config::execute(&mut ctx, &key, value, unset)?
+            commands::config::execute(&mut ctx, key.as_deref(), value, unset, list)?
         }
         Commands::Branch { action } => {
             let mut ctx = context.unwrap();
