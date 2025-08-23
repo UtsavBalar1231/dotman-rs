@@ -141,6 +141,7 @@ fn test_extreme_config_values() -> Result<()> {
             follow_symlinks: true,
             preserve_permissions: true,
         },
+        user: Default::default(),
     };
 
     // Should be able to save extreme config
@@ -206,6 +207,7 @@ fn test_config_unicode_and_special_chars() -> Result<()> {
             follow_symlinks: false,
             preserve_permissions: true,
         },
+        user: Default::default(),
     };
 
     // Should handle Unicode in config

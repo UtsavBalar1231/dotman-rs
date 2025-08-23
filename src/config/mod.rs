@@ -24,6 +24,10 @@ pub struct Config {
 
     #[serde(default)]
     pub tracking: TrackingConfig,
+
+    /// User configuration (name and email for commits)
+    #[serde(default)]
+    pub user: UserConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,6 +99,12 @@ pub struct BranchConfig {
 pub struct BranchTracking {
     pub remote: String,
     pub branch: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UserConfig {
+    pub name: Option<String>,
+    pub email: Option<String>,
 }
 
 impl Default for CoreConfig {
@@ -184,6 +194,109 @@ impl Config {
     pub fn remove_remote(&mut self, name: &str) -> Option<RemoteConfig> {
         self.remotes.remove(name)
     }
+
+    /// Get a configuration value by key
+    pub fn get(&self, key: &str) -> Option<String> {
+        let parts: Vec<&str> = key.split('.').collect();
+        if parts.len() != 2 {
+            return None;
+        }
+
+        match (parts[0], parts[1]) {
+            ("user", "name") => self.user.name.clone(),
+            ("user", "email") => self.user.email.clone(),
+            ("core", "compression") => Some(format!("{:?}", self.core.compression).to_lowercase()),
+            ("core", "compression_level") => Some(self.core.compression_level.to_string()),
+            ("core", "default_branch") => Some(self.core.default_branch.clone()),
+            ("performance", "parallel_threads") => {
+                Some(self.performance.parallel_threads.to_string())
+            }
+            ("performance", "mmap_threshold") => Some(self.performance.mmap_threshold.to_string()),
+            ("performance", "cache_size") => Some(self.performance.cache_size.to_string()),
+            ("performance", "use_hard_links") => Some(self.performance.use_hard_links.to_string()),
+            ("tracking", "follow_symlinks") => Some(self.tracking.follow_symlinks.to_string()),
+            ("tracking", "preserve_permissions") => {
+                Some(self.tracking.preserve_permissions.to_string())
+            }
+            _ => None,
+        }
+    }
+
+    /// Set a configuration value by key
+    pub fn set(&mut self, key: &str, value: String) -> Result<()> {
+        let parts: Vec<&str> = key.split('.').collect();
+        if parts.len() != 2 {
+            anyhow::bail!("Invalid configuration key: {}", key);
+        }
+
+        match (parts[0], parts[1]) {
+            ("user", "name") => self.user.name = Some(value),
+            ("user", "email") => {
+                // Basic email validation
+                if !value.contains('@') {
+                    anyhow::bail!("Invalid email address: {}", value);
+                }
+                self.user.email = Some(value);
+            }
+            ("core", "compression_level") => {
+                let level: i32 = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("Invalid compression level: {}", value))?;
+                if !(1..=22).contains(&level) {
+                    anyhow::bail!("Compression level must be between 1 and 22");
+                }
+                self.core.compression_level = level;
+            }
+            ("core", "default_branch") => self.core.default_branch = value,
+            ("performance", "parallel_threads") => {
+                self.performance.parallel_threads = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("Invalid number: {}", value))?;
+            }
+            ("performance", "mmap_threshold") => {
+                self.performance.mmap_threshold = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("Invalid number: {}", value))?;
+            }
+            ("performance", "cache_size") => {
+                self.performance.cache_size = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("Invalid number: {}", value))?;
+            }
+            ("performance", "use_hard_links") => {
+                self.performance.use_hard_links = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("Invalid boolean: {}", value))?;
+            }
+            ("tracking", "follow_symlinks") => {
+                self.tracking.follow_symlinks = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("Invalid boolean: {}", value))?;
+            }
+            ("tracking", "preserve_permissions") => {
+                self.tracking.preserve_permissions = value
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("Invalid boolean: {}", value))?;
+            }
+            _ => anyhow::bail!("Unknown configuration key: {}", key),
+        }
+        Ok(())
+    }
+
+    /// Unset a configuration value by key
+    pub fn unset(&mut self, key: &str) -> Result<()> {
+        let parts: Vec<&str> = key.split('.').collect();
+        if parts.len() != 2 {
+            anyhow::bail!("Invalid configuration key: {}", key);
+        }
+
+        match (parts[0], parts[1]) {
+            ("user", "name") => self.user.name = None,
+            ("user", "email") => self.user.email = None,
+            _ => anyhow::bail!("Cannot unset configuration key: {}", key),
+        }
+        Ok(())
+    }
 }
 
 // Add dependency for num_cpus
@@ -263,6 +376,89 @@ mod tests {
 
         let loaded = Config::load(&config_path)?;
         assert_eq!(loaded.core.default_branch, config.core.default_branch);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_user_config_get_set() -> Result<()> {
+        let mut config = Config::default();
+
+        // Test setting user.name
+        config.set("user.name", "Test User".to_string())?;
+        assert_eq!(config.get("user.name"), Some("Test User".to_string()));
+        assert_eq!(config.user.name, Some("Test User".to_string()));
+
+        // Test setting user.email
+        config.set("user.email", "test@example.com".to_string())?;
+        assert_eq!(
+            config.get("user.email"),
+            Some("test@example.com".to_string())
+        );
+        assert_eq!(config.user.email, Some("test@example.com".to_string()));
+
+        // Test unsetting
+        config.unset("user.name")?;
+        assert_eq!(config.get("user.name"), None);
+        assert_eq!(config.user.name, None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_invalid_email_validation() {
+        let mut config = Config::default();
+
+        // Test invalid email without @ symbol
+        let result = config.set("user.email", "invalid".to_string());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid email"));
+
+        // Valid email should work
+        let result = config.set("user.email", "valid@example.com".to_string());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_config_get_various_keys() -> Result<()> {
+        let mut config = Config::default();
+        config.core.compression_level = 5;
+        config.performance.parallel_threads = 8;
+
+        // Test getting various config values
+        assert_eq!(config.get("core.compression_level"), Some("5".to_string()));
+        assert_eq!(config.get("core.default_branch"), Some("main".to_string()));
+        assert_eq!(
+            config.get("performance.parallel_threads"),
+            Some("8".to_string())
+        );
+        assert_eq!(
+            config.get("performance.use_hard_links"),
+            Some("true".to_string())
+        );
+
+        // Test getting non-existent keys
+        assert_eq!(config.get("invalid.key"), None);
+        assert_eq!(config.get("user.name"), None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_user_config_persistence() -> Result<()> {
+        let dir = tempdir()?;
+        let config_path = dir.path().join("config.toml");
+
+        // Create config with user settings
+        let mut config = Config::default();
+        config.user.name = Some("John Doe".to_string());
+        config.user.email = Some("john@example.com".to_string());
+        config.save(&config_path)?;
+
+        // Load and verify
+        let loaded = Config::load(&config_path)?;
+        assert_eq!(loaded.user.name, Some("John Doe".to_string()));
+        assert_eq!(loaded.user.email, Some("john@example.com".to_string()));
 
         Ok(())
     }

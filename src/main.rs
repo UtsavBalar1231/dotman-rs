@@ -154,6 +154,19 @@ enum Commands {
         action: Option<BranchAction>,
     },
 
+    /// Get and set repository or user options
+    Config {
+        /// Configuration key
+        key: String,
+
+        /// Configuration value to set
+        value: Option<String>,
+
+        /// Unset the configuration key
+        #[arg(long)]
+        unset: bool,
+    },
+
     /// Generate shell completion scripts
     Completion {
         /// Shell to generate completions for
@@ -267,8 +280,8 @@ fn run() -> Result<()> {
     // Initialize context
     let context = match &cli.command {
         Commands::Init { .. } | Commands::Completion { .. } => None,
-        Commands::Remote { .. } | Commands::Branch { .. } => {
-            // Remote and Branch commands need mutable context
+        Commands::Remote { .. } | Commands::Branch { .. } | Commands::Config { .. } => {
+            // Remote, Branch and Config commands need mutable context
             Some(DotmanContext::new()?)
         }
         _ => Some(DotmanContext::new()?),
@@ -346,6 +359,10 @@ fn run() -> Result<()> {
                     commands::remote::rename(&mut ctx, &old_name, &new_name)?
                 }
             }
+        }
+        Commands::Config { key, value, unset } => {
+            let mut ctx = context.unwrap();
+            commands::config::execute(&mut ctx, &key, value, unset)?
         }
         Commands::Branch { action } => {
             let mut ctx = context.unwrap();
