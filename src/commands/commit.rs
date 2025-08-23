@@ -1,7 +1,7 @@
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
 use crate::storage::{Commit, FileEntry};
-use crate::utils::{get_current_timestamp, get_current_user, hash::hash_bytes};
+use crate::utils::{get_current_timestamp, get_current_user_with_config, hash::hash_bytes};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::Result;
 use colored::Colorize;
@@ -54,7 +54,7 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
         id: commit_id.clone(),
         parent,
         message: message.to_string(),
-        author: get_current_user(),
+        author: get_current_user_with_config(&ctx.config),
         timestamp,
         tree_hash,
     };

@@ -43,7 +43,7 @@ fn pull_from_git(
     super::print_info(&format!("Pulling from git remote {} ({})", remote, url));
 
     // Create and initialize mirror
-    let mirror = GitMirror::new(&ctx.repo_path, remote, url);
+    let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
     mirror.init_mirror()?;
 
     // Pull changes in mirror

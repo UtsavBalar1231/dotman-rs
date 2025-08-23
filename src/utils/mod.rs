@@ -121,6 +121,29 @@ pub fn get_current_user() -> String {
         .unwrap_or_else(|_| "unknown".to_string())
 }
 
+pub fn get_current_user_with_config(config: &crate::config::Config) -> String {
+    // Check if both name and email are configured
+    match (&config.user.name, &config.user.email) {
+        (Some(name), Some(email)) => {
+            // Format as "Name <email>" like git does
+            format!("{} <{}>", name, email)
+        }
+        (Some(name), None) => {
+            // Only name is set
+            name.clone()
+        }
+        (None, Some(email)) => {
+            // Only email is set, use system username with email
+            let username = get_current_user();
+            format!("{} <{}>", username, email)
+        }
+        (None, None) => {
+            // Neither is set, fall back to system username
+            get_current_user()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -178,5 +201,45 @@ mod tests {
         assert!(files.iter().all(|p| p.extension().unwrap() == "txt"));
 
         Ok(())
+    }
+
+    #[test]
+    fn test_get_current_user_with_config_both_set() {
+        let mut config = crate::config::Config::default();
+        config.user.name = Some("John Doe".to_string());
+        config.user.email = Some("john@example.com".to_string());
+
+        let user = get_current_user_with_config(&config);
+        assert_eq!(user, "John Doe <john@example.com>");
+    }
+
+    #[test]
+    fn test_get_current_user_with_config_only_name() {
+        let mut config = crate::config::Config::default();
+        config.user.name = Some("Jane Smith".to_string());
+        config.user.email = None;
+
+        let user = get_current_user_with_config(&config);
+        assert_eq!(user, "Jane Smith");
+    }
+
+    #[test]
+    fn test_get_current_user_with_config_only_email() {
+        let mut config = crate::config::Config::default();
+        config.user.name = None;
+        config.user.email = Some("user@example.com".to_string());
+
+        let user = get_current_user_with_config(&config);
+        let system_user = get_current_user();
+        assert_eq!(user, format!("{} <user@example.com>", system_user));
+    }
+
+    #[test]
+    fn test_get_current_user_with_config_none_set() {
+        let config = crate::config::Config::default();
+
+        let user = get_current_user_with_config(&config);
+        let system_user = get_current_user();
+        assert_eq!(user, system_user);
     }
 }

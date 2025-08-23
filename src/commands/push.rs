@@ -43,7 +43,7 @@ fn push_to_git(
     super::print_info(&format!("Pushing to git remote {} ({})", remote, url));
 
     // Create and initialize mirror
-    let mirror = GitMirror::new(&ctx.repo_path, remote, url);
+    let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
     mirror.init_mirror()?;
 
     // Checkout the branch in mirror
@@ -71,7 +71,7 @@ fn push_to_git(
     mirror.clean_removed_files(&current_files)?;
 
     // Commit in mirror
-    let author = crate::utils::get_current_user();
+    let author = crate::utils::get_current_user_with_config(&ctx.config);
 
     // Get commit message from dotman
     let commit_message = if let Ok(snapshot) = snapshot_manager.load_snapshot(&current_commit) {

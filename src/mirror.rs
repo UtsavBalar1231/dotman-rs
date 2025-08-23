@@ -1,3 +1,4 @@
+use crate::config::Config;
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -12,16 +13,19 @@ pub struct GitMirror {
     remote_name: String,
     /// URL of the remote repository
     remote_url: String,
+    /// Configuration
+    config: Config,
 }
 
 impl GitMirror {
     /// Create a new GitMirror instance
-    pub fn new(repo_path: &Path, remote_name: &str, remote_url: &str) -> Self {
+    pub fn new(repo_path: &Path, remote_name: &str, remote_url: &str, config: Config) -> Self {
         let mirror_path = repo_path.join("mirrors").join(remote_name);
         Self {
             mirror_path,
             remote_name: remote_name.to_string(),
             remote_url: remote_url.to_string(),
+            config,
         }
     }
 
@@ -43,14 +47,23 @@ impl GitMirror {
             }
 
             // Configure git user for the repository (required for commits)
+            // Use dotman config if available, otherwise use defaults
+            let user_email = self
+                .config
+                .user
+                .email
+                .as_deref()
+                .unwrap_or("dotman@localhost");
+            let user_name = self.config.user.name.as_deref().unwrap_or("Dotman");
+
             Command::new("git")
-                .args(["config", "user.email", "dotman@localhost"])
+                .args(["config", "user.email", user_email])
                 .current_dir(&self.mirror_path)
                 .output()
                 .context("Failed to configure git email")?;
 
             Command::new("git")
-                .args(["config", "user.name", "Dotman"])
+                .args(["config", "user.name", user_name])
                 .current_dir(&self.mirror_path)
                 .output()
                 .context("Failed to configure git name")?;
@@ -384,7 +397,13 @@ mod tests {
         let repo_path = temp.path().join(".dotman");
         fs::create_dir_all(&repo_path)?;
 
-        let mirror = GitMirror::new(&repo_path, "origin", "https://github.com/user/repo.git");
+        let config = crate::config::Config::default();
+        let mirror = GitMirror::new(
+            &repo_path,
+            "origin",
+            "https://github.com/user/repo.git",
+            config,
+        );
         mirror.init_mirror()?;
 
         assert!(mirror.get_mirror_path().exists());
@@ -402,7 +421,13 @@ mod tests {
         let source_file = temp.path().join("source.txt");
         fs::write(&source_file, "test content")?;
 
-        let mirror = GitMirror::new(&repo_path, "origin", "https://github.com/user/repo.git");
+        let config = crate::config::Config::default();
+        let mirror = GitMirror::new(
+            &repo_path,
+            "origin",
+            "https://github.com/user/repo.git",
+            config,
+        );
         mirror.init_mirror()?;
 
         let files = vec![(source_file.clone(), PathBuf::from("dest.txt"))];
@@ -421,7 +446,13 @@ mod tests {
         let repo_path = temp.path().join(".dotman");
         fs::create_dir_all(&repo_path)?;
 
-        let mirror = GitMirror::new(&repo_path, "origin", "https://github.com/user/repo.git");
+        let config = crate::config::Config::default();
+        let mirror = GitMirror::new(
+            &repo_path,
+            "origin",
+            "https://github.com/user/repo.git",
+            config,
+        );
         mirror.init_mirror()?;
 
         // Add a file to commit
@@ -447,7 +478,13 @@ mod tests {
         let repo_path = temp.path().join(".dotman");
         fs::create_dir_all(&repo_path)?;
 
-        let mirror = GitMirror::new(&repo_path, "origin", "https://github.com/user/repo.git");
+        let config = crate::config::Config::default();
+        let mirror = GitMirror::new(
+            &repo_path,
+            "origin",
+            "https://github.com/user/repo.git",
+            config,
+        );
         mirror.init_mirror()?;
 
         // Create and checkout a new branch
@@ -471,7 +508,13 @@ mod tests {
         let repo_path = temp.path().join(".dotman");
         fs::create_dir_all(&repo_path)?;
 
-        let mirror = GitMirror::new(&repo_path, "origin", "https://github.com/user/repo.git");
+        let config = crate::config::Config::default();
+        let mirror = GitMirror::new(
+            &repo_path,
+            "origin",
+            "https://github.com/user/repo.git",
+            config,
+        );
         mirror.init_mirror()?;
 
         // Create multiple files and stage them
@@ -510,7 +553,13 @@ mod tests {
         let repo_path = temp.path().join(".dotman");
         fs::create_dir_all(&repo_path)?;
 
-        let mirror = GitMirror::new(&repo_path, "origin", "https://github.com/user/repo.git");
+        let config = crate::config::Config::default();
+        let mirror = GitMirror::new(
+            &repo_path,
+            "origin",
+            "https://github.com/user/repo.git",
+            config,
+        );
         mirror.init_mirror()?;
 
         // Add files to git
@@ -547,7 +596,13 @@ mod tests {
         let repo_path = temp.path().join(".dotman");
         fs::create_dir_all(&repo_path)?;
 
-        let mirror = GitMirror::new(&repo_path, "origin", "https://github.com/user/repo.git");
+        let config = crate::config::Config::default();
+        let mirror = GitMirror::new(
+            &repo_path,
+            "origin",
+            "https://github.com/user/repo.git",
+            config,
+        );
         mirror.init_mirror()?;
 
         // Create initial commit
