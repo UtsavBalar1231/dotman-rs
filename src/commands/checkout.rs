@@ -1,5 +1,6 @@
 use crate::DotmanContext;
 use crate::storage::snapshots::SnapshotManager;
+use crate::utils::commit::resolve_partial_commit_id;
 use anyhow::{Context, Result};
 use colored::Colorize;
 
@@ -16,8 +17,11 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
         }
     }
 
-    // Resolve HEAD if needed
-    let commit_id = if target == "HEAD" {
+    // Resolve partial commit ID or HEAD
+    let resolved_id = resolve_partial_commit_id(&ctx.repo_path, target)?;
+
+    // If it's HEAD, read the actual commit from HEAD file
+    let commit_id = if resolved_id == "HEAD" {
         let head_path = ctx.repo_path.join("HEAD");
         if head_path.exists() {
             std::fs::read_to_string(&head_path)?.trim().to_string()
@@ -25,7 +29,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
             anyhow::bail!("No commits yet (HEAD not found)");
         }
     } else {
-        target.to_string()
+        resolved_id
     };
 
     let snapshot_manager =
@@ -46,8 +50,11 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     // Get home directory as target
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    // Restore files
-    snapshot_manager.restore_snapshot(target, &home)?;
+    // Get list of currently tracked files for cleanup
+    let current_files = crate::commands::status::get_current_files(ctx)?;
+
+    // Restore files with cleanup of files not in target
+    snapshot_manager.restore_snapshot_with_cleanup(&commit_id, &home, &current_files)?;
 
     // Update HEAD
     update_head(ctx, &commit_id)?;
@@ -271,6 +278,7 @@ mod tests {
         assert!(
             error_msg.contains("Failed to load")
                 || error_msg.contains("not found")
+                || error_msg.contains("No commit found")
                 || error_msg.contains("Failed to load commit")
                 || error_msg.contains("Failed to load snapshot")
                 || error_msg.contains("uncommitted changes")
