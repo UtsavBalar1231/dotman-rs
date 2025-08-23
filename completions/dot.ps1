@@ -71,6 +71,7 @@ Register-ArgumentCompleter -Native -CommandName 'dot' -ScriptBlock {
             [CompletionResult]::new('--message', '--message', [CompletionResultType]::ParameterName, 'message')
             [CompletionResult]::new('-a', '-a', [CompletionResultType]::ParameterName, 'a')
             [CompletionResult]::new('--all', '--all', [CompletionResultType]::ParameterName, 'all')
+            [CompletionResult]::new('--amend', '--amend', [CompletionResultType]::ParameterName, 'Amend the previous commit')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'v')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'verbose')
             [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')
@@ -339,6 +340,8 @@ Register-ArgumentCompleter -Native -CommandName 'dot' -ScriptBlock {
         }
         'dot;config' {
             [CompletionResult]::new('--unset', '--unset', [CompletionResultType]::ParameterName, 'Unset the configuration key')
+            [CompletionResult]::new('-l', '-l', [CompletionResultType]::ParameterName, 'List all configuration values')
+            [CompletionResult]::new('--list', '--list', [CompletionResultType]::ParameterName, 'List all configuration values')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'v')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'verbose')
             [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')

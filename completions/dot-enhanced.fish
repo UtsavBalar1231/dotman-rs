@@ -102,6 +102,7 @@ complete -c dot -n "__fish_seen_subcommand_from status" -s h -l help -d 'Show he
 # Commit command
 complete -c dot -n "__fish_seen_subcommand_from commit" -s m -l message -r -d 'Commit message'
 complete -c dot -n "__fish_seen_subcommand_from commit" -s a -l all -d 'Commit all tracked files'
+complete -c dot -n "__fish_seen_subcommand_from commit" -l amend -d 'Amend the last commit'
 complete -c dot -n "__fish_seen_subcommand_from commit" -s h -l help -d 'Show help'
 
 # Checkout command
@@ -215,6 +216,7 @@ complete -c dot -n "__fish_seen_subcommand_from branch; and __fish_seen_subcomma
 
 # Config command
 complete -c dot -n "__fish_seen_subcommand_from config" -l unset -d 'Unset the configuration key'
+complete -c dot -n "__fish_seen_subcommand_from config" -l list -d 'List all configuration values'
 complete -c dot -n "__fish_seen_subcommand_from config" -s h -l help -d 'Show help'
 
 # Config keys

@@ -59,6 +59,7 @@ _arguments "${_arguments_options[@]}" : \
 '--message=[]:MESSAGE:_default' \
 '-a[]' \
 '--all[]' \
+'--amend[Amend the previous commit]' \
 '-v[]' \
 '--verbose[]' \
 '-h[Print help]' \
@@ -412,11 +413,13 @@ esac
 (config)
 _arguments "${_arguments_options[@]}" : \
 '--unset[Unset the configuration key]' \
+'-l[List all configuration values]' \
+'--list[List all configuration values]' \
 '-v[]' \
 '--verbose[]' \
 '-h[Print help]' \
 '--help[Print help]' \
-':key -- Configuration key:_default' \
+'::key -- Configuration key:_default' \
 '::value -- Configuration value to set:_default' \
 && ret=0
 ;;

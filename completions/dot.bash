@@ -521,7 +521,7 @@ _dot() {
             return 0
             ;;
         dot__commit)
-            opts="-m -a -v -h --message --all --verbose --help"
+            opts="-m -a -v -h --message --all --amend --verbose --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -557,7 +557,7 @@ _dot() {
             return 0
             ;;
         dot__config)
-            opts="-v -h --unset --verbose --help <KEY> [VALUE]"
+            opts="-l -v -h --unset --list --verbose --help [KEY] [VALUE]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

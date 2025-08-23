@@ -53,6 +53,7 @@ complete -c dot -n "__fish_dot_using_subcommand status" -s v -l verbose
 complete -c dot -n "__fish_dot_using_subcommand status" -s h -l help -d 'Print help'
 complete -c dot -n "__fish_dot_using_subcommand commit" -s m -l message -r
 complete -c dot -n "__fish_dot_using_subcommand commit" -s a -l all
+complete -c dot -n "__fish_dot_using_subcommand commit" -l amend -d 'Amend the previous commit'
 complete -c dot -n "__fish_dot_using_subcommand commit" -s v -l verbose
 complete -c dot -n "__fish_dot_using_subcommand commit" -s h -l help -d 'Print help'
 complete -c dot -n "__fish_dot_using_subcommand checkout" -s f -l force
@@ -143,6 +144,7 @@ complete -c dot -n "__fish_dot_using_subcommand branch; and __fish_seen_subcomma
 complete -c dot -n "__fish_dot_using_subcommand branch; and __fish_seen_subcommand_from help" -f -a "unset-upstream" -d 'Remove upstream tracking for a branch'
 complete -c dot -n "__fish_dot_using_subcommand branch; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c dot -n "__fish_dot_using_subcommand config" -l unset -d 'Unset the configuration key'
+complete -c dot -n "__fish_dot_using_subcommand config" -s l -l list -d 'List all configuration values'
 complete -c dot -n "__fish_dot_using_subcommand config" -s v -l verbose
 complete -c dot -n "__fish_dot_using_subcommand config" -s h -l help -d 'Print help'
 complete -c dot -n "__fish_dot_using_subcommand completion" -s v -l verbose

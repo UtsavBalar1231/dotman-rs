@@ -65,6 +65,7 @@ set edit:completion:arg-completer[dot] = {|@words|
             cand --message 'message'
             cand -a 'a'
             cand --all 'all'
+            cand --amend 'Amend the previous commit'
             cand -v 'v'
             cand --verbose 'verbose'
             cand -h 'Print help'
@@ -293,6 +294,8 @@ set edit:completion:arg-completer[dot] = {|@words|
         }
         &'dot;config'= {
             cand --unset 'Unset the configuration key'
+            cand -l 'List all configuration values'
+            cand --list 'List all configuration values'
             cand -v 'v'
             cand --verbose 'verbose'
             cand -h 'Print help'

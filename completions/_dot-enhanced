@@ -132,6 +132,7 @@ _dot() {
                     _arguments \
                         '(-m --message)'{-m,--message}'[Commit message]:message:' \
                         '(-a --all)'{-a,--all}'[Commit all tracked files]' \
+                        '--amend[Amend the last commit]' \
                         '(-h --help)'{-h,--help}'[Show help]'
                     ;;
                 
@@ -379,6 +380,7 @@ _dot() {
                 config)
                     _arguments \
                         '--unset[Unset the configuration key]' \
+                        '--list[List all configuration values]' \
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '1:key:_dot_get_config_keys' \
                         '::value:'

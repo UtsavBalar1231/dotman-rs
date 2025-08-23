@@ -206,7 +206,7 @@ _dot_enhanced() {
                 local keys=$(_dot_get_config_keys)
                 COMPREPLY=($(compgen -W "$keys" -- "$cur"))
             elif [[ "$cur" == -* ]]; then
-                COMPREPLY=($(compgen -W "--unset -h --help" -- "$cur"))
+                COMPREPLY=($(compgen -W "--unset --list -h --help" -- "$cur"))
             fi
             
             # Smart completion for partial keys
@@ -289,7 +289,7 @@ _dot_enhanced() {
                 # Don't complete message content
                 COMPREPLY=()
             elif [[ "$cur" == -* ]]; then
-                COMPREPLY=($(compgen -W "-m --message -a --all -h --help" -- "$cur"))
+                COMPREPLY=($(compgen -W "-m --message -a --all --amend -h --help" -- "$cur"))
             fi
             ;;
         

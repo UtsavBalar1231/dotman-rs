@@ -285,27 +285,40 @@ Options:
 
 ### Snapshot Operations
 
-#### `dot commit -m <message> [--all]`
-Create a snapshot of tracked files.
+#### `dot commit [-m <message>] [--all] [--amend]`
+Create or amend a snapshot of tracked files.
 
 Options:
-- `-m, --message`: Commit message (required)
+- `-m, --message`: Commit message (required unless using --amend)
 - `--all`: Automatically stage all tracked file changes
+- `--amend`: Amend the previous commit instead of creating a new one
 
 Example:
 ```bash
 dot commit -m "Update shell configurations"
 dot commit --all -m "Backup all dotfiles"
+dot commit --amend -m "Updated message"
+dot commit --amend  # Keep original message
 ```
 
 #### `dot checkout <target> [--force]`
-Restore files from a specific commit.
+Restore files from a specific commit, branch, or reference.
+
+Supported targets:
+- Commit hash (full or short): `abc123` or `abc12345...`
+- Branch name: `main`, `feature-branch`
+- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`
 
 Options:
 - `--force`: Overwrite local changes without prompting
 
-#### `dot reset [<commit>] [--hard] [--soft]`
+#### `dot reset <commit> [--hard] [--soft]`
 Reset HEAD to specified state.
+
+Supported targets:
+- Commit hash (full or short): `abc123` or `abc12345...`
+- Branch name: `main`, `feature-branch`
+- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`
 
 Options:
 - `--hard`: Reset working directory to match commit
@@ -337,6 +350,13 @@ Display detailed information about a commit.
 
 #### `dot diff [<from>] [<to>]`
 Show differences between commits or working directory.
+
+Supported references:
+- Commit hash (full or short): `abc123` or `abc12345...`
+- Branch name: `main`, `feature-branch`
+- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`
+
+Note: Output is automatically displayed through a pager (less/more) when running in a terminal.
 
 ### Branch Management
 
@@ -462,6 +482,42 @@ dot completion zsh > ~/.local/share/zsh/site-functions/_dot
 
 # Fish
 dot completion fish > ~/.config/fish/completions/dot.fish
+```
+
+### Configuration Management
+
+#### `dot config [<key>] [<value>] [--list] [--unset]`
+Get and set repository and user configuration options.
+
+Usage:
+- `dot config` or `dot config --list`: Show all configuration values
+- `dot config <key>`: Get a specific configuration value
+- `dot config <key> <value>`: Set a configuration value
+- `dot config --unset <key>`: Remove a configuration value
+
+Supported keys:
+- `user.name`: Your name for commit authorship
+- `user.email`: Your email for commit authorship
+- `core.compression`: Compression algorithm (zstd/none)
+- `core.compression_level`: Compression level (1-22)
+- `core.default_branch`: Default branch name
+- `performance.*`: Performance tuning options
+- `tracking.*`: File tracking options
+
+Examples:
+```bash
+# Show all configuration
+dot config --list
+
+# Set user information
+dot config user.name "John Doe"
+dot config user.email "john@example.com"
+
+# Get a specific value
+dot config user.name
+
+# Unset a value
+dot config --unset user.email
 ```
 
 ## Configuration
