@@ -36,6 +36,9 @@ enum Commands {
     Status {
         #[arg(short, long)]
         short: bool,
+
+        #[arg(short, long)]
+        untracked: bool,
     },
 
     /// Record changes to the repository
@@ -131,6 +134,9 @@ enum Commands {
 
         #[arg(short, long)]
         force: bool,
+
+        #[arg(short, long)]
+        interactive: bool,
     },
 
     /// Generate shell completion scripts
@@ -163,9 +169,9 @@ fn run() -> Result<()> {
             let ctx = context.unwrap();
             commands::add::execute(&ctx, &paths, force)?;
         }
-        Commands::Status { short } => {
+        Commands::Status { short, untracked } => {
             let ctx = context.unwrap();
-            commands::status::execute(&ctx, short)?;
+            commands::status::execute(&ctx, short, untracked)?;
         }
         Commands::Commit { message, all } => {
             let ctx = context.unwrap();
@@ -206,9 +212,10 @@ fn run() -> Result<()> {
             paths,
             cached,
             force,
+            interactive,
         } => {
             let ctx = context.unwrap();
-            commands::rm::execute(&ctx, &paths, cached, force)?;
+            commands::rm::execute(&ctx, &paths, cached, force, interactive)?;
         }
         Commands::Completion { shell } => {
             print_completions(shell, &mut Cli::command());

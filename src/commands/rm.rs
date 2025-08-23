@@ -4,7 +4,13 @@ use anyhow::Result;
 use colored::Colorize;
 use std::path::{Path, PathBuf};
 
-pub fn execute(ctx: &DotmanContext, paths: &[String], cached: bool, force: bool) -> Result<()> {
+pub fn execute(
+    ctx: &DotmanContext,
+    paths: &[String],
+    cached: bool,
+    force: bool,
+    interactive: bool,
+) -> Result<()> {
     ctx.ensure_repo_exists()?;
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
@@ -30,9 +36,18 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], cached: bool, force: bool)
         }
 
         // Remove from filesystem if not --cached
-        if !cached && path.exists() && (force || confirm_removal(&path)?) {
-            std::fs::remove_file(&path)?;
-            println!("  {} {}", "deleted:".red().bold(), path.display());
+        if !cached && path.exists() {
+            // Only prompt if interactive mode is on and not forcing
+            if interactive && !force {
+                if confirm_removal(&path)? {
+                    std::fs::remove_file(&path)?;
+                    println!("  {} {}", "deleted:".red().bold(), path.display());
+                }
+            } else if force || !interactive {
+                // Force mode or non-interactive mode removes without asking
+                std::fs::remove_file(&path)?;
+                println!("  {} {}", "deleted:".red().bold(), path.display());
+            }
         }
     }
 
@@ -123,6 +138,7 @@ mod tests {
             &[file_path.to_string_lossy().to_string()],
             true,
             false,
+            false,
         );
         assert!(result.is_ok());
 
@@ -141,7 +157,7 @@ mod tests {
         let (_temp, ctx) = setup_test_context()?;
 
         // Try to remove untracked file without force
-        let result = execute(&ctx, &["untracked.txt".to_string()], false, false);
+        let result = execute(&ctx, &["untracked.txt".to_string()], false, false, false);
         assert!(result.is_ok()); // Should succeed but with warning
 
         Ok(())
@@ -161,6 +177,7 @@ mod tests {
             &[file_path.to_string_lossy().to_string()],
             false,
             true,
+            false,
         );
         assert!(result.is_ok());
 
@@ -207,7 +224,7 @@ mod tests {
             file1.to_string_lossy().to_string(),
             file2.to_string_lossy().to_string(),
         ];
-        let result = execute(&ctx, &paths, true, false);
+        let result = execute(&ctx, &paths, true, false, false);
         assert!(result.is_ok());
 
         // Files should still exist
@@ -226,7 +243,7 @@ mod tests {
     fn test_execute_empty_paths() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        let result = execute(&ctx, &[], false, false);
+        let result = execute(&ctx, &[], false, false, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -258,7 +275,7 @@ mod tests {
             "untracked.txt".to_string(),
         ];
 
-        let result = execute(&ctx, &paths, true, false);
+        let result = execute(&ctx, &paths, true, false, false);
         assert!(result.is_ok());
 
         // Tracked file should be removed from index
@@ -286,6 +303,7 @@ mod tests {
         let result = execute(
             &ctx,
             &["/nonexistent/path/file.txt".to_string()],
+            false,
             false,
             false,
         );
@@ -331,7 +349,7 @@ mod tests {
             rel_file.to_string_lossy().to_string(),
         ];
 
-        let result = execute(&ctx, &paths, true, false);
+        let result = execute(&ctx, &paths, true, false, false);
         assert!(result.is_ok());
 
         Ok(())
