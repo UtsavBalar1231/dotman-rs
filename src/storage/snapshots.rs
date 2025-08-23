@@ -46,11 +46,21 @@ impl SnapshotManager {
             fs::create_dir_all(parent)?;
         }
 
+        // Get home directory to resolve relative paths
+        let home =
+            dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+
         // Store file contents in parallel
         let stored_files: Result<Vec<(PathBuf, SnapshotFile)>> = files
             .par_iter()
             .map(|entry| {
-                let content_hash = self.store_file_content(&entry.path, &entry.hash)?;
+                // Convert relative path to absolute for reading file content
+                let abs_path = if entry.path.is_relative() {
+                    home.join(&entry.path)
+                } else {
+                    entry.path.clone()
+                };
+                let content_hash = self.store_file_content(&abs_path, &entry.hash)?;
                 Ok((
                     entry.path.clone(),
                     SnapshotFile {

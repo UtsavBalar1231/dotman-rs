@@ -203,8 +203,11 @@ impl ConcurrentIndex {
         });
     }
 
-    pub fn get_status_parallel(&self, current_files: &[PathBuf]) -> Vec<FileStatus> {
+    pub fn get_status_parallel(&self, _current_files: &[PathBuf]) -> Vec<FileStatus> {
         let mut statuses = Vec::new();
+
+        // Get home directory to resolve relative paths
+        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
 
         // Check for modified and deleted files in parallel
         let index_statuses: Vec<FileStatus> = self
@@ -212,25 +215,32 @@ impl ConcurrentIndex {
             .iter()
             .par_bridge()
             .filter_map(|entry| {
-                let path = entry.key();
+                let stored_path = entry.key();
                 let stored_entry = entry.value();
 
-                if !path.exists() {
-                    Some(FileStatus::Deleted(path.clone()))
+                // Convert stored relative path to absolute for file operations
+                let abs_path = if stored_path.is_relative() {
+                    home.join(stored_path)
+                } else {
+                    stored_path.clone()
+                };
+
+                if !abs_path.exists() {
+                    Some(FileStatus::Deleted(stored_path.clone()))
                 } else {
                     // Check if modified by comparing hash
-                    match crate::utils::hash::hash_file(path) {
+                    match crate::utils::hash::hash_file(&abs_path) {
                         Ok(current_hash) => {
                             if current_hash != stored_entry.hash {
                                 // File content has changed
-                                Some(FileStatus::Modified(path.clone()))
+                                Some(FileStatus::Modified(stored_path.clone()))
                             } else {
                                 None
                             }
                         }
                         Err(_) => {
                             // If we can't hash the file, check metadata as fallback
-                            match std::fs::metadata(path) {
+                            match std::fs::metadata(&abs_path) {
                                 Ok(metadata) => {
                                     let mtime = metadata
                                         .modified()
@@ -243,12 +253,12 @@ impl ConcurrentIndex {
                                         || metadata.len() != stored_entry.size
                                     {
                                         // File has likely been modified
-                                        Some(FileStatus::Modified(path.clone()))
+                                        Some(FileStatus::Modified(stored_path.clone()))
                                     } else {
                                         None
                                     }
                                 }
-                                Err(_) => Some(FileStatus::Deleted(path.clone())),
+                                Err(_) => Some(FileStatus::Deleted(stored_path.clone())),
                             }
                         }
                     }
@@ -258,19 +268,10 @@ impl ConcurrentIndex {
 
         statuses.extend(index_statuses);
 
-        // Check for untracked files
-        let untracked: Vec<FileStatus> = current_files
-            .par_iter()
-            .filter_map(|path| {
-                if !self.entries.contains_key(path) {
-                    Some(FileStatus::Untracked(path.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect();
+        // We don't check for untracked files anymore
+        // Only explicitly added files are tracked
+        // The current_files parameter only contains already tracked files
 
-        statuses.extend(untracked);
         statuses
     }
 }
@@ -486,40 +487,63 @@ mod tests {
 
     #[test]
     fn test_concurrent_index_parallel_status() -> Result<()> {
+        use tempfile::tempdir;
+
+        let dir = tempdir()?;
         let index = ConcurrentIndex::new();
 
-        // Add entries in parallel
-        let entries: Vec<FileEntry> = (0..100)
-            .map(|i| FileEntry {
-                path: PathBuf::from(format!("file_{}.txt", i)),
-                hash: format!("hash_{}", i),
-                size: 100,
-                modified: 1000,
-                mode: 0o644,
+        // Create actual files and add entries
+        let entries: Vec<FileEntry> = (0..10)
+            .map(|i| {
+                let file_path = dir.path().join(format!("file_{}.txt", i));
+                std::fs::write(&file_path, format!("content_{}", i)).unwrap();
+
+                // Store relative paths in the index
+                FileEntry {
+                    path: PathBuf::from(format!("file_{}.txt", i)),
+                    hash: format!("hash_{}", i),
+                    size: 100,
+                    modified: 1000,
+                    mode: 0o644,
+                }
             })
             .collect();
 
         index.add_entries_parallel(entries.clone());
 
-        // Create current files list
-        let current_files: Vec<PathBuf> = (0..50)
-            .map(|i| PathBuf::from(format!("file_{}.txt", i)))
-            .collect();
+        // Pass the absolute paths of tracked files (as get_current_files would do)
+        let current_files: Vec<PathBuf> =
+            entries.iter().map(|e| dir.path().join(&e.path)).collect();
 
-        // Add some new untracked files
-        let mut all_files = current_files.clone();
-        for i in 100..110 {
-            all_files.push(PathBuf::from(format!("file_{}.txt", i)));
+        // Mock home directory as the temp dir for this test
+        unsafe {
+            std::env::set_var("HOME", dir.path());
         }
 
-        let statuses = index.get_status_parallel(&all_files);
+        let statuses = index.get_status_parallel(&current_files);
 
-        // Should have untracked files
-        let untracked: Vec<_> = statuses
+        // All files exist with unchanged content (we're using fake hashes)
+        // So they should all be reported as modified
+        let modified: Vec<_> = statuses
             .iter()
-            .filter(|s| matches!(s, FileStatus::Untracked(_)))
+            .filter(|s| matches!(s, FileStatus::Modified(_)))
             .collect();
-        assert_eq!(untracked.len(), 10);
+
+        // All 10 files should be detected as modified (hash mismatch)
+        assert_eq!(modified.len(), 10);
+
+        // Now delete a file and check again
+        std::fs::remove_file(dir.path().join("file_5.txt"))?;
+
+        let statuses = index.get_status_parallel(&current_files);
+
+        let deleted: Vec<_> = statuses
+            .iter()
+            .filter(|s| matches!(s, FileStatus::Deleted(_)))
+            .collect();
+
+        // One file should be deleted
+        assert_eq!(deleted.len(), 1);
 
         Ok(())
     }

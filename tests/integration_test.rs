@@ -31,6 +31,48 @@ fn setup_test_env() -> Result<(tempfile::TempDir, DotmanContext)> {
 }
 
 #[test]
+fn test_empty_repository_status() -> Result<()> {
+    let (dir, ctx) = setup_test_env()?;
+
+    // Create some files in the working directory but don't add them
+    let file1 = dir.path().join("untracked1.txt");
+    let file2 = dir.path().join("untracked2.txt");
+    let file3 = dir.path().join(".untracked3");
+
+    fs::write(&file1, "content1")?;
+    fs::write(&file2, "content2")?;
+    fs::write(&file3, "content3")?;
+
+    // Status should show no changes (empty repository)
+    // The bug was that it would show all files in the directory as untracked
+
+    // We need to capture what status prints
+    // Since status prints directly, we'll check the internal state instead
+    let index_path = ctx.repo_path.join(dotman::INDEX_FILE);
+    let index = dotman::storage::index::Index::load(&index_path)?;
+
+    // The index should be empty
+    assert!(index.entries.is_empty(), "Index should be empty after init");
+
+    // Get current files that status would check
+    let current_files = commands::status::get_current_files(&ctx)?;
+
+    // After our fix, get_current_files should return empty vec for empty index
+    assert!(
+        current_files.is_empty(),
+        "get_current_files should return empty vec for empty repository, but got {} files",
+        current_files.len()
+    );
+
+    // Now test that status command works correctly
+    // It should not list any untracked files
+    let result = commands::status::execute(&ctx, false);
+    assert!(result.is_ok(), "Status command should succeed");
+
+    Ok(())
+}
+
+#[test]
 fn test_full_workflow_init_add_commit_checkout() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 

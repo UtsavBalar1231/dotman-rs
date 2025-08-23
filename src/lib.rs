@@ -52,7 +52,6 @@ mod tests {
     use std::fs;
     use tempfile::tempdir;
 
-
     #[test]
     fn test_dotman_context_new() -> Result<()> {
         let temp = tempdir()?;

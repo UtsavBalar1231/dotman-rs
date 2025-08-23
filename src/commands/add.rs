@@ -1,5 +1,5 @@
 use crate::storage::{FileEntry, index::Index};
-use crate::utils::{expand_tilde, hash::hash_file, should_ignore};
+use crate::utils::{expand_tilde, hash::hash_file, make_relative, should_ignore};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -46,10 +46,13 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
         return Ok(());
     }
 
+    // Get home directory for making paths relative
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+
     // Process files in parallel
     let entries: Result<Vec<FileEntry>> = files_to_add
         .par_iter()
-        .map(|path| create_file_entry(path))
+        .map(|path| create_file_entry(path, &home))
         .collect();
 
     let entries = entries?;
@@ -152,7 +155,7 @@ fn check_special_file_type(path: &Path) {
     }
 }
 
-pub fn create_file_entry(path: &Path) -> Result<FileEntry> {
+pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
     let metadata = std::fs::metadata(path)
         .with_context(|| format!("Failed to get metadata for: {}", path.display()))?;
 
@@ -172,8 +175,11 @@ pub fn create_file_entry(path: &Path) -> Result<FileEntry> {
     #[cfg(not(unix))]
     let mode = 0o644;
 
+    // Store paths relative to home directory for portability
+    let relative_path = make_relative(path, home)?;
+
     Ok(FileEntry {
-        path: path.to_path_buf(),
+        path: relative_path,
         hash,
         size: metadata.len(),
         modified,
@@ -192,9 +198,11 @@ mod tests {
         let file_path = dir.path().join("test.txt");
         std::fs::write(&file_path, "test content")?;
 
-        let entry = create_file_entry(&file_path)?;
+        // Use temp dir as home for testing
+        let entry = create_file_entry(&file_path, dir.path())?;
 
-        assert_eq!(entry.path, file_path);
+        // Path should be relative to "home" (temp dir in this case)
+        assert_eq!(entry.path, PathBuf::from("test.txt"));
         assert!(!entry.hash.is_empty());
         assert_eq!(entry.size, 12);
         assert!(entry.modified > 0);

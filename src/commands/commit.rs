@@ -3,7 +3,7 @@ use crate::storage::snapshots::SnapshotManager;
 use crate::storage::{Commit, FileEntry};
 use crate::utils::{get_current_timestamp, get_current_user, hash::hash_bytes};
 use crate::{DotmanContext, INDEX_FILE};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use colored::Colorize;
 
 pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
@@ -82,12 +82,17 @@ fn update_all_tracked_files(ctx: &DotmanContext) -> Result<()> {
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let mut index = Index::load(&index_path)?;
 
+    // Get home directory for making paths relative
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+
     let mut updated = 0;
     let entries: Vec<_> = index.entries.keys().cloned().collect();
 
     for path in entries {
-        if path.exists()
-            && let Ok(entry) = crate::commands::add::create_file_entry(&path)
+        // Need to convert relative path back to absolute for checking existence
+        let abs_path = home.join(&path);
+        if abs_path.exists()
+            && let Ok(entry) = crate::commands::add::create_file_entry(&abs_path, &home)
         {
             index.add_entry(entry);
             updated += 1;
@@ -116,39 +121,6 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     let head_path = ctx.repo_path.join("HEAD");
     std::fs::write(&head_path, commit_id)?;
     Ok(())
-}
-
-// Helper for creating file entry (shared with add command)
-use crate::utils::hash::hash_file;
-use std::path::Path;
-
-pub fn create_file_entry(path: &Path) -> Result<FileEntry> {
-    let metadata = std::fs::metadata(path)
-        .with_context(|| format!("Failed to get metadata for: {}", path.display()))?;
-
-    let hash = hash_file(path)?;
-
-    let modified = metadata
-        .modified()?
-        .duration_since(std::time::UNIX_EPOCH)?
-        .as_secs() as i64;
-
-    #[cfg(unix)]
-    let mode = {
-        use std::os::unix::fs::MetadataExt;
-        metadata.mode()
-    };
-
-    #[cfg(not(unix))]
-    let mode = 0o644;
-
-    Ok(FileEntry {
-        path: path.to_path_buf(),
-        hash,
-        size: metadata.len(),
-        modified,
-        mode,
-    })
 }
 
 #[cfg(test)]

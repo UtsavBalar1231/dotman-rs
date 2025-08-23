@@ -1,13 +1,11 @@
 use crate::storage::FileStatus;
 use crate::storage::index::{ConcurrentIndex, Index};
 use crate::storage::snapshots::SnapshotManager;
-use crate::utils::should_ignore;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::Result;
 use colored::Colorize;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use walkdir::WalkDir;
 
 pub fn execute(ctx: &DotmanContext, short: bool) -> Result<()> {
     ctx.ensure_repo_exists()?;
@@ -103,102 +101,20 @@ pub fn get_current_files(ctx: &DotmanContext) -> Result<Vec<PathBuf>> {
     let index = Index::load(&index_path)?;
 
     let mut files = Vec::new();
-    let mut scanned_dirs = std::collections::HashSet::new();
 
-    // First, add all tracked files to check for modifications/deletions
-    for path in index.entries.keys() {
-        files.push(path.clone());
-    }
+    // Get home directory to convert relative paths to absolute
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    // Then scan parent directories of tracked files for new untracked files
+    // Only return tracked files to check for modifications/deletions
+    // We don't scan for untracked files - only explicitly added files are tracked
     for path in index.entries.keys() {
-        // Get the parent directory, or use current directory for files in root
-        let parent = if let Some(p) = path.parent() {
-            if p.as_os_str().is_empty() {
-                // Empty parent means file is in current directory
-                std::env::current_dir()?
-            } else {
-                p.to_path_buf()
-            }
+        // Convert relative path to absolute for file operations
+        let abs_path = if path.is_relative() {
+            home.join(path)
         } else {
-            // No parent means it's the current directory
-            std::env::current_dir()?
+            path.clone()
         };
-
-        // Skip if we've already scanned this directory
-        if !scanned_dirs.insert(parent.clone()) {
-            continue;
-        }
-
-        // Walk the directory to find all files (not just subdirectories)
-        if parent.exists() {
-            for entry in WalkDir::new(&parent)
-                .follow_links(ctx.config.tracking.follow_symlinks)
-                .max_depth(3) // Limit depth to avoid deep recursion
-                .into_iter()
-                .filter_entry(|e| {
-                    // Ignore dotman's own files
-                    if e.path().starts_with(&ctx.repo_path) {
-                        return false;
-                    }
-                    !should_ignore(e.path(), &ctx.config.tracking.ignore_patterns)
-                })
-            {
-                match entry {
-                    Ok(entry) => {
-                        if entry.file_type().is_file() {
-                            let entry_path = entry.path().to_path_buf();
-                            // Convert to relative path if it's within current directory
-                            let relative_path = if entry_path.is_absolute() {
-                                if let Ok(cwd) = std::env::current_dir() {
-                                    entry_path
-                                        .strip_prefix(&cwd)
-                                        .unwrap_or(&entry_path)
-                                        .to_path_buf()
-                                } else {
-                                    entry_path
-                                }
-                            } else {
-                                entry_path
-                            };
-                            // Add only if not already in the list
-                            if !files.contains(&relative_path) {
-                                files.push(relative_path);
-                            }
-                        }
-                    }
-                    Err(err) => {
-                        // Skip permission denied errors
-                        if let Some(io_err) = err.io_error()
-                            && io_err.kind() == std::io::ErrorKind::PermissionDenied
-                        {
-                            continue;
-                        }
-                        // For other errors, continue silently
-                    }
-                }
-            }
-        }
-    }
-
-    // If no tracked files yet, scan current directory for potential files to add
-    if index.entries.is_empty() {
-        let current_dir = std::env::current_dir()?;
-        for entry in WalkDir::new(&current_dir)
-            .follow_links(ctx.config.tracking.follow_symlinks)
-            .max_depth(3)
-            .into_iter()
-            .filter_entry(|e| !should_ignore(e.path(), &ctx.config.tracking.ignore_patterns))
-        {
-            match entry {
-                Ok(entry) => {
-                    if entry.file_type().is_file() {
-                        files.push(entry.path().to_path_buf());
-                    }
-                }
-                Err(_) => continue,
-            }
-        }
+        files.push(abs_path);
     }
 
     Ok(files)
