@@ -1,9 +1,10 @@
+use crate::refs::resolver::RefResolver;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
 use crate::storage::{Commit, FileEntry};
 use crate::utils::{get_current_timestamp, get_current_user_with_config, hash::hash_bytes};
 use crate::{DotmanContext, INDEX_FILE};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
 
 pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
@@ -86,6 +87,87 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     Ok(())
 }
 
+pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> Result<()> {
+    ctx.ensure_repo_exists()?;
+    
+    // Get the last commit
+    let resolver = RefResolver::new(ctx.repo_path.clone());
+    let last_commit_id = resolver
+        .resolve("HEAD")
+        .context("No commits to amend")?;
+    
+    // Load the last commit
+    let snapshot_manager =
+        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let last_snapshot = snapshot_manager
+        .load_snapshot(&last_commit_id)
+        .with_context(|| format!("Failed to load commit: {}", last_commit_id))?;
+    
+    // If --all flag is set, update all tracked files first
+    if all {
+        super::print_info("Updating all tracked files...");
+        update_all_tracked_files(ctx)?;
+    }
+    
+    // Load current index
+    let index_path = ctx.repo_path.join(INDEX_FILE);
+    let index = Index::load(&index_path)?;
+    
+    if index.entries.is_empty() {
+        super::print_warning("No files tracked. Use 'dot add' to track files first.");
+        return Ok(());
+    }
+    
+    // Use provided message or keep the original
+    let commit_message = message.unwrap_or(&last_snapshot.commit.message);
+    
+    // Create new commit with same ID pattern but updated content
+    // We'll use the same commit ID to truly "amend" the commit
+    let commit_id = last_commit_id.clone();
+    
+    // Create tree hash from all file hashes
+    let mut tree_content = String::new();
+    for (path, entry) in &index.entries {
+        tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
+    }
+    let tree_hash = hash_bytes(tree_content.as_bytes());
+    
+    // Create amended commit object with same parent as the original
+    let commit = Commit {
+        id: commit_id.clone(),
+        parent: last_snapshot.commit.parent.clone(),
+        message: commit_message.to_string(),
+        author: get_current_user_with_config(&ctx.config),
+        timestamp: get_current_timestamp(),
+        tree_hash,
+    };
+    
+    // Delete the old snapshot
+    snapshot_manager.delete_snapshot(&last_commit_id)?;
+    
+    // Create new snapshot with amended content
+    let files: Vec<FileEntry> = index.entries.values().cloned().collect();
+    snapshot_manager.create_snapshot(commit.clone(), &files)?;
+    
+    // HEAD stays the same since we're replacing the commit in place
+    
+    let display_id = if commit_id.len() >= 8 {
+        &commit_id[commit_id.len() - 8..]
+    } else {
+        &commit_id
+    };
+    
+    super::print_success(&format!(
+        "Amended commit {} with {} files",
+        display_id.yellow(),
+        files.len()
+    ));
+    println!("  {}: {}", "Author".bold(), commit.author);
+    println!("  {}: {}", "Message".bold(), commit.message);
+    
+    Ok(())
+}
+
 fn update_all_tracked_files(ctx: &DotmanContext) -> Result<()> {
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let mut index = Index::load(&index_path)?;
@@ -162,6 +244,7 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
 mod tests {
     use super::*;
     use tempfile::tempdir;
+    use std::path::PathBuf;
 
     #[test]
     fn test_get_last_commit_id() -> Result<()> {
@@ -182,6 +265,73 @@ mod tests {
         std::fs::write(repo_path.join("HEAD"), "abc123")?;
         assert_eq!(get_last_commit_id(&ctx)?, Some("abc123".to_string()));
 
+        Ok(())
+    }
+    
+    #[test]
+    #[serial_test::serial]
+    fn test_execute_amend() -> Result<()> {
+        use crate::config::Config;
+        use crate::refs::RefManager;
+        use std::fs;
+        
+        let dir = tempdir()?;
+        let repo_path = dir.path().join(".dotman");
+        fs::create_dir_all(&repo_path)?;
+        fs::create_dir_all(repo_path.join("commits"))?;
+        fs::create_dir_all(repo_path.join("objects"))?;
+        fs::create_dir_all(repo_path.join("refs/heads"))?;
+        
+        // Initialize refs
+        let ref_manager = RefManager::new(repo_path.clone());
+        ref_manager.init()?;
+        
+        // Create context
+        let config = Config::default();
+        let config_path = dir.path().join("config.toml");
+        config.save(&config_path)?;
+        
+        let ctx = DotmanContext {
+            repo_path: repo_path.clone(),
+            config_path,
+            config,
+        };
+        
+        // Create an index with a file
+        let mut index = Index::new();
+        let test_file = PathBuf::from(".bashrc");
+        index.add_entry(FileEntry {
+            path: test_file.clone(),
+            hash: "test_hash_1".to_string(),
+            size: 100,
+            modified: 1234567890,
+            mode: 0o644,
+        });
+        let index_path = repo_path.join(INDEX_FILE);
+        index.save(&index_path)?;
+        
+        // Set HOME for the test
+        unsafe {
+            std::env::set_var("HOME", dir.path());
+        }
+        
+        // Create first commit
+        execute(&ctx, "Initial commit", false)?;
+        
+        // Update the file in index
+        index.add_entry(FileEntry {
+            path: test_file,
+            hash: "test_hash_2".to_string(),
+            size: 200,
+            modified: 1234567891,
+            mode: 0o644,
+        });
+        index.save(&index_path)?;
+        
+        // Amend the commit
+        let result = execute_amend(&ctx, Some("Amended commit"), false);
+        assert!(result.is_ok());
+        
         Ok(())
     }
 }
