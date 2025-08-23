@@ -21,6 +21,14 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     if all {
         super::print_info("Updating all tracked files...");
         update_all_tracked_files(ctx)?;
+    } else {
+        // Without --all, check if there are any staged changes
+        if !has_staged_changes(ctx)? {
+            super::print_warning(
+                "No changes staged for commit. Use 'dot add' to stage changes or 'dot commit --all' to commit all changes.",
+            );
+            return Ok(());
+        }
     }
 
     // Create commit ID from timestamp and message hash
@@ -105,6 +113,25 @@ fn update_all_tracked_files(ctx: &DotmanContext) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn has_staged_changes(ctx: &DotmanContext) -> Result<bool> {
+    let index_path = ctx.repo_path.join(INDEX_FILE);
+    let index = Index::load(&index_path)?;
+
+    if index.entries.is_empty() {
+        return Ok(false);
+    }
+
+    // If there's no HEAD file (first commit), we have staged changes if index has entries
+    let head_path = ctx.repo_path.join("HEAD");
+    if !head_path.exists() {
+        return Ok(true);
+    }
+
+    // For now, always allow commits if index has entries
+    // A more sophisticated check would compare index against HEAD commit
+    Ok(true)
 }
 
 fn get_last_commit_id(ctx: &DotmanContext) -> Result<Option<String>> {
