@@ -65,7 +65,7 @@ fn test_unicode_filenames() -> Result<()> {
     }
 
     // Verify status works with Unicode
-    let result = commands::status::execute(&ctx, false);
+    let result = commands::status::execute(&ctx, false, false);
     assert!(result.is_ok());
 
     // Test commit
@@ -187,7 +187,7 @@ fn test_concurrent_file_modifications() -> Result<()> {
     let paths_clone = paths.clone();
     let dotman_handle = thread::spawn(move || {
         for _ in 0..50 {
-            let _ = commands::status::execute(&ctx_clone, false);
+            let _ = commands::status::execute(&ctx_clone, false, false);
             let _ = commands::add::execute(&ctx_clone, &paths_clone, false);
             thread::sleep(Duration::from_millis(2));
         }
@@ -197,7 +197,7 @@ fn test_concurrent_file_modifications() -> Result<()> {
     dotman_handle.join().unwrap();
 
     // Final operations should still work
-    let result = commands::status::execute(&ctx, false);
+    let result = commands::status::execute(&ctx, false, false);
     assert!(result.is_ok());
 
     Ok(())
@@ -431,7 +431,7 @@ fn test_memory_usage_large_operations() -> Result<()> {
     }
 
     // Test status on many files
-    let result = commands::status::execute(&ctx, false);
+    let result = commands::status::execute(&ctx, false, false);
     assert!(result.is_ok());
 
     // Test commit with many files
@@ -457,7 +457,7 @@ fn test_rapid_file_changes() -> Result<()> {
 
         // Sometimes check status
         if i % 10 == 0 {
-            let result = commands::status::execute(&ctx, false);
+            let result = commands::status::execute(&ctx, false, false);
             assert!(result.is_ok());
         }
     }

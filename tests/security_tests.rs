@@ -182,7 +182,7 @@ fn test_symlink_attack_prevention() -> Result<()> {
         std::os::unix::fs::symlink(&outside_target, &race_link)?;
 
         // Operations should still be safe
-        let status_result = commands::status::execute(&ctx, false);
+        let status_result = commands::status::execute(&ctx, false, false);
         let _commit_result = commands::commit::execute(&ctx, "Test commit", false);
 
         // Both should either succeed safely or fail gracefully
@@ -232,7 +232,7 @@ fn test_malicious_file_content() -> Result<()> {
                 match result {
                     Ok(_) => {
                         // If successful, verify dotman still works
-                        let _status = commands::status::execute(&ctx, false);
+                        let _status = commands::status::execute(&ctx, false, false);
                     }
                     Err(_) => {
                         // Graceful failure is acceptable
@@ -272,7 +272,7 @@ fn test_resource_exhaustion_attacks() -> Result<()> {
     match result {
         Ok(_) => {
             // Should still be able to perform other operations
-            let _status = commands::status::execute(&ctx, false);
+            let _status = commands::status::execute(&ctx, false, false);
         }
         Err(_) => {
             // Graceful resource exhaustion handling
@@ -325,7 +325,7 @@ fn test_race_condition_attacks() -> Result<()> {
     let dotman_handle = thread::spawn(move || {
         for _ in 0..100 {
             let _ = commands::add::execute(&ctx_clone, &paths_clone, false);
-            let _ = commands::status::execute(&ctx_clone, false);
+            let _ = commands::status::execute(&ctx_clone, false, false);
             thread::sleep(Duration::from_millis(5));
         }
     });
@@ -346,7 +346,7 @@ fn test_race_condition_attacks() -> Result<()> {
     corruptor_handle.join().unwrap();
 
     // System should still be functional or fail gracefully
-    let final_result = commands::status::execute(&ctx, false);
+    let final_result = commands::status::execute(&ctx, false, false);
     // System should still be functional or fail gracefully
     if final_result.is_ok() {
         // Still working
@@ -437,7 +437,7 @@ fn test_information_disclosure_prevention() -> Result<()> {
         match result {
             Ok(_) => {
                 // If added, verify no sensitive data is leaked in logs/status
-                let status_result = commands::status::execute(&ctx, false);
+                let status_result = commands::status::execute(&ctx, false, false);
                 match status_result {
                     Ok(_) => {} // Should work without exposing content
                     Err(e) => {

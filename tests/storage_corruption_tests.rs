@@ -54,7 +54,7 @@ fn test_index_corruption_recovery() -> Result<()> {
     let original_content = fs::read(&index_path)?;
     fs::write(&index_path, &original_content[..original_content.len() / 2])?;
 
-    let result = commands::status::execute(&ctx, false);
+    let result = commands::status::execute(&ctx, false, false);
     match result {
         Ok(_) => {}
         Err(_) => {
@@ -62,7 +62,7 @@ fn test_index_corruption_recovery() -> Result<()> {
             let new_index = Index::new();
             new_index.save(&index_path)?;
 
-            let recovery_result = commands::status::execute(&ctx, false);
+            let recovery_result = commands::status::execute(&ctx, false, false);
             assert!(recovery_result.is_ok(), "Should recover from corruption");
         }
     }
@@ -159,7 +159,7 @@ fn test_concurrent_corruption() -> Result<()> {
         for _ in 0..50 {
             // All these operations should either succeed or fail gracefully
             let _ = commands::add::execute(&ctx_clone2, &paths_clone, false);
-            let _ = commands::status::execute(&ctx_clone2, false);
+            let _ = commands::status::execute(&ctx_clone2, false, false);
             thread::sleep(Duration::from_millis(10));
         }
     });
@@ -172,7 +172,7 @@ fn test_concurrent_corruption() -> Result<()> {
     let recovery_index = Index::new();
     recovery_index.save(&index_path)?;
 
-    let final_result = commands::status::execute(&ctx, false);
+    let final_result = commands::status::execute(&ctx, false, false);
     assert!(final_result.is_ok(), "Should be recoverable");
 
     Ok(())
@@ -250,7 +250,7 @@ fn test_object_corruption() -> Result<()> {
             fs::write(&object_path, &original_data[..original_data.len() / 2])?;
 
             // Operations should detect corruption
-            let status_result = commands::status::execute(&ctx, false);
+            let status_result = commands::status::execute(&ctx, false, false);
             if status_result.is_ok() {
                 // May succeed if corruption not detected yet
             }
@@ -349,7 +349,7 @@ fn test_index_consistency_validation() -> Result<()> {
     index.save(&index_path)?;
 
     // Status should detect inconsistencies
-    let result = commands::status::execute(&ctx, false);
+    let result = commands::status::execute(&ctx, false, false);
     match result {
         Ok(_) => {
             // If it succeeds, it should show files as modified due to hash mismatch
@@ -378,7 +378,7 @@ fn test_memory_mapped_file_corruption() -> Result<()> {
     fs::write(&large_file, vec![0x00u8; 2_000_000])?;
 
     // Status should detect the change
-    let result = commands::status::execute(&ctx, false);
+    let result = commands::status::execute(&ctx, false, false);
     assert!(
         result.is_ok(),
         "Status should work even with corrupted large file"
@@ -387,7 +387,7 @@ fn test_memory_mapped_file_corruption() -> Result<()> {
     // Test truncating large file
     fs::write(&large_file, vec![0x42u8; 1000])?;
 
-    let result = commands::status::execute(&ctx, false);
+    let result = commands::status::execute(&ctx, false, false);
     assert!(result.is_ok(), "Should handle truncated large file");
 
     Ok(())

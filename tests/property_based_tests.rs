@@ -114,7 +114,7 @@ proptest! {
         match result {
             Ok(_) => {
                 // If successful, operations should still work
-                let status_result = commands::status::execute(&ctx, false);
+                let status_result = commands::status::execute(&ctx, false, false);
                 prop_assert!(status_result.is_ok(), "Status should work after successful add");
             }
             Err(_) => {
@@ -146,7 +146,7 @@ proptest! {
             match result {
                 Ok(_) => {
                     // Unicode handling should work
-                    let status_result = commands::status::execute(&ctx, false);
+                    let status_result = commands::status::execute(&ctx, false, false);
                     prop_assert!(status_result.is_ok());
                 }
                 Err(_) => {
@@ -232,7 +232,7 @@ proptest! {
                     prop_assert!(index.entries.len() >= created_files.len());
 
                     // Status should work with many files
-                    let status_result = commands::status::execute(&ctx, false);
+                    let status_result = commands::status::execute(&ctx, false, false);
                     prop_assert!(status_result.is_ok());
                 }
                 Err(_) => {
@@ -339,7 +339,7 @@ proptest! {
             match result {
                 Ok(_) => {
                     // Large files should be handled correctly
-                    let status_result = commands::status::execute(&ctx, false);
+                    let status_result = commands::status::execute(&ctx, false, false);
                     prop_assert!(status_result.is_ok(), "Status should work with large files");
 
                     // Commit should work

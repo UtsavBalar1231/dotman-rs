@@ -66,7 +66,7 @@ fn test_empty_repository_status() -> Result<()> {
 
     // Now test that status command works correctly
     // It should not list any untracked files
-    let result = commands::status::execute(&ctx, false);
+    let result = commands::status::execute(&ctx, false, false);
     assert!(result.is_ok(), "Status command should succeed");
 
     Ok(())
@@ -97,7 +97,7 @@ fn test_full_workflow_init_add_commit_checkout() -> Result<()> {
     commands::add::execute(&ctx, &paths, false)?;
 
     // Check status
-    commands::status::execute(&ctx, false)?;
+    commands::status::execute(&ctx, false, false)?;
 
     // Commit
     commands::commit::execute(&ctx, "Initial configuration files", false)?;
@@ -293,7 +293,7 @@ fn test_rm_workflow() -> Result<()> {
 
     // Remove file2 from tracking (--cached keeps file on disk)
     let rm_paths = [file2.to_string_lossy().to_string()];
-    commands::rm::execute(&ctx, &rm_paths, true, false)?;
+    commands::rm::execute(&ctx, &rm_paths, true, false, false)?;
 
     // File should still exist on disk
     assert!(file2.exists());
@@ -443,7 +443,7 @@ fn test_large_scale_operations() -> Result<()> {
 
     // Status check
     let start = std::time::Instant::now();
-    commands::status::execute(&ctx, false)?;
+    commands::status::execute(&ctx, false, false)?;
     let status_time = start.elapsed();
 
     println!("Status check on 1000 files in {:?}", status_time);
@@ -493,7 +493,7 @@ fn test_binary_file_handling() -> Result<()> {
     fs::write(&text_file, "Modified: 世界 שלום 🌍")?;
 
     // Check status detects changes
-    commands::status::execute(&ctx, false)?;
+    commands::status::execute(&ctx, false, false)?;
 
     Ok(())
 }
