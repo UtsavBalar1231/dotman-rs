@@ -68,10 +68,9 @@ pub fn execute(
             let commit = &snapshot.commit;
 
             if oneline {
-                // One-line format
-                // Show last 8 chars for better uniqueness (timestamp is first 16 chars)
+                // One-line format - show first 8 chars like git
                 let display_id = if commit.id.len() >= 8 {
-                    &commit.id[commit.id.len() - 8..]
+                    &commit.id[..8]
                 } else {
                     &commit.id
                 };
@@ -111,10 +110,9 @@ pub fn execute(
             let commit = &snapshot.commit;
 
             if oneline {
-                // One-line format
-                // Show last 8 chars for better uniqueness (timestamp is first 16 chars)
+                // One-line format - show first 8 chars like git
                 let display_id = if commit.id.len() >= 8 {
-                    &commit.id[commit.id.len() - 8..]
+                    &commit.id[..8]
                 } else {
                     &commit.id
                 };
