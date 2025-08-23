@@ -1,6 +1,10 @@
 pub mod commands;
 pub mod config;
+pub mod mapping;
+pub mod mirror;
+pub mod refs;
 pub mod storage;
+pub mod sync;
 pub mod utils;
 
 #[cfg(test)]
@@ -53,6 +57,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
+    #[serial_test::serial]
     fn test_dotman_context_new() -> Result<()> {
         let temp = tempdir()?;
         let config_path = temp.path().join(DEFAULT_CONFIG_PATH);
@@ -66,8 +71,8 @@ mod tests {
 repo_path = "~/.dotman"
 compression_level = 3
 
-[remote]
-remote_type = "none"
+[branches]
+current = "main"
 
 [performance]
 parallel_threads = 4
@@ -94,6 +99,7 @@ preserve_permissions = true
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_dotman_context_new_with_default_config() {
         let temp = tempdir().unwrap();
 
@@ -118,6 +124,7 @@ preserve_permissions = true
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_dotman_context_new_invalid_config() -> Result<()> {
         let temp = tempdir()?;
         let config_path = temp.path().join(DEFAULT_CONFIG_PATH);

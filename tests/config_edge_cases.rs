@@ -118,10 +118,18 @@ fn test_extreme_config_values() -> Result<()> {
             compression: CompressionType::Zstd,
             compression_level: 22, // Maximum zstd compression level
         },
-        remote: RemoteConfig {
-            remote_type: RemoteType::Git,
-            url: Some("file:///".to_string() + &"very_long_path/".repeat(100)),
+        remotes: {
+            let mut remotes = std::collections::HashMap::new();
+            remotes.insert(
+                "origin".to_string(),
+                RemoteConfig {
+                    remote_type: RemoteType::Git,
+                    url: Some("file:///".to_string() + &"very_long_path/".repeat(100)),
+                },
+            );
+            remotes
         },
+        branches: Default::default(),
         performance: PerformanceConfig {
             parallel_threads: 1024, // Very high thread count
             mmap_threshold: 1,      // Everything uses mmap
@@ -170,10 +178,18 @@ fn test_config_unicode_and_special_chars() -> Result<()> {
             compression: CompressionType::Zstd,
             compression_level: 3,
         },
-        remote: RemoteConfig {
-            remote_type: RemoteType::Git,
-            url: Some("git@github.com:用户/dotfiles.git".to_string()), // Mixed script
+        remotes: {
+            let mut remotes = std::collections::HashMap::new();
+            remotes.insert(
+                "origin".to_string(),
+                RemoteConfig {
+                    remote_type: RemoteType::Git,
+                    url: Some("git@github.com:用户/dotfiles.git".to_string()), // Mixed script
+                },
+            );
+            remotes
         },
+        branches: Default::default(),
         performance: PerformanceConfig {
             parallel_threads: 8,
             mmap_threshold: 1048576,

@@ -229,7 +229,7 @@ mod tests {
     fn test_execute_no_commits() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        let result = execute(&ctx, 10, false);
+        let result = execute(&ctx, None, 10, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -248,7 +248,7 @@ mod tests {
             Some("commit1".to_string()),
         )?;
 
-        let result = execute(&ctx, 10, false);
+        let result = execute(&ctx, None, 10, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -261,7 +261,7 @@ mod tests {
         // Create test commits
         create_test_snapshot(&ctx, "20241201120000000000abc123", "Test commit", None)?;
 
-        let result = execute(&ctx, 10, true);
+        let result = execute(&ctx, None, 10, true);
         assert!(result.is_ok());
 
         Ok(())
@@ -284,7 +284,7 @@ mod tests {
         }
 
         // Test with limit of 2
-        let result = execute(&ctx, 2, false);
+        let result = execute(&ctx, None, 2, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -296,7 +296,7 @@ mod tests {
 
         create_test_snapshot(&ctx, "commit1", "Test", None)?;
 
-        let result = execute(&ctx, 0, false);
+        let result = execute(&ctx, None, 0, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -309,7 +309,7 @@ mod tests {
         // Create commit with short ID
         create_test_snapshot(&ctx, "abc", "Short ID commit", None)?;
 
-        let result = execute(&ctx, 10, true);
+        let result = execute(&ctx, None, 10, true);
         assert!(result.is_ok());
 
         Ok(())
@@ -324,7 +324,7 @@ mod tests {
         create_test_snapshot(&ctx, "child1", "Child 1", Some("root".to_string()))?;
         create_test_snapshot(&ctx, "child2", "Child 2", Some("child1".to_string()))?;
 
-        let result = execute(&ctx, 10, false);
+        let result = execute(&ctx, None, 10, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -337,7 +337,7 @@ mod tests {
         // Don't create any commits, just ensure repo exists
         ctx.ensure_repo_exists()?;
 
-        let result = execute(&ctx, 10, false);
+        let result = execute(&ctx, None, 10, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -351,7 +351,7 @@ mod tests {
         create_test_snapshot(&ctx, "single", "Single commit", None)?;
 
         // Use limit larger than number of commits
-        let result = execute(&ctx, 100, false);
+        let result = execute(&ctx, None, 100, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -368,7 +368,7 @@ mod tests {
             create_test_snapshot(&ctx, &commit_id, &message, None)?;
         }
 
-        let result = execute(&ctx, 10, true);
+        let result = execute(&ctx, None, 10, true);
         assert!(result.is_ok());
 
         Ok(())

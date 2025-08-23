@@ -88,8 +88,12 @@ pub mod fixtures {
             remote_type: crate::config::RemoteType,
             url: Option<String>,
         ) -> Result<()> {
-            self.context.config.remote.remote_type = remote_type;
-            self.context.config.remote.url = url;
+            // Add a remote named "origin" with the specified type and url
+            let remote_config = crate::config::RemoteConfig { remote_type, url };
+            self.context
+                .config
+                .remotes
+                .insert("origin".to_string(), remote_config);
             self.context.config.save(&self.config_path)?;
             Ok(())
         }

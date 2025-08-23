@@ -19,18 +19,28 @@ pub fn execute(
     let mut removed_count = 0;
     let mut not_found_count = 0;
 
+    // Get home directory for making paths relative
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+
     for path_str in paths {
         let path = PathBuf::from(path_str);
 
+        // Convert to relative path from home if it's absolute
+        let index_path = if path.is_absolute() {
+            path.strip_prefix(&home).unwrap_or(&path).to_path_buf()
+        } else {
+            path.clone()
+        };
+
         // Check if file is in index
-        if index.get_entry(&path).is_none() && !force {
+        if index.get_entry(&index_path).is_none() && !force {
             super::print_warning(&format!("File not tracked: {}", path.display()));
             not_found_count += 1;
             continue;
         }
 
         // Remove from index
-        if index.remove_entry(&path).is_some() {
+        if index.remove_entry(&index_path).is_some() {
             println!("  {} {}", "removed:".red(), path.display());
             removed_count += 1;
         }

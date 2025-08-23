@@ -2,6 +2,7 @@ pub mod parser;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -10,8 +11,13 @@ pub struct Config {
     #[serde(default)]
     pub core: CoreConfig,
 
+    /// Multiple named remotes (like git's origin, upstream, etc.)
     #[serde(default)]
-    pub remote: RemoteConfig,
+    pub remotes: HashMap<String, RemoteConfig>,
+
+    /// Branch tracking configuration
+    #[serde(default)]
+    pub branches: BranchConfig,
 
     #[serde(default)]
     pub performance: PerformanceConfig,
@@ -45,7 +51,7 @@ pub struct RemoteConfig {
     pub url: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RemoteType {
     Git,
@@ -71,6 +77,24 @@ pub struct TrackingConfig {
     pub ignore_patterns: Vec<String>,
     pub follow_symlinks: bool,
     pub preserve_permissions: bool,
+}
+
+/// Branch configuration for tracking branches and their upstream remotes
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BranchConfig {
+    /// Current active branch
+    #[serde(default = "default_current_branch")]
+    pub current: String,
+
+    /// Branch tracking information: branch_name -> (remote_name, remote_branch)
+    #[serde(default)]
+    pub tracking: HashMap<String, BranchTracking>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BranchTracking {
+    pub remote: String,
+    pub branch: String,
 }
 
 impl Default for CoreConfig {
@@ -145,6 +169,21 @@ impl Config {
         file.write_all(toml_str.as_bytes())?;
         Ok(())
     }
+
+    /// Get a remote by name
+    pub fn get_remote(&self, name: &str) -> Option<&RemoteConfig> {
+        self.remotes.get(name)
+    }
+
+    /// Add or update a remote
+    pub fn set_remote(&mut self, name: String, remote: RemoteConfig) {
+        self.remotes.insert(name, remote);
+    }
+
+    /// Remove a remote
+    pub fn remove_remote(&mut self, name: &str) -> Option<RemoteConfig> {
+        self.remotes.remove(name)
+    }
 }
 
 // Add dependency for num_cpus
@@ -196,6 +235,10 @@ fn default_cache_size() -> usize {
 
 fn default_use_hard_links() -> bool {
     true
+}
+
+fn default_current_branch() -> String {
+    "main".to_string()
 }
 
 #[cfg(test)]

@@ -31,6 +31,8 @@ dotman is a dotfiles manager designed from the ground up for performance and rel
 
 - **Performance-First Design**: Every architectural decision prioritizes speed without sacrificing correctness
 - **Git-Like Interface**: Familiar command structure for developers already using version control
+- **Multi-Configuration Support**: Branch-based management for different machines (laptop, desktop, server)
+- **Flexible Remote Storage**: Support for Git, S3, and Rsync remotes for backup and synchronization
 - **Content Deduplication**: Intelligent storage minimization through content-based deduplication
 - **Parallel Processing**: Utilizes all available CPU cores for file operations
 - **Binary Index Format**: Fast serialization and deserialization for instant repository loading
@@ -210,6 +212,38 @@ dot checkout <commit-id>
 dot checkout --force HEAD
 ```
 
+### Multi-Configuration Workflow
+
+Managing different dotfiles for different machines:
+
+```bash
+# Create branches for different configurations
+dot branch create laptop-config
+dot branch create desktop-config
+dot branch create server-config
+
+# Switch to laptop configuration
+dot checkout laptop-config
+
+# Make laptop-specific changes
+dot add ~/.config/laptop-specific.conf
+dot commit -m "Add laptop-specific configurations"
+
+# Set up remote repository
+dot remote add origin git@github.com:username/dotfiles.git
+
+# Push laptop configuration
+dot push origin laptop-config
+
+# On another machine, pull specific configuration
+dot pull origin desktop-config
+dot checkout desktop-config
+
+# Set upstream tracking for automatic push/pull
+dot branch set-upstream laptop-config origin laptop-config
+dot push  # Now pushes to tracked upstream
+```
+
 ## Command Reference
 
 ### Repository Management
@@ -279,12 +313,24 @@ Options:
 
 ### History Operations
 
-#### `dot log [-n <limit>] [--oneline]`
+#### `dot log [<target>] [-n <limit>] [--oneline]`
 Display commit history.
+
+Arguments:
+- `<target>`: Commit, branch, or HEAD to start from (optional)
 
 Options:
 - `-n, --limit`: Number of commits to show (default: 10)
 - `--oneline`: Compact single-line format
+
+Examples:
+```bash
+dot log                    # Show last 10 commits from current branch
+dot log HEAD               # Show commits from HEAD
+dot log main               # Show commits from main branch
+dot log abc123             # Show commits from specific commit
+dot log -n 20 --oneline    # Show 20 commits in oneline format
+```
 
 #### `dot show <object>`
 Display detailed information about a commit.
@@ -292,17 +338,107 @@ Display detailed information about a commit.
 #### `dot diff [<from>] [<to>]`
 Show differences between commits or working directory.
 
+### Branch Management
+
+#### `dot branch [options]`
+Manage branches for different dotfile configurations.
+
+Subcommands:
+- `list`: List all branches
+- `create <name> [<start-point>]`: Create a new branch
+- `delete <name> [--force]`: Delete a branch
+- `rename <old> <new> [--force]`: Rename a branch
+- `current`: Show current branch
+- `set-upstream <branch> <remote> <remote-branch>`: Set upstream tracking
+
+Examples:
+```bash
+# List all branches
+dot branch list
+
+# Create a new branch for laptop configuration
+dot branch create laptop-config
+
+# Create branch from specific commit
+dot branch create experimental abc123
+
+# Switch to a different branch
+dot checkout laptop-config
+
+# Set upstream tracking
+dot branch set-upstream laptop-config origin laptop-config
+
+# Delete a branch
+dot branch delete old-config --force
+```
+
 ### Remote Operations
+
+#### `dot remote [options]`
+Manage remote repositories for syncing dotfiles.
+
+Subcommands:
+- `list`: List configured remotes
+- `add <name> <url>`: Add a new remote
+- `remove <name>`: Remove a remote
+- `rename <old> <new>`: Rename a remote
+- `set-url <name> <url>`: Change remote URL
+- `show <name>`: Show remote details
+
+Supported remote types:
+- **Git**: Standard git repositories (SSH/HTTPS)
+- **S3**: Amazon S3 buckets for cloud storage
+- **Rsync**: Any rsync-compatible destination
+
+Examples:
+```bash
+# List all remotes
+dot remote list
+
+# Add a git remote
+dot remote add origin git@github.com:username/dotfiles.git
+
+# Add an S3 remote for backup
+dot remote add backup s3://my-dotfiles-bucket/
+
+# Add an rsync remote for NAS
+dot remote add nas rsync://nas.local/backup/dotfiles/
+
+# Change remote URL
+dot remote set-url origin https://github.com/username/dotfiles.git
+
+# Remove a remote
+dot remote remove old-backup
+```
 
 #### `dot push [<remote>] [<branch>]`
 Push commits to remote repository.
 
-Defaults:
-- Remote: `origin`
-- Branch: `main`
+Arguments:
+- `<remote>`: Remote name (defaults to upstream remote or 'origin')
+- `<branch>`: Branch to push (defaults to current branch)
+
+Examples:
+```bash
+dot push                    # Push current branch to its upstream
+dot push origin             # Push current branch to origin
+dot push backup main        # Push main branch to backup remote
+dot push origin laptop-config  # Push laptop-config branch to origin
+```
 
 #### `dot pull [<remote>] [<branch>]`
 Pull and merge changes from remote repository.
+
+Arguments:
+- `<remote>`: Remote name (defaults to upstream remote or 'origin')
+- `<branch>`: Branch to pull (defaults to current branch)
+
+Examples:
+```bash
+dot pull                    # Pull current branch from upstream
+dot pull origin             # Pull current branch from origin
+dot pull backup main        # Pull main branch from backup remote
+```
 
 ### Utility Commands
 
@@ -345,11 +481,36 @@ compression = "zstd"
 # Compression level (1-22, higher = better compression but slower)
 compression_level = 3
 
-[remote]
-# Remote type: "git", "s3", "rsync", or "none"
-remote_type = "none"
+# Multiple remotes configuration
+[remotes.origin]
+# Remote type: "git", "s3", or "rsync"
+remote_type = "git"
 # Remote URL (format depends on remote_type)
-url = ""
+url = "git@github.com:username/dotfiles.git"
+
+[remotes.backup]
+remote_type = "s3"
+url = "s3://my-dotfiles-backup/"
+
+[remotes.nas]
+remote_type = "rsync"
+url = "rsync://nas.local/backup/dotfiles/"
+
+# Branch configuration
+[branches]
+# Current active branch
+current = "main"
+# Default branch for new repositories
+default = "main"
+
+# Branch upstream tracking (optional)
+[branches.tracking.main]
+remote = "origin"
+branch = "main"
+
+[branches.tracking.laptop-config]
+remote = "origin"
+branch = "laptop-config"
 
 [performance]
 # Number of parallel threads (0 = auto-detect)
@@ -421,10 +582,13 @@ dotman/
 │   │   ├── add.rs
 │   │   ├── commit.rs
 │   │   ├── status.rs
+│   │   ├── branch.rs     # Branch management
+│   │   ├── remote.rs     # Remote management
 │   │   └── ...
 │   ├── storage/          # Storage layer
 │   │   ├── index.rs      # Binary index management
 │   │   └── snapshots.rs  # Snapshot storage
+│   ├── refs.rs           # Git-like references system
 │   ├── config/           # Configuration
 │   │   ├── mod.rs        # Config structures
 │   │   └── parser.rs     # TOML parser
@@ -444,7 +608,14 @@ dotman/
 ├── commits/             # Snapshot storage
 │   └── <commit-id>      # Compressed snapshots
 ├── objects/             # Deduplicated objects
-└── HEAD                 # Current commit reference
+├── refs/                # Reference storage
+│   ├── heads/           # Branch references
+│   │   ├── main         # Main branch
+│   │   └── laptop-config # Other branches
+│   └── remotes/         # Remote tracking branches
+│       └── origin/
+│           └── main
+└── HEAD                 # Current branch/commit reference
 ```
 
 ### Key Dependencies

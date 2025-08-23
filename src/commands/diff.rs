@@ -221,6 +221,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_no_args() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -238,6 +239,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_one_commit() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -266,6 +268,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_diff_working_vs_index_no_changes() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 

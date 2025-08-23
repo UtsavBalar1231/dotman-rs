@@ -237,7 +237,7 @@ impl SnapshotManager {
         Ok(hash.to_string())
     }
 
-    fn restore_file_content(&self, content_hash: &str, target_path: &Path) -> Result<()> {
+    pub fn restore_file_content(&self, content_hash: &str, target_path: &Path) -> Result<()> {
         let object_path = self
             .repo_path
             .join("objects")
@@ -251,6 +251,21 @@ impl SnapshotManager {
         fs::write(target_path, content)?;
 
         Ok(())
+    }
+
+    pub fn read_object(&self, content_hash: &str) -> Result<Vec<u8>> {
+        let object_path = self
+            .repo_path
+            .join("objects")
+            .join(format!("{}.zst", content_hash));
+
+        // Read and decompress object
+        let compressed = fs::read(&object_path)
+            .with_context(|| format!("Failed to read object file: {}", object_path.display()))?;
+        let content = decode_all(&compressed[..])
+            .with_context(|| format!("Failed to decompress object: {}", content_hash))?;
+
+        Ok(content)
     }
 
     pub fn list_snapshots(&self) -> Result<Vec<String>> {

@@ -486,6 +486,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_concurrent_index_parallel_status() -> Result<()> {
         use tempfile::tempdir;
 

@@ -142,11 +142,115 @@ enum Commands {
         interactive: bool,
     },
 
+    /// Manage remote repositories
+    Remote {
+        #[command(subcommand)]
+        action: RemoteAction,
+    },
+
+    /// Manage branches
+    Branch {
+        #[command(subcommand)]
+        action: Option<BranchAction>,
+    },
+
     /// Generate shell completion scripts
     Completion {
         /// Shell to generate completions for
         #[arg(value_enum)]
         shell: Shell,
+    },
+}
+
+#[derive(Subcommand)]
+enum RemoteAction {
+    /// List all remotes
+    List,
+
+    /// Add a new remote
+    Add {
+        /// Remote name
+        name: String,
+        /// Remote URL
+        url: String,
+    },
+
+    /// Remove a remote
+    Remove {
+        /// Remote name
+        name: String,
+    },
+
+    /// Set the URL for a remote
+    SetUrl {
+        /// Remote name
+        name: String,
+        /// New URL
+        url: String,
+    },
+
+    /// Show information about a remote
+    Show {
+        /// Remote name
+        name: String,
+    },
+
+    /// Rename a remote
+    Rename {
+        /// Old remote name
+        old_name: String,
+        /// New remote name
+        new_name: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum BranchAction {
+    /// List all branches
+    List,
+
+    /// Create a new branch
+    Create {
+        /// Branch name
+        name: String,
+        /// Starting point (commit or branch)
+        #[arg(short, long)]
+        from: Option<String>,
+    },
+
+    /// Delete a branch
+    Delete {
+        /// Branch name
+        name: String,
+        /// Force deletion
+        #[arg(short, long)]
+        force: bool,
+    },
+
+    /// Rename a branch
+    Rename {
+        /// Old branch name (current branch if not specified)
+        old_name: Option<String>,
+        /// New branch name
+        new_name: String,
+    },
+
+    /// Set upstream tracking for a branch
+    SetUpstream {
+        /// Branch name (current branch if not specified)
+        #[arg(short, long)]
+        branch: Option<String>,
+        /// Remote name
+        remote: String,
+        /// Remote branch name (same as local branch if not specified)
+        #[arg(short = 'b', long)]
+        remote_branch: Option<String>,
+    },
+
+    /// Remove upstream tracking for a branch
+    UnsetUpstream {
+        /// Branch name (current branch if not specified)
+        branch: Option<String>,
     },
 }
 
@@ -163,6 +267,10 @@ fn run() -> Result<()> {
     // Initialize context
     let context = match &cli.command {
         Commands::Init { .. } | Commands::Completion { .. } => None,
+        Commands::Remote { .. } | Commands::Branch { .. } => {
+            // Remote and Branch commands need mutable context
+            Some(DotmanContext::new()?)
+        }
         _ => Some(DotmanContext::new()?),
     };
 
@@ -223,6 +331,49 @@ fn run() -> Result<()> {
         } => {
             let ctx = context.unwrap();
             commands::rm::execute(&ctx, &paths, cached, force, interactive)?;
+        }
+        Commands::Remote { action } => {
+            let mut ctx = context.unwrap();
+            match action {
+                RemoteAction::List => commands::remote::list(&ctx)?,
+                RemoteAction::Add { name, url } => commands::remote::add(&mut ctx, &name, &url)?,
+                RemoteAction::Remove { name } => commands::remote::remove(&mut ctx, &name)?,
+                RemoteAction::SetUrl { name, url } => {
+                    commands::remote::set_url(&mut ctx, &name, &url)?
+                }
+                RemoteAction::Show { name } => commands::remote::show(&ctx, &name)?,
+                RemoteAction::Rename { old_name, new_name } => {
+                    commands::remote::rename(&mut ctx, &old_name, &new_name)?
+                }
+            }
+        }
+        Commands::Branch { action } => {
+            let mut ctx = context.unwrap();
+            match action {
+                None | Some(BranchAction::List) => commands::branch::list(&ctx)?,
+                Some(BranchAction::Create { name, from }) => {
+                    commands::branch::create(&ctx, &name, from.as_deref())?
+                }
+                Some(BranchAction::Delete { name, force }) => {
+                    commands::branch::delete(&ctx, &name, force)?
+                }
+                Some(BranchAction::Rename { old_name, new_name }) => {
+                    commands::branch::rename(&ctx, old_name.as_deref(), &new_name)?
+                }
+                Some(BranchAction::SetUpstream {
+                    branch,
+                    remote,
+                    remote_branch,
+                }) => commands::branch::set_upstream(
+                    &mut ctx,
+                    branch.as_deref(),
+                    &remote,
+                    remote_branch.as_deref(),
+                )?,
+                Some(BranchAction::UnsetUpstream { branch }) => {
+                    commands::branch::unset_upstream(&mut ctx, branch.as_deref())?
+                }
+            }
         }
         Commands::Completion { shell } => {
             print_completions(shell, &mut Cli::command());

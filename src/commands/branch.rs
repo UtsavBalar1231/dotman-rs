@@ -1,0 +1,335 @@
+use crate::DotmanContext;
+use crate::config::BranchTracking;
+use crate::refs::RefManager;
+use anyhow::Result;
+use colored::Colorize;
+
+/// List all branches
+pub fn list(ctx: &DotmanContext) -> Result<()> {
+    ctx.ensure_repo_exists()?;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let branches = ref_manager.list_branches()?;
+    let current = ref_manager.current_branch()?;
+
+    if branches.is_empty() {
+        super::print_info("No branches exist");
+        return Ok(());
+    }
+
+    for branch in branches {
+        let is_current = current.as_ref().is_some_and(|c| c == &branch);
+        let prefix = if is_current { "* " } else { "  " };
+
+        // Check if branch has upstream tracking
+        let tracking_info = if let Some(tracking) = ctx.config.branches.tracking.get(&branch) {
+            format!(" -> {}/{}", tracking.remote, tracking.branch)
+                .dimmed()
+                .to_string()
+        } else {
+            "".to_string()
+        };
+
+        if is_current {
+            println!("{}{}{}", prefix.green(), branch.green(), tracking_info);
+        } else {
+            println!("{}{}{}", prefix, branch, tracking_info);
+        }
+    }
+
+    Ok(())
+}
+
+/// Create a new branch
+pub fn create(ctx: &DotmanContext, name: &str, start_point: Option<&str>) -> Result<()> {
+    ctx.ensure_repo_exists()?;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+
+    if ref_manager.branch_exists(name) {
+        anyhow::bail!("Branch '{}' already exists", name);
+    }
+
+    // If start_point is provided, resolve it to a commit
+    let commit_str;
+    let commit_id = if let Some(point) = start_point {
+        // This could be a branch name or commit ID
+        if ref_manager.branch_exists(point) {
+            commit_str = ref_manager.get_branch_commit(point)?;
+            Some(commit_str.as_str())
+        } else {
+            // Assume it's a commit ID
+            Some(point)
+        }
+    } else {
+        None
+    };
+
+    ref_manager.create_branch(name, commit_id)?;
+    super::print_success(&format!("Created branch '{}'", name));
+
+    Ok(())
+}
+
+/// Delete a branch
+pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
+    ctx.ensure_repo_exists()?;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+
+    // TODO: Check if branch is fully merged unless force is true
+    if !force {
+        super::print_info("Warning: deleting branch without checking if it's fully merged");
+    }
+
+    ref_manager.delete_branch(name)?;
+    super::print_success(&format!("Deleted branch '{}'", name));
+
+    Ok(())
+}
+
+/// Switch to a branch
+pub fn checkout(ctx: &DotmanContext, name: &str) -> Result<()> {
+    ctx.ensure_repo_exists()?;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+
+    if !ref_manager.branch_exists(name) {
+        anyhow::bail!("Branch '{}' does not exist", name);
+    }
+
+    ref_manager.set_head_to_branch(name)?;
+    super::print_success(&format!("Switched to branch '{}'", name));
+
+    // TODO: Update working directory to match branch state
+
+    Ok(())
+}
+
+/// Rename a branch
+pub fn rename(ctx: &DotmanContext, old_name: Option<&str>, new_name: &str) -> Result<()> {
+    ctx.ensure_repo_exists()?;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+
+    let old = if let Some(name) = old_name {
+        name.to_string()
+    } else {
+        // Rename current branch
+        ref_manager
+            .current_branch()?
+            .ok_or_else(|| anyhow::anyhow!("Not on any branch (detached HEAD)"))?
+    };
+
+    ref_manager.rename_branch(&old, new_name)?;
+    super::print_success(&format!("Renamed branch '{}' to '{}'", old, new_name));
+
+    Ok(())
+}
+
+/// Set upstream tracking for a branch
+pub fn set_upstream(
+    ctx: &mut DotmanContext,
+    branch: Option<&str>,
+    remote: &str,
+    remote_branch: Option<&str>,
+) -> Result<()> {
+    ctx.ensure_repo_exists()?;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+
+    // Determine which branch to set upstream for
+    let branch_name = if let Some(b) = branch {
+        b.to_string()
+    } else {
+        ref_manager
+            .current_branch()?
+            .ok_or_else(|| anyhow::anyhow!("Not on any branch (detached HEAD)"))?
+    };
+
+    // Check if branch exists
+    if !ref_manager.branch_exists(&branch_name) {
+        anyhow::bail!("Branch '{}' does not exist", branch_name);
+    }
+
+    // Check if remote exists
+    if !ctx.config.remotes.contains_key(remote) {
+        anyhow::bail!("Remote '{}' does not exist", remote);
+    }
+
+    // Use same branch name on remote if not specified
+    let remote_branch_name = remote_branch.unwrap_or(&branch_name);
+
+    // Set tracking information
+    let tracking = BranchTracking {
+        remote: remote.to_string(),
+        branch: remote_branch_name.to_string(),
+    };
+
+    ctx.config
+        .branches
+        .tracking
+        .insert(branch_name.clone(), tracking);
+    ctx.config.save(&ctx.config_path)?;
+
+    super::print_success(&format!(
+        "Branch '{}' set up to track '{}/{}'",
+        branch_name, remote, remote_branch_name
+    ));
+
+    Ok(())
+}
+
+/// Remove upstream tracking for a branch
+pub fn unset_upstream(ctx: &mut DotmanContext, branch: Option<&str>) -> Result<()> {
+    ctx.ensure_repo_exists()?;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+
+    let branch_name = if let Some(b) = branch {
+        b.to_string()
+    } else {
+        ref_manager
+            .current_branch()?
+            .ok_or_else(|| anyhow::anyhow!("Not on any branch (detached HEAD)"))?
+    };
+
+    if ctx.config.branches.tracking.remove(&branch_name).is_none() {
+        super::print_info(&format!(
+            "Branch '{}' has no upstream tracking",
+            branch_name
+        ));
+    } else {
+        ctx.config.save(&ctx.config_path)?;
+        super::print_success(&format!(
+            "Removed upstream tracking for branch '{}'",
+            branch_name
+        ));
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use std::fs;
+    use tempfile::tempdir;
+
+    fn create_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
+        let temp = tempdir()?;
+        let repo_path = temp.path().join(".dotman");
+        let config_path = temp.path().join("config.toml");
+
+        fs::create_dir_all(&repo_path)?;
+
+        let config = Config::default();
+        let ctx = DotmanContext {
+            repo_path: repo_path.clone(),
+            config_path: config_path.clone(),
+            config,
+        };
+
+        ctx.config.save(&config_path)?;
+
+        // Initialize refs
+        let ref_manager = RefManager::new(repo_path);
+        ref_manager.init()?;
+
+        Ok((temp, ctx))
+    }
+
+    #[test]
+    fn test_list_branches() -> Result<()> {
+        let (_temp, ctx) = create_test_context()?;
+
+        // Should list the default main branch
+        list(&ctx)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_branch() -> Result<()> {
+        let (_temp, ctx) = create_test_context()?;
+
+        create(&ctx, "feature", None)?;
+
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        assert!(ref_manager.branch_exists("feature"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_duplicate_branch() -> Result<()> {
+        let (_temp, ctx) = create_test_context()?;
+
+        create(&ctx, "feature", None)?;
+        let result = create(&ctx, "feature", None);
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("already exists"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_delete_branch() -> Result<()> {
+        let (_temp, ctx) = create_test_context()?;
+
+        create(&ctx, "temp", None)?;
+        delete(&ctx, "temp", false)?;
+
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        assert!(!ref_manager.branch_exists("temp"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_checkout_branch() -> Result<()> {
+        let (_temp, ctx) = create_test_context()?;
+
+        create(&ctx, "feature", None)?;
+        checkout(&ctx, "feature")?;
+
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        assert_eq!(ref_manager.current_branch()?, Some("feature".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_rename_branch() -> Result<()> {
+        let (_temp, ctx) = create_test_context()?;
+
+        create(&ctx, "old", None)?;
+        rename(&ctx, Some("old"), "new")?;
+
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        assert!(!ref_manager.branch_exists("old"));
+        assert!(ref_manager.branch_exists("new"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_upstream() -> Result<()> {
+        let (_temp, mut ctx) = create_test_context()?;
+
+        // Add a remote first
+        crate::commands::remote::add(&mut ctx, "origin", "https://github.com/user/repo.git")?;
+
+        // Set upstream for main branch
+        set_upstream(&mut ctx, Some("main"), "origin", None)?;
+
+        assert!(ctx.config.branches.tracking.contains_key("main"));
+        let tracking = ctx.config.branches.tracking.get("main").unwrap();
+        assert_eq!(tracking.remote, "origin");
+        assert_eq!(tracking.branch, "main");
+
+        Ok(())
+    }
+}

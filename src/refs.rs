@@ -1,0 +1,296 @@
+use anyhow::Result;
+use std::fs;
+use std::path::PathBuf;
+
+/// Manages git-like references (branches, HEAD, etc.)
+pub struct RefManager {
+    repo_path: PathBuf,
+}
+
+impl RefManager {
+    pub fn new(repo_path: PathBuf) -> Self {
+        Self { repo_path }
+    }
+
+    /// Initialize refs structure for a new repository
+    pub fn init(&self) -> Result<()> {
+        // Create refs directories
+        fs::create_dir_all(self.repo_path.join("refs/heads"))?;
+        fs::create_dir_all(self.repo_path.join("refs/remotes"))?;
+
+        // Create default main branch
+        self.create_branch("main", None)?;
+
+        // Set HEAD to point to main
+        self.set_head_to_branch("main")?;
+
+        Ok(())
+    }
+
+    /// Get the current branch name
+    pub fn current_branch(&self) -> Result<Option<String>> {
+        let head_path = self.repo_path.join("HEAD");
+        if !head_path.exists() {
+            return Ok(None);
+        }
+
+        let head_content = fs::read_to_string(&head_path)?;
+
+        // Check if HEAD points to a branch
+        if let Some(branch_ref) = head_content.strip_prefix("ref: refs/heads/") {
+            return Ok(Some(branch_ref.trim().to_string()));
+        }
+
+        // HEAD is detached (points directly to a commit)
+        Ok(None)
+    }
+
+    /// Set HEAD to point to a branch
+    pub fn set_head_to_branch(&self, branch: &str) -> Result<()> {
+        let head_path = self.repo_path.join("HEAD");
+        fs::write(&head_path, format!("ref: refs/heads/{}", branch))?;
+        Ok(())
+    }
+
+    /// Set HEAD to point directly to a commit (detached HEAD)
+    pub fn set_head_to_commit(&self, commit_id: &str) -> Result<()> {
+        let head_path = self.repo_path.join("HEAD");
+        fs::write(&head_path, commit_id)?;
+        Ok(())
+    }
+
+    /// Create a new branch
+    pub fn create_branch(&self, name: &str, commit_id: Option<&str>) -> Result<()> {
+        let branch_path = self.repo_path.join(format!("refs/heads/{}", name));
+
+        // If commit_id is provided, use it; otherwise use current HEAD
+        let commit = if let Some(id) = commit_id {
+            id.to_string()
+        } else {
+            self.get_head_commit()?.unwrap_or_else(|| "0".repeat(40)) // Empty commit ID if no commits yet
+        };
+
+        fs::write(&branch_path, commit)?;
+        Ok(())
+    }
+
+    /// Delete a branch
+    pub fn delete_branch(&self, name: &str) -> Result<()> {
+        // Prevent deletion of current branch
+        if self.current_branch()?.as_ref().is_some_and(|c| c == name) {
+            anyhow::bail!("Cannot delete the current branch '{}'", name);
+        }
+
+        let branch_path = self.repo_path.join(format!("refs/heads/{}", name));
+        if !branch_path.exists() {
+            anyhow::bail!("Branch '{}' does not exist", name);
+        }
+
+        fs::remove_file(&branch_path)?;
+        Ok(())
+    }
+
+    /// List all local branches
+    pub fn list_branches(&self) -> Result<Vec<String>> {
+        let heads_dir = self.repo_path.join("refs/heads");
+        if !heads_dir.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut branches = Vec::new();
+        for entry in fs::read_dir(&heads_dir)? {
+            let entry = entry?;
+            if entry.file_type()?.is_file()
+                && let Some(name) = entry.file_name().to_str()
+            {
+                branches.push(name.to_string());
+            }
+        }
+
+        branches.sort();
+        Ok(branches)
+    }
+
+    /// Get the commit ID for a branch
+    pub fn get_branch_commit(&self, branch: &str) -> Result<String> {
+        let branch_path = self.repo_path.join(format!("refs/heads/{}", branch));
+        if !branch_path.exists() {
+            anyhow::bail!("Branch '{}' does not exist", branch);
+        }
+
+        Ok(fs::read_to_string(&branch_path)?.trim().to_string())
+    }
+
+    /// Update the commit ID for a branch
+    pub fn update_branch(&self, branch: &str, commit_id: &str) -> Result<()> {
+        let branch_path = self.repo_path.join(format!("refs/heads/{}", branch));
+        if !branch_path.exists() {
+            anyhow::bail!("Branch '{}' does not exist", branch);
+        }
+
+        fs::write(&branch_path, commit_id)?;
+        Ok(())
+    }
+
+    /// Get the current HEAD commit (whether from branch or detached)
+    pub fn get_head_commit(&self) -> Result<Option<String>> {
+        let head_path = self.repo_path.join("HEAD");
+        if !head_path.exists() {
+            return Ok(None);
+        }
+
+        let head_content = fs::read_to_string(&head_path)?.trim().to_string();
+
+        // Check if HEAD points to a branch
+        if let Some(branch_name) = head_content.strip_prefix("ref: refs/heads/") {
+            // Read the branch file to get the commit
+            let branch_path = self.repo_path.join(format!("refs/heads/{}", branch_name));
+            if branch_path.exists() {
+                return Ok(Some(fs::read_to_string(&branch_path)?.trim().to_string()));
+            }
+        } else {
+            // HEAD points directly to a commit
+            return Ok(Some(head_content));
+        }
+
+        Ok(None)
+    }
+
+    /// Check if a branch exists
+    pub fn branch_exists(&self, name: &str) -> bool {
+        self.repo_path.join(format!("refs/heads/{}", name)).exists()
+    }
+
+    /// Rename a branch
+    pub fn rename_branch(&self, old_name: &str, new_name: &str) -> Result<()> {
+        let old_path = self.repo_path.join(format!("refs/heads/{}", old_name));
+        let new_path = self.repo_path.join(format!("refs/heads/{}", new_name));
+
+        if !old_path.exists() {
+            anyhow::bail!("Branch '{}' does not exist", old_name);
+        }
+
+        if new_path.exists() {
+            anyhow::bail!("Branch '{}' already exists", new_name);
+        }
+
+        fs::rename(&old_path, &new_path)?;
+
+        // Update HEAD if it pointed to the renamed branch
+        if self
+            .current_branch()?
+            .as_ref()
+            .is_some_and(|c| c == old_name)
+        {
+            self.set_head_to_branch(new_name)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn setup_test_repo() -> Result<(tempfile::TempDir, RefManager)> {
+        let temp = tempdir()?;
+        let repo_path = temp.path().join(".dotman");
+        fs::create_dir_all(&repo_path)?;
+
+        let manager = RefManager::new(repo_path);
+        manager.init()?;
+
+        Ok((temp, manager))
+    }
+
+    #[test]
+    fn test_init_creates_structure() -> Result<()> {
+        let (_temp, manager) = setup_test_repo()?;
+
+        assert!(manager.repo_path.join("refs/heads").exists());
+        assert!(manager.repo_path.join("refs/remotes").exists());
+        assert!(manager.repo_path.join("HEAD").exists());
+        assert!(manager.repo_path.join("refs/heads/main").exists());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_current_branch() -> Result<()> {
+        let (_temp, manager) = setup_test_repo()?;
+
+        let current = manager.current_branch()?;
+        assert_eq!(current, Some("main".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_and_list_branches() -> Result<()> {
+        let (_temp, manager) = setup_test_repo()?;
+
+        manager.create_branch("feature", None)?;
+        manager.create_branch("bugfix", None)?;
+
+        let branches = manager.list_branches()?;
+        assert_eq!(branches.len(), 3);
+        assert!(branches.contains(&"main".to_string()));
+        assert!(branches.contains(&"feature".to_string()));
+        assert!(branches.contains(&"bugfix".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_delete_branch() -> Result<()> {
+        let (_temp, manager) = setup_test_repo()?;
+
+        manager.create_branch("temp", None)?;
+        assert!(manager.branch_exists("temp"));
+
+        manager.delete_branch("temp")?;
+        assert!(!manager.branch_exists("temp"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_cannot_delete_current_branch() -> Result<()> {
+        let (_temp, manager) = setup_test_repo()?;
+
+        let result = manager.delete_branch("main");
+        assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_rename_branch() -> Result<()> {
+        let (_temp, manager) = setup_test_repo()?;
+
+        manager.create_branch("old", None)?;
+        manager.rename_branch("old", "new")?;
+
+        assert!(!manager.branch_exists("old"));
+        assert!(manager.branch_exists("new"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_detached_head() -> Result<()> {
+        let (_temp, manager) = setup_test_repo()?;
+
+        manager.set_head_to_commit("abc123")?;
+
+        let current = manager.current_branch()?;
+        assert_eq!(current, None); // Detached HEAD
+
+        let commit = manager.get_head_commit()?;
+        assert_eq!(commit, Some("abc123".to_string()));
+
+        Ok(())
+    }
+}

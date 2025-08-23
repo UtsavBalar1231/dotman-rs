@@ -190,6 +190,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_no_commits() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -214,6 +215,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_with_head() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -239,6 +241,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_with_commit_id() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -263,6 +266,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_nonexistent_commit() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -288,6 +292,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_check_working_directory_clean_empty() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -308,6 +313,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_check_working_directory_clean_with_tracked_files() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -368,6 +374,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_force_with_uncommitted_changes() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -392,6 +399,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_without_force_with_uncommitted_changes() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -423,6 +431,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_short_commit_id() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 

@@ -31,6 +31,7 @@ fn setup_test_env() -> Result<(tempfile::TempDir, DotmanContext)> {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_empty_repository_status() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 
@@ -73,6 +74,7 @@ fn test_empty_repository_status() -> Result<()> {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_full_workflow_init_add_commit_checkout() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 
@@ -102,10 +104,18 @@ fn test_full_workflow_init_add_commit_checkout() -> Result<()> {
     // Commit
     commands::commit::execute(&ctx, "Initial configuration files", false)?;
 
-    // Verify HEAD exists
+    // Verify HEAD exists and get the actual commit ID
     let head_path = ctx.repo_path.join("HEAD");
     assert!(head_path.exists());
-    let first_commit = fs::read_to_string(&head_path)?;
+    let head_content = fs::read_to_string(&head_path)?;
+    let first_commit = if head_content.starts_with("ref:") {
+        // HEAD points to a branch, read the branch ref
+        let branch_ref = head_content.trim().strip_prefix("ref: ").unwrap();
+        let branch_path = ctx.repo_path.join(branch_ref);
+        fs::read_to_string(&branch_path)?
+    } else {
+        head_content
+    };
 
     // Modify files
     fs::write(&file1, "config = false\nvalue = 100\nnew_field = true")?;
@@ -118,7 +128,15 @@ fn test_full_workflow_init_add_commit_checkout() -> Result<()> {
     commands::add::execute(&ctx, &paths[0..2], false)?;
     commands::commit::execute(&ctx, "Update configuration", false)?;
 
-    let second_commit = fs::read_to_string(&head_path)?;
+    let head_content = fs::read_to_string(&head_path)?;
+    let second_commit = if head_content.starts_with("ref:") {
+        // HEAD points to a branch, read the branch ref
+        let branch_ref = head_content.trim().strip_prefix("ref: ").unwrap();
+        let branch_path = ctx.repo_path.join(branch_ref);
+        fs::read_to_string(&branch_path)?
+    } else {
+        head_content
+    };
     assert_ne!(first_commit, second_commit);
 
     // Checkout first commit
@@ -136,12 +154,13 @@ fn test_full_workflow_init_add_commit_checkout() -> Result<()> {
     assert!(!restored_content2.contains(r#""new": true"#));
 
     // Show log
-    commands::log::execute(&ctx, 10, false)?;
+    commands::log::execute(&ctx, None, 10, false)?;
 
     Ok(())
 }
 
 #[test]
+#[serial_test::serial]
 fn test_workflow_with_directories() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 
@@ -165,13 +184,22 @@ fn test_workflow_with_directories() -> Result<()> {
     commands::commit::execute(&ctx, "Add config directory", false)?;
 
     // Show what was committed
-    let head = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
-    commands::show::execute(&ctx, head.trim())?;
+    let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
+    let commit_id = if head_content.starts_with("ref:") {
+        // HEAD points to a branch, read the branch ref
+        let branch_ref = head_content.trim().strip_prefix("ref: ").unwrap();
+        let branch_path = ctx.repo_path.join(branch_ref);
+        fs::read_to_string(&branch_path)?
+    } else {
+        head_content
+    };
+    commands::show::execute(&ctx, commit_id.trim())?;
 
     Ok(())
 }
 
 #[test]
+#[serial_test::serial]
 fn test_reset_workflow() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 
@@ -183,18 +211,28 @@ fn test_reset_workflow() -> Result<()> {
     commands::add::execute(&ctx, &paths, false)?;
     commands::commit::execute(&ctx, "First commit", false)?;
 
-    let first_commit = fs::read_to_string(ctx.repo_path.join("HEAD"))?
-        .trim()
-        .to_string();
+    let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
+    let first_commit = if head_content.starts_with("ref:") {
+        let branch_ref = head_content.trim().strip_prefix("ref: ").unwrap();
+        let branch_path = ctx.repo_path.join(branch_ref);
+        fs::read_to_string(&branch_path)?.trim().to_string()
+    } else {
+        head_content.trim().to_string()
+    };
 
     // Make second commit
     fs::write(&test_file, "version 2")?;
     commands::add::execute(&ctx, &paths, false)?;
     commands::commit::execute(&ctx, "Second commit", false)?;
 
-    let second_commit = fs::read_to_string(ctx.repo_path.join("HEAD"))?
-        .trim()
-        .to_string();
+    let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
+    let second_commit = if head_content.starts_with("ref:") {
+        let branch_ref = head_content.trim().strip_prefix("ref: ").unwrap();
+        let branch_path = ctx.repo_path.join(branch_ref);
+        fs::read_to_string(&branch_path)?.trim().to_string()
+    } else {
+        head_content.trim().to_string()
+    };
 
     // Make third commit
     fs::write(&test_file, "version 3")?;
@@ -225,6 +263,7 @@ fn test_reset_workflow() -> Result<()> {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_diff_workflow() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 
@@ -243,9 +282,14 @@ fn test_diff_workflow() -> Result<()> {
     commands::add::execute(&ctx, &paths, false)?;
     commands::commit::execute(&ctx, "Initial files", false)?;
 
-    let first_commit = fs::read_to_string(ctx.repo_path.join("HEAD"))?
-        .trim()
-        .to_string();
+    let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
+    let first_commit = if head_content.starts_with("ref:") {
+        let branch_ref = head_content.trim().strip_prefix("ref: ").unwrap();
+        let branch_path = ctx.repo_path.join(branch_ref);
+        fs::read_to_string(&branch_path)?.trim().to_string()
+    } else {
+        head_content.trim().to_string()
+    };
 
     // Modify files
     fs::write(&file1, "line 1\nline 2 modified\nline 3\nline 4")?;
@@ -263,9 +307,14 @@ fn test_diff_workflow() -> Result<()> {
     commands::add::execute(&ctx, &[file3.to_string_lossy().to_string()], false)?;
     commands::commit::execute(&ctx, "Modifications", false)?;
 
-    let second_commit = fs::read_to_string(ctx.repo_path.join("HEAD"))?
-        .trim()
-        .to_string();
+    let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
+    let second_commit = if head_content.starts_with("ref:") {
+        let branch_ref = head_content.trim().strip_prefix("ref: ").unwrap();
+        let branch_path = ctx.repo_path.join(branch_ref);
+        fs::read_to_string(&branch_path)?.trim().to_string()
+    } else {
+        head_content.trim().to_string()
+    };
 
     // Diff between commits
     commands::diff::execute(&ctx, Some(&first_commit), Some(&second_commit))?;
@@ -274,6 +323,7 @@ fn test_diff_workflow() -> Result<()> {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_rm_workflow() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 
@@ -298,15 +348,19 @@ fn test_rm_workflow() -> Result<()> {
     // File should still exist on disk
     assert!(file2.exists());
 
-    // But not in index
+    // But not in index (check relative paths from home)
     let index = dotman::storage::index::Index::load(&ctx.repo_path.join("index.bin"))?;
-    assert!(index.get_entry(&file1).is_some());
-    assert!(index.get_entry(&file2).is_none());
+    let home = dirs::home_dir().unwrap();
+    let rel_file1 = file1.strip_prefix(&home).unwrap_or(&file1);
+    let rel_file2 = file2.strip_prefix(&home).unwrap_or(&file2);
+    assert!(index.get_entry(rel_file1).is_some());
+    assert!(index.get_entry(rel_file2).is_none());
 
     Ok(())
 }
 
 #[test]
+#[serial_test::serial]
 fn test_ignore_patterns_workflow() -> Result<()> {
     let (dir, mut ctx) = setup_test_env()?;
 
@@ -368,6 +422,7 @@ fn test_ignore_patterns_workflow() -> Result<()> {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_concurrent_operations() -> Result<()> {
     use std::sync::Arc;
     use std::thread;
@@ -411,6 +466,7 @@ fn test_concurrent_operations() -> Result<()> {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_large_scale_operations() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 
@@ -466,6 +522,7 @@ fn test_large_scale_operations() -> Result<()> {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_binary_file_handling() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 

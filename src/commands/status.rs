@@ -169,16 +169,14 @@ fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBu
             }
             true
         })
+        .flatten()
     {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if entry.file_type().is_file() && !tracked_paths.contains(path) {
-                // Check against ignore patterns
-                let relative_path = path.strip_prefix(&home).unwrap_or(path);
-                if !crate::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns)
-                {
-                    untracked.push(path.to_path_buf());
-                }
+        let path = entry.path();
+        if entry.file_type().is_file() && !tracked_paths.contains(path) {
+            // Check against ignore patterns
+            let relative_path = path.strip_prefix(&home).unwrap_or(path);
+            if !crate::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns) {
+                untracked.push(path.to_path_buf());
             }
         }
     }

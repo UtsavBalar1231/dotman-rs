@@ -87,7 +87,7 @@ fn benchmark_status_command(c: &mut Criterion) {
                         (dir, ctx)
                     },
                     |(dir, ctx)| {
-                        commands::status::execute(&ctx, false).ok();
+                        commands::status::execute(&ctx, false, false).ok();
                         drop(dir);
                     },
                     criterion::BatchSize::SmallInput,

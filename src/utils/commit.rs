@@ -22,10 +22,10 @@ pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<S
         let entry = entry?;
         let path = entry.path();
 
-        if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-            if stem.starts_with(partial_id) {
-                matches.push(stem.to_string());
-            }
+        if let Some(stem) = path.file_stem().and_then(|s| s.to_str())
+            && stem.starts_with(partial_id)
+        {
+            matches.push(stem.to_string());
         }
     }
 

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::refs::RefManager;
 use crate::storage::index::Index;
 use crate::{DEFAULT_CONFIG_PATH, DEFAULT_REPO_DIR, INDEX_FILE};
 use anyhow::Result;
@@ -25,6 +26,10 @@ pub fn execute(bare: bool) -> Result<()> {
     let index = Index::new();
     let index_path = repo_path.join(INDEX_FILE);
     index.save(&index_path)?;
+
+    // Initialize refs system (branches and HEAD)
+    let ref_manager = RefManager::new(repo_path.clone());
+    ref_manager.init()?;
 
     // Create default config
     let config_path = home.join(DEFAULT_CONFIG_PATH);

@@ -1,52 +1,114 @@
 use crate::DotmanContext;
+use crate::mapping::MappingManager;
+use crate::mirror::GitMirror;
+use crate::refs::RefManager;
+use crate::storage::index::Index;
+use crate::storage::snapshots::SnapshotManager;
+use crate::sync::Exporter;
 use anyhow::Result;
 use std::process::Command;
 
 pub fn execute(ctx: &DotmanContext, remote: &str, branch: &str) -> Result<()> {
     ctx.ensure_repo_exists()?;
 
-    match &ctx.config.remote.remote_type {
-        crate::config::RemoteType::Git => push_to_git(ctx, remote, branch),
-        crate::config::RemoteType::S3 => push_to_s3(ctx, remote, branch),
-        crate::config::RemoteType::Rsync => push_to_rsync(ctx, remote, branch),
+    // Get the specified remote
+    let remote_config = ctx.config.get_remote(remote).ok_or_else(|| {
+        anyhow::anyhow!(
+            "Remote '{}' does not exist. Use 'dot remote add' to add it.",
+            remote
+        )
+    })?;
+
+    match &remote_config.remote_type {
+        crate::config::RemoteType::Git => push_to_git(ctx, remote_config, remote, branch),
+        crate::config::RemoteType::S3 => push_to_s3(ctx, remote_config, remote, branch),
+        crate::config::RemoteType::Rsync => push_to_rsync(ctx, remote_config, remote, branch),
         crate::config::RemoteType::None => {
-            anyhow::bail!("No remote configured. Update your config file to set up a remote.");
+            anyhow::bail!("Remote '{}' has no type configured.", remote);
         }
     }
 }
 
-fn push_to_git(ctx: &DotmanContext, remote: &str, branch: &str) -> Result<()> {
-    let url = ctx
-        .config
-        .remote
+fn push_to_git(
+    ctx: &DotmanContext,
+    remote_config: &crate::config::RemoteConfig,
+    remote: &str,
+    branch: &str,
+) -> Result<()> {
+    let url = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("No remote URL configured"))?;
+        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no URL configured", remote))?;
 
     super::print_info(&format!("Pushing to git remote {} ({})", remote, url));
 
-    // For git remotes, we'll sync the .dotman directory
-    let output = Command::new("git")
-        .args(["push", url, branch])
-        .current_dir(&ctx.repo_path)
-        .output()?;
+    // Create and initialize mirror
+    let mirror = GitMirror::new(&ctx.repo_path, remote, url);
+    mirror.init_mirror()?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("Git push failed: {}", stderr);
-    }
+    // Checkout the branch in mirror
+    mirror.checkout_branch(branch)?;
 
-    super::print_success(&format!("Successfully pushed to {} ({})", remote, branch));
+    // Load current state
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let current_commit = ref_manager
+        .get_head_commit()?
+        .ok_or_else(|| anyhow::anyhow!("No commits to push"))?;
+
+    // Export dotman state to mirror
+    let index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
+    let snapshot_manager =
+        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let exporter = Exporter::new(&snapshot_manager, &index);
+
+    super::print_info("Exporting files to mirror repository...");
+
+    // Export current commit to mirror
+    let exported_files = exporter.export_commit(&current_commit, mirror.get_mirror_path())?;
+
+    // Clean up removed files from mirror
+    let current_files: Vec<_> = exported_files.iter().map(|(_, rel)| rel.clone()).collect();
+    mirror.clean_removed_files(&current_files)?;
+
+    // Commit in mirror
+    let author = crate::utils::get_current_user();
+
+    // Get commit message from dotman
+    let commit_message = if let Ok(snapshot) = snapshot_manager.load_snapshot(&current_commit) {
+        snapshot.commit.message
+    } else {
+        format!("Dotman commit {}", &current_commit[..8])
+    };
+
+    super::print_info("Creating git commit...");
+    let git_commit = mirror.commit(&commit_message, &author)?;
+
+    // Push to remote
+    super::print_info(&format!("Pushing branch '{}' to remote...", branch));
+    mirror.push(branch)?;
+
+    // Update mapping
+    let mut mapping_manager = MappingManager::new(&ctx.repo_path)?;
+    mapping_manager.add_and_save(remote, &current_commit, &git_commit)?;
+    mapping_manager.update_branch_and_save(branch, &current_commit, Some((remote, &git_commit)))?;
+
+    super::print_success(&format!(
+        "Successfully pushed to {} ({}) - branch '{}'",
+        remote, url, branch
+    ));
     Ok(())
 }
 
-fn push_to_s3(ctx: &DotmanContext, _remote: &str, _branch: &str) -> Result<()> {
-    let bucket = ctx
-        .config
-        .remote
+fn push_to_s3(
+    ctx: &DotmanContext,
+    remote_config: &crate::config::RemoteConfig,
+    remote: &str,
+    _branch: &str,
+) -> Result<()> {
+    let bucket = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("No S3 bucket configured"))?;
+        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no S3 bucket configured", remote))?;
 
     super::print_info(&format!("Pushing to S3 bucket {}", bucket));
 
@@ -70,13 +132,15 @@ fn push_to_s3(ctx: &DotmanContext, _remote: &str, _branch: &str) -> Result<()> {
     Ok(())
 }
 
-fn push_to_rsync(ctx: &DotmanContext, _remote: &str, _branch: &str) -> Result<()> {
-    let destination = ctx
-        .config
-        .remote
-        .url
-        .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("No rsync destination configured"))?;
+fn push_to_rsync(
+    ctx: &DotmanContext,
+    remote_config: &crate::config::RemoteConfig,
+    remote: &str,
+    _branch: &str,
+) -> Result<()> {
+    let destination = remote_config.url.as_ref().ok_or_else(|| {
+        anyhow::anyhow!("Remote '{}' has no rsync destination configured", remote)
+    })?;
 
     super::print_info(&format!("Pushing via rsync to {}", destination));
 
@@ -116,8 +180,10 @@ mod tests {
 
         let mut config = Config::default();
         config.core.repo_path = repo_path.clone();
-        config.remote.remote_type = remote_type;
-        config.remote.url = url;
+
+        // Add a remote named "origin" with the specified type and url
+        let remote_config = crate::config::RemoteConfig { remote_type, url };
+        config.remotes.insert("origin".to_string(), remote_config);
         config.save(&config_path)?;
 
         Ok(DotmanContext {
@@ -137,7 +203,7 @@ mod tests {
             result
                 .unwrap_err()
                 .to_string()
-                .contains("No remote configured")
+                .contains("Remote 'origin' has no type configured")
         );
 
         Ok(())
@@ -180,13 +246,17 @@ mod tests {
     fn test_push_to_git_no_url() -> Result<()> {
         let ctx = create_test_context(RemoteType::Git, None)?;
 
-        let result = push_to_git(&ctx, "origin", "main");
+        let remote_config = crate::config::RemoteConfig {
+            remote_type: RemoteType::Git,
+            url: None,
+        };
+        let result = push_to_git(&ctx, &remote_config, "origin", "main");
         assert!(result.is_err());
         assert!(
             result
                 .unwrap_err()
                 .to_string()
-                .contains("No remote URL configured")
+                .contains("Remote 'origin' has no URL configured")
         );
 
         Ok(())
@@ -196,13 +266,17 @@ mod tests {
     fn test_push_to_s3_no_bucket() -> Result<()> {
         let ctx = create_test_context(RemoteType::S3, None)?;
 
-        let result = push_to_s3(&ctx, "origin", "main");
+        let remote_config = crate::config::RemoteConfig {
+            remote_type: RemoteType::S3,
+            url: None,
+        };
+        let result = push_to_s3(&ctx, &remote_config, "origin", "main");
         assert!(result.is_err());
         assert!(
             result
                 .unwrap_err()
                 .to_string()
-                .contains("No S3 bucket configured")
+                .contains("Remote 'origin' has no S3 bucket configured")
         );
 
         Ok(())
@@ -212,13 +286,17 @@ mod tests {
     fn test_push_to_rsync_no_destination() -> Result<()> {
         let ctx = create_test_context(RemoteType::Rsync, None)?;
 
-        let result = push_to_rsync(&ctx, "origin", "main");
+        let remote_config = crate::config::RemoteConfig {
+            remote_type: RemoteType::Rsync,
+            url: None,
+        };
+        let result = push_to_rsync(&ctx, &remote_config, "origin", "main");
         assert!(result.is_err());
         assert!(
             result
                 .unwrap_err()
                 .to_string()
-                .contains("No rsync destination configured")
+                .contains("Remote 'origin' has no rsync destination configured")
         );
 
         Ok(())
@@ -258,8 +336,9 @@ mod tests {
 
         for url in special_urls {
             let ctx = create_test_context(RemoteType::Git, Some(url.to_string()))?;
-            assert!(ctx.config.remote.url.is_some());
-            assert_eq!(ctx.config.remote.url.as_ref().unwrap(), url);
+            let origin_remote = ctx.config.remotes.get("origin").unwrap();
+            assert!(origin_remote.url.is_some());
+            assert_eq!(origin_remote.url.as_ref().unwrap(), url);
         }
 
         Ok(())

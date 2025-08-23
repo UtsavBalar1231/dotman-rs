@@ -207,6 +207,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_with_commit_id() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -227,6 +228,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_soft_reset() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -245,6 +247,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_hard_reset() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
@@ -302,6 +305,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_execute_nonexistent_commit() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 

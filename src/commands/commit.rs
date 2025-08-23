@@ -135,18 +135,26 @@ fn has_staged_changes(ctx: &DotmanContext) -> Result<bool> {
 }
 
 fn get_last_commit_id(ctx: &DotmanContext) -> Result<Option<String>> {
-    let head_path = ctx.repo_path.join("HEAD");
-    if head_path.exists() {
-        let content = std::fs::read_to_string(&head_path)?;
-        Ok(Some(content.trim().to_string()))
-    } else {
-        Ok(None)
-    }
+    use crate::refs::RefManager;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    ref_manager.get_head_commit()
 }
 
 fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
-    let head_path = ctx.repo_path.join("HEAD");
-    std::fs::write(&head_path, commit_id)?;
+    use crate::refs::RefManager;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+
+    // Check if we're on a branch or detached HEAD
+    if let Some(current_branch) = ref_manager.current_branch()? {
+        // Update the current branch to point to the new commit
+        ref_manager.update_branch(&current_branch, commit_id)?;
+    } else {
+        // Detached HEAD - update HEAD directly
+        ref_manager.set_head_to_commit(commit_id)?;
+    }
+
     Ok(())
 }
 
