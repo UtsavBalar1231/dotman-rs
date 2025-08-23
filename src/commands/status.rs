@@ -7,7 +7,7 @@ use colored::Colorize;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-pub fn execute(ctx: &DotmanContext, short: bool) -> Result<()> {
+pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result<()> {
     ctx.ensure_repo_exists()?;
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
@@ -17,8 +17,16 @@ pub fn execute(ctx: &DotmanContext, short: bool) -> Result<()> {
     // Get all current files in tracked directories
     let current_files = get_current_files(ctx)?;
 
-    // Get status in parallel (this detects modified/deleted/untracked)
+    // Get status in parallel (this detects modified/deleted)
     let mut statuses = concurrent_index.get_status_parallel(&current_files);
+
+    // If --untracked flag is set, scan for untracked files
+    if show_untracked {
+        let untracked = find_untracked_files(ctx, &index)?;
+        for file in untracked {
+            statuses.push(FileStatus::Untracked(file));
+        }
+    }
 
     // Check for added files (in index but not in last commit)
     let head_path = ctx.repo_path.join("HEAD");
@@ -118,6 +126,64 @@ pub fn get_current_files(ctx: &DotmanContext) -> Result<Vec<PathBuf>> {
     }
 
     Ok(files)
+}
+
+fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
+    use walkdir::WalkDir;
+
+    let mut untracked = Vec::new();
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+
+    // Get set of tracked paths for quick lookup
+    let tracked_paths: HashSet<PathBuf> = index
+        .entries
+        .keys()
+        .map(|p| {
+            if p.is_relative() {
+                home.join(p)
+            } else {
+                p.clone()
+            }
+        })
+        .collect();
+
+    // Walk home directory but skip .dotman and other ignored directories
+    for entry in WalkDir::new(&home)
+        .follow_links(false)
+        .into_iter()
+        .filter_entry(|e| {
+            let path = e.path();
+            // Skip hidden directories (except tracked ones)
+            if path != home
+                && path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|n| n.starts_with('.'))
+                    .unwrap_or(false)
+            {
+                return false;
+            }
+            // Skip the dotman repo itself
+            if path == ctx.repo_path {
+                return false;
+            }
+            true
+        })
+    {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if entry.file_type().is_file() && !tracked_paths.contains(path) {
+                // Check against ignore patterns
+                let relative_path = path.strip_prefix(&home).unwrap_or(path);
+                if !crate::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns)
+                {
+                    untracked.push(path.to_path_buf());
+                }
+            }
+        }
+    }
+
+    Ok(untracked)
 }
 
 fn print_status_group(statuses: &[FileStatus], status_type: FileStatus, header: &str, label: &str) {
