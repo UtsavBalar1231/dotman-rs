@@ -1,5 +1,6 @@
 use crate::DotmanContext;
 use crate::storage::snapshots::SnapshotManager;
+use crate::utils::commit::resolve_partial_commit_id;
 use anyhow::{Context, Result};
 use chrono::{Local, TimeZone};
 use colored::Colorize;
@@ -7,8 +8,11 @@ use colored::Colorize;
 pub fn execute(ctx: &DotmanContext, object: &str) -> Result<()> {
     ctx.ensure_repo_exists()?;
 
-    // Resolve HEAD if needed
-    let commit_id = if object == "HEAD" {
+    // Resolve partial commit ID or HEAD
+    let resolved_id = resolve_partial_commit_id(&ctx.repo_path, object)?;
+
+    // If it's HEAD, read the actual commit from HEAD file
+    let commit_id = if resolved_id == "HEAD" {
         let head_path = ctx.repo_path.join("HEAD");
         if head_path.exists() {
             std::fs::read_to_string(&head_path)?.trim().to_string()
@@ -16,7 +20,7 @@ pub fn execute(ctx: &DotmanContext, object: &str) -> Result<()> {
             anyhow::bail!("No commits yet (HEAD not found)");
         }
     } else {
-        object.to_string()
+        resolved_id
     };
 
     let snapshot_manager =
