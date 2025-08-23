@@ -1,6 +1,8 @@
+use crate::refs::resolver::RefResolver;
 use crate::storage::FileStatus;
 use crate::storage::index::{Index, IndexDiffer};
 use crate::storage::snapshots::SnapshotManager;
+use crate::utils::pager::PagerOutput;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -29,7 +31,8 @@ fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
     use crate::commands::status::get_current_files;
     use crate::storage::index::ConcurrentIndex;
 
-    super::print_info("Comparing working directory with index...");
+    let mut output = PagerOutput::new();
+    output.appendln(&format!("{}", "Comparing working directory with index...".blue()));
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
@@ -39,27 +42,38 @@ fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
     let statuses = concurrent_index.get_status_parallel(&current_files);
 
     if statuses.is_empty() {
-        println!("No differences found");
+        output.appendln("No differences found");
+        output.show()?;
         return Ok(());
     }
 
-    display_file_statuses(&statuses);
+    format_file_statuses(&mut output, &statuses);
+    output.show()?;
 
     Ok(())
 }
 
 fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
-    super::print_info(&format!(
-        "Comparing commit {} with working directory...",
-        commit[..8.min(commit.len())].yellow()
+    // Resolve the commit reference
+    let resolver = RefResolver::new(ctx.repo_path.clone());
+    let commit_id = resolver
+        .resolve(commit)
+        .with_context(|| format!("Failed to resolve reference: {}", commit))?;
+    
+    let mut output = PagerOutput::new();
+    output.appendln(&format!(
+        "{}",
+        format!("Comparing commit {} with working directory...",
+            commit_id[..8.min(commit_id.len())].yellow()
+        ).blue()
     ));
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     let snapshot = snapshot_manager
-        .load_snapshot(commit)
-        .with_context(|| format!("Failed to load commit: {}", commit))?;
+        .load_snapshot(&commit_id)
+        .with_context(|| format!("Failed to load commit: {}", commit_id))?;
 
     // Convert snapshot to index format for comparison
     let mut commit_index = Index::new();
@@ -80,31 +94,45 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
     let statuses = IndexDiffer::diff(&commit_index, &working_index);
 
     if statuses.is_empty() {
-        println!("No differences found");
+        output.appendln("No differences found");
+        output.show()?;
         return Ok(());
     }
 
-    display_file_statuses(&statuses);
+    format_file_statuses(&mut output, &statuses);
+    output.show()?;
 
     Ok(())
 }
 
 fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
-    super::print_info(&format!(
-        "Comparing commit {} with commit {}...",
-        from[..8.min(from.len())].yellow(),
-        to[..8.min(to.len())].yellow()
+    // Resolve the commit references
+    let resolver = RefResolver::new(ctx.repo_path.clone());
+    let from_id = resolver
+        .resolve(from)
+        .with_context(|| format!("Failed to resolve reference: {}", from))?;
+    let to_id = resolver
+        .resolve(to)
+        .with_context(|| format!("Failed to resolve reference: {}", to))?;
+    
+    let mut output = PagerOutput::new();
+    output.appendln(&format!(
+        "{}",
+        format!("Comparing commit {} with commit {}...",
+            from_id[..8.min(from_id.len())].yellow(),
+            to_id[..8.min(to_id.len())].yellow()
+        ).blue()
     ));
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     let from_snapshot = snapshot_manager
-        .load_snapshot(from)
-        .with_context(|| format!("Failed to load commit: {}", from))?;
+        .load_snapshot(&from_id)
+        .with_context(|| format!("Failed to load commit: {}", from_id))?;
     let to_snapshot = snapshot_manager
-        .load_snapshot(to)
-        .with_context(|| format!("Failed to load commit: {}", to))?;
+        .load_snapshot(&to_id)
+        .with_context(|| format!("Failed to load commit: {}", to_id))?;
 
     // Convert snapshots to index format
     let mut from_index = Index::new();
@@ -132,16 +160,18 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
     let statuses = IndexDiffer::diff(&from_index, &to_index);
 
     if statuses.is_empty() {
-        println!("No differences found");
+        output.appendln("No differences found");
+        output.show()?;
         return Ok(());
     }
 
-    display_file_statuses(&statuses);
+    format_file_statuses(&mut output, &statuses);
+    output.show()?;
 
     Ok(())
 }
 
-fn display_file_statuses(statuses: &[FileStatus]) {
+fn format_file_statuses(output: &mut PagerOutput, statuses: &[FileStatus]) {
     let mut added = Vec::new();
     let mut modified = Vec::new();
     let mut deleted = Vec::new();
@@ -156,33 +186,45 @@ fn display_file_statuses(statuses: &[FileStatus]) {
     }
 
     if !added.is_empty() {
-        println!("\n{}", "Added files:".green().bold());
+        output.appendln("");
+        output.appendln(&format!("{}", "Added files:".green().bold()));
         for path in &added {
-            println!("  + {}", path.display());
+            output.appendln(&format!("  + {}", path.display()));
         }
     }
 
     if !modified.is_empty() {
-        println!("\n{}", "Modified files:".yellow().bold());
+        output.appendln("");
+        output.appendln(&format!("{}", "Modified files:".yellow().bold()));
         for path in &modified {
-            println!("  ~ {}", path.display());
+            output.appendln(&format!("  ~ {}", path.display()));
         }
     }
 
     if !deleted.is_empty() {
-        println!("\n{}", "Deleted files:".red().bold());
+        output.appendln("");
+        output.appendln(&format!("{}", "Deleted files:".red().bold()));
         for path in &deleted {
-            println!("  - {}", path.display());
+            output.appendln(&format!("  - {}", path.display()));
         }
     }
 
-    println!(
-        "\n{}: {} added, {} modified, {} deleted",
+    output.appendln("");
+    output.appendln(&format!(
+        "{}: {} added, {} modified, {} deleted",
         "Summary".bold(),
         added.len(),
         modified.len(),
         deleted.len()
-    );
+    ));
+}
+
+// Keep the old function for tests
+#[allow(dead_code)]
+fn display_file_statuses(statuses: &[FileStatus]) {
+    let mut output = PagerOutput::new();
+    format_file_statuses(&mut output, statuses);
+    let _ = output.disable_pager().show();
 }
 
 #[cfg(test)]
