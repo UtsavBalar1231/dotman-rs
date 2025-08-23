@@ -48,7 +48,7 @@ enum Commands {
 
         #[arg(short, long)]
         all: bool,
-        
+
         /// Amend the previous commit
         #[arg(long)]
         amend: bool,
@@ -169,7 +169,7 @@ enum Commands {
         /// Unset the configuration key
         #[arg(long)]
         unset: bool,
-        
+
         /// List all configuration values
         #[arg(short, long)]
         list: bool,
@@ -181,6 +181,58 @@ enum Commands {
         #[arg(value_enum)]
         shell: Shell,
     },
+
+    /// Temporarily save changes to a dirty working directory
+    Stash {
+        #[command(subcommand)]
+        action: Option<StashAction>,
+    },
+}
+
+#[derive(Subcommand)]
+enum StashAction {
+    /// Save your local modifications to a new stash (default)
+    #[command(alias = "save")]
+    Push {
+        /// Stash message
+        #[arg(short, long)]
+        message: Option<String>,
+
+        /// Include untracked files
+        #[arg(short = 'u', long)]
+        include_untracked: bool,
+
+        /// Keep changes in index
+        #[arg(short = 'k', long)]
+        keep_index: bool,
+    },
+
+    /// Remove a stash and apply it on top of the current working tree
+    Pop,
+
+    /// Apply a stash on top of the current working tree
+    Apply {
+        /// Stash to apply (defaults to latest)
+        stash: Option<String>,
+    },
+
+    /// List all stashes
+    List,
+
+    /// Show the changes recorded in a stash
+    Show {
+        /// Stash to show (defaults to latest)
+        stash: Option<String>,
+    },
+
+    /// Remove a stash from the list
+    Drop {
+        /// Stash to drop
+        stash: String,
+    },
+
+    /// Remove all stashes
+    Clear,
 }
 
 #[derive(Subcommand)]
@@ -292,6 +344,10 @@ fn run() -> Result<()> {
             // Remote, Branch and Config commands need mutable context
             Some(DotmanContext::new()?)
         }
+        Commands::Stash { .. } => {
+            // Stash command needs context
+            Some(DotmanContext::new()?)
+        }
         _ => Some(DotmanContext::new()?),
     };
 
@@ -305,12 +361,17 @@ fn run() -> Result<()> {
             let ctx = context.unwrap();
             commands::status::execute(&ctx, short, untracked)?;
         }
-        Commands::Commit { message, all, amend } => {
+        Commands::Commit {
+            message,
+            all,
+            amend,
+        } => {
             let ctx = context.unwrap();
             if amend {
                 commands::commit::execute_amend(&ctx, message.as_deref(), all)?;
             } else {
-                let msg = message.ok_or_else(|| anyhow::anyhow!("Commit message is required (use -m)"))?;
+                let msg = message
+                    .ok_or_else(|| anyhow::anyhow!("Commit message is required (use -m)"))?;
                 commands::commit::execute(&ctx, &msg, all)?;
             }
         }
@@ -373,7 +434,12 @@ fn run() -> Result<()> {
                 }
             }
         }
-        Commands::Config { key, value, unset, list } => {
+        Commands::Config {
+            key,
+            value,
+            unset,
+            list,
+        } => {
             let mut ctx = context.unwrap();
             commands::config::execute(&mut ctx, key.as_deref(), value, unset, list)?
         }
@@ -407,6 +473,46 @@ fn run() -> Result<()> {
         }
         Commands::Completion { shell } => {
             print_completions(shell, &mut Cli::command());
+        }
+        Commands::Stash { action } => {
+            let ctx = context.unwrap();
+            let stash_cmd = match action {
+                None | Some(StashAction::Push { .. }) => {
+                    // Default to push when no subcommand or explicit push
+                    if let Some(StashAction::Push {
+                        message,
+                        include_untracked,
+                        keep_index,
+                    }) = action
+                    {
+                        commands::stash::StashCommand::Push {
+                            message,
+                            include_untracked,
+                            keep_index,
+                        }
+                    } else {
+                        // Default push with no options
+                        commands::stash::StashCommand::Push {
+                            message: None,
+                            include_untracked: false,
+                            keep_index: false,
+                        }
+                    }
+                }
+                Some(StashAction::Pop) => commands::stash::StashCommand::Pop,
+                Some(StashAction::Apply { stash }) => {
+                    commands::stash::StashCommand::Apply { stash_id: stash }
+                }
+                Some(StashAction::List) => commands::stash::StashCommand::List,
+                Some(StashAction::Show { stash }) => {
+                    commands::stash::StashCommand::Show { stash_id: stash }
+                }
+                Some(StashAction::Drop { stash }) => {
+                    commands::stash::StashCommand::Drop { stash_id: stash }
+                }
+                Some(StashAction::Clear) => commands::stash::StashCommand::Clear,
+            };
+            commands::stash::execute(&ctx, stash_cmd)?;
         }
     }
 

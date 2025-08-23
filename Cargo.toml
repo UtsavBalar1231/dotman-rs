@@ -63,6 +63,7 @@ fs4 = "0.13"
 tempfile = "3.10"
 atty = "0.2"
 which = "7.0"
+rand = "0.8"
 # sha2 = "0.10"
 # base64 = "0.22"
 

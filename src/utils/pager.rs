@@ -32,7 +32,7 @@ pub fn output_through_pager(content: &str, use_pager: bool) -> Result<()> {
     }
 
     let pager = get_pager();
-    
+
     // Special handling for less to enable color support
     let args = if pager.contains("less") {
         vec!["-R"] // Enable raw control characters (for colors)
@@ -54,7 +54,7 @@ pub fn output_through_pager(content: &str, use_pager: bool) -> Result<()> {
                 stdin.write_all(content.as_bytes())?;
                 stdin.flush()?;
             }
-            
+
             // Wait for pager to finish
             child.wait()?;
         }
@@ -113,7 +113,9 @@ mod tests {
     #[test]
     fn test_get_pager_default() {
         // Clear PAGER env var
-        env::remove_var("PAGER");
+        unsafe {
+            env::remove_var("PAGER");
+        }
         let pager = get_pager();
         // Should return less, more, or cat
         assert!(["less", "more", "cat"].contains(&pager.as_str()));
@@ -121,10 +123,14 @@ mod tests {
 
     #[test]
     fn test_get_pager_from_env() {
-        env::set_var("PAGER", "custom_pager");
+        unsafe {
+            env::set_var("PAGER", "custom_pager");
+        }
         let pager = get_pager();
         assert_eq!(pager, "custom_pager");
-        env::remove_var("PAGER");
+        unsafe {
+            env::remove_var("PAGER");
+        }
     }
 
     #[test]
@@ -133,7 +139,7 @@ mod tests {
         output.append("Line 1");
         output.appendln(" continued");
         output.append("Line 2");
-        
+
         assert!(output.content.contains("Line 1 continued\n"));
         assert!(output.content.contains("Line 2"));
     }

@@ -392,6 +392,49 @@ dot branch set-upstream laptop-config origin laptop-config
 dot branch delete old-config --force
 ```
 
+### Stash Operations
+
+#### `dot stash [subcommand]`
+Temporarily save and restore changes to your working directory.
+
+Subcommands:
+- `push [-m <message>] [-u] [-k]`: Save changes to stash (default when no subcommand)
+- `pop`: Apply and remove the latest stash
+- `apply [<stash-id>]`: Apply a stash without removing it
+- `list`: List all stash entries
+- `show [<stash-id>]`: Show the contents of a stash
+- `drop <stash-id>`: Remove a specific stash
+- `clear`: Remove all stashes
+
+Options for `stash push`:
+- `-m, --message`: Custom message for the stash
+- `-u, --include-untracked`: Include untracked files in the stash
+- `-k, --keep-index`: Keep changes in the index
+
+Examples:
+```bash
+# Save current changes with a message
+dot stash push -m "Work in progress on feature X"
+
+# Include untracked files
+dot stash push -u -m "Save everything including new files"
+
+# Apply the latest stash
+dot stash pop
+
+# Apply a specific stash without removing it
+dot stash apply stash_12345678_abcdef
+
+# List all stashes
+dot stash list
+
+# Show contents of latest stash
+dot stash show
+
+# Remove all stashes
+dot stash clear
+```
+
 ### Remote Operations
 
 #### `dot remote [options]`

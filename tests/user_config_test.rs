@@ -92,13 +92,14 @@ fn test_config_command_integration() -> Result<()> {
     };
 
     // Use config command to set user.name
-    dotman::commands::config::execute(&mut ctx, "user.name", Some("Jane Doe".to_string()), false)?;
+    dotman::commands::config::execute(&mut ctx, Some("user.name"), Some("Jane Doe".to_string()), false, false)?;
 
     // Use config command to set user.email
     dotman::commands::config::execute(
         &mut ctx,
-        "user.email",
+        Some("user.email"),
         Some("jane@example.com".to_string()),
+        false,
         false,
     )?;
 
@@ -109,7 +110,7 @@ fn test_config_command_integration() -> Result<()> {
 
     // Test unsetting
     ctx.config = config;
-    dotman::commands::config::execute(&mut ctx, "user.name", None, true)?;
+    dotman::commands::config::execute(&mut ctx, Some("user.name"), None, true, false)?;
 
     let config = dotman::config::Config::load(&config_path)?;
     assert_eq!(config.user.name, None);

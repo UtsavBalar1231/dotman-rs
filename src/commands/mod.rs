@@ -12,6 +12,7 @@ pub mod remote;
 pub mod reset;
 pub mod rm;
 pub mod show;
+pub mod stash;
 pub mod status;
 
 use colored::Colorize;

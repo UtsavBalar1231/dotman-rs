@@ -128,7 +128,7 @@ pub fn get_current_files(ctx: &DotmanContext) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
+pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
     use walkdir::WalkDir;
 
     let mut untracked = Vec::new();

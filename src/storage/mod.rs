@@ -1,5 +1,6 @@
 pub mod index;
 pub mod snapshots;
+pub mod stash;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -33,7 +34,7 @@ pub trait Storage {
     fn checkout(&mut self, commit_id: &str) -> Result<()>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FileStatus {
     Added(PathBuf),
     Modified(PathBuf),
