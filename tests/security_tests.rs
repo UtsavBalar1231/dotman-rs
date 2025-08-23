@@ -89,7 +89,7 @@ fn test_path_traversal_attacks() -> Result<()> {
             continue; // Skip any potentially dangerous paths
         }
 
-        let result = commands::add::execute(&ctx, &vec![test_path.clone()], false);
+        let result = commands::add::execute(&ctx, std::slice::from_ref(test_path), false);
 
         // Verify secure handling of path traversal patterns
         match result {
@@ -186,10 +186,11 @@ fn test_symlink_attack_prevention() -> Result<()> {
         let _commit_result = commands::commit::execute(&ctx, "Test commit", false);
 
         // Both should either succeed safely or fail gracefully
-        match status_result {
-            Ok(_) => {}  // Safe
-            Err(_) => {} // Graceful failure
+        // Either safe success or graceful failure
+        if status_result.is_ok() {
+            // Safe
         }
+        // Graceful failure is also acceptable
     }
 
     Ok(())
@@ -200,7 +201,7 @@ fn test_malicious_file_content() -> Result<()> {
     let (dir, ctx) = setup_test_context()?;
 
     // Test files with potentially dangerous content
-    let malicious_contents = vec![
+    let malicious_contents = [
         // Null bytes and control characters
         vec![0u8, 1, 2, 3, 255, 127],
         // Shell injection attempts in filenames (though not in content)
@@ -346,10 +347,11 @@ fn test_race_condition_attacks() -> Result<()> {
 
     // System should still be functional or fail gracefully
     let final_result = commands::status::execute(&ctx, false);
-    match final_result {
-        Ok(_) => {}  // Still working
-        Err(_) => {} // Graceful failure
+    // System should still be functional or fail gracefully
+    if final_result.is_ok() {
+        // Still working
     }
+    // Graceful failure is also acceptable
 
     Ok(())
 }
@@ -374,7 +376,7 @@ fn test_system_file_access_prevention() -> Result<()> {
         ];
 
         for fake_system_path in fake_system_paths {
-            let result = commands::add::execute(&ctx, &vec![fake_system_path.to_string()], false);
+            let result = commands::add::execute(&ctx, &[fake_system_path.to_string()], false);
             // Should fail gracefully for non-existent files
             match result {
                 Ok(_) => {

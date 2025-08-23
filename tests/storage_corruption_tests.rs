@@ -251,10 +251,10 @@ fn test_object_corruption() -> Result<()> {
 
             // Operations should detect corruption
             let status_result = commands::status::execute(&ctx, false);
-            match status_result {
-                Ok(_) => {}  // May succeed if corruption not detected yet
-                Err(_) => {} // Good - detected corruption
+            if status_result.is_ok() {
+                // May succeed if corruption not detected yet
             }
+            // Good - detected corruption if error
 
             // Test 2: Replace with random data
             fs::write(&object_path, vec![0x42; 1000])?;

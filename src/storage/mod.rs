@@ -122,6 +122,25 @@ mod tests {
     }
 
     #[test]
+    fn test_all_file_status_variants() {
+        let added = FileStatus::Added(PathBuf::from("added.txt"));
+        assert_eq!(added.status_char(), 'A');
+        assert_eq!(added.path(), Path::new("added.txt"));
+
+        let modified = FileStatus::Modified(PathBuf::from("modified.txt"));
+        assert_eq!(modified.status_char(), 'M');
+        assert_eq!(modified.path(), Path::new("modified.txt"));
+
+        let deleted = FileStatus::Deleted(PathBuf::from("deleted.txt"));
+        assert_eq!(deleted.status_char(), 'D');
+        assert_eq!(deleted.path(), Path::new("deleted.txt"));
+
+        let untracked = FileStatus::Untracked(PathBuf::from("untracked.txt"));
+        assert_eq!(untracked.status_char(), '?');
+        assert_eq!(untracked.path(), Path::new("untracked.txt"));
+    }
+
+    #[test]
     fn test_hash_file() -> Result<()> {
         let dir = tempdir()?;
         let file_path = dir.path().join("test.txt");
@@ -132,5 +151,208 @@ mod tests {
         assert_eq!(hash.len(), 32); // xxh3_128 produces 128-bit hash = 32 hex chars
 
         Ok(())
+    }
+
+    #[test]
+    fn test_hash_empty_file() -> Result<()> {
+        let dir = tempdir()?;
+        let file_path = dir.path().join("empty.txt");
+        std::fs::write(&file_path, "")?;
+
+        let hash = file_ops::hash_file(&file_path)?;
+        assert_eq!(hash, "0");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_hash_small_file() -> Result<()> {
+        let dir = tempdir()?;
+        let file_path = dir.path().join("small.txt");
+        std::fs::write(&file_path, "Small content")?;
+
+        let hash = file_ops::hash_file(&file_path)?;
+        assert!(!hash.is_empty());
+        assert_eq!(hash.len(), 32);
+
+        // Hash should be consistent
+        let hash2 = file_ops::hash_file(&file_path)?;
+        assert_eq!(hash, hash2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_hash_large_file() -> Result<()> {
+        let dir = tempdir()?;
+        let file_path = dir.path().join("large.txt");
+
+        // Create a file larger than 1MB to trigger memory mapping
+        let large_content = "x".repeat(2_000_000);
+        std::fs::write(&file_path, &large_content)?;
+
+        let hash = file_ops::hash_file(&file_path)?;
+        assert!(!hash.is_empty());
+        assert_eq!(hash.len(), 32);
+
+        // Hash should be consistent
+        let hash2 = file_ops::hash_file(&file_path)?;
+        assert_eq!(hash, hash2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_hash_nonexistent_file() {
+        let result = file_ops::hash_file(Path::new("/nonexistent/file.txt"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_hash_files_parallel() -> Result<()> {
+        let dir = tempdir()?;
+
+        let mut paths = Vec::new();
+        for i in 0..5 {
+            let file_path = dir.path().join(format!("file{}.txt", i));
+            std::fs::write(&file_path, format!("Content {}", i))?;
+            paths.push(file_path);
+        }
+
+        let results = file_ops::hash_files_parallel(&paths)?;
+        assert_eq!(results.len(), 5);
+
+        // All hashes should be different (different content)
+        let hashes: Vec<String> = results.iter().map(|(_, h)| h.clone()).collect();
+        for i in 0..hashes.len() {
+            for j in i + 1..hashes.len() {
+                assert_ne!(hashes[i], hashes[j]);
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_hash_files_parallel_empty() -> Result<()> {
+        let results = file_ops::hash_files_parallel(&[])?;
+        assert!(results.is_empty());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_hash_files_parallel_with_error() -> Result<()> {
+        let dir = tempdir()?;
+
+        let mut paths = Vec::new();
+        let valid_path = dir.path().join("valid.txt");
+        std::fs::write(&valid_path, "Valid content")?;
+        paths.push(valid_path);
+
+        // Add nonexistent file
+        paths.push(PathBuf::from("/nonexistent/file.txt"));
+
+        let result = file_ops::hash_files_parallel(&paths);
+        assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_copy_file_fast() -> Result<()> {
+        let dir = tempdir()?;
+        let src = dir.path().join("source.txt");
+        let dst = dir.path().join("dest.txt");
+
+        std::fs::write(&src, "Test content")?;
+
+        file_ops::copy_file_fast(&src, &dst)?;
+
+        assert!(dst.exists());
+        let content = std::fs::read_to_string(&dst)?;
+        assert_eq!(content, "Test content");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_copy_file_fast_overwrite() -> Result<()> {
+        let dir = tempdir()?;
+        let src = dir.path().join("source.txt");
+        let dst = dir.path().join("dest.txt");
+
+        std::fs::write(&src, "New content")?;
+        std::fs::write(&dst, "Old content")?;
+
+        // Remove dst first to test copy
+        std::fs::remove_file(&dst)?;
+
+        file_ops::copy_file_fast(&src, &dst)?;
+
+        let content = std::fs::read_to_string(&dst)?;
+        assert_eq!(content, "New content");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_copy_file_fast_nonexistent_source() {
+        let dir = tempdir().unwrap();
+        let src = Path::new("/nonexistent/source.txt");
+        let dst = dir.path().join("dest.txt");
+
+        let result = file_ops::copy_file_fast(src, &dst);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_file_entry_fields() {
+        let entry = FileEntry {
+            path: PathBuf::from("/test/path.txt"),
+            hash: "test_hash".to_string(),
+            size: 1024,
+            modified: 1234567890,
+            mode: 0o644,
+        };
+
+        assert_eq!(entry.path, PathBuf::from("/test/path.txt"));
+        assert_eq!(entry.hash, "test_hash");
+        assert_eq!(entry.size, 1024);
+        assert_eq!(entry.modified, 1234567890);
+        assert_eq!(entry.mode, 0o644);
+    }
+
+    #[test]
+    fn test_commit_fields() {
+        let commit = Commit {
+            id: "abc123".to_string(),
+            parent: Some("parent123".to_string()),
+            message: "Test commit".to_string(),
+            author: "Test Author".to_string(),
+            timestamp: 1234567890,
+            tree_hash: "tree_hash_123".to_string(),
+        };
+
+        assert_eq!(commit.id, "abc123");
+        assert_eq!(commit.parent, Some("parent123".to_string()));
+        assert_eq!(commit.message, "Test commit");
+        assert_eq!(commit.author, "Test Author");
+        assert_eq!(commit.timestamp, 1234567890);
+        assert_eq!(commit.tree_hash, "tree_hash_123");
+    }
+
+    #[test]
+    fn test_commit_no_parent() {
+        let commit = Commit {
+            id: "root".to_string(),
+            parent: None,
+            message: "Initial commit".to_string(),
+            author: "Author".to_string(),
+            timestamp: 0,
+            tree_hash: "tree".to_string(),
+        };
+
+        assert_eq!(commit.parent, None);
     }
 }

@@ -393,7 +393,7 @@ proptest! {
 
         // DOCUMENTED VULNERABILITY: The current implementation has a path traversal bug
         // This test documents the expected secure behavior, not the current buggy behavior
-        let result = commands::add::execute(&ctx, &vec![theoretical_malicious_path.clone()], false);
+        let result = commands::add::execute(&ctx, std::slice::from_ref(&theoretical_malicious_path), false);
 
         match result {
             Ok(_) => {

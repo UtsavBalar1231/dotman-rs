@@ -3,6 +3,9 @@ pub mod config;
 pub mod storage;
 pub mod utils;
 
+#[cfg(test)]
+pub mod test_utils;
+
 use anyhow::Result;
 use std::path::PathBuf;
 
@@ -46,10 +49,174 @@ impl DotmanContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
 
     #[test]
-    fn test_constants() {
-        assert_eq!(DEFAULT_REPO_DIR, ".dotman");
-        assert_eq!(INDEX_FILE, "index.bin");
+    fn test_dotman_context_new() -> Result<()> {
+        let temp = tempdir()?;
+        let config_path = temp.path().join(DEFAULT_CONFIG_PATH);
+
+        // Create config directory and file
+        fs::create_dir_all(config_path.parent().unwrap())?;
+
+        // Create a minimal config
+        let config_content = r#"
+[core]
+repo_path = "~/.dotman"
+compression_level = 3
+
+[remote]
+remote_type = "none"
+
+[performance]
+parallel_threads = 4
+cache_size = 100
+mmap_threshold = 1048576
+
+[tracking]
+ignore_patterns = []
+follow_symlinks = false
+preserve_permissions = true
+"#;
+        fs::write(&config_path, config_content)?;
+
+        // Set HOME to temp dir
+        unsafe {
+            std::env::set_var("HOME", temp.path());
+        }
+
+        let ctx = DotmanContext::new()?;
+        assert!(ctx.repo_path.to_string_lossy().contains(".dotman"));
+        assert_eq!(ctx.config_path, config_path);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_dotman_context_new_with_default_config() {
+        let temp = tempdir().unwrap();
+
+        // Set HOME to temp dir without creating config
+        unsafe {
+            std::env::set_var("HOME", temp.path());
+        }
+
+        // Create context - it should create default config
+        let result = DotmanContext::new();
+        if let Err(e) = &result {
+            eprintln!("Error creating context: {}", e);
+        }
+        assert!(
+            result.is_ok(),
+            "Failed to create context with default config"
+        );
+
+        // Verify default config was created
+        let config_path = temp.path().join(DEFAULT_CONFIG_PATH);
+        assert!(config_path.exists());
+    }
+
+    #[test]
+    fn test_dotman_context_new_invalid_config() -> Result<()> {
+        let temp = tempdir()?;
+        let config_path = temp.path().join(DEFAULT_CONFIG_PATH);
+
+        // Create config directory
+        fs::create_dir_all(config_path.parent().unwrap())?;
+
+        // Create invalid config
+        fs::write(&config_path, "invalid toml content {")?;
+
+        // Set HOME to temp dir
+        unsafe {
+            std::env::set_var("HOME", temp.path());
+        }
+
+        let result = DotmanContext::new();
+        assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ensure_repo_exists() -> Result<()> {
+        let temp = tempdir()?;
+        let repo_path = temp.path().join("test_repo");
+
+        let ctx = DotmanContext {
+            repo_path: repo_path.clone(),
+            config_path: temp.path().join("config"),
+            config: config::Config::default(),
+        };
+
+        // Ensure directories don't exist initially
+        assert!(!repo_path.exists());
+
+        // Create repo structure
+        ctx.ensure_repo_exists()?;
+
+        // Verify all directories were created
+        assert!(repo_path.exists());
+        assert!(repo_path.join(COMMITS_DIR).exists());
+        assert!(repo_path.join(OBJECTS_DIR).exists());
+
+        // Call again to ensure idempotency
+        ctx.ensure_repo_exists()?;
+        assert!(repo_path.exists());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ensure_repo_exists_permission_denied() -> Result<()> {
+        let temp = tempdir()?;
+        let readonly_dir = temp.path().join("readonly");
+        fs::create_dir(&readonly_dir)?;
+
+        // Make directory read-only
+        let mut perms = fs::metadata(&readonly_dir)?.permissions();
+        use std::os::unix::fs::PermissionsExt;
+        perms.set_mode(0o444);
+        fs::set_permissions(&readonly_dir, perms)?;
+
+        let repo_path = readonly_dir.join("test_repo");
+        let ctx = DotmanContext {
+            repo_path: repo_path.clone(),
+            config_path: temp.path().join("config"),
+            config: config::Config::default(),
+        };
+
+        let result = ctx.ensure_repo_exists();
+        assert!(result.is_err());
+
+        // Restore permissions for cleanup
+        let mut perms = fs::metadata(&readonly_dir)?.permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&readonly_dir, perms)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ensure_repo_exists_nested_path() -> Result<()> {
+        let temp = tempdir()?;
+        let repo_path = temp.path().join("deeply").join("nested").join("repo");
+
+        let ctx = DotmanContext {
+            repo_path: repo_path.clone(),
+            config_path: temp.path().join("config"),
+            config: config::Config::default(),
+        };
+
+        ctx.ensure_repo_exists()?;
+
+        // Verify deeply nested structure was created
+        assert!(repo_path.exists());
+        assert!(repo_path.join(COMMITS_DIR).exists());
+        assert!(repo_path.join(OBJECTS_DIR).exists());
+
+        Ok(())
     }
 }

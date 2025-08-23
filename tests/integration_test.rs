@@ -73,14 +73,14 @@ fn test_full_workflow_init_add_commit_checkout() -> Result<()> {
     )?;
 
     // Add and commit changes
-    commands::add::execute(&ctx, &paths[0..2].to_vec(), false)?;
+    commands::add::execute(&ctx, &paths[0..2], false)?;
     commands::commit::execute(&ctx, "Update configuration", false)?;
 
     let second_commit = fs::read_to_string(&head_path)?;
     assert_ne!(first_commit, second_commit);
 
     // Checkout first commit
-    commands::checkout::execute(&ctx, &first_commit.trim(), true)?;
+    commands::checkout::execute(&ctx, first_commit.trim(), true)?;
 
     // Verify files were restored
     let restored_content1 = fs::read_to_string(&file1)?;
@@ -116,7 +116,7 @@ fn test_workflow_with_directories() -> Result<()> {
     fs::write(config_dir.join("gitconfig"), "[user]\nname = Test")?;
 
     // Add entire config directory
-    let paths = vec![config_dir.to_string_lossy().to_string()];
+    let paths = [config_dir.to_string_lossy().to_string()];
     commands::add::execute(&ctx, &paths, false)?;
 
     // Commit
@@ -124,7 +124,7 @@ fn test_workflow_with_directories() -> Result<()> {
 
     // Show what was committed
     let head = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
-    commands::show::execute(&ctx, &head.trim())?;
+    commands::show::execute(&ctx, head.trim())?;
 
     Ok(())
 }
@@ -137,7 +137,7 @@ fn test_reset_workflow() -> Result<()> {
     let test_file = dir.path().join("test.txt");
     fs::write(&test_file, "version 1")?;
 
-    let paths = vec![test_file.to_string_lossy().to_string()];
+    let paths = [test_file.to_string_lossy().to_string()];
     commands::add::execute(&ctx, &paths, false)?;
     commands::commit::execute(&ctx, "First commit", false)?;
 
@@ -250,7 +250,7 @@ fn test_rm_workflow() -> Result<()> {
     commands::commit::execute(&ctx, "Add files", false)?;
 
     // Remove file2 from tracking (--cached keeps file on disk)
-    let rm_paths = vec![file2.to_string_lossy().to_string()];
+    let rm_paths = [file2.to_string_lossy().to_string()];
     commands::rm::execute(&ctx, &rm_paths, true, false)?;
 
     // File should still exist on disk
@@ -291,7 +291,7 @@ fn test_ignore_patterns_workflow() -> Result<()> {
     fs::write(&cache_file, "cached")?;
 
     // Try to add directory (should skip ignored files)
-    let paths = vec![dir.path().to_string_lossy().to_string()];
+    let paths = [dir.path().to_string_lossy().to_string()];
     commands::add::execute(&ctx, &paths, false)?;
 
     // Check what was added
@@ -385,7 +385,7 @@ fn test_large_scale_operations() -> Result<()> {
     }
 
     // Add all files
-    let paths = vec![test_dir.to_string_lossy().to_string()];
+    let paths = [test_dir.to_string_lossy().to_string()];
     let start = std::time::Instant::now();
     commands::add::execute(&ctx, &paths, false)?;
     let add_time = start.elapsed();

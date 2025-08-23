@@ -176,7 +176,7 @@ fn test_concurrent_file_modifications() -> Result<()> {
     let test_file_clone = test_file.clone();
     let modifier_handle = thread::spawn(move || {
         for i in 0..100 {
-            if let Err(_) = fs::write(&test_file_clone, format!("modified content {}", i)) {
+            if fs::write(&test_file_clone, format!("modified content {}", i)).is_err() {
                 // File might be locked, continue
             }
             thread::sleep(Duration::from_millis(1));
@@ -371,7 +371,7 @@ fn test_path_traversal_security() -> Result<()> {
     ];
 
     for malicious_path in malicious_paths {
-        let result = commands::add::execute(&ctx, &vec![malicious_path.to_string()], false);
+        let result = commands::add::execute(&ctx, &[malicious_path.to_string()], false);
         // Should either:
         // 1. Fail with appropriate error (preferred)
         // 2. Safely resolve to within temp directory

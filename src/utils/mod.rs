@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn test_expand_tilde() {
         let expanded = expand_tilde("~/test");
-        assert!(expanded.starts_with(&dirs::home_dir().unwrap()));
+        assert!(expanded.starts_with(dirs::home_dir().unwrap()));
 
         let no_tilde = expand_tilde("/absolute/path");
         assert_eq!(no_tilde, PathBuf::from("/absolute/path"));
@@ -170,7 +170,7 @@ mod tests {
         std::fs::write(dir.path().join("subdir/file3.txt"), "content3")?;
 
         // Walk and filter for .txt files
-        let filter = |p: &Path| p.extension().map_or(true, |ext| ext == "txt") || p.is_dir();
+        let filter = |p: &Path| p.extension().is_none_or(|ext| ext == "txt") || p.is_dir();
 
         let files = walk_dir_filtered(dir.path(), filter)?;
         assert_eq!(files.len(), 2);
