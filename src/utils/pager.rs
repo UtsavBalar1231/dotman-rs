@@ -1,13 +1,8 @@
 use anyhow::Result;
 use std::env;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
-
-/// Check if output is a terminal (not redirected)
-pub fn is_terminal() -> bool {
-    atty::is(atty::Stream::Stdout)
-}
 
 /// Get the pager command from environment or use default
 pub fn get_pager() -> String {
@@ -34,7 +29,7 @@ pub fn get_pager() -> String {
 
 /// Output content through a pager if in terminal, otherwise directly
 pub fn output_through_pager(content: &str, use_pager: bool) -> Result<()> {
-    if !use_pager || !is_terminal() {
+    if !use_pager || !io::stdout().is_terminal() {
         // Output directly if not a terminal or pager disabled
         print!("{}", content);
         io::stdout().flush()?;
