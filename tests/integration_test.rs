@@ -247,9 +247,14 @@ fn test_reset_workflow() -> Result<()> {
     assert_eq!(content, "version 3");
 
     // HEAD should point to second commit
-    let head = fs::read_to_string(ctx.repo_path.join("HEAD"))?
-        .trim()
-        .to_string();
+    let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
+    let head = if head_content.starts_with("ref:") {
+        let branch_ref = head_content.trim().strip_prefix("ref: ").unwrap();
+        let branch_path = ctx.repo_path.join(branch_ref);
+        fs::read_to_string(&branch_path)?.trim().to_string()
+    } else {
+        head_content.trim().to_string()
+    };
     assert_eq!(head, second_commit);
 
     // Hard reset to first commit

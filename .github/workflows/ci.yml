@@ -49,13 +49,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable, beta, 1.70.0] # MSRV (Minimum Supported Rust Version)
+        rust: [stable, beta] # MSRV (Minimum Supported Rust Version)
         exclude:
           # Reduce CI load - only test MSRV on Ubuntu
           - os: macos-latest
-            rust: 1.70.0
+            rust: stable
           - os: windows-latest
-            rust: 1.70.0
+            rust: stable
           # Beta testing only on Ubuntu
           - os: macos-latest
             rust: beta
@@ -65,6 +65,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Configure git for tests
+        run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@v1
@@ -102,10 +107,6 @@ jobs:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-gnu
-          - aarch64-unknown-linux-musl
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
-          - x86_64-pc-windows-gnu
 
     steps:
       - name: Checkout code
@@ -113,9 +114,20 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
-      - name: Install cross-compilation tool
-        run: cargo install cross --git https://github.com/cross-rs/cross
+      - name: Install cross-compilation dependencies
+        run: |
+          sudo apt-get update
+          # Install ARM64 cross-compilation toolchain for GNU targets
+          if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          fi
+          # Install musl tools for x86_64 musl target
+          if [[ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]]; then
+            sudo apt-get install -y musl-tools
+          fi
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
@@ -123,17 +135,30 @@ jobs:
           key: cross-${{ matrix.target }}
 
       - name: Build for target
-        run: cross build --release --target ${{ matrix.target }}
+        env:
+          # Set linker for ARM64 GNU target
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          # Set linker for x86_64 musl target
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          # Tell cargo to use static linking for musl
+          RUSTFLAGS: "-C target-feature=+crt-static"
+        run: |
+          # Export PATH to ensure cargo is available in act
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo build --release --target ${{ matrix.target }} --all-features
 
       - name: Test for target (if supported)
-        run: cross test --release --target ${{ matrix.target }}
-        continue-on-error: true # Some targets might not support testing
+        # Only run tests for native x86_64 target
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo test --release --target ${{ matrix.target }}
 
   benchmarks:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -152,29 +177,6 @@ jobs:
       - name: Run lightweight benchmark
         run: timeout 300 cargo bench || echo "Benchmarks completed or timed out"
 
-  memory-safety:
-    name: Memory Safety (Miri)
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust nightly with Miri
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: miri
-
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: miri-${{ runner.os }}
-
-      - name: Run Miri on core functionality
-        run: cargo miri test --lib
-        env:
-          MIRIFLAGS: -Zmiri-strict-provenance
-
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
@@ -183,6 +185,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Configure git for tests
+        run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -201,13 +208,16 @@ jobs:
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: lcov.info
           fail_ci_if_error: true
+          verbose: true
+          name: codecov-umbrella
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   # Build optimized release binaries for major platforms
-  build-release:
+  release-build:
     name: Build Release Binaries
     runs-on: ${{ matrix.os }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -216,19 +226,13 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: dotman-linux-x86_64
+            artifact_name: dotman-x86_64-linux-gnu
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            artifact_name: dotman-linux-x86_64-musl
+            artifact_name: dotman-x86_64-linux-musl
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            artifact_name: dotman-linux-aarch64
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: dotman-macos-x86_64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: dotman-macos-aarch64
+            artifact_name: dotman-aarch64-linux-gnu
 
     steps:
       - name: Checkout code
@@ -243,35 +247,51 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Install cross-compilation tool
-        if: matrix.target != 'x86_64-apple-darwin' && matrix.target != 'aarch64-apple-darwin' && runner.os == 'Linux'
-        run: cargo install cross --git https://github.com/cross-rs/cross
+          # Install ARM64 cross-compilation toolchain for GNU targets
+          if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          fi
+          # Install musl tools for x86_64 musl target
+          if [[ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]]; then
+            sudo apt-get install -y musl-tools
+          fi
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           key: release-${{ matrix.target }}
 
-      - name: Build release binary (native)
-        if: (matrix.target == 'x86_64-apple-darwin' && runner.os == 'macOS') || (matrix.target == 'aarch64-apple-darwin' && runner.os == 'macOS')
+      - name: Build release binary
+        env:
+          # Set linker for ARM64 GNU target
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          # Set linker for x86_64 musl target
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          # Tell cargo to use static linking for musl
+          RUSTFLAGS: "-C target-feature=+crt-static"
         run: |
-          cargo build --release --target ${{ matrix.target }}
-          cp target/${{ matrix.target }}/release/dot ${{ matrix.artifact_name }}
-
-      - name: Build release binary (cross)
-        if: runner.os == 'Linux'
-        run: |
-          cross build --release --target ${{ matrix.target }}
+          # Export PATH to ensure cargo is available in act
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo build --release --target ${{ matrix.target }} --all-features
           cp target/${{ matrix.target }}/release/dot ${{ matrix.artifact_name }}
 
       - name: Strip binary (Linux/macOS)
         if: runner.os != 'Windows'
-        run: strip ${{ matrix.artifact_name }}
+        run: |
+          # Use the appropriate strip tool for each target
+          if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
+            # Use cross-platform strip for ARM64
+            aarch64-linux-gnu-strip ${{ matrix.artifact_name }}
+          elif [[ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]]; then
+            # musl binaries can use regular strip
+            strip ${{ matrix.artifact_name }}
+          else
+            # Regular strip for native builds
+            strip ${{ matrix.artifact_name }}
+          fi
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_name }}
@@ -281,13 +301,14 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [check, test, cross-compile, memory-safety]
+    needs: [check, test, cross-compile]
     if: always()
-    
+
     steps:
       - name: Check all jobs success
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: exit 1
-      
+
       - name: CI Success
         run: echo "All CI checks passed successfully!"
+

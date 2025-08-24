@@ -104,9 +104,9 @@ pub fn execute(ctx: &DotmanContext, commit: &str, hard: bool, soft: bool) -> Res
 
 fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     use crate::refs::RefManager;
-    
+
     let ref_manager = RefManager::new(ctx.repo_path.clone());
-    
+
     // Check if we're on a branch
     if let Some(branch) = ref_manager.current_branch()? {
         // Update the branch to point to the new commit
@@ -115,7 +115,7 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
         // Detached HEAD - update HEAD directly
         ref_manager.set_head_to_commit(commit_id)?;
     }
-    
+
     Ok(())
 }
 
@@ -203,7 +203,8 @@ mod tests {
 
         let result = execute(&ctx, "HEAD", false, false);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No commits"));
+        let error_msg = result.unwrap_err().to_string();
+        assert!(error_msg.contains("No commits yet") || error_msg.contains("Failed to resolve"));
 
         Ok(())
     }
@@ -273,7 +274,7 @@ mod tests {
 
         // Create a test commit
         create_test_snapshot(&ctx, "abc123", "Test commit")?;
-        
+
         // Create refs structure
         use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -291,7 +292,7 @@ mod tests {
     #[test]
     fn test_update_head() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
-        
+
         // Initialize refs
         use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -321,11 +322,10 @@ mod tests {
         Ok(())
     }
 
-
     #[test]
     fn test_update_head_overwrites() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
-        
+
         // Initialize refs
         use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());

@@ -196,8 +196,9 @@ mod tests {
         // The actual error message might be about uncommitted changes or missing commits
         assert!(
             error_msg.contains("Failed to load commit")
+                || error_msg.contains("Failed to resolve")
                 || error_msg.contains("HEAD not found")
-                || error_msg.contains("No commits")
+                || error_msg.contains("No commits yet")
                 || error_msg.contains("Failed to load snapshot")
                 || error_msg.contains("uncommitted changes")
         );
@@ -272,8 +273,10 @@ mod tests {
         let error_msg = result.unwrap_err().to_string();
         assert!(
             error_msg.contains("Failed to load")
+                || error_msg.contains("Failed to resolve")
                 || error_msg.contains("not found")
                 || error_msg.contains("No commit found")
+                || error_msg.contains("No commits yet")
                 || error_msg.contains("Failed to load commit")
                 || error_msg.contains("Failed to load snapshot")
                 || error_msg.contains("uncommitted changes")

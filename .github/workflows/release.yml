@@ -66,48 +66,48 @@ jobs:
             target: x86_64-unknown-linux-gnu
             cross: false
             artifact_name: dot
-            release_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-unknown-linux-gnu
-            asset_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-unknown-linux-gnu.tar.gz
+            release_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-linux-gnu
+            asset_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-linux-gnu.tar.gz
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             cross: true
             artifact_name: dot
-            release_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-unknown-linux-musl
-            asset_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-unknown-linux-musl.tar.gz
+            release_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-linux-musl
+            asset_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-linux-musl.tar.gz
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             cross: true
             artifact_name: dot
-            release_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-unknown-linux-gnu
-            asset_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-unknown-linux-gnu.tar.gz
+            release_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-linux-gnu
+            asset_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-linux-gnu.tar.gz
           - os: ubuntu-latest
             target: aarch64-unknown-linux-musl
             cross: true
             artifact_name: dot
-            release_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-unknown-linux-musl
-            asset_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-unknown-linux-musl.tar.gz
+            release_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-linux-musl
+            asset_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-linux-musl.tar.gz
 
           # macOS targets
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            cross: false
-            artifact_name: dot
-            release_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-apple-darwin
-            asset_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-apple-darwin.tar.gz
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            cross: false
-            artifact_name: dot
-            release_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-apple-darwin
-            asset_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-apple-darwin.tar.gz
+          # - os: macos-latest
+          #   target: x86_64-apple-darwin
+          #   cross: false
+          #   artifact_name: dot
+          #   release_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-apple-darwin
+          #   asset_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-apple-darwin.tar.gz
+          # - os: macos-latest
+          #   target: aarch64-apple-darwin
+          #   cross: false
+          #   artifact_name: dot
+          #   release_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-apple-darwin
+          #   asset_name: dotman-v${{needs.release-info.outputs.version}}-aarch64-apple-darwin.tar.gz
 
-          # Windows targets
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            cross: false
-            artifact_name: dot.exe
-            release_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-pc-windows-msvc
-            asset_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-pc-windows-msvc.zip
+          # # Windows targets
+          # - os: windows-latest
+          #   target: x86_64-pc-windows-msvc
+          #   cross: false
+          #   artifact_name: dot.exe
+          #   release_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-pc-windows-msvc
+          #   asset_name: dotman-v${{needs.release-info.outputs.version}}-x86_64-pc-windows-msvc.zip
 
     steps:
       - name: Checkout code
@@ -138,7 +138,21 @@ jobs:
 
       - name: Strip binary (Unix)
         if: runner.os != 'Windows'
-        run: strip target/${{ matrix.config.target }}/release/${{ matrix.config.artifact_name }}
+        run: |
+          # Use the appropriate strip tool for each target
+          if [[ "${{ matrix.config.target }}" == "aarch64-unknown-linux-gnu" ]]; then
+            # Use cross-platform strip for ARM64 GNU
+            aarch64-linux-gnu-strip target/${{ matrix.config.target }}/release/${{ matrix.config.artifact_name }}
+          elif [[ "${{ matrix.config.target }}" == "aarch64-unknown-linux-musl" ]]; then
+            # Use cross-platform strip for ARM64 musl
+            aarch64-linux-musl-strip target/${{ matrix.config.target }}/release/${{ matrix.config.artifact_name }}
+          elif [[ "${{ matrix.config.target }}" == "x86_64-unknown-linux-musl" ]]; then
+            # musl binaries can use regular strip
+            strip target/${{ matrix.config.target }}/release/${{ matrix.config.artifact_name }}
+          else
+            # Regular strip for native builds
+            strip target/${{ matrix.config.target }}/release/${{ matrix.config.artifact_name }}
+          fi
 
       - name: Create release directory
         run: mkdir -p release-assets
@@ -167,7 +181,7 @@ jobs:
         shell: cmd
 
       - name: Upload release asset
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.config.asset_name }}
           path: ${{ matrix.config.asset_name }}
@@ -180,7 +194,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 
@@ -198,7 +212,7 @@ jobs:
           find artifacts -name "*.tar.gz" -o -name "*.zip" -exec mv {} . \;
 
       - name: Upload checksums
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: checksums
           path: |
@@ -220,7 +234,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 
@@ -258,8 +272,8 @@ jobs:
           echo "" >> release_notes.md
           echo "#### Linux/macOS Quick Install:" >> release_notes.md
           echo '```bash' >> release_notes.md
-          echo 'curl -LO https://github.com/${{ github.repository }}/releases/download/${{ needs.release-info.outputs.tag }}/dotman-${{ needs.release-info.outputs.tag }}-x86_64-unknown-linux-gnu.tar.gz' >> release_notes.md
-          echo 'tar xzf dotman-${{ needs.release-info.outputs.tag }}-x86_64-unknown-linux-gnu.tar.gz' >> release_notes.md
+          echo 'curl -LO https://github.com/${{ github.repository }}/releases/download/${{ needs.release-info.outputs.tag }}/dotman-${{ needs.release-info.outputs.tag }}-x86_64-linux-gnu.tar.gz' >> release_notes.md
+          echo 'tar xzf dotman-${{ needs.release-info.outputs.tag }}-x86_64-linux-gnu.tar.gz' >> release_notes.md
           echo 'sudo mv dot /usr/local/bin/' >> release_notes.md
           echo '```' >> release_notes.md
           echo "" >> release_notes.md

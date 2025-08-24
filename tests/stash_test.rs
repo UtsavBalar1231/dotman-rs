@@ -23,13 +23,13 @@ fn test_stash_push_and_pop() -> Result<()> {
     fs::write(&test_file, "initial content")?;
 
     Command::cargo_bin("dot")?
-        .args(&["add", test_file.to_str().unwrap()])
+        .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
     // Commit the file
     Command::cargo_bin("dot")?
-        .args(&["commit", "-m", "Initial commit"])
+        .args(["commit", "-m", "Initial commit"])
         .assert()
         .success();
 
@@ -38,7 +38,7 @@ fn test_stash_push_and_pop() -> Result<()> {
 
     // Stash the changes
     Command::cargo_bin("dot")?
-        .args(&["stash", "push", "-m", "Test stash"])
+        .args(["stash", "push", "-m", "Test stash"])
         .assert()
         .success();
 
@@ -48,7 +48,7 @@ fn test_stash_push_and_pop() -> Result<()> {
 
     // Pop the stash
     Command::cargo_bin("dot")?
-        .args(&["stash", "pop"])
+        .args(["stash", "pop"])
         .assert()
         .success();
 
@@ -77,31 +77,31 @@ fn test_stash_list() -> Result<()> {
     fs::write(&test_file, "initial")?;
 
     Command::cargo_bin("dot")?
-        .args(&["add", test_file.to_str().unwrap()])
+        .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
     Command::cargo_bin("dot")?
-        .args(&["commit", "-m", "Initial"])
+        .args(["commit", "-m", "Initial"])
         .assert()
         .success();
 
     // Create stashes
     fs::write(&test_file, "change1")?;
     Command::cargo_bin("dot")?
-        .args(&["stash", "push", "-m", "Stash 1"])
+        .args(["stash", "push", "-m", "Stash 1"])
         .assert()
         .success();
 
     fs::write(&test_file, "change2")?;
     Command::cargo_bin("dot")?
-        .args(&["stash", "push", "-m", "Stash 2"])
+        .args(["stash", "push", "-m", "Stash 2"])
         .assert()
         .success();
 
     // List stashes
     Command::cargo_bin("dot")?
-        .args(&["stash", "list"])
+        .args(["stash", "list"])
         .assert()
         .success()
         .stdout(predicate::str::contains("Stash 1"))
@@ -128,12 +128,12 @@ fn test_stash_with_untracked_files() -> Result<()> {
     fs::write(&tracked, "tracked")?;
 
     Command::cargo_bin("dot")?
-        .args(&["add", tracked.to_str().unwrap()])
+        .args(["add", tracked.to_str().unwrap()])
         .assert()
         .success();
 
     Command::cargo_bin("dot")?
-        .args(&["commit", "-m", "Initial"])
+        .args(["commit", "-m", "Initial"])
         .assert()
         .success();
 
@@ -143,7 +143,7 @@ fn test_stash_with_untracked_files() -> Result<()> {
 
     // Stash without -u should not include untracked
     Command::cargo_bin("dot")?
-        .args(&["stash", "push"])
+        .args(["stash", "push"])
         .assert()
         .success();
 
@@ -151,7 +151,7 @@ fn test_stash_with_untracked_files() -> Result<()> {
 
     // Stash with -u should include untracked
     Command::cargo_bin("dot")?
-        .args(&["stash", "push", "-u"])
+        .args(["stash", "push", "-u"])
         .assert()
         .success();
 
@@ -159,7 +159,7 @@ fn test_stash_with_untracked_files() -> Result<()> {
 
     // Pop should restore untracked file
     Command::cargo_bin("dot")?
-        .args(&["stash", "pop"])
+        .args(["stash", "pop"])
         .assert()
         .success();
 
@@ -186,12 +186,12 @@ fn test_stash_clear() -> Result<()> {
     fs::write(&test_file, "initial")?;
 
     Command::cargo_bin("dot")?
-        .args(&["add", test_file.to_str().unwrap()])
+        .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
     Command::cargo_bin("dot")?
-        .args(&["commit", "-m", "Initial"])
+        .args(["commit", "-m", "Initial"])
         .assert()
         .success();
 
@@ -199,20 +199,20 @@ fn test_stash_clear() -> Result<()> {
     for i in 1..=3 {
         fs::write(&test_file, format!("change{}", i))?;
         Command::cargo_bin("dot")?
-            .args(&["stash", "push", "-m", &format!("Stash {}", i)])
+            .args(["stash", "push", "-m", &format!("Stash {}", i)])
             .assert()
             .success();
     }
 
     // Clear all stashes
     Command::cargo_bin("dot")?
-        .args(&["stash", "clear"])
+        .args(["stash", "clear"])
         .assert()
         .success();
 
     // List should show no stashes
     Command::cargo_bin("dot")?
-        .args(&["stash", "list"])
+        .args(["stash", "list"])
         .assert()
         .success()
         .stdout(predicate::str::contains("No stash entries found"));

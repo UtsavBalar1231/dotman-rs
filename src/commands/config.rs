@@ -14,9 +14,9 @@ pub fn execute(
         show_all_config(ctx)?;
         return Ok(());
     }
-    
+
     let key = key.unwrap();
-    
+
     if unset {
         // Unset a configuration value
         ctx.config.unset(key)?;
@@ -47,23 +47,41 @@ fn show_all_config(ctx: &DotmanContext) -> Result<()> {
     if let Some(email) = &ctx.config.user.email {
         println!("  email = {}", email);
     }
-    
+
     println!("\n{}", "[core]".bold());
     println!("  repo_path = {}", ctx.config.core.repo_path.display());
     println!("  compression = {:?}", ctx.config.core.compression);
-    println!("  compression_level = {}", ctx.config.core.compression_level);
+    println!(
+        "  compression_level = {}",
+        ctx.config.core.compression_level
+    );
     println!("  default_branch = {}", ctx.config.core.default_branch);
-    
+
     println!("\n{}", "[performance]".bold());
-    println!("  parallel_threads = {}", ctx.config.performance.parallel_threads);
-    println!("  mmap_threshold = {}", ctx.config.performance.mmap_threshold);
+    println!(
+        "  parallel_threads = {}",
+        ctx.config.performance.parallel_threads
+    );
+    println!(
+        "  mmap_threshold = {}",
+        ctx.config.performance.mmap_threshold
+    );
     println!("  cache_size = {}", ctx.config.performance.cache_size);
-    println!("  use_hard_links = {}", ctx.config.performance.use_hard_links);
-    
+    println!(
+        "  use_hard_links = {}",
+        ctx.config.performance.use_hard_links
+    );
+
     println!("\n{}", "[tracking]".bold());
-    println!("  follow_symlinks = {}", ctx.config.tracking.follow_symlinks);
-    println!("  preserve_permissions = {}", ctx.config.tracking.preserve_permissions);
-    
+    println!(
+        "  follow_symlinks = {}",
+        ctx.config.tracking.follow_symlinks
+    );
+    println!(
+        "  preserve_permissions = {}",
+        ctx.config.tracking.preserve_permissions
+    );
+
     if !ctx.config.branches.tracking.is_empty() {
         println!("\n{}", "[branch]".bold());
         for (branch, tracking) in &ctx.config.branches.tracking {
@@ -71,7 +89,7 @@ fn show_all_config(ctx: &DotmanContext) -> Result<()> {
             println!("  {}.branch = {}", branch, tracking.branch);
         }
     }
-    
+
     if !ctx.config.remotes.is_empty() {
         println!("\n{}", "[remote]".bold());
         for (name, remote) in &ctx.config.remotes {
@@ -81,7 +99,7 @@ fn show_all_config(ctx: &DotmanContext) -> Result<()> {
             }
         }
     }
-    
+
     Ok(())
 }
 
@@ -109,7 +127,13 @@ mod tests {
         };
 
         // Set user.name
-        execute(&mut ctx, Some("user.name"), Some("Test User".to_string()), false, false)?;
+        execute(
+            &mut ctx,
+            Some("user.name"),
+            Some("Test User".to_string()),
+            false,
+            false,
+        )?;
 
         // Reload config and verify
         let config = Config::load(&config_path)?;
@@ -181,13 +205,19 @@ mod tests {
         };
 
         // Try to set invalid email
-        let result = execute(&mut ctx, Some("user.email"), Some("invalid".to_string()), false, false);
+        let result = execute(
+            &mut ctx,
+            Some("user.email"),
+            Some("invalid".to_string()),
+            false,
+            false,
+        );
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Invalid email"));
 
         Ok(())
     }
-    
+
     #[test]
     fn test_config_list() -> Result<()> {
         let dir = tempdir()?;
@@ -210,7 +240,7 @@ mod tests {
         // Test list flag
         let result = execute(&mut ctx, None, None, false, true);
         assert!(result.is_ok());
-        
+
         // Test no key provided (should also show all)
         let result = execute(&mut ctx, None, None, false, false);
         assert!(result.is_ok());

@@ -331,7 +331,37 @@ build_target() {
 create_distribution_archive() {
 	local target="$1"
 	local binary_path="$2"
-	local archive_name="$PROJECT_NAME-$VERSION-$target"
+	
+	# Convert target triple to simplified naming
+	local simplified_name=""
+	case "$target" in
+	x86_64-unknown-linux-gnu)
+		simplified_name="$PROJECT_NAME-v$VERSION-x86_64-linux-gnu"
+		;;
+	aarch64-unknown-linux-gnu)
+		simplified_name="$PROJECT_NAME-v$VERSION-aarch64-linux-gnu"
+		;;
+	x86_64-unknown-linux-musl)
+		simplified_name="$PROJECT_NAME-v$VERSION-x86_64-linux-musl"
+		;;
+	aarch64-unknown-linux-musl)
+		simplified_name="$PROJECT_NAME-v$VERSION-aarch64-linux-musl"
+		;;
+	x86_64-apple-darwin)
+		simplified_name="$PROJECT_NAME-v$VERSION-x86_64-darwin"
+		;;
+	aarch64-apple-darwin)
+		simplified_name="$PROJECT_NAME-v$VERSION-aarch64-darwin"
+		;;
+	x86_64-pc-windows-gnu)
+		simplified_name="$PROJECT_NAME-v$VERSION-x86_64-windows"
+		;;
+	*)
+		simplified_name="$PROJECT_NAME-v$VERSION-$target"
+		;;
+	esac
+	
+	local archive_name="$simplified_name"
 
 	log_info "Creating distribution archive for $target..."
 

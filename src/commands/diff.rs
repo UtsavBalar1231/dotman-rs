@@ -31,8 +31,11 @@ fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
     use crate::commands::status::get_current_files;
     use crate::storage::index::ConcurrentIndex;
 
-    let mut output = PagerOutput::new();
-    output.appendln(&format!("{}", "Comparing working directory with index...".blue()));
+    let mut output = PagerOutput::default();
+    output.appendln(&format!(
+        "{}",
+        "Comparing working directory with index...".blue()
+    ));
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
@@ -43,12 +46,12 @@ fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
 
     if statuses.is_empty() {
         output.appendln("No differences found");
-        output.show()?;
+        // output.show()?;
         return Ok(());
     }
 
     format_file_statuses(&mut output, &statuses);
-    output.show()?;
+    // output.show()?;
 
     Ok(())
 }
@@ -59,13 +62,15 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
     let commit_id = resolver
         .resolve(commit)
         .with_context(|| format!("Failed to resolve reference: {}", commit))?;
-    
-    let mut output = PagerOutput::new();
+
+    let mut output = PagerOutput::default();
     output.appendln(&format!(
         "{}",
-        format!("Comparing commit {} with working directory...",
+        format!(
+            "Comparing commit {} with working directory...",
             commit_id[..8.min(commit_id.len())].yellow()
-        ).blue()
+        )
+        .blue()
     ));
 
     let snapshot_manager =
@@ -95,12 +100,12 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
 
     if statuses.is_empty() {
         output.appendln("No differences found");
-        output.show()?;
+        // output.show()?;
         return Ok(());
     }
 
     format_file_statuses(&mut output, &statuses);
-    output.show()?;
+    // output.show()?;
 
     Ok(())
 }
@@ -114,14 +119,16 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
     let to_id = resolver
         .resolve(to)
         .with_context(|| format!("Failed to resolve reference: {}", to))?;
-    
-    let mut output = PagerOutput::new();
+
+    let mut output = PagerOutput::default();
     output.appendln(&format!(
         "{}",
-        format!("Comparing commit {} with commit {}...",
+        format!(
+            "Comparing commit {} with commit {}...",
             from_id[..8.min(from_id.len())].yellow(),
             to_id[..8.min(to_id.len())].yellow()
-        ).blue()
+        )
+        .blue()
     ));
 
     let snapshot_manager =
@@ -166,7 +173,7 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
     }
 
     format_file_statuses(&mut output, &statuses);
-    output.show()?;
+    // output.show()?;
 
     Ok(())
 }
@@ -222,7 +229,7 @@ fn format_file_statuses(output: &mut PagerOutput, statuses: &[FileStatus]) {
 // Keep the old function for tests
 #[allow(dead_code)]
 fn display_file_statuses(statuses: &[FileStatus]) {
-    let mut output = PagerOutput::new();
+    let mut output = PagerOutput::default();
     format_file_statuses(&mut output, statuses);
     let _ = output.disable_pager().show();
 }

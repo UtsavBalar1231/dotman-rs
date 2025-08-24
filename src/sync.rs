@@ -455,6 +455,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_export_commit() -> Result<()> {
         let temp = tempdir()?;
         let storage_path = temp.path().join(".dotman");
@@ -515,12 +516,12 @@ mod tests {
         let exporter = Exporter::new(&snapshot_manager, &index);
 
         unsafe {
-            std::env::set_var("HOME", "/home");
+            std::env::set_var("HOME", "/home/test");
         }
         let exported = exporter.export_commit("test_commit_123", &export_dir)?;
 
         assert_eq!(exported.len(), 1);
-        assert!(export_dir.join("test/file.txt").exists());
+        assert!(export_dir.join("file.txt").exists());
 
         Ok(())
     }

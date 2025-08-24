@@ -37,7 +37,8 @@ impl RefResolver {
         if reference == "HEAD" {
             return self.resolve_head();
         } else if let Some(parent_spec) = reference.strip_prefix("HEAD~") {
-            let parent_count = parent_spec.parse::<usize>()
+            let parent_count = parent_spec
+                .parse::<usize>()
                 .with_context(|| format!("Invalid parent specification: {}", reference))?;
             return self.resolve_head_parent(parent_count);
         }
@@ -57,10 +58,11 @@ impl RefResolver {
         }
 
         // Try as short commit ID (prefix matching)
-        if reference.len() >= 4 && reference.chars().all(|c| c.is_ascii_hexdigit()) {
-            if let Some(full_id) = self.find_commit_by_prefix(reference)? {
-                return Ok(full_id);
-            }
+        if reference.len() >= 4
+            && reference.chars().all(|c| c.is_ascii_hexdigit())
+            && let Some(full_id) = self.find_commit_by_prefix(reference)?
+        {
+            return Ok(full_id);
         }
 
         anyhow::bail!("Cannot resolve reference: {}", reference)
@@ -86,7 +88,7 @@ impl RefResolver {
             let snapshot = snapshot_manager
                 .load_snapshot(&current)
                 .with_context(|| format!("Failed to load commit: {}", current))?;
-            
+
             if let Some(parent) = snapshot.commit.parent {
                 current = parent;
             } else {
@@ -118,12 +120,12 @@ impl RefResolver {
             let entry = entry?;
             let name = entry.file_name();
             let name_str = name.to_string_lossy();
-            
+
             // Remove .zst extension
-            if let Some(commit_id) = name_str.strip_suffix(".zst") {
-                if commit_id.starts_with(prefix) {
-                    matches.push(commit_id.to_string());
-                }
+            if let Some(commit_id) = name_str.strip_suffix(".zst")
+                && commit_id.starts_with(prefix)
+            {
+                matches.push(commit_id.to_string());
             }
         }
 
@@ -145,26 +147,27 @@ mod tests {
     use crate::storage::{Commit, snapshots::Snapshot};
     use std::collections::HashMap;
     use std::fs;
+    use std::path::Path;
     use tempfile::tempdir;
 
     fn setup_test_repo() -> Result<(tempfile::TempDir, RefResolver)> {
         let temp = tempdir()?;
         let repo_path = temp.path().join(".dotman");
-        
+
         // Create repo structure
         fs::create_dir_all(&repo_path)?;
         fs::create_dir_all(repo_path.join("commits"))?;
         fs::create_dir_all(repo_path.join("refs/heads"))?;
-        
+
         let resolver = RefResolver::new(repo_path.clone());
-        
+
         // Initialize with main branch
         resolver.ref_manager.init()?;
-        
+
         Ok((temp, resolver))
     }
 
-    fn create_test_commit(repo_path: &PathBuf, commit_id: &str, parent: Option<String>) -> Result<()> {
+    fn create_test_commit(repo_path: &Path, commit_id: &str, parent: Option<String>) -> Result<()> {
         let snapshot = Snapshot {
             commit: Commit {
                 id: commit_id.to_string(),
@@ -182,134 +185,134 @@ mod tests {
         use crate::utils::serialization::serialize;
         let serialized = serialize(&snapshot)?;
         let compressed = compress_bytes(&serialized, 3)?;
-        let snapshot_path = repo_path
-            .join("commits")
-            .join(format!("{}.zst", commit_id));
+        let snapshot_path = repo_path.join("commits").join(format!("{}.zst", commit_id));
         fs::write(&snapshot_path, compressed)?;
-        
+
         Ok(())
     }
 
     #[test]
     fn test_resolve_head() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
-        
+
         // Create a commit and set HEAD
         let commit_id = "a".repeat(32);
         create_test_commit(&resolver.repo_path, &commit_id, None)?;
         resolver.ref_manager.update_branch("main", &commit_id)?;
-        
+
         let resolved = resolver.resolve("HEAD")?;
         assert_eq!(resolved, commit_id);
-        
+
         Ok(())
     }
 
     #[test]
     fn test_resolve_branch() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
-        
+
         let commit_id = "b".repeat(32);
         create_test_commit(&resolver.repo_path, &commit_id, None)?;
-        resolver.ref_manager.create_branch("feature", Some(&commit_id))?;
-        
+        resolver
+            .ref_manager
+            .create_branch("feature", Some(&commit_id))?;
+
         let resolved = resolver.resolve("feature")?;
         assert_eq!(resolved, commit_id);
-        
+
         Ok(())
     }
 
     #[test]
     fn test_resolve_full_commit() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
-        
+
         let commit_id = "c".repeat(32);
         create_test_commit(&resolver.repo_path, &commit_id, None)?;
-        
+
         let resolved = resolver.resolve(&commit_id)?;
         assert_eq!(resolved, commit_id);
-        
+
         Ok(())
     }
 
     #[test]
     fn test_resolve_short_commit() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
-        
+
         let commit_id = format!("d1234567{}", "0".repeat(24));
         create_test_commit(&resolver.repo_path, &commit_id, None)?;
-        
+
         let resolved = resolver.resolve("d123")?;
         assert_eq!(resolved, commit_id);
-        
+
         Ok(())
     }
 
     #[test]
     fn test_resolve_ambiguous_short_commit() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
-        
+
         // Create two commits with same prefix
         let commit1 = format!("e1234567{}", "0".repeat(24));
         let commit2 = format!("e1234567{}", "1".repeat(24));
         create_test_commit(&resolver.repo_path, &commit1, None)?;
         create_test_commit(&resolver.repo_path, &commit2, None)?;
-        
+
         let result = resolver.resolve("e123");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Ambiguous"));
-        
+
         Ok(())
     }
 
     #[test]
     fn test_resolve_head_parent() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
-        
+
         // Create a chain of commits
         let commit1 = format!("f1{}", "0".repeat(30));
         let commit2 = format!("f2{}", "0".repeat(30));
         let commit3 = format!("f3{}", "0".repeat(30));
-        
+
         create_test_commit(&resolver.repo_path, &commit1, None)?;
         create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
         create_test_commit(&resolver.repo_path, &commit3, Some(commit2.clone()))?;
-        
+
         resolver.ref_manager.update_branch("main", &commit3)?;
-        
+
         assert_eq!(resolver.resolve("HEAD")?, commit3);
         assert_eq!(resolver.resolve("HEAD~1")?, commit2);
         assert_eq!(resolver.resolve("HEAD~2")?, commit1);
-        
+
         // Test going too far back
         let result = resolver.resolve("HEAD~3");
         assert!(result.is_err());
-        
+
         Ok(())
     }
 
     #[test]
     fn test_resolve_ref_format() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
-        
+
         let commit_id = "g".repeat(32);
         create_test_commit(&resolver.repo_path, &commit_id, None)?;
         resolver.ref_manager.update_branch("main", &commit_id)?;
-        
+
         let resolved = resolver.resolve("ref: refs/heads/main")?;
         assert_eq!(resolved, commit_id);
-        
+
         Ok(())
     }
 
     #[test]
     fn test_resolve_invalid_reference() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
-        
+
         let result = resolver.resolve("invalid_ref");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Cannot resolve"));
-        
+
         Ok(())
     }
 }

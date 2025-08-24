@@ -170,18 +170,18 @@ fn push_stash(
     if !keep_index {
         // Reset modified files to their HEAD state
         reset_to_head(ctx)?;
-        
+
         // Remove untracked files that were stashed
         if include_untracked {
-            for (_path, file) in &stash_entry.files {
+            for (path, file) in &stash_entry.files {
                 if matches!(file.status, FileStatus::Untracked(_)) {
-                    let abs_path = if _path.is_relative() {
-                        home.join(_path)
+                    let abspath = if path.is_relative() {
+                        home.join(path)
                     } else {
-                        _path.clone()
+                        path.clone()
                     };
-                    if abs_path.exists() {
-                        fs::remove_file(&abs_path)?;
+                    if abspath.exists() {
+                        fs::remove_file(&abspath)?;
                     }
                 }
             }
@@ -364,7 +364,7 @@ fn show_stash(ctx: &DotmanContext, stash_id: Option<String>) -> Result<()> {
     // Load stash
     let stash = stash_manager.load_stash(&stash_id)?;
 
-    let mut output = PagerOutput::new();
+    let mut output = PagerOutput::default();
     output.appendln(&format!("{}", "Stash contents:".bold()));
     output.appendln(&format!("  ID: {}", stash.id.dimmed()));
     output.appendln(&format!("  Message: {}", stash.message));
@@ -383,7 +383,7 @@ fn show_stash(ctx: &DotmanContext, stash_id: Option<String>) -> Result<()> {
     let mut deleted = Vec::new();
     let mut untracked = Vec::new();
 
-    for (_path, file) in &stash.files {
+    for file in stash.files.values() {
         match &file.status {
             FileStatus::Added(p) => added.push(p),
             FileStatus::Modified(p) => modified.push(p),

@@ -92,7 +92,13 @@ fn test_config_command_integration() -> Result<()> {
     };
 
     // Use config command to set user.name
-    dotman::commands::config::execute(&mut ctx, Some("user.name"), Some("Jane Doe".to_string()), false, false)?;
+    dotman::commands::config::execute(
+        &mut ctx,
+        Some("user.name"),
+        Some("Jane Doe".to_string()),
+        false,
+        false,
+    )?;
 
     // Use config command to set user.email
     dotman::commands::config::execute(

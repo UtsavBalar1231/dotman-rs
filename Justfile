@@ -215,21 +215,27 @@ package-rpm:
     # Get version
     VERSION=$(grep '^version = ' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
 
-    # Create source tarball
+    # Create source tarball with correct directory structure
     PROJECT_DIR=$(pwd)
     cd ..
     tar czf "${RPMBUILD_DIR}/SOURCES/dotman-${VERSION}.tar.gz" \
-        --exclude=.git \
-        --exclude=target \
-        --exclude=dist \
+        --exclude=dotman/.git \
+        --exclude=dotman/target \
+        --exclude=dotman/dist \
+        --transform "s,^dotman,dotman-${VERSION}," \
         dotman
     cd "${PROJECT_DIR}"
 
     # Copy spec file
-    cp packaging/rpm/dotman.spec "${RPMBUILD_DIR}/SPECS/"
-
-    # Build RPM
-    rpmbuild -ba "${RPMBUILD_DIR}/SPECS/dotman.spec"
+    # Use simpler spec on non-Fedora systems
+    if [ -f /etc/fedora-release ] || [ -f /etc/redhat-release ]; then
+        cp packaging/rpm/dotman.spec "${RPMBUILD_DIR}/SPECS/"
+        rpmbuild -ba "${RPMBUILD_DIR}/SPECS/dotman.spec"
+    else
+        # Use simpler spec for other systems (like Arch with rpmbuild)
+        cp packaging/rpm/dotman-simple.spec "${RPMBUILD_DIR}/SPECS/dotman.spec"
+        rpmbuild -bb "${RPMBUILD_DIR}/SPECS/dotman.spec"
+    fi
 
     # Copy to dist
     mkdir -p dist
@@ -277,6 +283,9 @@ package-arch:
     cd "${BUILD_DIR}"
     sed -i "s|source=(.*)|source=('dotman-${VERSION}.tar.gz')|" PKGBUILD
     sed -i "s|sha256sums=(.*)|sha256sums=('SKIP')|" PKGBUILD
+    
+    # Add environment variable to force bundled zstd build
+    sed -i '/^build() {/a\    export ZSTD_SYS_USE_PKG_CONFIG=0' PKGBUILD
 
     # Build package
     makepkg -f

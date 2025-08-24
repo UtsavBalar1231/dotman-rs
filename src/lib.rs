@@ -177,6 +177,16 @@ preserve_permissions = true
 
     #[test]
     fn test_ensure_repo_exists_permission_denied() -> Result<()> {
+        // Skip this test if running as root (common in CI/Docker environments)
+        // Root can bypass permission restrictions
+        #[cfg(unix)]
+        {
+            if unsafe { libc::getuid() } == 0 {
+                println!("Skipping permission test when running as root");
+                return Ok(());
+            }
+        }
+
         let temp = tempdir()?;
         let readonly_dir = temp.path().join("readonly");
         fs::create_dir(&readonly_dir)?;

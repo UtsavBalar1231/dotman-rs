@@ -9,7 +9,7 @@ arch=('x86_64' 'aarch64')
 url="https://github.com/UtsavBalar1231/dotman-rs"
 license=('MIT')
 depends=('gcc-libs' 'glibc')
-makedepends=('rust' 'cargo')
+makedepends=('rust' 'cargo' 'pkg-config' 'gcc' 'zstd')
 provides=('dotman')
 conflicts=('dotman-git')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/UtsavBalar1231/dotman-rs/archive/v$pkgver.tar.gz")
@@ -33,6 +33,9 @@ build() {
     
     # Build with optimizations for the target architecture
     export RUSTFLAGS="-C target-cpu=native"
+    
+    # Allow pkg-config to find system libraries
+    export PKG_CONFIG_ALLOW_CROSS=1
     
     cargo build \
         --release \

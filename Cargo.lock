@@ -447,6 +447,7 @@ dependencies = [
  "dashmap",
  "dirs",
  "fs4",
+ "libc",
  "memmap2",
  "once_cell",
  "parking_lot",
