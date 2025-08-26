@@ -63,7 +63,6 @@ package() {
 	
 	# Install documentation
 	install -Dm644 README.md "$pkgdir"/usr/share/doc/$pkgname/README.md
-	install -Dm644 CLAUDE.md "$pkgdir"/usr/share/doc/$pkgname/CLAUDE.md
 	
 	# Generate shell completions
 	mkdir -p completions

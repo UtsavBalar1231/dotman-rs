@@ -66,7 +66,7 @@ src_install() {
 	cargo_src_install --bin dot
 	
 	# Install documentation
-	dodoc README.md CLAUDE.md
+	dodoc README.md
 	
 	# Generate and install shell completions
 	local completions_dir="${T}/completions"

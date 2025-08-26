@@ -17,7 +17,6 @@ include = [
     "Cargo.lock",
     "README.md",
     "LICENSE",
-    "CLAUDE.md"
 ]
 exclude = [
     "target/",
@@ -34,7 +33,6 @@ exclude = [
     "dist/",
     "*.md",
     "!README.md",
-    "!CLAUDE.md"
 ]
 
 [dependencies]

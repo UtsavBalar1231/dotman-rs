@@ -61,7 +61,6 @@ override_dh_auto_install:
 	# Install additional documentation
 	mkdir -p debian/dotman/usr/share/doc/dotman
 	cp README.md debian/dotman/usr/share/doc/dotman/ || true
-	cp CLAUDE.md debian/dotman/usr/share/doc/dotman/ || true
 	
 	# Install examples if they exist
 	if [ -d examples ]; then \

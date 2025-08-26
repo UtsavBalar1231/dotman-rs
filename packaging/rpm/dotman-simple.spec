@@ -29,7 +29,6 @@ cargo build --release --all-features
 %install
 install -D -m 755 target/release/dot %{buildroot}%{_bindir}/dot
 install -D -m 644 README.md %{buildroot}%{_docdir}/%{name}/README.md
-install -D -m 644 CLAUDE.md %{buildroot}%{_docdir}/%{name}/CLAUDE.md
 
 %files
 %{_bindir}/dot

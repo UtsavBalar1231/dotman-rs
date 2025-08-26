@@ -58,7 +58,6 @@ export RUSTFLAGS="%{optflags} -C target-cpu=native"
 
 # Install documentation
 install -Dm644 README.md %{buildroot}%{_docdir}/%{name}/README.md
-install -Dm644 CLAUDE.md %{buildroot}%{_docdir}/%{name}/CLAUDE.md
 
 # Generate and install shell completions
 mkdir -p %{buildroot}%{_datadir}/bash-completion/completions
@@ -87,7 +86,7 @@ fi
 
 %files
 %license LICENSE*
-%doc README.md CLAUDE.md
+%doc README.md
 %{_bindir}/dot
 %{_datadir}/bash-completion/completions/dot
 %{_datadir}/zsh/site-functions/_dot
