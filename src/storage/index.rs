@@ -598,4 +598,146 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_recover_from_corrupted_index() -> Result<()> {
+        let dir = tempdir()?;
+
+        // Create valid index first
+        let mut index = Index::new();
+        index.add_entry(FileEntry {
+            path: PathBuf::from("test.txt"),
+            hash: "valid_hash".to_string(),
+            size: 100,
+            modified: 1234567890,
+            mode: 0o644,
+        });
+
+        let index_path = dir.path().join("index.bin");
+        index.save(&index_path)?;
+
+        // Corrupt the index file
+        std::fs::write(
+            &index_path,
+            b"This is corrupted binary data that's not valid bincode",
+        )?;
+
+        // Try to load corrupted index
+        let result = Index::load(&index_path);
+        assert!(result.is_err());
+
+        // Recovery strategy: create new empty index
+        let recovered_index = Index::new();
+        recovered_index.save(&index_path)?;
+
+        // Should be able to load recovered index
+        let loaded = Index::load(&index_path)?;
+        assert_eq!(loaded.entries.len(), 0);
+        assert_eq!(loaded.version, 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_partial_write_corruption() -> Result<()> {
+        let dir = tempdir()?;
+
+        // Create a valid index with content
+        let mut index = Index::new();
+        index.add_entry(FileEntry {
+            path: PathBuf::from("test.txt"),
+            hash: "test_hash".to_string(),
+            size: 1234,
+            modified: 1234567890,
+            mode: 0o644,
+        });
+
+        let index_path = dir.path().join("index.bin");
+        index.save(&index_path)?;
+
+        // Get the valid index data
+        let valid_data = std::fs::read(&index_path)?;
+
+        // Simulate various partial write scenarios
+        for partial_size in [1, 4, 8, 16, 32, valid_data.len() / 4, valid_data.len() / 2] {
+            if partial_size < valid_data.len() {
+                std::fs::write(&index_path, &valid_data[..partial_size])?;
+
+                let result = Index::load(&index_path);
+                assert!(
+                    result.is_err(),
+                    "Should reject partial write at {} bytes",
+                    partial_size
+                );
+            }
+        }
+
+        // Restore valid data and verify it still loads
+        std::fs::write(&index_path, &valid_data)?;
+        let restored = Index::load(&index_path)?;
+        assert_eq!(restored.entries.len(), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_index_consistency_validation() -> Result<()> {
+        let dir = tempdir()?;
+
+        // Create index with known entries
+        let mut index = Index::new();
+
+        let file1 = dir.path().join("file1.txt");
+        let file2 = dir.path().join("file2.txt");
+        std::fs::write(&file1, "content1")?;
+        std::fs::write(&file2, "content2")?;
+
+        index.add_entry(FileEntry {
+            path: file1.clone(),
+            hash: "hash1".to_string(),
+            size: 8,
+            modified: 1234567890,
+            mode: 0o644,
+        });
+
+        index.add_entry(FileEntry {
+            path: file2.clone(),
+            hash: "hash2".to_string(),
+            size: 8,
+            modified: 1234567891,
+            mode: 0o644,
+        });
+
+        let index_path = dir.path().join("index.bin");
+        index.save(&index_path)?;
+
+        // Load and corrupt one entry
+        let mut loaded = Index::load(&index_path)?;
+        if let Some(entry) = loaded.entries.values_mut().next() {
+            entry.hash = "invalid_hash".to_string();
+            entry.size = 999999; // Wrong size
+            entry.modified = 0; // Wrong timestamp
+        }
+
+        loaded.save(&index_path)?;
+
+        // Load corrupted index - should load but with invalid data
+        let corrupted = Index::load(&index_path)?;
+
+        // Verify the corruption is present in the loaded index
+        // The corrupted entry should have the invalid values we set
+        let has_corrupted = corrupted.entries.values().any(|entry| {
+            entry.hash == "invalid_hash" && entry.size == 999999 && entry.modified == 0
+        });
+
+        assert!(
+            has_corrupted,
+            "Index should contain the corrupted entry with invalid values"
+        );
+
+        // This demonstrates that validation logic would need to check
+        // actual file hashes against stored hashes
+
+        Ok(())
+    }
 }

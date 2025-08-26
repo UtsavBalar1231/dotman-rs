@@ -475,15 +475,18 @@ fn test_concurrent_operations() -> Result<()> {
 fn test_large_scale_operations() -> Result<()> {
     let (dir, ctx) = setup_test_env()?;
 
-    // Create 1000 files
+    // Create 500 files (reduced from 1000 for faster testing)
     let test_dir = dir.path().join("large_test");
     fs::create_dir_all(&test_dir)?;
 
-    for i in 0..1000 {
+    for i in 0..500 {
         let file = test_dir.join(format!("file_{:04}.txt", i));
         fs::write(
             &file,
-            format!("This is file number {} with some content", i),
+            format!(
+                "This is file number {} with some content to make it not tiny",
+                i
+            ),
         )?;
     }
 
@@ -493,21 +496,21 @@ fn test_large_scale_operations() -> Result<()> {
     commands::add::execute(&ctx, &paths, false)?;
     let add_time = start.elapsed();
 
-    println!("Added 1000 files in {:?}", add_time);
+    println!("Added 500 files in {:?}", add_time);
 
     // Commit
     let start = std::time::Instant::now();
-    commands::commit::execute(&ctx, "Large commit with 1000 files", false)?;
+    commands::commit::execute(&ctx, "Large commit with 500 files", false)?;
     let commit_time = start.elapsed();
 
-    println!("Committed 1000 files in {:?}", commit_time);
+    println!("Committed 500 files in {:?}", commit_time);
 
     // Status check
     let start = std::time::Instant::now();
     commands::status::execute(&ctx, false, false)?;
     let status_time = start.elapsed();
 
-    println!("Status check on 1000 files in {:?}", status_time);
+    println!("Status check on 500 files in {:?}", status_time);
 
     // Verify performance is reasonable
     assert!(

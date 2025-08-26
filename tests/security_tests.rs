@@ -92,24 +92,42 @@ fn test_path_traversal_attacks() -> Result<()> {
         let result = commands::add::execute(&ctx, std::slice::from_ref(test_path), false);
 
         // Verify secure handling of path traversal patterns
-        match result {
-            Ok(_) => {
-                // If it succeeds, verify all indexed paths are within safe boundaries
-                let index = Index::load(&ctx.repo_path.join("index.bin"))?;
+        if let Err(err) = result {
+            // Rejection of traversal patterns is also good security behavior
+            // Verify it's rejected appropriately
+            let err_msg = err.to_string();
+            assert!(
+                err_msg.contains("invalid")
+                    || err_msg.contains("outside")
+                    || err_msg.contains("traversal")
+                    || err_msg.contains("not found")
+                    || err_msg.contains("does not exist")
+                    || err_msg.contains("Path"),
+                "Should reject with appropriate error: {}",
+                err_msg
+            );
+        } else {
+            // If it succeeds, verify all indexed paths are within safe boundaries
+            let index = Index::load(&ctx.repo_path.join("index.bin"))?;
 
-                for path in index.entries.keys() {
-                    let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
-                    assert!(
-                        canonical.starts_with(dir.path()) || canonical.starts_with(&ctx.repo_path),
-                        "Path traversal detected (but contained): {} -> {}",
-                        test_path,
-                        canonical.display()
-                    );
-                }
+            for path in index.entries.keys() {
+                let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
+                assert!(
+                    canonical.starts_with(dir.path()) || canonical.starts_with(&ctx.repo_path),
+                    "Path should be contained within safe boundaries: {} -> {}",
+                    test_path,
+                    canonical.display()
+                );
             }
-            Err(_) => {
-                // Rejection of traversal patterns is good security behavior
-            }
+
+            // Verify the path was properly normalized
+            assert!(
+                !index
+                    .entries
+                    .keys()
+                    .any(|p| p.to_string_lossy().contains("..")),
+                "Index should not contain paths with .."
+            );
         }
     }
 
@@ -181,16 +199,23 @@ fn test_symlink_attack_prevention() -> Result<()> {
         fs::remove_file(&race_link)?;
         std::os::unix::fs::symlink(&outside_target, &race_link)?;
 
-        // Operations should still be safe
+        // Operations should handle the changed symlink safely
         let status_result = commands::status::execute(&ctx, false, false);
-        let _commit_result = commands::commit::execute(&ctx, "Test commit", false);
+        // Status should work (it just reads the index)
+        assert!(
+            status_result.is_ok(),
+            "Status should work even with modified symlinks"
+        );
 
-        // Both should either succeed safely or fail gracefully
-        // Either safe success or graceful failure
-        if status_result.is_ok() {
-            // Safe
+        // Commit should either succeed safely or detect the symlink change
+        let commit_result = commands::commit::execute(&ctx, "Test commit", false);
+        // Both success (safe handling) and failure (detection) are acceptable
+        // but we should verify no dangerous symlinks are followed
+        if commit_result.is_ok() {
+            // Verify the commit doesn't include content from outside targets
+            let head = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
+            assert!(!head.is_empty(), "HEAD should have commit ID");
         }
-        // Graceful failure is also acceptable
     }
 
     Ok(())
@@ -229,15 +254,23 @@ fn test_malicious_file_content() -> Result<()> {
                 let result = commands::add::execute(&ctx, &paths, false);
 
                 // Should handle malicious content without crashing
-                match result {
-                    Ok(_) => {
-                        // If successful, verify dotman still works
-                        let _status = commands::status::execute(&ctx, false, false);
-                    }
-                    Err(_) => {
-                        // Graceful failure is acceptable
-                    }
+                if result.is_ok() {
+                    // If successful, verify dotman still works
+                    let status_result = commands::status::execute(&ctx, false, false);
+                    assert!(
+                        status_result.is_ok(),
+                        "Status should work after adding file with malicious content pattern {}",
+                        i
+                    );
+
+                    // Verify the file was actually added
+                    let index = Index::load(&ctx.repo_path.join("index.bin"))?;
+                    assert!(
+                        index.entries.contains_key(&test_file),
+                        "File should be in index after successful add"
+                    );
                 }
+                // Graceful failure for very large or problematic content is also acceptable
             }
             Err(_) => {
                 // File system rejected the content
@@ -269,14 +302,33 @@ fn test_resource_exhaustion_attacks() -> Result<()> {
 
     // This should either succeed or fail gracefully without crashing
     let result = commands::add::execute(&ctx, &paths, false);
-    match result {
-        Ok(_) => {
-            // Should still be able to perform other operations
-            let _status = commands::status::execute(&ctx, false, false);
-        }
-        Err(_) => {
-            // Graceful resource exhaustion handling
-        }
+    if let Err(err) = result {
+        // If it failed, verify it's due to resource limits
+        let err_msg = err.to_string().to_lowercase();
+        assert!(
+            err_msg.contains("resource")
+                || err_msg.contains("limit")
+                || err_msg.contains("too many")
+                || err_msg.contains("memory"),
+            "Should fail with resource error, got: {}",
+            err_msg
+        );
+    } else {
+        // Should still be able to perform other operations
+        let status_result = commands::status::execute(&ctx, false, false);
+        assert!(
+            status_result.is_ok(),
+            "Status should work after adding many files"
+        );
+
+        // Verify files were actually added
+        let index = Index::load(&ctx.repo_path.join("index.bin"))?;
+        assert!(
+            index.entries.len() == created_files.len(),
+            "All {} files should be in index, found {}",
+            created_files.len(),
+            index.entries.len()
+        );
     }
 
     // Test creating files with extremely long names
@@ -345,13 +397,24 @@ fn test_race_condition_attacks() -> Result<()> {
     dotman_handle.join().unwrap();
     corruptor_handle.join().unwrap();
 
-    // System should still be functional or fail gracefully
-    let final_result = commands::status::execute(&ctx, false, false);
-    // System should still be functional or fail gracefully
-    if final_result.is_ok() {
-        // Still working
+    // System should be recoverable after race conditions
+    // Try to recover by recreating a clean index
+    let index_path = ctx.repo_path.join("index.bin");
+    if index_path.exists() {
+        // If index exists but might be corrupted, try to load it
+        let load_result = Index::load(&index_path);
+        if load_result.is_err() {
+            // Index is corrupted, recreate it
+            let new_index = Index::new();
+            new_index.save(&index_path)?;
+        }
     }
-    // Graceful failure is also acceptable
+
+    let final_result = commands::status::execute(&ctx, false, false);
+    assert!(
+        final_result.is_ok(),
+        "System should be functional after recovery from race conditions"
+    );
 
     Ok(())
 }

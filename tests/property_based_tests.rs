@@ -304,16 +304,34 @@ proptest! {
 
         let result = commands::commit::execute(&ctx, &message, false);
 
-        // Should handle arbitrary commit messages
-        match result {
-            Ok(_) => {
-                // If successful, verify commit was created
+        // Should handle commit messages properly
+        // Note: dotman currently allows empty commit messages
+        if message.len() > 10000 {
+            // Very long messages might be rejected
+            if result.is_err() {
+                let err = result.unwrap_err().to_string();
+                prop_assert!(
+                    err.contains("message") || err.contains("too long"),
+                    "Should reject with appropriate error for long message"
+                );
+            } else {
+                // Long message was accepted, verify commit was created
                 let head_path = ctx.repo_path.join("HEAD");
                 prop_assert!(head_path.exists(), "HEAD should exist after commit");
             }
-            Err(_) => {
-                // May reject certain message formats
-            }
+        } else {
+            // Normal messages (including empty) should succeed
+            prop_assert!(
+                result.is_ok(),
+                "Should accept commit message of length {}",
+                message.len()
+            );
+
+            // Verify commit was created
+            let head_path = ctx.repo_path.join("HEAD");
+            prop_assert!(head_path.exists(), "HEAD should exist after commit");
+            let head = fs::read_to_string(&head_path).unwrap();
+            prop_assert!(!head.is_empty(), "HEAD should contain commit ID");
         }
     }
 }

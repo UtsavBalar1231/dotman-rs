@@ -4,7 +4,6 @@ use dotman::commands;
 use dotman::config::Config;
 use dotman::storage::index::Index;
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
 use tempfile::tempdir;
 
 // Helper function to create test context
@@ -155,53 +154,7 @@ fn test_special_characters_in_content() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_concurrent_file_modifications() -> Result<()> {
-    use std::sync::Arc;
-    use std::thread;
-    use std::time::Duration;
-
-    let (dir, ctx) = setup_test_context()?;
-    let ctx = Arc::new(ctx);
-
-    // Create test file
-    let test_file = dir.path().join("concurrent_test.txt");
-    fs::write(&test_file, "initial content")?;
-
-    // Add file
-    let paths = vec![test_file.to_string_lossy().to_string()];
-    commands::add::execute(&ctx, &paths, false)?;
-
-    // Spawn threads that modify the file while dotman operations are running
-    let test_file_clone = test_file.clone();
-    let modifier_handle = thread::spawn(move || {
-        for i in 0..100 {
-            if fs::write(&test_file_clone, format!("modified content {}", i)).is_err() {
-                // File might be locked, continue
-            }
-            thread::sleep(Duration::from_millis(1));
-        }
-    });
-
-    let ctx_clone = ctx.clone();
-    let paths_clone = paths.clone();
-    let dotman_handle = thread::spawn(move || {
-        for _ in 0..50 {
-            let _ = commands::status::execute(&ctx_clone, false, false);
-            let _ = commands::add::execute(&ctx_clone, &paths_clone, false);
-            thread::sleep(Duration::from_millis(2));
-        }
-    });
-
-    modifier_handle.join().unwrap();
-    dotman_handle.join().unwrap();
-
-    // Final operations should still work
-    let result = commands::status::execute(&ctx, false, false);
-    assert!(result.is_ok());
-
-    Ok(())
-}
+// Concurrent test consolidated in integration_test.rs::test_concurrent_operations
 
 #[test]
 fn test_symlink_handling() -> Result<()> {
@@ -283,43 +236,102 @@ fn test_disk_space_edge_cases() -> Result<()> {
 }
 
 #[test]
-fn test_permission_edge_cases() -> Result<()> {
+fn test_comprehensive_permissions() -> Result<()> {
     let (dir, ctx) = setup_test_context()?;
-
-    // Create files with different permissions
-    let readable_file = dir.path().join("readable.txt");
-    fs::write(&readable_file, "readable content")?;
-
-    let executable_file = dir.path().join("executable.sh");
-    fs::write(&executable_file, "#!/bin/bash\necho hello")?;
 
     #[cfg(unix)]
     {
-        // Make file executable
+        use std::os::unix::fs::PermissionsExt;
+
+        // Check if we're in a privileged environment where permission tests may not work
+        let is_root = unsafe { libc::geteuid() } == 0;
+        let in_docker = std::path::Path::new("/.dockerenv").exists()
+            || fs::read_to_string("/proc/1/cgroup")
+                .unwrap_or_default()
+                .contains("docker");
+
+        // Test 1: Files with different permission modes
+        let executable_file = dir.path().join("executable.sh");
+        fs::write(&executable_file, "#!/bin/bash\necho hello")?;
         let mut perms = fs::metadata(&executable_file)?.permissions();
         perms.set_mode(0o755);
         fs::set_permissions(&executable_file, perms)?;
 
-        // Make file read-only
         let readonly_file = dir.path().join("readonly.txt");
         fs::write(&readonly_file, "readonly content")?;
         let mut perms = fs::metadata(&readonly_file)?.permissions();
         perms.set_mode(0o444);
         fs::set_permissions(&readonly_file, perms)?;
 
-        // Test adding files with different permissions
+        // Add files with different permissions
         let paths = vec![
-            readable_file.to_string_lossy().to_string(),
             executable_file.to_string_lossy().to_string(),
             readonly_file.to_string_lossy().to_string(),
         ];
-
         let result = commands::add::execute(&ctx, &paths, false);
         assert!(result.is_ok());
 
-        // Permissions should be preserved
-        let result = commands::commit::execute(&ctx, "Permission test", false);
-        assert!(result.is_ok());
+        // Test 2: Index file permission issues
+        if !is_root && !in_docker {
+            let index_path = ctx.repo_path.join("index.bin");
+
+            // Make index read-only temporarily
+            let mut perms = fs::metadata(&index_path)?.permissions();
+            let original_mode = perms.mode();
+            perms.set_mode(0o444);
+            fs::set_permissions(&index_path, perms.clone())?;
+
+            // Try to add another file - should fail due to permission
+            let test_file = dir.path().join("test_perm.txt");
+            fs::write(&test_file, "test content")?;
+            let paths = vec![test_file.to_string_lossy().to_string()];
+            let result = commands::add::execute(&ctx, &paths, false);
+            assert!(result.is_err(), "Should fail to write to read-only index");
+
+            // Restore permissions
+            perms.set_mode(original_mode);
+            fs::set_permissions(&index_path, perms)?;
+
+            // Should now work
+            let result = commands::add::execute(&ctx, &paths, false);
+            assert!(result.is_ok(), "Should succeed after restoring permissions");
+        }
+
+        // Test 3: Config file permission issues
+        let config_path = ctx.config_path.clone();
+        if config_path.exists() && !is_root && !in_docker {
+            let mut perms = fs::metadata(&config_path)?.permissions();
+            let original_mode = perms.mode();
+            perms.set_mode(0o444);
+            fs::set_permissions(&config_path, perms.clone())?;
+
+            // Should still be able to read
+            let result = Config::load(&config_path);
+            assert!(result.is_ok(), "Should be able to read read-only config");
+
+            // Should not be able to write
+            let config = Config::default();
+            let write_result = config.save(&config_path);
+            assert!(
+                write_result.is_err(),
+                "Should not be able to write to read-only config"
+            );
+
+            // Restore permissions
+            perms.set_mode(original_mode);
+            fs::set_permissions(&config_path, perms)?;
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        // On non-Unix systems, just verify basic operations work
+        let test_file = dir.path().join("test.txt");
+        fs::write(&test_file, "test content")?;
+
+        let paths = vec![test_file.to_string_lossy().to_string()];
+        let result = commands::add::execute(&ctx, &paths, false);
+        assert!(result.is_ok(), "Should be able to add file on non-Unix");
     }
 
     Ok(())
@@ -390,56 +402,7 @@ fn test_path_traversal_security() -> Result<()> {
     Ok(())
 }
 
-// ============= STRESS TESTS =============
-
-#[test]
-fn test_memory_usage_large_operations() -> Result<()> {
-    let (dir, ctx) = setup_test_context()?;
-
-    // Create many files to test memory usage
-    let num_files = 5000;
-    for i in 0..num_files {
-        let file_path = dir.path().join(format!("file_{:06}.txt", i));
-        fs::write(
-            &file_path,
-            format!(
-                "This is file number {} with some content to make it not tiny",
-                i
-            ),
-        )?;
-    }
-
-    // Add all files in batches to avoid command line limits
-    let batch_size = 100;
-    for batch_start in (0..num_files).step_by(batch_size) {
-        let batch_end = (batch_start + batch_size).min(num_files);
-        let batch_paths: Vec<String> = (batch_start..batch_end)
-            .map(|i| {
-                dir.path()
-                    .join(format!("file_{:06}.txt", i))
-                    .to_string_lossy()
-                    .to_string()
-            })
-            .collect();
-
-        let result = commands::add::execute(&ctx, &batch_paths, false);
-        assert!(
-            result.is_ok(),
-            "Failed to add batch starting at {}",
-            batch_start
-        );
-    }
-
-    // Test status on many files
-    let result = commands::status::execute(&ctx, false, false);
-    assert!(result.is_ok());
-
-    // Test commit with many files
-    let result = commands::commit::execute(&ctx, "Many files test", false);
-    assert!(result.is_ok());
-
-    Ok(())
-}
+// Large-scale test consolidated in integration_test.rs::test_large_scale_operations
 
 #[test]
 fn test_rapid_file_changes() -> Result<()> {

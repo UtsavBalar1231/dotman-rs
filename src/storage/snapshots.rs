@@ -718,4 +718,144 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_snapshot_corruption_recovery() -> Result<()> {
+        let dir = tempdir()?;
+        let repo_path = dir.path().to_path_buf();
+
+        // Create repo structure
+        fs::create_dir_all(repo_path.join("commits"))?;
+        fs::create_dir_all(repo_path.join("objects"))?;
+
+        let manager = SnapshotManager::new(repo_path.clone(), 3);
+
+        // Create a valid snapshot first
+        let test_file = dir.path().join("test.txt");
+        fs::write(&test_file, "snapshot content")?;
+
+        let files = vec![FileEntry {
+            path: test_file.clone(),
+            hash: "test_hash".to_string(),
+            size: 16,
+            modified: 1234567890,
+            mode: 0o644,
+        }];
+
+        let commit = Commit {
+            id: "commit1".to_string(),
+            parent: None,
+            message: "Test commit".to_string(),
+            author: "Test".to_string(),
+            timestamp: 1234567890,
+            tree_hash: "tree1".to_string(),
+        };
+
+        manager.create_snapshot(commit, &files)?;
+
+        let commits_dir = repo_path.join("commits");
+        let snapshot_file = commits_dir.join("commit1.zst");
+
+        assert!(snapshot_file.exists());
+        let original_data = fs::read(&snapshot_file)?;
+
+        // Test 1: Corrupt compressed data
+        fs::write(&snapshot_file, vec![0x28, 0xb5, 0x2f, 0xfd, 0xFF, 0xFF])?; // Invalid zstd
+
+        let result = manager.load_snapshot("commit1");
+        assert!(result.is_err(), "Should reject corrupted snapshot");
+
+        // Test 2: Partial snapshot file
+        fs::write(&snapshot_file, &original_data[..original_data.len() / 3])?;
+
+        let result = manager.load_snapshot("commit1");
+        assert!(result.is_err(), "Should reject partial snapshot");
+
+        // Test 3: Replace with valid compression of wrong data
+        let fake_data = zstd::encode_all(&b"fake snapshot data"[..], 3)?;
+        fs::write(&snapshot_file, fake_data)?;
+
+        let result = manager.load_snapshot("commit1");
+        assert!(
+            result.is_err(),
+            "Should reject snapshot with wrong data structure"
+        );
+
+        // Restore and verify recovery
+        fs::write(&snapshot_file, &original_data)?;
+        let restored = manager.load_snapshot("commit1")?;
+        assert_eq!(restored.commit.id, "commit1");
+        assert_eq!(restored.files.len(), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_object_corruption_detection() -> Result<()> {
+        let dir = tempdir()?;
+        let repo_path = dir.path().to_path_buf();
+
+        fs::create_dir_all(repo_path.join("commits"))?;
+        fs::create_dir_all(repo_path.join("objects"))?;
+
+        let manager = SnapshotManager::new(repo_path.clone(), 3);
+
+        // Create snapshot with objects
+        let test_file = dir.path().join("test.txt");
+        fs::write(&test_file, "test content for objects")?;
+
+        let files = vec![FileEntry {
+            path: test_file.clone(),
+            hash: "object_hash".to_string(),
+            size: 24,
+            modified: 1234567890,
+            mode: 0o644,
+        }];
+
+        let commit = Commit {
+            id: "objtest".to_string(),
+            parent: None,
+            message: "Object test".to_string(),
+            author: "Test".to_string(),
+            timestamp: 1234567890,
+            tree_hash: "tree".to_string(),
+        };
+
+        manager.create_snapshot(commit, &files)?;
+
+        // Find and corrupt object files
+        let objects_dir = repo_path.join("objects");
+        let mut object_files = Vec::new();
+        for entry in fs::read_dir(&objects_dir)? {
+            let entry = entry?;
+            object_files.push(entry.path());
+        }
+
+        assert!(!object_files.is_empty(), "Should have created object files");
+
+        for object_path in &object_files {
+            let original_data = fs::read(object_path)?;
+
+            // Test 1: Truncate object
+            fs::write(object_path, &original_data[..original_data.len() / 2])?;
+
+            // Try to restore - should detect corruption
+            let _restore_result = manager.restore_snapshot("objtest", dir.path());
+            // Restoration might fail due to corrupted objects
+
+            // Test 2: Replace with random data
+            fs::write(object_path, vec![0x42; 100])?;
+
+            let restore_result = manager.restore_snapshot("objtest", dir.path());
+            assert!(
+                restore_result.is_err(),
+                "Should fail to restore with corrupted objects"
+            );
+
+            // Restore original for next test
+            fs::write(object_path, &original_data)?;
+        }
+
+        Ok(())
+    }
 }

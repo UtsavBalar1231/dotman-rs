@@ -32,46 +32,7 @@ fn setup_corrupted_repo() -> Result<(tempfile::TempDir, DotmanContext)> {
     Ok((dir, context))
 }
 
-#[test]
-fn test_recover_from_corrupted_index() -> Result<()> {
-    let (dir, ctx) = setup_corrupted_repo()?;
-
-    // Create valid index first
-    let mut index = Index::new();
-    index.add_entry(FileEntry {
-        path: PathBuf::from("test.txt"),
-        hash: "valid_hash".to_string(),
-        size: 100,
-        modified: 1234567890,
-        mode: 0o644,
-    });
-
-    let index_path = ctx.repo_path.join("index.bin");
-    index.save(&index_path)?;
-
-    // Corrupt the index file
-    fs::write(
-        &index_path,
-        b"This is corrupted binary data that's not valid bincode",
-    )?;
-
-    // Try to load corrupted index
-    let result = Index::load(&index_path);
-    assert!(result.is_err());
-
-    // Recovery strategy: create new empty index
-    let recovered_index = Index::new();
-    recovered_index.save(&index_path)?;
-
-    // Should now be able to use commands
-    let test_file = dir.path().join("new.txt");
-    fs::write(&test_file, "new content")?;
-
-    let paths = vec![test_file.to_string_lossy().to_string()];
-    commands::add::execute(&ctx, &paths, false)?;
-
-    Ok(())
-}
+// Test moved to src/storage/index.rs as a unit test
 
 #[test]
 fn test_recover_from_incomplete_commit() -> Result<()> {
@@ -214,75 +175,7 @@ fn test_recover_from_interrupted_operations() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_recover_from_permission_issues() -> Result<()> {
-    let (dir, ctx) = setup_corrupted_repo()?;
-
-    // Create a file
-    let test_file = dir.path().join("test.txt");
-    fs::write(&test_file, "content")?;
-
-    // Add it
-    let paths = vec![test_file.to_string_lossy().to_string()];
-    commands::add::execute(&ctx, &paths, false)?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-
-        // Check if we're running as root or in a Docker container
-        let is_root = unsafe { libc::geteuid() } == 0;
-        let in_docker = std::path::Path::new("/.dockerenv").exists()
-            || fs::read_to_string("/proc/1/cgroup")
-                .unwrap_or_default()
-                .contains("docker");
-
-        if is_root || in_docker {
-            // Skip permission test in privileged environments
-            println!("Skipping permission test in privileged environment");
-            return Ok(());
-        }
-
-        // Make index read-only
-        let index_path = ctx.repo_path.join("index.bin");
-        let mut perms = fs::metadata(&index_path)?.permissions();
-        perms.set_mode(0o444); // Read-only
-        fs::set_permissions(&index_path, perms.clone())?;
-
-        // Try to add another file - should fail due to permission
-        let test_file2 = dir.path().join("test2.txt");
-        fs::write(&test_file2, "content2")?;
-
-        let paths2 = vec![test_file2.to_string_lossy().to_string()];
-        let result = commands::add::execute(&ctx, &paths2, false);
-
-        assert!(result.is_err(), "Should fail to write to read-only index");
-
-        // Recovery: restore permissions
-        perms.set_mode(0o644);
-        fs::set_permissions(&index_path, perms)?;
-
-        // Should now work
-        let result2 = commands::add::execute(&ctx, &paths2, false);
-        assert!(
-            result2.is_ok(),
-            "Should succeed after restoring permissions"
-        );
-    }
-
-    #[cfg(not(unix))]
-    {
-        // On non-Unix systems, just verify basic operations work
-        let test_file2 = dir.path().join("test2.txt");
-        fs::write(&test_file2, "content2")?;
-
-        let paths2 = vec![test_file2.to_string_lossy().to_string()];
-        let result = commands::add::execute(&ctx, &paths2, false);
-        assert!(result.is_ok(), "Should be able to add file");
-    }
-
-    Ok(())
-}
+// Permission test consolidated into comprehensive_test.rs::test_comprehensive_permissions
 
 #[test]
 fn test_recover_from_disk_full() -> Result<()> {
@@ -321,85 +214,9 @@ fn test_recover_from_disk_full() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_concurrent_access_recovery() -> Result<()> {
-    use std::sync::Arc;
-    use std::thread;
-    use std::time::Duration;
+// Concurrent test consolidated in integration_test.rs::test_concurrent_operations
 
-    let (dir, ctx) = setup_corrupted_repo()?;
-    let ctx = Arc::new(ctx);
-
-    // Create test files
-    for i in 0..10 {
-        let file = dir.path().join(format!("file_{}.txt", i));
-        fs::write(&file, format!("content {}", i))?;
-    }
-
-    // Simulate concurrent access with potential conflicts
-    let handles: Vec<_> = (0..5)
-        .map(|thread_id| {
-            let ctx_clone = ctx.clone();
-            let dir_path = dir.path().to_path_buf();
-
-            thread::spawn(move || {
-                // Each thread tries to add different files
-                let file = dir_path.join(format!("file_{}.txt", thread_id));
-                let paths = vec![file.to_string_lossy().to_string()];
-
-                // Add some delay to increase chance of conflicts
-                thread::sleep(Duration::from_millis(10));
-
-                // Multiple attempts with retry logic
-                for attempt in 0..3 {
-                    match commands::add::execute(&ctx_clone, &paths, false) {
-                        Ok(_) => break,
-                        Err(e) => {
-                            if attempt == 2 {
-                                panic!("Failed after 3 attempts: {}", e);
-                            }
-                            thread::sleep(Duration::from_millis(50));
-                        }
-                    }
-                }
-            })
-        })
-        .collect();
-
-    // Wait for all threads
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    // Verify index is still consistent
-    let index = Index::load(&ctx.repo_path.join("index.bin"))?;
-    assert!(index.entries.len() >= 5);
-
-    Ok(())
-}
-
-#[test]
-fn test_recover_from_invalid_config() -> Result<()> {
-    let dir = tempdir()?;
-    let config_path = dir.path().join("config.toml");
-
-    // Write invalid config
-    fs::write(&config_path, "invalid toml content {{ broken")?;
-
-    // Try to load - should fail
-    let result = Config::load(&config_path);
-    assert!(result.is_err());
-
-    // Recovery: use defaults
-    let default_config = Config::default();
-    default_config.save(&config_path)?;
-
-    // Should now load successfully
-    let recovered = Config::load(&config_path)?;
-    assert_eq!(recovered.core.default_branch, "main");
-
-    Ok(())
-}
+// Config recovery test moved to src/config/mod.rs::test_malformed_config_recovery
 
 #[test]
 fn test_garbage_collection_recovery() -> Result<()> {
