@@ -76,6 +76,20 @@ enum Commands {
         soft: bool,
     },
 
+    /// Create a new commit that undoes changes from a specified commit
+    Revert {
+        /// Commit to revert
+        commit: String,
+
+        /// Skip the commit confirmation and immediately create the revert commit
+        #[arg(short, long)]
+        no_edit: bool,
+
+        /// Allow reverting when there are uncommitted changes
+        #[arg(short, long)]
+        force: bool,
+    },
+
     /// Restore specific files from a commit
     Restore {
         /// Files to restore
@@ -453,6 +467,14 @@ fn run() -> Result<()> {
         Commands::Reset { commit, hard, soft } => {
             let ctx = context.unwrap();
             commands::reset::execute(&ctx, &commit, hard, soft)?;
+        }
+        Commands::Revert {
+            commit,
+            no_edit,
+            force,
+        } => {
+            let ctx = context.unwrap();
+            commands::revert::execute(&ctx, &commit, no_edit, force)?;
         }
         Commands::Restore { paths, source } => {
             let ctx = context.unwrap();

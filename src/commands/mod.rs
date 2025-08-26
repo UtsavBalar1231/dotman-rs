@@ -13,6 +13,7 @@ pub mod reflog;
 pub mod remote;
 pub mod reset;
 pub mod restore;
+pub mod revert;
 pub mod rm;
 pub mod show;
 pub mod stash;

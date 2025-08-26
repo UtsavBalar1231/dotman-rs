@@ -75,7 +75,8 @@ impl ReflogEntry {
         // Don't truncate symbolic references (e.g., "ref: refs/heads/main")
         if self.new_value.starts_with("ref:") {
             &self.new_value
-        } else if self.new_value.len() >= 8 && self.new_value.chars().all(|c| c.is_ascii_hexdigit()) {
+        } else if self.new_value.len() >= 8 && self.new_value.chars().all(|c| c.is_ascii_hexdigit())
+        {
             // Only truncate hexadecimal commit hashes
             &self.new_value[..8]
         } else {

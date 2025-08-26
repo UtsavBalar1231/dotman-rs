@@ -44,8 +44,7 @@ impl RefResolver {
             return self.resolve_head_parent(parent_count);
         }
         // Handle HEAD^, HEAD^^, HEAD^^^, HEAD^n
-        else if reference.starts_with("HEAD^") {
-            let caret_spec = &reference[5..]; // Skip "HEAD^"
+        else if let Some(caret_spec) = reference.strip_prefix("HEAD^") {
             let parent_count = self.parse_caret_notation(caret_spec, reference)?;
             return self.resolve_head_parent(parent_count);
         }
@@ -100,7 +99,7 @@ impl RefResolver {
                     i
                 );
             }
-            
+
             let snapshot = match snapshot_manager.load_snapshot(&current) {
                 Ok(s) => s,
                 Err(_) => anyhow::bail!(
@@ -382,7 +381,7 @@ mod tests {
 
         // Test HEAD^ (first parent)
         assert_eq!(resolver.resolve("HEAD^")?, commit2);
-        
+
         // Test HEAD^^ (second ancestor)
         assert_eq!(resolver.resolve("HEAD^^")?, commit1);
 
@@ -450,12 +449,22 @@ mod tests {
         // Test invalid caret notation
         let result = resolver.resolve("HEAD^xyz");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Invalid parent specification"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid parent specification")
+        );
 
         // Test mixed caret and number
         let result = resolver.resolve("HEAD^2^");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Invalid parent specification"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid parent specification")
+        );
 
         Ok(())
     }
