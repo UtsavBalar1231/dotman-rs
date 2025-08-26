@@ -146,6 +146,17 @@ enum Commands {
         interactive: bool,
     },
 
+    /// Remove untracked files from working directory
+    Clean {
+        /// Dry run - only show what would be removed
+        #[arg(short = 'n', long)]
+        dry_run: bool,
+
+        /// Force removal of untracked files
+        #[arg(short, long)]
+        force: bool,
+    },
+
     /// Manage remote repositories
     Remote {
         #[command(subcommand)]
@@ -418,6 +429,10 @@ fn run() -> Result<()> {
         } => {
             let ctx = context.unwrap();
             commands::rm::execute(&ctx, &paths, cached, force, interactive)?;
+        }
+        Commands::Clean { dry_run, force } => {
+            let ctx = context.unwrap();
+            commands::clean::execute(&ctx, dry_run, force)?;
         }
         Commands::Remote { action } => {
             let mut ctx = context.unwrap();
