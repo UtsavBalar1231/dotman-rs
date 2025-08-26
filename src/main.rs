@@ -76,6 +76,16 @@ enum Commands {
         soft: bool,
     },
 
+    /// Restore specific files from a commit
+    Restore {
+        /// Files to restore
+        paths: Vec<String>,
+
+        /// Source commit to restore from
+        #[arg(short, long, default_value = "HEAD")]
+        source: String,
+    },
+
     /// Update remote refs along with associated objects
     Push {
         /// Remote name
@@ -428,6 +438,10 @@ fn run() -> Result<()> {
         Commands::Reset { commit, hard, soft } => {
             let ctx = context.unwrap();
             commands::reset::execute(&ctx, &commit, hard, soft)?;
+        }
+        Commands::Restore { paths, source } => {
+            let ctx = context.unwrap();
+            commands::restore::execute(&ctx, &paths, Some(&source))?;
         }
         Commands::Push { remote, branch } => {
             let ctx = context.unwrap();

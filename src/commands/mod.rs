@@ -11,6 +11,7 @@ pub mod pull;
 pub mod push;
 pub mod remote;
 pub mod reset;
+pub mod restore;
 pub mod rm;
 pub mod show;
 pub mod stash;
