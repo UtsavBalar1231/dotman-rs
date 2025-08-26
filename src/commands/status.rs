@@ -1,3 +1,4 @@
+use crate::refs::RefManager;
 use crate::storage::FileStatus;
 use crate::storage::index::{ConcurrentIndex, Index};
 use crate::storage::snapshots::SnapshotManager;
@@ -10,8 +11,38 @@ use std::path::PathBuf;
 pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result<()> {
     ctx.ensure_repo_exists()?;
 
+    // Display current branch information
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    if let Some(branch) = ref_manager.current_branch()? {
+        println!("On branch {}", branch.bold());
+    } else {
+        // Detached HEAD state
+        if let Some(commit) = ref_manager.get_head_commit()? {
+            println!(
+                "HEAD detached at {}",
+                &commit[..8.min(commit.len())].yellow()
+            );
+        }
+    }
+
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
+
+    // Check if repository has any commits (placeholder is 40 zeros)
+    let placeholder_commit = "0".repeat(40);
+    let has_commits = ref_manager
+        .get_head_commit()?
+        .is_some_and(|c| c != placeholder_commit);
+
+    // Check if index is empty (no tracked files)
+    if index.entries.is_empty() {
+        if !has_commits {
+            println!("\nNo commits yet");
+        }
+        println!("\nnothing to add (use \"dot add\" to track files)");
+        return Ok(());
+    }
+
     let concurrent_index = ConcurrentIndex::from_index(index.clone());
 
     // Get all current files in tracked directories
@@ -29,28 +60,41 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
     }
 
     // Check for added files (in index but not in last commit)
-    let head_path = ctx.repo_path.join("HEAD");
-    if head_path.exists() {
-        // We have commits, compare index against last commit
-        let last_commit_id = std::fs::read_to_string(&head_path)?.trim().to_string();
-        let snapshot_manager =
-            SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    // Get the actual HEAD commit (resolves through branch if needed)
+    let head_commit = ref_manager.get_head_commit()?;
+    let placeholder_commit_check = "0".repeat(40);
 
-        if let Ok(snapshot) = snapshot_manager.load_snapshot(&last_commit_id) {
-            let committed_files: HashSet<_> = snapshot.files.keys().cloned().collect();
+    if let Some(commit_id) = head_commit {
+        // Check if this is a real commit (not the placeholder)
+        if commit_id != placeholder_commit_check {
+            // We have real commits, compare index against last commit
+            let snapshot_manager =
+                SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-            // Files in index but not in last commit are "Added"
-            for path in index.entries.keys() {
-                if !committed_files.contains(path) {
-                    // Remove from untracked if it's there
-                    statuses.retain(|s| !matches!(s, FileStatus::Untracked(p) if p == path));
-                    // Add as Added status
-                    statuses.push(FileStatus::Added(path.clone()));
+            if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+                let committed_files: HashSet<_> = snapshot.files.keys().cloned().collect();
+
+                // Files in index but not in last commit are "Added"
+                for path in index.entries.keys() {
+                    if !committed_files.contains(path) {
+                        // Remove from untracked if it's there
+                        statuses.retain(|s| !matches!(s, FileStatus::Untracked(p) if p == path));
+                        // Add as Added status
+                        statuses.push(FileStatus::Added(path.clone()));
+                    }
                 }
+            }
+        } else {
+            // Placeholder commit, treat as no commits yet
+            for path in index.entries.keys() {
+                // Remove from untracked if it's there
+                statuses.retain(|s| !matches!(s, FileStatus::Untracked(p) if p == path));
+                // Add as Added status
+                statuses.push(FileStatus::Added(path.clone()));
             }
         }
     } else {
-        // No commits yet, all indexed files are "Added"
+        // No HEAD at all, all indexed files are "Added"
         for path in index.entries.keys() {
             // Remove from untracked if it's there
             statuses.retain(|s| !matches!(s, FileStatus::Untracked(p) if p == path));
@@ -60,8 +104,9 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
     }
 
     if statuses.is_empty() {
-        super::print_info("No changes detected");
-        println!("Working directory clean");
+        // Only show clean working directory message if we have tracked files
+        // (we already handled the empty index case above)
+        println!("\nnothing to commit, working tree clean");
         return Ok(());
     }
 
