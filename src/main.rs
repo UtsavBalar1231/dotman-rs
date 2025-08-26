@@ -193,6 +193,12 @@ enum Commands {
         shell: Shell,
     },
 
+    /// Create, list, or delete tags for important commits
+    Tag {
+        #[command(subcommand)]
+        action: Option<TagAction>,
+    },
+
     /// Temporarily save changes to a dirty working directory
     Stash {
         #[command(subcommand)]
@@ -244,6 +250,35 @@ enum StashAction {
 
     /// Remove all stashes
     Clear,
+}
+
+#[derive(Subcommand)]
+enum TagAction {
+    /// Create a new tag
+    Create {
+        /// Tag name
+        name: String,
+        /// Commit to tag (defaults to HEAD)
+        commit: Option<String>,
+    },
+
+    /// List all tags
+    List,
+
+    /// Delete a tag
+    Delete {
+        /// Tag name
+        name: String,
+        /// Force deletion
+        #[arg(short, long)]
+        force: bool,
+    },
+
+    /// Show details about a tag
+    Show {
+        /// Tag name
+        name: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -488,6 +523,19 @@ fn run() -> Result<()> {
         }
         Commands::Completion { shell } => {
             print_completions(shell, &mut Cli::command());
+        }
+        Commands::Tag { action } => {
+            let ctx = context.unwrap();
+            match action {
+                None | Some(TagAction::List) => commands::tag::list(&ctx)?,
+                Some(TagAction::Create { name, commit }) => {
+                    commands::tag::create(&ctx, &name, commit.as_deref())?
+                }
+                Some(TagAction::Delete { name, force }) => {
+                    commands::tag::delete(&ctx, &name, force)?
+                }
+                Some(TagAction::Show { name }) => commands::tag::show(&ctx, &name)?,
+            }
         }
         Commands::Stash { action } => {
             let ctx = context.unwrap();

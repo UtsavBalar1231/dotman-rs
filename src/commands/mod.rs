@@ -15,6 +15,7 @@ pub mod rm;
 pub mod show;
 pub mod stash;
 pub mod status;
+pub mod tag;
 
 use colored::Colorize;
 

@@ -19,6 +19,7 @@ impl RefManager {
         // Create refs directories
         fs::create_dir_all(self.repo_path.join("refs/heads"))?;
         fs::create_dir_all(self.repo_path.join("refs/remotes"))?;
+        fs::create_dir_all(self.repo_path.join("refs/tags"))?;
 
         // Create default main branch
         self.create_branch("main", None)?;
@@ -188,6 +189,81 @@ impl RefManager {
         }
 
         Ok(())
+    }
+
+    // Tag management methods
+
+    /// Create a new tag
+    pub fn create_tag(&self, name: &str, commit_id: Option<&str>) -> Result<()> {
+        let tag_path = self.repo_path.join(format!("refs/tags/{}", name));
+
+        if tag_path.exists() {
+            anyhow::bail!("Tag '{}' already exists", name);
+        }
+
+        // If commit_id is provided, use it; otherwise use current HEAD
+        let commit = if let Some(id) = commit_id {
+            id.to_string()
+        } else {
+            self.get_head_commit()?
+                .ok_or_else(|| anyhow::anyhow!("No commits available to tag"))?
+        };
+
+        // Ensure the tags directory exists
+        if let Some(parent) = tag_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        fs::write(&tag_path, commit)?;
+        Ok(())
+    }
+
+    /// Delete a tag
+    pub fn delete_tag(&self, name: &str) -> Result<()> {
+        let tag_path = self.repo_path.join(format!("refs/tags/{}", name));
+
+        if !tag_path.exists() {
+            anyhow::bail!("Tag '{}' does not exist", name);
+        }
+
+        fs::remove_file(&tag_path)?;
+        Ok(())
+    }
+
+    /// List all tags
+    pub fn list_tags(&self) -> Result<Vec<String>> {
+        let tags_dir = self.repo_path.join("refs/tags");
+        if !tags_dir.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut tags = Vec::new();
+        for entry in fs::read_dir(&tags_dir)? {
+            let entry = entry?;
+            if entry.file_type()?.is_file()
+                && let Some(name) = entry.file_name().to_str()
+            {
+                tags.push(name.to_string());
+            }
+        }
+
+        tags.sort();
+        Ok(tags)
+    }
+
+    /// Get the commit ID for a tag
+    pub fn get_tag_commit(&self, tag: &str) -> Result<String> {
+        let tag_path = self.repo_path.join(format!("refs/tags/{}", tag));
+        if !tag_path.exists() {
+            anyhow::bail!("Tag '{}' does not exist", tag);
+        }
+
+        Ok(fs::read_to_string(&tag_path)?.trim().to_string())
+    }
+
+    /// Check if a tag exists
+    pub fn tag_exists(&self, name: &str) -> bool {
+        self.repo_path.join(format!("refs/tags/{}", name)).exists()
     }
 }
 
