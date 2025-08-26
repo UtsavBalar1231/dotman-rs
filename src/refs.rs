@@ -1,3 +1,4 @@
+use crate::reflog::ReflogManager;
 use anyhow::Result;
 use std::fs;
 use std::path::PathBuf;
@@ -50,15 +51,79 @@ impl RefManager {
 
     /// Set HEAD to point to a branch
     pub fn set_head_to_branch(&self, branch: &str) -> Result<()> {
+        self.set_head_to_branch_with_reflog(
+            branch,
+            "checkout",
+            &format!("checkout: moving to {}", branch),
+        )
+    }
+
+    /// Set HEAD to point to a branch with reflog entry
+    pub fn set_head_to_branch_with_reflog(
+        &self,
+        branch: &str,
+        operation: &str,
+        message: &str,
+    ) -> Result<()> {
+        // Get current HEAD value before changing it
+        let old_value = self
+            .get_current_head_value()
+            .unwrap_or_else(|| "0".repeat(40));
+
         let head_path = self.repo_path.join("HEAD");
-        fs::write(&head_path, format!("ref: refs/heads/{}", branch))?;
+        let new_ref = format!("ref: refs/heads/{}", branch);
+        fs::write(&head_path, &new_ref)?;
+
+        // Log the reflog entry
+        let reflog_manager = ReflogManager::new(self.repo_path.clone());
+        reflog_manager.log_head_update(&old_value, &new_ref, operation, message)?;
+
         Ok(())
+    }
+
+    /// Get the current raw HEAD value (for reflog purposes)
+    fn get_current_head_value(&self) -> Option<String> {
+        let head_path = self.repo_path.join("HEAD");
+        if !head_path.exists() {
+            return None;
+        }
+
+        fs::read_to_string(&head_path)
+            .map(|s| s.trim().to_string())
+            .ok()
     }
 
     /// Set HEAD to point directly to a commit (detached HEAD)
     pub fn set_head_to_commit(&self, commit_id: &str) -> Result<()> {
+        self.set_head_to_commit_with_reflog(
+            commit_id,
+            "checkout",
+            &format!(
+                "checkout: moving to {}",
+                &commit_id[..8.min(commit_id.len())]
+            ),
+        )
+    }
+
+    /// Set HEAD to point directly to a commit with reflog entry
+    pub fn set_head_to_commit_with_reflog(
+        &self,
+        commit_id: &str,
+        operation: &str,
+        message: &str,
+    ) -> Result<()> {
+        // Get current HEAD value before changing it
+        let old_value = self
+            .get_current_head_value()
+            .unwrap_or_else(|| "0".repeat(40));
+
         let head_path = self.repo_path.join("HEAD");
         fs::write(&head_path, commit_id)?;
+
+        // Log the reflog entry
+        let reflog_manager = ReflogManager::new(self.repo_path.clone());
+        reflog_manager.log_head_update(&old_value, commit_id, operation, message)?;
+
         Ok(())
     }
 
@@ -185,7 +250,11 @@ impl RefManager {
             .as_ref()
             .is_some_and(|c| c == old_name)
         {
-            self.set_head_to_branch(new_name)?;
+            self.set_head_to_branch_with_reflog(
+                new_name,
+                "branch",
+                &format!("Branch: renamed {} to {}", old_name, new_name),
+            )?;
         }
 
         Ok(())

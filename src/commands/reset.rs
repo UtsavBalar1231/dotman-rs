@@ -103,17 +103,36 @@ pub fn execute(ctx: &DotmanContext, commit: &str, hard: bool, soft: bool) -> Res
 }
 
 fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
+    use crate::reflog::ReflogManager;
     use crate::refs::RefManager;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let reflog_manager = ReflogManager::new(ctx.repo_path.clone());
 
     // Check if we're on a branch
     if let Some(branch) = ref_manager.current_branch()? {
+        // Get current HEAD value before updating
+        let old_value = reflog_manager
+            .get_current_head()
+            .unwrap_or_else(|_| "0".repeat(40));
+
         // Update the branch to point to the new commit
         ref_manager.update_branch(&branch, commit_id)?;
+
+        // Log the reflog entry
+        reflog_manager.log_head_update(
+            &old_value,
+            commit_id,
+            "reset",
+            &format!("reset: moving to {}", &commit_id[..8.min(commit_id.len())]),
+        )?;
     } else {
-        // Detached HEAD - update HEAD directly
-        ref_manager.set_head_to_commit(commit_id)?;
+        // Detached HEAD - update HEAD directly with reflog
+        ref_manager.set_head_to_commit_with_reflog(
+            commit_id,
+            "reset",
+            &format!("reset: moving to {}", &commit_id[..8.min(commit_id.len())]),
+        )?;
     }
 
     Ok(())

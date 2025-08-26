@@ -1,4 +1,5 @@
 use crate::DotmanContext;
+use crate::refs::RefManager;
 use crate::refs::resolver::RefResolver;
 use crate::storage::snapshots::SnapshotManager;
 use anyhow::{Context, Result};
@@ -47,8 +48,10 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     // Restore files with cleanup of files not in target
     snapshot_manager.restore_snapshot_with_cleanup(&commit_id, &home, &current_files)?;
 
-    // Update HEAD
-    update_head(ctx, &commit_id)?;
+    // Update HEAD with reflog entry
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let message = format!("checkout: moving to {}", target);
+    ref_manager.set_head_to_commit_with_reflog(&commit_id, "checkout", &message)?;
 
     let display_id = if commit_id.len() >= 8 {
         &commit_id[commit_id.len() - 8..]
@@ -81,12 +84,6 @@ fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     let statuses = concurrent_index.get_status_parallel(&current_files);
 
     Ok(statuses.is_empty())
-}
-
-fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
-    let head_path = ctx.repo_path.join("HEAD");
-    std::fs::write(&head_path, commit_id)?;
-    Ok(())
 }
 
 // Helper to get current files - removed duplicate, use the one from status module
@@ -343,7 +340,8 @@ mod tests {
     fn test_update_head() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        update_head(&ctx, "new_commit_id")?;
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        ref_manager.set_head_to_commit("new_commit_id")?;
 
         let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
         assert_eq!(head_content, "new_commit_id");
@@ -358,8 +356,9 @@ mod tests {
         // Write initial HEAD
         fs::write(ctx.repo_path.join("HEAD"), "old_commit")?;
 
-        // Update HEAD
-        update_head(&ctx, "new_commit")?;
+        // Update HEAD using RefManager
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        ref_manager.set_head_to_commit("new_commit")?;
 
         let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
         assert_eq!(head_content, "new_commit");

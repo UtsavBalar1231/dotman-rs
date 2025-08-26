@@ -2,6 +2,7 @@ pub mod commands;
 pub mod config;
 pub mod mapping;
 pub mod mirror;
+pub mod reflog;
 pub mod refs;
 pub mod storage;
 pub mod sync;

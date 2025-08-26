@@ -9,6 +9,7 @@ pub mod init;
 pub mod log;
 pub mod pull;
 pub mod push;
+pub mod reflog;
 pub mod remote;
 pub mod reset;
 pub mod restore;

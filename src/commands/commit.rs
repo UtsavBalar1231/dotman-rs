@@ -222,17 +222,36 @@ fn get_last_commit_id(ctx: &DotmanContext) -> Result<Option<String>> {
 }
 
 fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
+    use crate::reflog::ReflogManager;
     use crate::refs::RefManager;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let reflog_manager = ReflogManager::new(ctx.repo_path.clone());
 
     // Check if we're on a branch or detached HEAD
     if let Some(current_branch) = ref_manager.current_branch()? {
+        // Get current HEAD value before updating
+        let old_value = reflog_manager
+            .get_current_head()
+            .unwrap_or_else(|_| "0".repeat(40));
+
         // Update the current branch to point to the new commit
         ref_manager.update_branch(&current_branch, commit_id)?;
+
+        // Log the reflog entry - for branch commits, we log the commit hash as new value
+        reflog_manager.log_head_update(
+            &old_value,
+            commit_id,
+            "commit",
+            &format!("commit: {}", &commit_id[..8.min(commit_id.len())]),
+        )?;
     } else {
-        // Detached HEAD - update HEAD directly
-        ref_manager.set_head_to_commit(commit_id)?;
+        // Detached HEAD - update HEAD directly with reflog
+        ref_manager.set_head_to_commit_with_reflog(
+            commit_id,
+            "commit",
+            &format!("commit: {}", &commit_id[..8.min(commit_id.len())]),
+        )?;
     }
 
     Ok(())

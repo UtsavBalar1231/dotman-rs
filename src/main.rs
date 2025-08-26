@@ -214,6 +214,21 @@ enum Commands {
         #[command(subcommand)]
         action: Option<StashAction>,
     },
+
+    /// Show reference update history for recovery
+    Reflog {
+        /// Number of entries to show
+        #[arg(short = 'n', long, default_value = "20")]
+        limit: usize,
+
+        /// Show one line per entry
+        #[arg(long)]
+        oneline: bool,
+
+        /// Show all entries
+        #[arg(long)]
+        all: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -590,6 +605,14 @@ fn run() -> Result<()> {
                 Some(StashAction::Clear) => commands::stash::StashCommand::Clear,
             };
             commands::stash::execute(&ctx, stash_cmd)?;
+        }
+        Commands::Reflog {
+            limit,
+            oneline,
+            all,
+        } => {
+            let ctx = context.unwrap();
+            commands::reflog::execute(&ctx, limit, oneline, all)?;
         }
     }
 
