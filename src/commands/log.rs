@@ -12,7 +12,7 @@ pub fn execute(
     limit: usize,
     oneline: bool,
 ) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
@@ -324,7 +324,7 @@ mod tests {
         let (_temp, ctx) = setup_test_context()?;
 
         // Don't create any commits, just ensure repo exists
-        ctx.ensure_repo_exists()?;
+        ctx.check_repo_initialized()?;
 
         let result = execute(&ctx, None, 10, false);
         assert!(result.is_ok());

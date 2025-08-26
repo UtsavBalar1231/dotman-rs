@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use walkdir::WalkDir;
 
 pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     // Safety check: require either -n or -f flag
     if !dry_run && !force {

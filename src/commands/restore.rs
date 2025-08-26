@@ -6,7 +6,7 @@ use colored::Colorize;
 use std::path::PathBuf;
 
 pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     if paths.is_empty() {
         anyhow::bail!("No files specified to restore");

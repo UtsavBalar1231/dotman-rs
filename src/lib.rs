@@ -44,6 +44,24 @@ impl DotmanContext {
         })
     }
 
+    /// Check if repository is properly initialized
+    pub fn is_repo_initialized(&self) -> bool {
+        self.repo_path.exists()
+            && self.repo_path.join(INDEX_FILE).exists()
+            && self.repo_path.join("HEAD").exists()
+    }
+
+    /// Check and return error if not initialized
+    pub fn check_repo_initialized(&self) -> Result<()> {
+        if !self.is_repo_initialized() {
+            anyhow::bail!(
+                "Dotman repository not found in {}. Did you run 'dot init'?",
+                self.repo_path.display()
+            );
+        }
+        Ok(())
+    }
+
     pub fn ensure_repo_exists(&self) -> Result<()> {
         std::fs::create_dir_all(&self.repo_path)?;
         std::fs::create_dir_all(self.repo_path.join(COMMITS_DIR))?;

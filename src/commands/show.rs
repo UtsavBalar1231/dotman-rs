@@ -6,7 +6,7 @@ use chrono::{Local, TimeZone};
 use colored::Colorize;
 
 pub fn execute(ctx: &DotmanContext, object: &str) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
     let resolver = RefResolver::new(ctx.repo_path.clone());

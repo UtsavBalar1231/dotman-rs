@@ -9,7 +9,7 @@ use anyhow::Result;
 use std::process::Command;
 
 pub fn execute(ctx: &DotmanContext, remote: &str, branch: &str) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     // Get the specified remote
     let remote_config = ctx.config.get_remote(remote).ok_or_else(|| {
@@ -303,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ensure_repo_exists_error() -> Result<()> {
+    fn test_check_repo_initialized_error() -> Result<()> {
         let temp = tempdir()?;
         let repo_path = temp.path().join("nonexistent").join("deep").join("path");
 

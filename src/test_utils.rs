@@ -114,6 +114,10 @@ pub mod fixtures {
         let index = crate::storage::index::Index::new();
         index.save(&repo_path.join("index.bin"))?;
 
+        // Initialize refs system (branches and HEAD)
+        let ref_manager = crate::refs::RefManager::new(repo_path.clone());
+        ref_manager.init()?;
+
         // Create default config
         let mut config = Config::default();
         config.core.repo_path = repo_path.clone();

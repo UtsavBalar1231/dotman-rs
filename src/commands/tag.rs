@@ -5,7 +5,7 @@ use colored::Colorize;
 
 /// Create a new tag
 pub fn create(ctx: &DotmanContext, name: &str, commit: Option<&str>) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
@@ -31,7 +31,7 @@ pub fn create(ctx: &DotmanContext, name: &str, commit: Option<&str>) -> Result<(
 
 /// List all tags
 pub fn list(ctx: &DotmanContext) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let tags = ref_manager.list_tags()?;
@@ -61,7 +61,7 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
 
 /// Delete a tag
 pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
@@ -84,7 +84,7 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
 
 /// Show details about a specific tag
 pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
@@ -106,29 +106,16 @@ pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
     use std::fs;
-    use tempfile::tempdir;
 
     fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
-        let dir = tempdir()?;
-        let repo_path = dir.path().join(".dotman");
-        fs::create_dir_all(&repo_path)?;
+        use crate::test_utils::fixtures::create_test_context;
 
-        // Initialize refs structure
-        let ref_manager = RefManager::new(repo_path.clone());
-        ref_manager.init()?;
+        let (dir, ctx) = create_test_context()?;
 
         // Create a dummy commit for HEAD
-        let head_path = repo_path.join("refs/heads/main");
+        let head_path = ctx.repo_path.join("refs/heads/main");
         fs::write(&head_path, "abc123def456")?;
-
-        let config = Config::default();
-        let ctx = DotmanContext {
-            repo_path,
-            config_path: dir.path().join("config"),
-            config,
-        };
 
         Ok((dir, ctx))
     }

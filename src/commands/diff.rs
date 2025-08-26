@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 
 pub fn execute(ctx: &DotmanContext, from: Option<&str>, to: Option<&str>) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     match (from, to) {
         (None, None) => {
@@ -353,7 +353,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ensure_repo_exists() -> Result<()> {
+    fn test_check_repo_initialized() -> Result<()> {
         let temp = tempdir()?;
         let repo_path = temp.path().join(".dotman");
 
@@ -363,7 +363,7 @@ mod tests {
             config: Config::default(),
         };
 
-        ctx.ensure_repo_exists()?;
+        ctx.check_repo_initialized()?;
         assert!(repo_path.exists());
 
         Ok(())

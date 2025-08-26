@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 
 pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     // Check for uncommitted changes if not forcing
     if !force {
@@ -442,7 +442,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ensure_repo_exists_missing_dirs() -> Result<()> {
+    fn test_check_repo_initialized_missing_dirs() -> Result<()> {
         let temp = tempdir()?;
         let repo_path = temp.path().join(".dotman");
 
@@ -457,7 +457,7 @@ mod tests {
             fs::remove_dir_all(&repo_path)?;
         }
 
-        let result = ctx.ensure_repo_exists();
+        let result = ctx.check_repo_initialized();
         assert!(result.is_ok());
         assert!(repo_path.join("commits").exists());
         assert!(repo_path.join("objects").exists());

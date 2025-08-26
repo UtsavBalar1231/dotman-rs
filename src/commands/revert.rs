@@ -10,7 +10,7 @@ use std::fs;
 use std::path::PathBuf;
 
 pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     // Check for uncommitted changes if not forcing
     if !force {

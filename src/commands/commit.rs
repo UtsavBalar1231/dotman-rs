@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 
 pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
@@ -88,7 +88,7 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
 }
 
 pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     // Get the last commit
     let resolver = RefResolver::new(ctx.repo_path.clone());

@@ -6,7 +6,7 @@ use colored::Colorize;
 
 /// List all branches
 pub fn list(ctx: &DotmanContext) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let branches = ref_manager.list_branches()?;
@@ -42,7 +42,7 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
 
 /// Create a new branch
 pub fn create(ctx: &DotmanContext, name: &str, start_point: Option<&str>) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
@@ -73,7 +73,7 @@ pub fn create(ctx: &DotmanContext, name: &str, start_point: Option<&str>) -> Res
 
 /// Delete a branch
 pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
@@ -90,7 +90,7 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
 
 /// Switch to a branch
 pub fn checkout(ctx: &DotmanContext, name: &str) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
@@ -108,7 +108,7 @@ pub fn checkout(ctx: &DotmanContext, name: &str) -> Result<()> {
 
 /// Rename a branch
 pub fn rename(ctx: &DotmanContext, old_name: Option<&str>, new_name: &str) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
@@ -134,7 +134,7 @@ pub fn set_upstream(
     remote: &str,
     remote_branch: Option<&str>,
 ) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
@@ -182,7 +182,7 @@ pub fn set_upstream(
 
 /// Remove upstream tracking for a branch
 pub fn unset_upstream(ctx: &mut DotmanContext, branch: Option<&str>) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 

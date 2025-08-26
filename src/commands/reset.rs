@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 
 pub fn execute(ctx: &DotmanContext, commit: &str, hard: bool, soft: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     if hard && soft {
         anyhow::bail!("Cannot use both --hard and --soft flags");

@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     // Display current branch information
     let ref_manager = RefManager::new(ctx.repo_path.clone());

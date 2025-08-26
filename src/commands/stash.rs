@@ -36,7 +36,7 @@ pub enum StashCommand {
 
 /// Main stash command entry point
 pub fn execute(ctx: &DotmanContext, command: StashCommand) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     match command {
         StashCommand::Push {

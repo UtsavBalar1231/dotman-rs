@@ -11,7 +11,7 @@ pub fn execute(
     force: bool,
     interactive: bool,
 ) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let mut index = Index::load(&index_path)?;

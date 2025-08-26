@@ -6,7 +6,7 @@ use colored::Colorize;
 
 /// Execute the reflog command to show HEAD update history
 pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> Result<()> {
-    ctx.ensure_repo_exists()?;
+    ctx.check_repo_initialized()?;
 
     let reflog_manager = ReflogManager::new(ctx.repo_path.clone());
     let mut entries = reflog_manager.read_head_log()?;
