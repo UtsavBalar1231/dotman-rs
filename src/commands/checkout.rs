@@ -33,7 +33,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
         .with_context(|| format!("Failed to load commit: {}", commit_id))?;
 
     let display_target = if commit_id.len() >= 8 {
-        &commit_id[commit_id.len() - 8..]
+        &commit_id[..8]
     } else {
         &commit_id
     };
@@ -54,7 +54,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     ref_manager.set_head_to_commit_with_reflog(&commit_id, "checkout", &message)?;
 
     let display_id = if commit_id.len() >= 8 {
-        &commit_id[commit_id.len() - 8..]
+        &commit_id[..8]
     } else {
         &commit_id
     };

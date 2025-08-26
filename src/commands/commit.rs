@@ -70,9 +70,9 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     // Update HEAD
     update_head(ctx, &commit_id)?;
 
-    // Show last 8 chars of commit ID for better uniqueness
+    // Show first 8 chars of commit ID (Git-style)
     let display_id = if commit_id.len() >= 8 {
-        &commit_id[commit_id.len() - 8..]
+        &commit_id[..8]
     } else {
         &commit_id
     };
@@ -150,7 +150,7 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     // HEAD stays the same since we're replacing the commit in place
 
     let display_id = if commit_id.len() >= 8 {
-        &commit_id[commit_id.len() - 8..]
+        &commit_id[..8]
     } else {
         &commit_id
     };

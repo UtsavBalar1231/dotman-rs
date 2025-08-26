@@ -70,8 +70,13 @@ impl ReflogEntry {
     }
 
     /// Get short commit hash (first 8 characters) for display
+    /// Only truncates actual commit hashes, not symbolic references
     pub fn short_hash(&self) -> &str {
-        if self.new_value.len() >= 8 {
+        // Don't truncate symbolic references (e.g., "ref: refs/heads/main")
+        if self.new_value.starts_with("ref:") {
+            &self.new_value
+        } else if self.new_value.len() >= 8 && self.new_value.chars().all(|c| c.is_ascii_hexdigit()) {
+            // Only truncate hexadecimal commit hashes
             &self.new_value[..8]
         } else {
             &self.new_value
@@ -238,23 +243,41 @@ mod tests {
 
     #[test]
     fn test_short_hash() {
+        // Test with long hexadecimal commit hash
         let entry = ReflogEntry::new(
             "old".to_string(),
             "0123456789abcdef".to_string(),
             "commit".to_string(),
             "Test".to_string(),
         );
-
         assert_eq!(entry.short_hash(), "01234567");
 
+        // Test with short commit hash
         let short_entry = ReflogEntry::new(
             "old".to_string(),
             "abc".to_string(),
             "commit".to_string(),
             "Test".to_string(),
         );
-
         assert_eq!(short_entry.short_hash(), "abc");
+
+        // Test with symbolic reference - should not be truncated
+        let ref_entry = ReflogEntry::new(
+            "old".to_string(),
+            "ref: refs/heads/main".to_string(),
+            "branch".to_string(),
+            "Switch to main".to_string(),
+        );
+        assert_eq!(ref_entry.short_hash(), "ref: refs/heads/main");
+
+        // Test with non-hex string - should not be truncated
+        let non_hex_entry = ReflogEntry::new(
+            "old".to_string(),
+            "not_a_hexstring".to_string(),
+            "operation".to_string(),
+            "Test".to_string(),
+        );
+        assert_eq!(non_hex_entry.short_hash(), "not_a_hexstring");
     }
 
     #[test]

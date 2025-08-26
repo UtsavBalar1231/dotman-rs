@@ -20,6 +20,7 @@ pub const DEFAULT_CONFIG_PATH: &str = ".config/dotman/config";
 pub const INDEX_FILE: &str = "index.bin";
 pub const COMMITS_DIR: &str = "commits";
 pub const OBJECTS_DIR: &str = "objects";
+pub const NULL_COMMIT_ID: &str = "0000000000000000000000000000000000000000";
 
 #[derive(Debug, Clone)]
 pub struct DotmanContext {

@@ -30,7 +30,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
         .with_context(|| format!("Failed to load commit: {}", commit_id))?;
 
     let display_commit = if commit_id.len() >= 8 {
-        &commit_id[commit_id.len() - 8..]
+        &commit_id[..8]
     } else {
         &commit_id
     };

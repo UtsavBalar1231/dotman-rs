@@ -22,6 +22,7 @@ impl RefResolver {
     /// Supports:
     /// - HEAD
     /// - HEAD~n (nth parent)
+    /// - HEAD^ (first parent), HEAD^^ (second ancestor), HEAD^n (nth ancestor)
     /// - Branch names
     /// - Tag names (future)
     /// - Full commit IDs
@@ -40,6 +41,12 @@ impl RefResolver {
             let parent_count = parent_spec
                 .parse::<usize>()
                 .with_context(|| format!("Invalid parent specification: {}", reference))?;
+            return self.resolve_head_parent(parent_count);
+        }
+        // Handle HEAD^, HEAD^^, HEAD^^^, HEAD^n
+        else if reference.starts_with("HEAD^") {
+            let caret_spec = &reference[5..]; // Skip "HEAD^"
+            let parent_count = self.parse_caret_notation(caret_spec, reference)?;
             return self.resolve_head_parent(parent_count);
         }
 
@@ -85,9 +92,23 @@ impl RefResolver {
         let snapshot_manager = SnapshotManager::new(self.repo_path.clone(), 3);
 
         for i in 0..parent_count {
-            let snapshot = snapshot_manager
-                .load_snapshot(&current)
-                .with_context(|| format!("Failed to load commit: {}", current))?;
+            // Handle case where current points to null SHA (initial repository state)
+            if current == "0".repeat(40) || current.chars().all(|c| c == '0') {
+                anyhow::bail!(
+                    "Cannot go back {} commits from HEAD (only {} commits in history)",
+                    parent_count,
+                    i
+                );
+            }
+            
+            let snapshot = match snapshot_manager.load_snapshot(&current) {
+                Ok(s) => s,
+                Err(_) => anyhow::bail!(
+                    "Cannot go back {} commits from HEAD (only {} commits in history)",
+                    parent_count,
+                    i
+                ),
+            };
 
             if let Some(parent) = snapshot.commit.parent {
                 current = parent;
@@ -95,12 +116,40 @@ impl RefResolver {
                 anyhow::bail!(
                     "Cannot go back {} commits from HEAD (only {} commits in history)",
                     parent_count,
-                    i
+                    i + 1
                 );
             }
         }
 
         Ok(current)
+    }
+
+    /// Parse caret notation (^, ^^, ^^^, ^n) into parent count
+    /// Supports:
+    /// - "" (empty) -> 1 (HEAD^ means first parent)
+    /// - "^" -> 2 (HEAD^^ means second ancestor)
+    /// - "^^" -> 3 (HEAD^^^ means third ancestor)
+    /// - "n" (number) -> n (HEAD^2 means second ancestor)
+    fn parse_caret_notation(&self, caret_spec: &str, full_reference: &str) -> Result<usize> {
+        if caret_spec.is_empty() {
+            // HEAD^ means first parent
+            return Ok(1);
+        }
+
+        // Check if it's all carets (HEAD^^, HEAD^^^, etc.)
+        if caret_spec.chars().all(|c| c == '^') {
+            // Each additional caret adds one to the parent count
+            // HEAD^^ = 2, HEAD^^^ = 3, etc.
+            return Ok(caret_spec.len() + 1);
+        }
+
+        // Check if it's a number (HEAD^2, HEAD^3, etc.)
+        if let Ok(num) = caret_spec.parse::<usize>() {
+            return Ok(num);
+        }
+
+        // Invalid caret notation
+        anyhow::bail!("Invalid parent specification: {}", full_reference)
     }
 
     /// Resolve a branch name to commit ID
@@ -312,6 +361,126 @@ mod tests {
         let result = resolver.resolve("invalid_ref");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Cannot resolve"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_head_caret() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        // Create a chain of commits
+        let commit1 = format!("h1{}", "0".repeat(30));
+        let commit2 = format!("h2{}", "0".repeat(30));
+        let commit3 = format!("h3{}", "0".repeat(30));
+
+        create_test_commit(&resolver.repo_path, &commit1, None)?;
+        create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
+        create_test_commit(&resolver.repo_path, &commit3, Some(commit2.clone()))?;
+
+        resolver.ref_manager.update_branch("main", &commit3)?;
+
+        // Test HEAD^ (first parent)
+        assert_eq!(resolver.resolve("HEAD^")?, commit2);
+        
+        // Test HEAD^^ (second ancestor)
+        assert_eq!(resolver.resolve("HEAD^^")?, commit1);
+
+        // Test HEAD^1 (equivalent to HEAD^)
+        assert_eq!(resolver.resolve("HEAD^1")?, commit2);
+
+        // Test HEAD^2 (equivalent to HEAD^^)
+        assert_eq!(resolver.resolve("HEAD^2")?, commit1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_head_caret_multiple() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        // Create a longer chain of commits
+        let commit1 = format!("i1{}", "0".repeat(30));
+        let commit2 = format!("i2{}", "0".repeat(30));
+        let commit3 = format!("i3{}", "0".repeat(30));
+        let commit4 = format!("i4{}", "0".repeat(30));
+
+        create_test_commit(&resolver.repo_path, &commit1, None)?;
+        create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
+        create_test_commit(&resolver.repo_path, &commit3, Some(commit2.clone()))?;
+        create_test_commit(&resolver.repo_path, &commit4, Some(commit3.clone()))?;
+
+        resolver.ref_manager.update_branch("main", &commit4)?;
+
+        // Test multiple carets
+        assert_eq!(resolver.resolve("HEAD^^^")?, commit1);
+        assert_eq!(resolver.resolve("HEAD^3")?, commit1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_head_caret_equivalence() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        // Create commits
+        let commit1 = format!("j1{}", "0".repeat(30));
+        let commit2 = format!("j2{}", "0".repeat(30));
+        let commit3 = format!("j3{}", "0".repeat(30));
+
+        create_test_commit(&resolver.repo_path, &commit1, None)?;
+        create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
+        create_test_commit(&resolver.repo_path, &commit3, Some(commit2.clone()))?;
+
+        resolver.ref_manager.update_branch("main", &commit3)?;
+
+        // Verify equivalence between caret and tilde notation
+        assert_eq!(resolver.resolve("HEAD^")?, resolver.resolve("HEAD~1")?);
+        assert_eq!(resolver.resolve("HEAD^^")?, resolver.resolve("HEAD~2")?);
+        assert_eq!(resolver.resolve("HEAD^1")?, resolver.resolve("HEAD~1")?);
+        assert_eq!(resolver.resolve("HEAD^2")?, resolver.resolve("HEAD~2")?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_head_caret_invalid() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        // Test invalid caret notation
+        let result = resolver.resolve("HEAD^xyz");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid parent specification"));
+
+        // Test mixed caret and number
+        let result = resolver.resolve("HEAD^2^");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid parent specification"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_head_caret_beyond_history() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        // Create only two commits
+        let commit1 = format!("k1{}", "0".repeat(30));
+        let commit2 = format!("k2{}", "0".repeat(30));
+
+        create_test_commit(&resolver.repo_path, &commit1, None)?;
+        create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
+
+        resolver.ref_manager.update_branch("main", &commit2)?;
+
+        // Test going beyond available history
+        let result = resolver.resolve("HEAD^^^");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Cannot go back"));
+
+        let result = resolver.resolve("HEAD^3");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Cannot go back"));
 
         Ok(())
     }
