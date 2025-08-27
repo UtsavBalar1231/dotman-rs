@@ -77,6 +77,16 @@ enum Commands {
 
         #[arg(long)]
         soft: bool,
+
+        #[arg(long)]
+        mixed: bool,
+
+        #[arg(long)]
+        keep: bool,
+
+        /// Files to reset
+        #[arg(last = true)]
+        paths: Vec<String>,
     },
 
     /// Create a new commit that undoes changes from a specified commit
@@ -112,6 +122,49 @@ enum Commands {
         /// Branch to push
         #[arg(default_value = "main")]
         branch: String,
+
+        #[arg(short, long)]
+        force: bool,
+
+        #[arg(long)]
+        force_with_lease: bool,
+
+        #[arg(long)]
+        dry_run: bool,
+
+        #[arg(long)]
+        tags: bool,
+    },
+
+    /// Download objects and refs from another repository
+    Fetch {
+        /// Remote name
+        #[arg(default_value = "origin")]
+        remote: String,
+
+        /// Branch to fetch
+        branch: Option<String>,
+
+        #[arg(long)]
+        all: bool,
+
+        #[arg(long)]
+        tags: bool,
+    },
+
+    /// Join two or more development histories together
+    Merge {
+        /// Branch or commit to merge
+        branch: String,
+
+        #[arg(long)]
+        no_ff: bool,
+
+        #[arg(long)]
+        squash: bool,
+
+        #[arg(short, long)]
+        message: Option<String>,
     },
 
     /// Fetch from and integrate with another repository
@@ -123,6 +176,15 @@ enum Commands {
         /// Branch to pull
         #[arg(default_value = "main")]
         branch: String,
+
+        #[arg(long)]
+        rebase: bool,
+
+        #[arg(long)]
+        no_ff: bool,
+
+        #[arg(long)]
+        squash: bool,
     },
 
     /// Initialize a new dotman repository
@@ -168,6 +230,12 @@ enum Commands {
 
         #[arg(short, long)]
         force: bool,
+
+        #[arg(short = 'r', long)]
+        recursive: bool,
+
+        #[arg(long)]
+        dry_run: bool,
 
         #[arg(short, long)]
         interactive: bool,
@@ -467,9 +535,16 @@ fn run() -> Result<()> {
             let ctx = context.unwrap();
             commands::checkout::execute(&ctx, &target, force)?;
         }
-        Commands::Reset { commit, hard, soft } => {
+        Commands::Reset {
+            commit,
+            hard,
+            soft,
+            mixed,
+            keep,
+            paths,
+        } => {
             let ctx = context.unwrap();
-            commands::reset::execute(&ctx, &commit, hard, soft)?;
+            commands::reset::execute(&ctx, &commit, hard, soft, mixed, keep, &paths)?;
         }
         Commands::Revert {
             commit,
@@ -483,13 +558,52 @@ fn run() -> Result<()> {
             let ctx = context.unwrap();
             commands::restore::execute(&ctx, &paths, Some(&source))?;
         }
-        Commands::Push { remote, branch } => {
+        Commands::Fetch {
+            remote,
+            branch,
+            all,
+            tags,
+        } => {
             let ctx = context.unwrap();
-            commands::push::execute(&ctx, &remote, &branch)?;
+            commands::fetch::execute(&ctx, &remote, branch.as_deref(), all, tags)?;
         }
-        Commands::Pull { remote, branch } => {
+        Commands::Merge {
+            branch,
+            no_ff,
+            squash,
+            message,
+        } => {
             let ctx = context.unwrap();
-            commands::pull::execute(&ctx, &remote, &branch)?;
+            commands::merge::execute(&ctx, &branch, no_ff, squash, message.as_deref())?;
+        }
+        Commands::Push {
+            remote,
+            branch,
+            force,
+            force_with_lease,
+            dry_run,
+            tags,
+        } => {
+            let ctx = context.unwrap();
+            commands::push::execute(
+                &ctx,
+                &remote,
+                &branch,
+                force,
+                force_with_lease,
+                dry_run,
+                tags,
+            )?;
+        }
+        Commands::Pull {
+            remote,
+            branch,
+            rebase,
+            no_ff,
+            squash,
+        } => {
+            let ctx = context.unwrap();
+            commands::pull::execute(&ctx, &remote, &branch, rebase, no_ff, squash)?;
         }
         Commands::Init { bare } => {
             commands::init::execute(bare)?;
@@ -514,10 +628,12 @@ fn run() -> Result<()> {
             paths,
             cached,
             force,
+            recursive,
+            dry_run,
             interactive,
         } => {
             let ctx = context.unwrap();
-            commands::rm::execute(&ctx, &paths, cached, force, interactive)?;
+            commands::rm::execute(&ctx, &paths, cached, force, recursive, dry_run, interactive)?;
         }
         Commands::Clean { dry_run, force } => {
             let ctx = context.unwrap();
