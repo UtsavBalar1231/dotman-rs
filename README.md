@@ -49,10 +49,12 @@ dotman is a dotfiles manager designed from the ground up for performance and rel
 
 ### Storage Architecture
 
+- **Content-Addressed Commits**: Deterministic commit IDs generated using xxHash3 based on commit content (tree, parent, message, author, timestamp)
 - **Binary Index**: Bincode-serialized index for O(1) file lookups
 - **Content Deduplication**: Hash-based deduplication reduces storage by 40-60% on average
 - **Atomic Operations**: File-level locking ensures data integrity during concurrent operations
 - **Incremental Snapshots**: Only changed content stored in new commits
+- **Reflog System**: Automatic tracking of HEAD movements for recovery and debugging
 
 ### Reliability Features
 
@@ -60,6 +62,8 @@ dotman is a dotfiles manager designed from the ground up for performance and rel
 - **Graceful Error Recovery**: Comprehensive error handling with context preservation
 - **File Permission Preservation**: Maintains original file permissions and metadata
 - **Cross-Platform Support**: Linux and macOS with architecture-specific optimizations
+- **Git Compatibility**: Support for HEAD^, HEAD~n notation and Git-style commit references
+- **Enhanced Repository Detection**: Clear error messages guiding users when repository isn't initialized
 
 ## Performance Characteristics
 
@@ -196,8 +200,8 @@ dot commit --all -m "Update configurations"
 # Show commit log
 dot log
 
-# Show specific commit
-dot show <commit-id>
+# Show specific commit (first 8 chars of ID)
+dot show a1b2c3d4
 
 # Show differences
 dot diff
@@ -206,7 +210,7 @@ dot diff
 ### Restore Files
 ```bash
 # Checkout specific commit
-dot checkout <commit-id>
+dot checkout a1b2c3d4
 
 # Force checkout (overwrites local changes)
 dot checkout --force HEAD
@@ -305,24 +309,66 @@ dot commit --amend  # Keep original message
 Restore files from a specific commit, branch, or reference.
 
 Supported targets:
-- Commit hash (full or short): `abc123` or `abc12345...`
+- Commit hash (full or short): `a1b2c3d4` or `a1b2c3d4...`
 - Branch name: `main`, `feature-branch`
-- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`
+- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`, `HEAD^`, `HEAD^^`, `HEAD^3`
 
 Options:
 - `--force`: Overwrite local changes without prompting
+
+Examples:
+```bash
+dot checkout HEAD^       # Go to previous commit
+dot checkout HEAD~3      # Go back 3 commits
+dot checkout a1b2c3d4    # Checkout specific commit
+```
 
 #### `dot reset <commit> [--hard] [--soft]`
 Reset HEAD to specified state.
 
 Supported targets:
-- Commit hash (full or short): `abc123` or `abc12345...`
+- Commit hash (full or short): `a1b2c3d4` or `a1b2c3d4...`
 - Branch name: `main`, `feature-branch`
-- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`
+- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`, `HEAD^`, `HEAD^^`, `HEAD^3`
 
 Options:
 - `--hard`: Reset working directory to match commit
 - `--soft`: Move HEAD only, keep working directory unchanged
+
+#### `dot revert <commit> [--no-edit] [--force]`
+Create a new commit that undoes changes from a specified commit.
+
+Arguments:
+- `<commit>`: Commit to revert (supports same formats as checkout/reset)
+
+Options:
+- `--no-edit`: Skip the commit confirmation and immediately create the revert commit
+- `--force`: Allow reverting when there are uncommitted changes
+
+Examples:
+```bash
+dot revert HEAD          # Revert the last commit
+dot revert HEAD^         # Revert the second-to-last commit
+dot revert a1b2c3d4      # Revert specific commit
+dot revert HEAD --no-edit  # Revert without confirmation
+```
+
+#### `dot restore <paths...> [--source <commit>] [--force]`
+Restore specific files from a commit without changing HEAD.
+
+Arguments:
+- `<paths...>`: Files or directories to restore
+
+Options:
+- `--source <commit>`: Source commit to restore from (default: HEAD)
+- `--force`: Overwrite local changes without prompting
+
+Examples:
+```bash
+dot restore ~/.bashrc              # Restore from HEAD
+dot restore ~/.vimrc --source HEAD^  # Restore from previous commit
+dot restore ~/.config/nvim --source a1b2c3d4  # Restore from specific commit
+```
 
 ### History Operations
 
@@ -341,8 +387,24 @@ Examples:
 dot log                    # Show last 10 commits from current branch
 dot log HEAD               # Show commits from HEAD
 dot log main               # Show commits from main branch
-dot log abc123             # Show commits from specific commit
+dot log a1b2c3d4           # Show commits from specific commit
 dot log -n 20 --oneline    # Show 20 commits in oneline format
+```
+
+#### `dot reflog [-n <limit>] [--oneline] [--all]`
+Display the HEAD movement history (useful for recovery).
+
+Options:
+- `-n, --limit`: Number of entries to show (default: 10)
+- `--oneline`: Compact single-line format
+- `--all`: Show all reflog entries
+
+Examples:
+```bash
+dot reflog                 # Show last 10 HEAD movements
+dot reflog -n 20           # Show last 20 movements
+dot reflog --all           # Show complete history
+dot reflog --oneline       # Compact format
 ```
 
 #### `dot show <object>`
@@ -352,7 +414,7 @@ Display detailed information about a commit.
 Show differences between commits or working directory.
 
 Supported references:
-- Commit hash (full or short): `abc123` or `abc12345...`
+- Commit hash (full or short): `a1b2c3d4` or `a1b2c3d4...`
 - Branch name: `main`, `feature-branch`
 - HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`
 
@@ -380,7 +442,7 @@ dot branch list
 dot branch create laptop-config
 
 # Create branch from specific commit
-dot branch create experimental abc123
+dot branch create experimental a1b2c3d4
 
 # Switch to a different branch
 dot checkout laptop-config
@@ -504,6 +566,40 @@ dot pull backup main        # Pull main branch from backup remote
 ```
 
 ### Utility Commands
+
+#### `dot clean [-n] [-f]`
+Remove untracked files from the working directory.
+
+Options:
+- `-n, --dry-run`: Show what would be removed without actually removing
+- `-f, --force`: Actually remove untracked files (required for safety)
+
+Examples:
+```bash
+dot clean -n            # Preview what would be removed
+dot clean -f            # Actually remove untracked files
+```
+
+#### `dot tag <name> [<commit>] [--delete] [--list] [--force]`
+Create, list, or delete tags (named references to commits).
+
+Arguments:
+- `<name>`: Tag name
+- `<commit>`: Commit to tag (default: HEAD)
+
+Options:
+- `--delete`: Delete the specified tag
+- `--list`: List all tags
+- `--force`: Overwrite existing tag
+
+Examples:
+```bash
+dot tag v1.0.0                   # Tag current HEAD as v1.0.0
+dot tag v1.0.0 a1b2c3d4          # Tag specific commit
+dot tag --list                   # List all tags
+dot tag v1.0.0 --delete          # Delete tag v1.0.0
+dot tag v2.0.0 HEAD --force      # Overwrite existing tag
+```
 
 #### `dot completion <shell>`
 Generate shell completion scripts.
@@ -687,12 +783,15 @@ dotman/
 │   ├── storage/          # Storage layer
 │   │   ├── index.rs      # Binary index management
 │   │   └── snapshots.rs  # Snapshot storage
-│   ├── refs.rs           # Git-like references system
+│   ├── refs/             # Git-like references system
+│   │   └── resolver.rs   # Reference resolution (HEAD^, HEAD~n)
+│   ├── reflog.rs         # HEAD movement history tracking
 │   ├── config/           # Configuration
 │   │   ├── mod.rs        # Config structures
 │   │   └── parser.rs     # TOML parser
 │   └── utils/            # Utilities
 │       ├── hash.rs       # xxHash3 implementation
+│       ├── commit.rs     # Content-addressed commit ID generation
 │       └── compress.rs   # Compression utilities
 ├── tests/                # Integration tests
 ├── benches/              # Performance benchmarks
@@ -705,15 +804,19 @@ dotman/
 ~/.dotman/
 ├── index.bin            # Binary index file
 ├── commits/             # Snapshot storage
-│   └── <commit-id>      # Compressed snapshots
+│   └── <commit-id>      # Compressed snapshots (32-char hex)
 ├── objects/             # Deduplicated objects
 ├── refs/                # Reference storage
 │   ├── heads/           # Branch references
 │   │   ├── main         # Main branch
 │   │   └── laptop-config # Other branches
+│   ├── tags/            # Tag references
+│   │   └── v1.0.0       # Named version tags
 │   └── remotes/         # Remote tracking branches
 │       └── origin/
 │           └── main
+├── logs/                # Reference logs
+│   └── HEAD             # HEAD movement history
 └── HEAD                 # Current branch/commit reference
 ```
 
