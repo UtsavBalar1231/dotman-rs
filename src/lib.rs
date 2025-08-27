@@ -27,10 +27,15 @@ pub struct DotmanContext {
     pub repo_path: PathBuf,
     pub config_path: PathBuf,
     pub config: config::Config,
+    pub no_pager: bool,
 }
 
 impl DotmanContext {
     pub fn new() -> Result<Self> {
+        Self::new_with_pager(false)
+    }
+
+    pub fn new_with_pager(no_pager: bool) -> Result<Self> {
         let home =
             dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
         let config_path = home.join(DEFAULT_CONFIG_PATH);
@@ -41,6 +46,7 @@ impl DotmanContext {
             repo_path,
             config_path,
             config,
+            no_pager,
         })
     }
 
@@ -175,6 +181,7 @@ preserve_permissions = true
             repo_path: repo_path.clone(),
             config_path: temp.path().join("config"),
             config: config::Config::default(),
+            no_pager: true,
         };
 
         // Ensure directories don't exist initially
@@ -222,6 +229,7 @@ preserve_permissions = true
             repo_path: repo_path.clone(),
             config_path: temp.path().join("config"),
             config: config::Config::default(),
+            no_pager: true,
         };
 
         let result = ctx.ensure_repo_exists();
@@ -244,6 +252,7 @@ preserve_permissions = true
             repo_path: repo_path.clone(),
             config_path: temp.path().join("config"),
             config: config::Config::default(),
+            no_pager: true,
         };
 
         ctx.ensure_repo_exists()?;

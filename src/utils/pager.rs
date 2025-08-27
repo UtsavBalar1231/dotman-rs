@@ -1,49 +1,75 @@
 use anyhow::Result;
 use std::env;
 use std::io::{self, IsTerminal, Write};
-use std::path::Path;
 use std::process::{Command, Stdio};
 
-/// Get the pager command from environment or use default
-pub fn get_pager() -> String {
-    env::var("PAGER")
-        .map(|pager| {
-            // If PAGER is set, extract just the binary name if it's a path
-            Path::new(&pager)
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or(&pager)
-                .to_string()
-        })
-        .unwrap_or_else(|_| {
-            // Try common pagers in order of preference
-            if which::which("less").is_ok() {
-                "less".to_string()
-            } else if which::which("more").is_ok() {
-                "more".to_string()
-            } else {
-                "cat".to_string() // Fallback to cat if no pager available
-            }
-        })
+/// Get the pager command using Git's priority order
+pub fn get_pager(ctx: Option<&crate::DotmanContext>) -> String {
+    // 1. Check DOT_PAGER environment variable
+    if let Ok(pager) = env::var("DOT_PAGER") {
+        return pager;
+    }
+
+    // 2. Check core.pager config (if context available)
+    if let Some(ctx) = ctx && let Some(pager) = ctx.config.core.pager.as_ref() {
+        return pager.clone();
+    }
+
+    // 3. Check PAGER environment variable
+    if let Ok(pager) = env::var("PAGER") {
+        return pager;
+    }
+
+    // 4. Default to less with Git-style flags
+    if which::which("less").is_ok() {
+        "less".to_string()
+    } else if which::which("more").is_ok() {
+        "more".to_string()
+    } else {
+        "cat".to_string() // Fallback to cat if no pager available
+    }
 }
 
-/// Output content through a pager if in terminal, otherwise directly
-pub fn output_through_pager(content: &str, use_pager: bool) -> Result<()> {
-    if !use_pager || !io::stdout().is_terminal() {
-        // Output directly if not a terminal or pager disabled
+/// Output content through a pager if appropriate, with Git-style behavior
+pub fn output_through_pager(
+    content: &str,
+    use_pager: bool,
+    ctx: Option<&crate::DotmanContext>,
+) -> Result<()> {
+    // Check NO_PAGER environment variable
+    if env::var("NO_PAGER").is_ok() {
         print!("{}", content);
         io::stdout().flush()?;
         return Ok(());
     }
 
-    let pager = get_pager();
+    // Skip pager if disabled or not a terminal
+    if !use_pager || !io::stdout().is_terminal() {
+        print!("{}", content);
+        io::stdout().flush()?;
+        return Ok(());
+    }
 
-    // Special handling for less to enable color support
-    let args = if pager.contains("less") {
-        vec!["-R"] // Enable raw control characters (for colors)
-    } else {
-        vec![]
-    };
+    // Count lines to determine if pager is needed
+    let line_count = content.lines().count();
+    let terminal_height = get_terminal_height();
+
+    // Skip pager if content fits on one screen (like Git's -F flag)
+    if line_count < terminal_height.saturating_sub(1) {
+        print!("{}", content);
+        io::stdout().flush()?;
+        return Ok(());
+    }
+
+    let pager_cmd = get_pager(ctx);
+    let (pager, args) = parse_pager_command(&pager_cmd);
+
+    // Set LESS environment variable if not set and using less
+    if pager == "less" && env::var("LESS").is_err() {
+        unsafe {
+            env::set_var("LESS", "FRX");
+        }
+    }
 
     // Try to spawn the pager
     match Command::new(&pager)
@@ -73,14 +99,59 @@ pub fn output_through_pager(content: &str, use_pager: bool) -> Result<()> {
     Ok(())
 }
 
+/// Parse pager command string into command and args
+fn parse_pager_command(pager_cmd: &str) -> (String, Vec<String>) {
+    let parts: Vec<&str> = pager_cmd.split_whitespace().collect();
+    if parts.is_empty() {
+        return ("less".to_string(), vec!["-FRX".to_string()]);
+    }
+
+    let pager = parts[0].to_string();
+    let mut args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+
+    // Add default flags for less if no args provided
+    if pager == "less" && args.is_empty() {
+        args.push("-FRX".to_string());
+    }
+
+    (pager, args)
+}
+
+/// Get terminal height, defaulting to 24 if unknown
+fn get_terminal_height() -> usize {
+    if let Some((_, height)) = term_size::dimensions() {
+        height
+    } else {
+        24 // Default terminal height
+    }
+}
+
 /// Builder for pager output with configurable options
-#[derive(Default)]
 pub struct PagerOutput {
     content: String,
     use_pager: bool,
+    ctx: Option<*const crate::DotmanContext>,
+}
+
+impl Default for PagerOutput {
+    fn default() -> Self {
+        Self {
+            content: String::new(),
+            use_pager: true, // Default to enabled like Git
+            ctx: None,
+        }
+    }
 }
 
 impl PagerOutput {
+    pub fn new(ctx: &crate::DotmanContext, no_pager: bool) -> Self {
+        Self {
+            content: String::new(),
+            use_pager: !no_pager,
+            ctx: Some(ctx as *const crate::DotmanContext),
+        }
+    }
+
     pub fn with_content(mut self, content: String) -> Self {
         self.content = content;
         self
@@ -101,7 +172,8 @@ impl PagerOutput {
     }
 
     pub fn show(self) -> Result<()> {
-        output_through_pager(&self.content, self.use_pager)
+        let ctx = self.ctx.map(|ctx_ptr| unsafe { &*ctx_ptr });
+        output_through_pager(&self.content, self.use_pager, ctx)
     }
 }
 
@@ -113,22 +185,39 @@ mod tests {
     #[test]
     #[serial]
     fn test_get_pager_default() {
-        // Clear PAGER env var
+        // Clear environment variables
         unsafe {
+            env::remove_var("DOT_PAGER");
             env::remove_var("PAGER");
         }
-        let pager = get_pager();
+        let pager = get_pager(None);
         // Should return less, more, or cat
         assert!(["less", "more", "cat"].contains(&pager.as_str()));
     }
 
     #[test]
     #[serial]
+    fn test_get_pager_from_dot_pager() {
+        unsafe {
+            env::set_var("DOT_PAGER", "dot_custom_pager");
+            env::set_var("PAGER", "pager_env");
+        }
+        let pager = get_pager(None);
+        assert_eq!(pager, "dot_custom_pager");
+        unsafe {
+            env::remove_var("DOT_PAGER");
+            env::remove_var("PAGER");
+        }
+    }
+
+    #[test]
+    #[serial]
     fn test_get_pager_from_env() {
         unsafe {
+            env::remove_var("DOT_PAGER");
             env::set_var("PAGER", "custom_pager");
         }
-        let pager = get_pager();
+        let pager = get_pager(None);
         assert_eq!(pager, "custom_pager");
         unsafe {
             env::remove_var("PAGER");
@@ -144,6 +233,34 @@ mod tests {
 
         assert!(output.content.contains("Line 1 continued\n"));
         assert!(output.content.contains("Line 2"));
+    }
+
+    #[test]
+    fn test_parse_pager_command() {
+        // Test simple command
+        let (cmd, args) = parse_pager_command("less");
+        assert_eq!(cmd, "less");
+        assert_eq!(args, vec!["-FRX"]);
+
+        // Test command with args
+        let (cmd, args) = parse_pager_command("less -R");
+        assert_eq!(cmd, "less");
+        assert_eq!(args, vec!["-R"]);
+
+        // Test other pager
+        let (cmd, args) = parse_pager_command("more");
+        assert_eq!(cmd, "more");
+        assert!(args.is_empty());
+
+        // Test complex command
+        let (cmd, args) = parse_pager_command("less -F -R -X");
+        assert_eq!(cmd, "less");
+        assert_eq!(args, vec!["-F", "-R", "-X"]);
+
+        // Test empty command
+        let (cmd, args) = parse_pager_command("");
+        assert_eq!(cmd, "less");
+        assert_eq!(args, vec!["-FRX"]);
     }
 
     // Note: test_output_direct_when_disabled removed as it outputs to stdout during test runs
