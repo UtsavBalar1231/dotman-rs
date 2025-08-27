@@ -1,5 +1,6 @@
 use crate::DotmanContext;
 use crate::reflog::ReflogManager;
+use crate::utils::pager::PagerOutput;
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
@@ -27,17 +28,19 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> R
     };
     let entries_to_show = &entries[..display_limit];
 
+    let mut output = PagerOutput::new(ctx, ctx.no_pager);
+
     // Display entries
     for (index, entry) in entries_to_show.iter().enumerate() {
         if oneline {
             // Compact one-line format: <short_hash> HEAD@{n}: <operation>: <message>
-            println!(
+            output.appendln(&format!(
                 "{} {}: {}: {}",
                 entry.short_hash().yellow(),
                 format!("HEAD@{{{}}}", index).cyan(),
                 entry.operation.green(),
                 entry.message
-            );
+            ));
         } else {
             // Full format with timestamp
             let datetime = Local
@@ -45,24 +48,28 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> R
                 .single()
                 .unwrap_or_else(Local::now);
 
-            println!(
+            output.appendln(&format!(
                 "{} {} ({})",
                 entry.short_hash().yellow(),
                 format!("HEAD@{{{}}}", index).cyan(),
                 datetime.format("%Y-%m-%d %H:%M:%S").to_string().dimmed()
-            );
+            ));
 
-            println!(
+            output.appendln(&format!(
                 "{}  {}: {}",
                 "    ".dimmed(),
                 entry.operation.green(),
                 entry.message
-            );
+            ));
 
             if !oneline && index < entries_to_show.len() - 1 {
-                println!(); // Add spacing between entries
+                output.append("\n"); // Add spacing between entries
             }
         }
+    }
+
+    if display_limit > 0 {
+        output.show()?;
     }
 
     Ok(())
@@ -188,6 +195,7 @@ mod tests {
             repo_path: home_dir.join("nonexistent"),
             config_path: home_dir.join(".config/dotman/config"),
             config: Default::default(),
+            no_pager: true,
         };
 
         let result = execute(&ctx, 10, false, false);

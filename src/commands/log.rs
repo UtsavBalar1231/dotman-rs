@@ -1,6 +1,7 @@
 use crate::DotmanContext;
 use crate::refs::resolver::RefResolver;
 use crate::storage::snapshots::SnapshotManager;
+use crate::utils::pager::PagerOutput;
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
@@ -23,6 +24,8 @@ pub fn execute(
         super::print_info("No commits yet");
         return Ok(());
     }
+
+    let mut output = PagerOutput::new(ctx, ctx.no_pager);
 
     // Load and display commits
     let mut commits_displayed = 0;
@@ -63,28 +66,32 @@ pub fn execute(
                 } else {
                     &commit.id
                 };
-                println!("{} {}", display_id.yellow(), commit.message);
+                output.appendln(&format!("{} {}", display_id.yellow(), commit.message));
             } else {
                 // Full format
-                println!("{} {}", "commit".yellow(), commit.id);
+                output.appendln(&format!("{} {}", "commit".yellow(), commit.id));
 
                 if let Some(parent) = &commit.parent {
-                    println!("{}: {}", "Parent".bold(), &parent[..8.min(parent.len())]);
+                    output.appendln(&format!(
+                        "{}: {}",
+                        "Parent".bold(),
+                        &parent[..8.min(parent.len())]
+                    ));
                 }
 
-                println!("{}: {}", "Author".bold(), commit.author);
+                output.appendln(&format!("{}: {}", "Author".bold(), commit.author));
 
                 let datetime = Local
                     .timestamp_opt(commit.timestamp, 0)
                     .single()
                     .unwrap_or_else(Local::now);
-                println!(
+                output.appendln(&format!(
                     "{}: {}",
                     "Date".bold(),
                     datetime.format("%Y-%m-%d %H:%M:%S")
-                );
+                ));
 
-                println!("\n    {}\n", commit.message);
+                output.appendln(&format!("\n    {}\n", commit.message));
             }
 
             commits_displayed += 1;
@@ -105,28 +112,32 @@ pub fn execute(
                 } else {
                     &commit.id
                 };
-                println!("{} {}", display_id.yellow(), commit.message);
+                output.appendln(&format!("{} {}", display_id.yellow(), commit.message));
             } else {
                 // Full format
-                println!("{} {}", "commit".yellow(), commit.id);
+                output.appendln(&format!("{} {}", "commit".yellow(), commit.id));
 
                 if let Some(parent) = &commit.parent {
-                    println!("{}: {}", "Parent".bold(), &parent[..8.min(parent.len())]);
+                    output.appendln(&format!(
+                        "{}: {}",
+                        "Parent".bold(),
+                        &parent[..8.min(parent.len())]
+                    ));
                 }
 
-                println!("{}: {}", "Author".bold(), commit.author);
+                output.appendln(&format!("{}: {}", "Author".bold(), commit.author));
 
                 let datetime = Local
                     .timestamp_opt(commit.timestamp, 0)
                     .single()
                     .unwrap_or_else(Local::now);
-                println!(
+                output.appendln(&format!(
                     "{}: {}",
                     "Date".bold(),
                     datetime.format("%Y-%m-%d %H:%M:%S")
-                );
+                ));
 
-                println!("\n    {}\n", commit.message);
+                output.appendln(&format!("\n    {}\n", commit.message));
             }
 
             commits_displayed += 1;
@@ -136,12 +147,16 @@ pub fn execute(
     if commits_displayed == 0 {
         super::print_info("No commits to display");
     } else if commits_displayed < snapshots.len() {
-        println!(
+        output.appendln(&format!(
             "\n{} (showing {} of {} commits)",
             "...".dimmed(),
             commits_displayed,
             snapshots.len()
-        );
+        ));
+    }
+
+    if commits_displayed > 0 {
+        output.show()?;
     }
 
     Ok(())

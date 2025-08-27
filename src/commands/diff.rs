@@ -31,7 +31,7 @@ fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
     use crate::commands::status::get_current_files;
     use crate::storage::index::ConcurrentIndex;
 
-    let mut output = PagerOutput::default();
+    let mut output = PagerOutput::new(ctx, ctx.no_pager);
     output.appendln(&format!(
         "{}",
         "Comparing working directory with index...".blue()
@@ -46,12 +46,12 @@ fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
 
     if statuses.is_empty() {
         output.appendln("No differences found");
-        // output.show()?;
+        output.show()?;
         return Ok(());
     }
 
     format_file_statuses(&mut output, &statuses);
-    // output.show()?;
+    output.show()?;
 
     Ok(())
 }
@@ -63,7 +63,7 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
         .resolve(commit)
         .with_context(|| format!("Failed to resolve reference: {}", commit))?;
 
-    let mut output = PagerOutput::default();
+    let mut output = PagerOutput::new(ctx, ctx.no_pager);
     output.appendln(&format!(
         "{}",
         format!(
@@ -100,12 +100,12 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
 
     if statuses.is_empty() {
         output.appendln("No differences found");
-        // output.show()?;
+        output.show()?;
         return Ok(());
     }
 
     format_file_statuses(&mut output, &statuses);
-    // output.show()?;
+    output.show()?;
 
     Ok(())
 }
@@ -120,7 +120,7 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
         .resolve(to)
         .with_context(|| format!("Failed to resolve reference: {}", to))?;
 
-    let mut output = PagerOutput::default();
+    let mut output = PagerOutput::new(ctx, ctx.no_pager);
     output.appendln(&format!(
         "{}",
         format!(
@@ -173,7 +173,7 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
     }
 
     format_file_statuses(&mut output, &statuses);
-    // output.show()?;
+    output.show()?;
 
     Ok(())
 }
@@ -229,9 +229,9 @@ fn format_file_statuses(output: &mut PagerOutput, statuses: &[FileStatus]) {
 // Keep the old function for tests
 #[allow(dead_code)]
 fn display_file_statuses(statuses: &[FileStatus]) {
-    let mut output = PagerOutput::default();
+    let mut output = PagerOutput::default().disable_pager();
     format_file_statuses(&mut output, statuses);
-    let _ = output.disable_pager().show();
+    let _ = output.show();
 }
 
 #[cfg(test)]
@@ -267,6 +267,7 @@ mod tests {
             repo_path,
             config_path,
             config,
+            no_pager: true,
         };
 
         Ok((temp, ctx))
@@ -362,6 +363,7 @@ mod tests {
             repo_path: repo_path.clone(),
             config_path: temp.path().join("config"),
             config: Config::default(),
+            no_pager: true,
         };
 
         let result = ctx.check_repo_initialized();
