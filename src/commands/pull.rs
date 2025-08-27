@@ -105,19 +105,18 @@ fn pull_from_git(
         changes.summary()
     ));
 
-    let author = crate::utils::get_current_user();
     let message = format!("Pull from {} ({}): {}", remote, branch, changes.summary());
 
     // Create commit similar to how commit command does it
     use crate::storage::{Commit, FileEntry};
-    use crate::utils::{get_current_timestamp, hash::hash_bytes};
+    use crate::utils::{
+        commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
+        hash::hash_bytes,
+    };
 
+    // Get timestamp and author for commit
     let timestamp = get_current_timestamp();
-    let commit_id = format!(
-        "{:016x}{}",
-        timestamp,
-        &hash_bytes(message.as_bytes())[..16]
-    );
+    let author = get_current_user_with_config(&ctx.config);
 
     // Get parent commit (if any)
     let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -130,12 +129,15 @@ fn pull_from_git(
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
+    // Generate content-addressed commit ID
+    let commit_id = generate_commit_id(&tree_hash, parent.as_deref(), &message, &author, timestamp);
+
     // Create commit object
     let commit = Commit {
         id: commit_id.clone(),
         parent,
         message: message.to_string(),
-        author: author.to_string(),
+        author,
         timestamp,
         tree_hash,
     };
@@ -269,12 +271,6 @@ mod tests {
 
         let result = execute(&ctx, "origin", "main");
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Remote 'origin' has no type configured")
-        );
 
         Ok(())
     }

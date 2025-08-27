@@ -57,8 +57,9 @@ pub mod fixtures {
         }
 
         pub fn create_commit(&self, id: &str, message: &str) -> Result<()> {
+            let commit_id = test_commit_id(id);
             let commit = crate::storage::Commit {
-                id: id.to_string(),
+                id: commit_id.clone(),
                 parent: None,
                 message: message.to_string(),
                 author: "Test User".to_string(),
@@ -75,11 +76,14 @@ pub mod fixtures {
             let serialized = crate::utils::serialization::serialize(&snapshot)?;
             let compressed = zstd::stream::encode_all(&serialized[..], 3)?;
 
-            let snapshot_path = self.repo_path.join("commits").join(format!("{}.zst", id));
+            let snapshot_path = self
+                .repo_path
+                .join("commits")
+                .join(format!("{}.zst", &commit_id));
             fs::write(&snapshot_path, compressed)?;
 
             // Update HEAD
-            fs::write(self.repo_path.join("HEAD"), id)?;
+            fs::write(self.repo_path.join("HEAD"), &commit_id)?;
             Ok(())
         }
 
@@ -130,5 +134,27 @@ pub mod fixtures {
         };
 
         Ok((temp, ctx))
+    }
+
+    /// Generates a valid 32-character hexadecimal commit ID for tests
+    /// Pads the input with zeros to ensure it's exactly 32 characters
+    pub fn test_commit_id(suffix: &str) -> String {
+        if suffix.len() >= 32 {
+            // If suffix is already 32+ chars, take first 32 and ensure they're all hex
+            suffix[..32]
+                .chars()
+                .map(|c| if c.is_ascii_hexdigit() { c } else { '0' })
+                .collect()
+        } else {
+            // Pad with zeros at the start to make exactly 32 characters
+            format!("{:0>32}", suffix)
+        }
+    }
+
+    /// Generates a sequence of test commit IDs (01, 02, 03, etc.)
+    pub fn test_commit_ids(count: usize) -> Vec<String> {
+        (1..=count)
+            .map(|i| test_commit_id(&format!("{:02}", i)))
+            .collect()
     }
 }

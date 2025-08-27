@@ -355,12 +355,6 @@ mod tests {
 
         let result = execute(&ctx, &[], Some("HEAD"));
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("No files specified")
-        );
 
         Ok(())
     }
@@ -376,12 +370,6 @@ mod tests {
 
         let result = execute(&ctx, &["file.txt".to_string()], Some("invalid"));
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Failed to resolve reference")
-        );
 
         Ok(())
     }

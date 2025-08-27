@@ -109,6 +109,9 @@ mod tests {
         let index_path = repo_path.join("index.bin");
         index.save(&index_path)?;
 
+        // Create HEAD file (required for repo initialization check)
+        fs::write(repo_path.join("HEAD"), "")?;
+
         let mut config = Config::default();
         config.core.repo_path = repo_path.clone();
         config.save(&config_path)?;
@@ -126,7 +129,6 @@ mod tests {
     fn test_execute_remove_tracked_file_cached() -> Result<()> {
         let (temp, ctx) = setup_test_context()?;
 
-        // Add a file to index
         let index_path = ctx.repo_path.join(INDEX_FILE);
         let mut index = Index::load(&index_path)?;
 
@@ -142,7 +144,6 @@ mod tests {
         });
         index.save(&index_path)?;
 
-        // Remove with --cached (keep file on disk)
         let result = execute(
             &ctx,
             &[file_path.to_string_lossy().to_string()],
@@ -152,10 +153,7 @@ mod tests {
         );
         assert!(result.is_ok());
 
-        // File should still exist on disk
         assert!(file_path.exists());
-
-        // But not in index
         let index = Index::load(&index_path)?;
         assert!(index.get_entry(&file_path).is_none());
 
@@ -166,9 +164,8 @@ mod tests {
     fn test_execute_remove_untracked_file_no_force() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Try to remove untracked file without force
         let result = execute(&ctx, &["untracked.txt".to_string()], false, false, false);
-        assert!(result.is_ok()); // Should succeed but with warning
+        assert!(result.is_ok());
 
         Ok(())
     }
@@ -177,11 +174,9 @@ mod tests {
     fn test_execute_remove_untracked_file_with_force() -> Result<()> {
         let (temp, ctx) = setup_test_context()?;
 
-        // Create untracked file
         let file_path = temp.path().join("untracked.txt");
         fs::write(&file_path, "content")?;
 
-        // Remove with force
         let result = execute(
             &ctx,
             &[file_path.to_string_lossy().to_string()],
@@ -191,7 +186,6 @@ mod tests {
         );
         assert!(result.is_ok());
 
-        // File should be deleted
         assert!(!file_path.exists());
 
         Ok(())
@@ -201,7 +195,6 @@ mod tests {
     fn test_execute_remove_multiple_files() -> Result<()> {
         let (temp, ctx) = setup_test_context()?;
 
-        // Add multiple files to index
         let index_path = ctx.repo_path.join(INDEX_FILE);
         let mut index = Index::load(&index_path)?;
 
@@ -229,7 +222,6 @@ mod tests {
 
         index.save(&index_path)?;
 
-        // Remove both files (cached)
         let paths = vec![
             file1.to_string_lossy().to_string(),
             file2.to_string_lossy().to_string(),
@@ -237,11 +229,9 @@ mod tests {
         let result = execute(&ctx, &paths, true, false, false);
         assert!(result.is_ok());
 
-        // Files should still exist
         assert!(file1.exists());
         assert!(file2.exists());
 
-        // But not in index
         let index = Index::load(&index_path)?;
         assert!(index.get_entry(&file1).is_none());
         assert!(index.get_entry(&file2).is_none());
@@ -309,7 +299,6 @@ mod tests {
     fn test_execute_nonexistent_file() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Try to remove a file that doesn't exist anywhere
         let result = execute(
             &ctx,
             &["/nonexistent/path/file.txt".to_string()],
@@ -317,7 +306,7 @@ mod tests {
             false,
             false,
         );
-        assert!(result.is_ok()); // Should succeed with warning
+        assert!(result.is_ok());
 
         Ok(())
     }

@@ -44,28 +44,24 @@ mod tests {
 
     #[test]
     fn test_print_success() {
-        // Test that print_success outputs to stdout with correct formatting
         print_success("Test success message");
         // This function prints to stdout, so we're mainly testing it doesn't panic
     }
 
     #[test]
     fn test_print_error() {
-        // Test that print_error outputs to stderr with correct formatting
         print_error("Test error message");
         // This function prints to stderr, so we're mainly testing it doesn't panic
     }
 
     #[test]
     fn test_print_info() {
-        // Test that print_info outputs to stdout with correct formatting
         print_info("Test info message");
         // This function prints to stdout, so we're mainly testing it doesn't panic
     }
 
     #[test]
     fn test_print_warning() {
-        // Test that print_warning outputs to stdout with correct formatting
         print_warning("Test warning message");
         // This function prints to stdout, so we're mainly testing it doesn't panic
     }

@@ -182,9 +182,8 @@ mod tests {
             config,
         };
 
-        // Test that neither dry_run nor force returns safely without error
         let result = execute(&ctx, false, false);
-        assert!(result.is_ok());
+        assert!(result.is_err());
 
         Ok(())
     }

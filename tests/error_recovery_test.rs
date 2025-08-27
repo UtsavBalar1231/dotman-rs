@@ -19,6 +19,14 @@ fn setup_corrupted_repo() -> Result<(tempfile::TempDir, DotmanContext)> {
     fs::create_dir_all(repo_path.join("commits"))?;
     fs::create_dir_all(repo_path.join("objects"))?;
 
+    // Create empty index
+    let index = Index::new();
+    let index_path = repo_path.join("index.bin");
+    index.save(&index_path)?;
+
+    // Create HEAD file to mark repo as initialized
+    fs::write(repo_path.join("HEAD"), "")?;
+
     let mut config = Config::default();
     config.core.repo_path = repo_path.clone();
     config.save(&config_path)?;
@@ -140,6 +148,9 @@ fn test_recover_from_interrupted_operations() -> Result<()> {
     // Simulate interrupted add operation by creating partial index
     let index_path = ctx.repo_path.join("index.bin");
     let temp_index_path = ctx.repo_path.join("index.bin.tmp");
+
+    // Simulate interruption by removing the real index (as if write was interrupted)
+    fs::remove_file(&index_path)?;
 
     // Create temporary index file (simulating interrupted write)
     let mut temp_index = Index::new();

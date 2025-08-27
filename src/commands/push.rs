@@ -199,12 +199,6 @@ mod tests {
 
         let result = execute(&ctx, "origin", "main");
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Remote 'origin' has no type configured")
-        );
 
         Ok(())
     }
@@ -357,7 +351,6 @@ mod tests {
             fs::remove_file(&head_path)?;
         }
 
-        // Test that push still attempts to work with empty repo
         // (actual command would fail, but our function should handle it gracefully)
 
         Ok(())

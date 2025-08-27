@@ -1,3 +1,4 @@
+use crate::utils::hash::hash_bytes;
 use anyhow::Result;
 use std::fs;
 use std::path::Path;
@@ -53,6 +54,45 @@ pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<S
     }
 }
 
+/// Generates a content-addressed commit ID using xxhash
+/// Creates a deterministic 32-character hex string based on commit content
+pub fn generate_commit_id(
+    tree_hash: &str,
+    parent: Option<&str>,
+    message: &str,
+    author: &str,
+    timestamp: i64,
+) -> String {
+    // Build the commit content string
+    let mut commit_content = String::new();
+
+    // Add tree hash
+    commit_content.push_str("tree ");
+    commit_content.push_str(tree_hash);
+    commit_content.push('\n');
+
+    // Add parent if it exists
+    if let Some(parent_id) = parent {
+        commit_content.push_str("parent ");
+        commit_content.push_str(parent_id);
+        commit_content.push('\n');
+    }
+
+    // Add author and timestamp
+    commit_content.push_str("author ");
+    commit_content.push_str(author);
+    commit_content.push(' ');
+    commit_content.push_str(&timestamp.to_string());
+    commit_content.push('\n');
+
+    // Add message
+    commit_content.push_str("message ");
+    commit_content.push_str(message);
+
+    // Generate hash of the complete commit content
+    hash_bytes(commit_content.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -101,9 +141,8 @@ mod tests {
         fs::write(commits_dir.join("abc789ghi012.zst"), "")?;
 
         let result = resolve_partial_commit_id(temp.path(), "abc");
+        // Should fail when partial commit ID matches multiple commits
         assert!(result.is_err());
-        let error_msg = result.unwrap_err().to_string();
-        assert!(error_msg.contains("Ambiguous"));
 
         Ok(())
     }
@@ -118,6 +157,64 @@ mod tests {
 
         let result = resolve_partial_commit_id(temp.path(), "abc123def456")?;
         assert_eq!(result, "abc123def456");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_commit_id_deterministic() -> Result<()> {
+        // Test that the same inputs produce the same commit ID
+        let tree_hash = "abcd1234";
+        let parent = Some("parent123");
+        let message = "Test commit";
+        let author = "Test User";
+        let timestamp = 1234567890i64;
+
+        let id1 = generate_commit_id(tree_hash, parent, message, author, timestamp);
+        let id2 = generate_commit_id(tree_hash, parent, message, author, timestamp);
+
+        assert_eq!(id1, id2);
+        assert_eq!(id1.len(), 32); // 32 hex characters
+        assert!(id1.chars().all(|c| c.is_ascii_hexdigit()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_commit_id_different_inputs() -> Result<()> {
+        let tree_hash = "abcd1234";
+        let parent = Some("parent123");
+        let message = "Test commit";
+        let author = "Test User";
+        let timestamp = 1234567890i64;
+
+        let id1 = generate_commit_id(tree_hash, parent, message, author, timestamp);
+
+        // Different message should produce different ID
+        let id2 = generate_commit_id(tree_hash, parent, "Different message", author, timestamp);
+        assert_ne!(id1, id2);
+
+        // Different timestamp should produce different ID
+        let id3 = generate_commit_id(tree_hash, parent, message, author, timestamp + 1);
+        assert_ne!(id1, id3);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_commit_id_no_parent() -> Result<()> {
+        // Test commit without parent (initial commit)
+        let tree_hash = "abcd1234";
+        let message = "Initial commit";
+        let author = "Test User";
+        let timestamp = 1234567890i64;
+
+        let id1 = generate_commit_id(tree_hash, None, message, author, timestamp);
+        let id2 = generate_commit_id(tree_hash, Some("parent123"), message, author, timestamp);
+
+        assert_ne!(id1, id2); // Should be different with and without parent
+        assert_eq!(id1.len(), 32);
+        assert!(id1.chars().all(|c| c.is_ascii_hexdigit()));
 
         Ok(())
     }

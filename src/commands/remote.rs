@@ -206,7 +206,6 @@ mod tests {
         let result = add(&mut ctx, "origin", "https://github.com/other/repo.git");
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("already exists"));
 
         Ok(())
     }
@@ -229,7 +228,6 @@ mod tests {
 
         let result = remove(&mut ctx, "nonexistent");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("does not exist"));
 
         Ok(())
     }

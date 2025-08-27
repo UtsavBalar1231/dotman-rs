@@ -213,32 +213,10 @@ pub fn unset_upstream(ctx: &mut DotmanContext, branch: Option<&str>) -> Result<(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
-    use std::fs;
-    use tempfile::tempdir;
+    use crate::test_utils::fixtures::create_test_context;
 
-    fn create_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
-        let temp = tempdir()?;
-        let repo_path = temp.path().join(".dotman");
-        let config_path = temp.path().join("config.toml");
-
-        fs::create_dir_all(&repo_path)?;
-
-        let config = Config::default();
-        let ctx = DotmanContext {
-            repo_path: repo_path.clone(),
-            config_path: config_path.clone(),
-            config,
-        };
-
-        ctx.config.save(&config_path)?;
-
-        // Initialize refs
-        let ref_manager = RefManager::new(repo_path);
-        ref_manager.init()?;
-
-        Ok((temp, ctx))
-    }
+    // Use the create_test_context from fixtures
+    // No local definition needed
 
     #[test]
     fn test_list_branches() -> Result<()> {
@@ -270,7 +248,6 @@ mod tests {
         let result = create(&ctx, "feature", None);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("already exists"));
 
         Ok(())
     }

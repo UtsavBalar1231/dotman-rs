@@ -150,34 +150,14 @@ pub fn execute(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
     use crate::storage::Commit;
     use crate::storage::snapshots::Snapshot;
+    use crate::test_utils::fixtures::{create_test_context, test_commit_id};
     use std::collections::HashMap;
     use std::fs;
-    use tempfile::tempdir;
 
     fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
-        let temp = tempdir()?;
-        let repo_path = temp.path().join(".dotman");
-        let config_path = temp.path().join("config.toml");
-
-        // Create repo structure
-        fs::create_dir_all(&repo_path)?;
-        fs::create_dir_all(repo_path.join("commits"))?;
-        fs::create_dir_all(repo_path.join("objects"))?;
-
-        let mut config = Config::default();
-        config.core.repo_path = repo_path.clone();
-        config.save(&config_path)?;
-
-        let ctx = DotmanContext {
-            repo_path,
-            config_path,
-            config,
-        };
-
-        Ok((temp, ctx))
+        create_test_context()
     }
 
     fn create_test_snapshot(
@@ -186,9 +166,10 @@ mod tests {
         message: &str,
         parent: Option<String>,
     ) -> Result<()> {
+        let valid_commit_id = test_commit_id(commit_id);
         let snapshot = Snapshot {
             commit: Commit {
-                id: commit_id.to_string(),
+                id: valid_commit_id.clone(),
                 message: message.to_string(),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)?
@@ -208,7 +189,7 @@ mod tests {
         let snapshot_path = ctx
             .repo_path
             .join("commits")
-            .join(format!("{}.zst", commit_id));
+            .join(format!("{}.zst", &valid_commit_id));
         fs::write(&snapshot_path, compressed)?;
 
         Ok(())
@@ -247,7 +228,7 @@ mod tests {
     fn test_execute_oneline_format() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create test commits
+        // Create test commits - this will be converted to valid 32-char hex
         create_test_snapshot(&ctx, "20241201120000000000abc123", "Test commit", None)?;
 
         let result = execute(&ctx, None, 10, true);
@@ -260,12 +241,12 @@ mod tests {
     fn test_execute_with_limit() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create multiple commits
+        // Create multiple commits with valid IDs
         for i in 1..=5 {
-            let commit_id = format!("commit{}", i);
+            let commit_id = format!("{:02}", i); // Will be padded to 32 chars by test_commit_id
             let message = format!("Commit #{}", i);
             let parent = if i > 1 {
-                Some(format!("commit{}", i - 1))
+                Some(test_commit_id(&format!("{:02}", i - 1)))
             } else {
                 None
             };
@@ -283,7 +264,7 @@ mod tests {
     fn test_execute_limit_zero() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        create_test_snapshot(&ctx, "commit1", "Test", None)?;
+        create_test_snapshot(&ctx, "01", "Test", None)?;
 
         let result = execute(&ctx, None, 0, false);
         assert!(result.is_ok());
@@ -352,7 +333,7 @@ mod tests {
 
         // Create multiple commits for oneline display
         for i in 1..=3 {
-            let commit_id = format!("2024120112000000000000commit{}", i);
+            let commit_id = format!("{:02}", i + 10); // Use 11, 12, 13 to avoid conflicts
             let message = format!("Message {}", i);
             create_test_snapshot(&ctx, &commit_id, &message, None)?;
         }

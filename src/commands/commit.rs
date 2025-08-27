@@ -2,7 +2,10 @@ use crate::refs::resolver::RefResolver;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
 use crate::storage::{Commit, FileEntry};
-use crate::utils::{get_current_timestamp, get_current_user_with_config, hash::hash_bytes};
+use crate::utils::{
+    commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
+    hash::hash_bytes,
+};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -32,13 +35,9 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
         }
     }
 
-    // Create commit ID from timestamp and message hash
+    // Get timestamp and author for commit
     let timestamp = get_current_timestamp();
-    let commit_id = format!(
-        "{:016x}{}",
-        timestamp,
-        &hash_bytes(message.as_bytes())[..16]
-    );
+    let author = get_current_user_with_config(&ctx.config);
 
     // Get parent commit (if any)
     let parent = get_last_commit_id(ctx)?;
@@ -50,12 +49,15 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
+    // Generate content-addressed commit ID
+    let commit_id = generate_commit_id(&tree_hash, parent.as_deref(), message, &author, timestamp);
+
     // Create commit object
     let commit = Commit {
         id: commit_id.clone(),
         parent,
         message: message.to_string(),
-        author: get_current_user_with_config(&ctx.config),
+        author,
         timestamp,
         tree_hash,
     };
@@ -119,10 +121,6 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     // Use provided message or keep the original
     let commit_message = message.unwrap_or(&last_snapshot.commit.message);
 
-    // Create new commit with same ID pattern but updated content
-    // We'll use the same commit ID to truly "amend" the commit
-    let commit_id = last_commit_id.clone();
-
     // Create tree hash from all file hashes
     let mut tree_content = String::new();
     for (path, entry) in &index.entries {
@@ -130,13 +128,26 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
+    // Get commit details
+    let timestamp = get_current_timestamp();
+    let author = get_current_user_with_config(&ctx.config);
+
+    // Generate new content-addressed commit ID for the amended commit
+    let commit_id = generate_commit_id(
+        &tree_hash,
+        last_snapshot.commit.parent.as_deref(),
+        commit_message,
+        &author,
+        timestamp,
+    );
+
     // Create amended commit object with same parent as the original
     let commit = Commit {
         id: commit_id.clone(),
         parent: last_snapshot.commit.parent.clone(),
         message: commit_message.to_string(),
-        author: get_current_user_with_config(&ctx.config),
-        timestamp: get_current_timestamp(),
+        author,
+        timestamp,
         tree_hash,
     };
 
@@ -147,7 +158,8 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     let files: Vec<FileEntry> = index.entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit.clone(), &files)?;
 
-    // HEAD stays the same since we're replacing the commit in place
+    // Update HEAD to point to the new commit ID since it's content-addressed
+    update_head(ctx, &commit_id)?;
 
     let display_id = if commit_id.len() >= 8 {
         &commit_id[..8]

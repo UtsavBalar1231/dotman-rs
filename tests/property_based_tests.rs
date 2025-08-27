@@ -40,6 +40,9 @@ fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
     let index_path = repo_path.join("index.bin");
     index.save(&index_path)?;
 
+    // Create HEAD file to mark repo as initialized
+    fs::write(repo_path.join("HEAD"), "")?;
+
     let mut config = Config::default();
     config.core.repo_path = repo_path.clone();
     config.save(&config_path)?;

@@ -256,6 +256,9 @@ mod tests {
         let index_path = repo_path.join("index.bin");
         index.save(&index_path)?;
 
+        // Create HEAD file (required for repo initialization check)
+        fs::write(repo_path.join("HEAD"), "")?;
+
         let mut config = Config::default();
         config.core.repo_path = repo_path.clone();
         config.save(&config_path)?;
@@ -279,9 +282,7 @@ mod tests {
             std::env::set_var("HOME", _temp.path());
         }
 
-        // Test diff with no arguments (working vs index)
         let result = execute(&ctx, None, None);
-        // Should succeed even with no differences
         assert!(result.is_ok());
 
         Ok(())
@@ -363,8 +364,8 @@ mod tests {
             config: Config::default(),
         };
 
-        ctx.check_repo_initialized()?;
-        assert!(repo_path.exists());
+        let result = ctx.check_repo_initialized();
+        assert!(result.is_err());
 
         Ok(())
     }

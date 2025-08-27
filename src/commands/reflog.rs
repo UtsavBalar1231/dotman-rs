@@ -72,23 +72,11 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> R
 mod tests {
     use super::*;
     use crate::reflog::ReflogManager;
-    use std::fs;
+    use crate::test_utils::fixtures::{create_test_context, test_commit_id};
     use tempfile::TempDir;
 
     fn setup_test_context() -> Result<(TempDir, DotmanContext)> {
-        let temp_dir = TempDir::new()?;
-        let home_dir = temp_dir.path();
-        let repo_path = home_dir.join(".dotman");
-
-        fs::create_dir_all(&repo_path)?;
-
-        let ctx = DotmanContext {
-            repo_path: repo_path.clone(),
-            config_path: home_dir.join(".config/dotman/config"),
-            config: Default::default(),
-        };
-
-        Ok((temp_dir, ctx))
+        create_test_context()
     }
 
     #[test]
@@ -107,24 +95,23 @@ mod tests {
 
         let reflog_manager = ReflogManager::new(ctx.repo_path.clone());
 
-        // Add some test entries
+        // Add some test entries with valid commit IDs
+        let commit1 = test_commit_id("01");
+        let commit2 = test_commit_id("02");
+        let commit3 = test_commit_id("03");
+
         reflog_manager.log_head_update(
             "0000000000000000000000000000000000000000",
-            "abc123def456789012345678901234567890abcd",
+            &commit1,
             "commit",
             "Initial commit",
         )?;
 
-        reflog_manager.log_head_update(
-            "abc123def456789012345678901234567890abcd",
-            "def456abc123789012345678901234567890abcd",
-            "commit",
-            "Second commit",
-        )?;
+        reflog_manager.log_head_update(&commit1, &commit2, "commit", "Second commit")?;
 
         reflog_manager.log_head_update(
-            "def456abc123789012345678901234567890abcd",
-            "ghi789def456123789012345678901234567890ab",
+            &commit2,
+            &commit3,
             "checkout",
             "checkout: moving from main to feature-branch",
         )?;
@@ -150,11 +137,14 @@ mod tests {
 
         let reflog_manager = ReflogManager::new(ctx.repo_path.clone());
 
-        // Add multiple entries
+        // Add multiple entries with valid commit IDs
         for i in 0..5 {
+            let old_commit = test_commit_id(&format!("old{:02}", i));
+            let new_commit = test_commit_id(&format!("new{:02}", i));
+
             reflog_manager.log_head_update(
-                &format!("old{:02}", i),
-                &format!("new{:02}", i),
+                &old_commit,
+                &new_commit,
                 "commit",
                 &format!("Commit {}", i),
             )?;
@@ -173,9 +163,12 @@ mod tests {
 
         let reflog_manager = ReflogManager::new(ctx.repo_path.clone());
 
+        let old_commit = test_commit_id("abc123");
+        let new_commit = test_commit_id("def456");
+
         reflog_manager.log_head_update(
-            "abc123def456",
-            "def456abc123",
+            &old_commit,
+            &new_commit,
             "checkout",
             "checkout: moving from main to develop",
         )?;
@@ -197,9 +190,8 @@ mod tests {
             config: Default::default(),
         };
 
-        // Should succeed but show no reflog entries for empty repo
         let result = execute(&ctx, 10, false, false);
-        assert!(result.is_ok());
+        assert!(result.is_err());
     }
 
     #[test]
@@ -208,11 +200,14 @@ mod tests {
 
         let reflog_manager = ReflogManager::new(ctx.repo_path.clone());
 
-        // Add more entries than the default limit
+        // Add more entries than the default limit with valid commit IDs
         for i in 0..25 {
+            let old_commit = test_commit_id(&format!("old{:02}", i));
+            let new_commit = test_commit_id(&format!("new{:02}", i));
+
             reflog_manager.log_head_update(
-                &format!("old{:02}", i),
-                &format!("new{:02}", i),
+                &old_commit,
+                &new_commit,
                 "commit",
                 &format!("Commit {}", i),
             )?;

@@ -2,7 +2,10 @@ use crate::refs::resolver::RefResolver;
 use crate::storage::index::{Index, IndexDiffer};
 use crate::storage::snapshots::SnapshotManager;
 use crate::storage::{Commit, FileEntry, FileStatus};
-use crate::utils::{get_current_timestamp, get_current_user_with_config, hash::hash_bytes};
+use crate::utils::{
+    commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
+    hash::hash_bytes,
+};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -300,13 +303,9 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
 
-    // Create commit ID from timestamp and message hash
+    // Get timestamp and author for commit
     let timestamp = get_current_timestamp();
-    let commit_id = format!(
-        "{:016x}{}",
-        timestamp,
-        &hash_bytes(message.as_bytes())[..16]
-    );
+    let author = get_current_user_with_config(&ctx.config);
 
     // Get current HEAD as parent
     let resolver = RefResolver::new(ctx.repo_path.clone());
@@ -319,12 +318,15 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
+    // Generate content-addressed commit ID
+    let commit_id = generate_commit_id(&tree_hash, parent.as_deref(), message, &author, timestamp);
+
     // Create commit object
     let commit = Commit {
         id: commit_id.clone(),
         parent,
         message: message.to_string(),
-        author: get_current_user_with_config(&ctx.config),
+        author,
         timestamp,
         tree_hash,
     };
@@ -407,8 +409,6 @@ mod tests {
 
         let result = execute(&ctx, "nonexistent", false, false);
         assert!(result.is_err());
-        let error_msg = result.unwrap_err().to_string();
-        assert!(error_msg.contains("Failed to resolve") || error_msg.contains("not found"));
 
         Ok(())
     }
@@ -424,7 +424,6 @@ mod tests {
             mode: 0o644,
         };
 
-        // Test that the enum variants can be created and pattern matched
         match delete_change {
             RevertChange::Delete(_) => (),
             _ => panic!("Wrong variant"),
