@@ -37,6 +37,7 @@ pub mod fixtures {
                 repo_path: repo_path.clone(),
                 config_path: config_path.clone(),
                 config: config.clone(),
+                no_pager: true,
             };
 
             Ok(Self {
@@ -131,6 +132,7 @@ pub mod fixtures {
             repo_path,
             config_path,
             config,
+            no_pager: true,
         };
 
         Ok((temp, ctx))

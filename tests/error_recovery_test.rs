@@ -35,6 +35,7 @@ fn setup_corrupted_repo() -> Result<(tempfile::TempDir, DotmanContext)> {
         repo_path,
         config_path,
         config,
+        no_pager: true,
     };
 
     Ok((dir, context))

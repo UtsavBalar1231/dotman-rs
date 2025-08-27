@@ -40,6 +40,7 @@ fn test_user_config_workflow() -> Result<()> {
         repo_path: repo_path.clone(),
         config_path: config_path.clone(),
         config: config.clone(),
+        no_pager: true,
     };
 
     // Add file
@@ -89,6 +90,7 @@ fn test_config_command_integration() -> Result<()> {
         repo_path,
         config_path: config_path.clone(),
         config,
+        no_pager: true,
     };
 
     // Use config command to set user.name

@@ -41,6 +41,7 @@ fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
         repo_path,
         config_path,
         config,
+        no_pager: true,
     };
 
     Ok((dir, context))

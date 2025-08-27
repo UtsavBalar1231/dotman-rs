@@ -31,6 +31,7 @@ fn test_push_workflow() -> Result<()> {
         repo_path: repo_path.clone(),
         config_path,
         config,
+        no_pager: true,
     };
 
     // Add file
@@ -100,6 +101,7 @@ fn test_pull_workflow() -> Result<()> {
         repo_path: repo_path.clone(),
         config_path,
         config,
+        no_pager: true,
     };
 
     // Create a "remote" repository with content
@@ -191,6 +193,7 @@ fn test_remote_management() -> Result<()> {
         repo_path: repo_path.clone(),
         config_path: config_path.clone(),
         config,
+        no_pager: true,
     };
 
     // Add multiple remotes
