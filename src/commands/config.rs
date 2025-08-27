@@ -124,6 +124,7 @@ mod tests {
             repo_path,
             config_path: config_path.clone(),
             config,
+            no_pager: true,
         };
 
         // Set user.name
@@ -174,6 +175,7 @@ mod tests {
             repo_path,
             config_path: config_path.clone(),
             config,
+            no_pager: true,
         };
 
         // Unset user.name
@@ -202,6 +204,7 @@ mod tests {
             repo_path,
             config_path: config_path.clone(),
             config,
+            no_pager: true,
         };
 
         // Try to set invalid email
@@ -234,6 +237,7 @@ mod tests {
             repo_path,
             config_path: config_path.clone(),
             config,
+            no_pager: true,
         };
 
         // Test list flag

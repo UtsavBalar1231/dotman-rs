@@ -285,6 +285,7 @@ mod tests {
             repo_path: repo_path.clone(),
             config_path: dir.path().join("config"),
             config: Default::default(),
+            no_pager: true,
         };
 
         // No HEAD file yet
@@ -324,6 +325,7 @@ mod tests {
             repo_path: repo_path.clone(),
             config_path,
             config,
+            no_pager: true,
         };
 
         // Create an index with a file

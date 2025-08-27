@@ -262,6 +262,7 @@ mod tests {
             repo_path,
             config_path,
             config,
+            no_pager: true,
         })
     }
 
@@ -384,6 +385,7 @@ mod tests {
             repo_path,
             config_path: temp.path().join("config"),
             config: Config::default(),
+            no_pager: true,
         };
 
         let result = execute(&ctx, "origin", "main");

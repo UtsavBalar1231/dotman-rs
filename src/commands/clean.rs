@@ -153,6 +153,7 @@ mod tests {
             repo_path,
             config_path: dir.path().join("config"),
             config,
+            no_pager: true,
         };
 
         // This test is limited since it would scan the actual home directory
@@ -180,6 +181,7 @@ mod tests {
             repo_path,
             config_path: dir.path().join("config"),
             config,
+            no_pager: true,
         };
 
         let result = execute(&ctx, false, false);

@@ -407,6 +407,7 @@ mod tests {
             repo_path: repo_path.clone(),
             config_path: temp.path().join("config"),
             config: Config::default(),
+            no_pager: true,
         };
 
         // Remove directories if they exist

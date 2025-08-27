@@ -164,6 +164,7 @@ mod tests {
             repo_path,
             config_path: config_path.clone(),
             config,
+            no_pager: true,
         };
 
         ctx.config.save(&config_path)?;

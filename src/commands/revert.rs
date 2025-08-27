@@ -392,6 +392,7 @@ mod tests {
             repo_path,
             config_path,
             config,
+            no_pager: true,
         };
 
         Ok((temp, ctx))
