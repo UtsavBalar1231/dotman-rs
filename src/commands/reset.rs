@@ -4,19 +4,33 @@ use crate::storage::snapshots::SnapshotManager;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
+use std::path::PathBuf;
 
-pub fn execute(ctx: &DotmanContext, commit: &str, hard: bool, soft: bool) -> Result<()> {
+pub fn execute(
+    ctx: &DotmanContext,
+    commit: &str,
+    hard: bool,
+    soft: bool,
+    mixed: bool,
+    keep: bool,
+    paths: &[String],
+) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    if hard && soft {
-        anyhow::bail!("Cannot use both --hard and --soft flags");
+    // Count how many modes are specified
+    let mode_count = [hard, soft, mixed, keep].iter().filter(|&&x| x).count();
+    if mode_count > 1 {
+        anyhow::bail!("Cannot use multiple reset modes simultaneously");
+    }
+
+    // If paths are specified, this is a file-specific reset
+    if !paths.is_empty() {
+        return reset_files(ctx, commit, paths);
     }
 
     // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
     let resolver = RefResolver::new(ctx.repo_path.clone());
-    let commit_id = resolver
-        .resolve(commit)
-        .with_context(|| format!("Failed to resolve reference: {}", commit))?;
+    let commit_id = resolver.resolve(commit)?;
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
@@ -68,8 +82,43 @@ pub fn execute(ctx: &DotmanContext, commit: &str, hard: bool, soft: bool) -> Res
             "Soft reset complete. HEAD now points to commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
+    } else if keep {
+        // Keep reset: reset HEAD and index but keep working directory changes
+        super::print_info(&format!(
+            "Keep reset to commit {}",
+            commit_id[..8.min(commit_id.len())].yellow()
+        ));
+
+        // Only update index if files differ from target commit
+        let current_index = Index::load(&ctx.repo_path.join(INDEX_FILE))?;
+        let mut new_index = Index::new();
+
+        for (path, file) in &snapshot.files {
+            // Keep local changes if they exist
+            if let Some(current_entry) = current_index.get_entry(path)
+                && current_entry.hash != file.hash
+            {
+                // File has local changes, keep them
+                continue;
+            }
+            new_index.add_entry(crate::storage::FileEntry {
+                path: path.clone(),
+                hash: file.hash.clone(),
+                size: 0,
+                modified: snapshot.commit.timestamp,
+                mode: file.mode,
+            });
+        }
+
+        let index_path = ctx.repo_path.join(INDEX_FILE);
+        new_index.save(&index_path)?;
+
+        super::print_success(&format!(
+            "Keep reset complete. Local changes preserved, HEAD now points to {}",
+            commit_id[..8.min(commit_id.len())].yellow()
+        ));
     } else {
-        // Mixed reset (default): update index but not working directory
+        // Mixed reset (default or explicit): update index but not working directory
         super::print_info(&format!(
             "Mixed reset to commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
@@ -98,6 +147,89 @@ pub fn execute(ctx: &DotmanContext, commit: &str, hard: bool, soft: bool) -> Res
 
     // Update HEAD to point to the new commit
     update_head(ctx, &commit_id)?;
+
+    Ok(())
+}
+
+fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()> {
+    super::print_info(&format!(
+        "Resetting {} file(s) to {}",
+        paths.len(),
+        if commit == "HEAD" {
+            "HEAD"
+        } else {
+            &commit[..8.min(commit.len())]
+        }
+    ));
+
+    // Resolve the commit
+    let resolver = RefResolver::new(ctx.repo_path.clone());
+    let commit_id = resolver.resolve(commit)?;
+
+    // Load the target snapshot
+    let snapshot_manager =
+        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let snapshot = snapshot_manager
+        .load_snapshot(&commit_id)
+        .with_context(|| format!("Failed to load commit: {}", commit_id))?;
+
+    // Load current index
+    let index_path = ctx.repo_path.join(INDEX_FILE);
+    let mut index = Index::load(&index_path)?;
+
+    // Get home directory for path resolution
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+
+    let mut reset_count = 0;
+    let mut not_found_count = 0;
+
+    for path_str in paths {
+        let path = PathBuf::from(path_str);
+
+        // Convert to relative path from home if absolute
+        let index_path = if path.is_absolute() {
+            path.strip_prefix(&home).unwrap_or(&path).to_path_buf()
+        } else {
+            path.clone()
+        };
+
+        // Check if file exists in target commit
+        if let Some(file) = snapshot.files.get(&index_path) {
+            // Update index with file from target commit
+            index.add_entry(crate::storage::FileEntry {
+                path: index_path.clone(),
+                hash: file.hash.clone(),
+                size: 0, // Will be updated
+                modified: snapshot.commit.timestamp,
+                mode: file.mode,
+            });
+
+            println!("  {} {}", "reset:".green(), index_path.display());
+            reset_count += 1;
+        } else {
+            // File doesn't exist in target commit - remove from index (unstage)
+            if index.remove_entry(&index_path).is_some() {
+                println!("  {} {}", "unstaged:".yellow(), index_path.display());
+                reset_count += 1;
+            } else {
+                super::print_warning(&format!("File not in index: {}", path.display()));
+                not_found_count += 1;
+            }
+        }
+    }
+
+    // Save updated index
+    if reset_count > 0 {
+        index.save(&index_path)?;
+        super::print_success(&format!("Reset {} file(s)", reset_count));
+    }
+
+    if not_found_count > 0 {
+        super::print_info(&format!(
+            "{} file(s) were not in the index",
+            not_found_count
+        ));
+    }
 
     Ok(())
 }
@@ -185,7 +317,7 @@ mod tests {
     fn test_execute_with_both_flags() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        let result = execute(&ctx, "HEAD", true, true);
+        let result = execute(&ctx, "HEAD", true, true, false, false, &[]);
         assert!(result.is_err());
 
         Ok(())
@@ -195,7 +327,7 @@ mod tests {
     fn test_execute_no_commits() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        let result = execute(&ctx, "HEAD", false, false);
+        let result = execute(&ctx, "HEAD", false, false, false, false, &[]);
         assert!(result.is_err());
 
         Ok(())
@@ -216,7 +348,7 @@ mod tests {
         }
 
         // Mixed reset (default) - use the converted commit ID
-        let result = execute(&ctx, &commit_id, false, false);
+        let result = execute(&ctx, &commit_id, false, false, false, false, &[]);
         // May fail due to snapshot implementation details, but we test the flow
         let _ = result;
 
@@ -237,7 +369,7 @@ mod tests {
         }
 
         // Soft reset - use the converted commit ID
-        let result = execute(&ctx, &commit_id, false, true);
+        let result = execute(&ctx, &commit_id, false, true, false, false, &[]);
         let _ = result; // May fail but we're testing the flow
 
         Ok(())
@@ -257,7 +389,7 @@ mod tests {
         }
 
         // Hard reset - use the converted commit ID
-        let result = execute(&ctx, &commit_id, true, false);
+        let result = execute(&ctx, &commit_id, true, false, false, false, &[]);
         let _ = result; // May fail but we're testing the flow
 
         Ok(())
@@ -311,7 +443,7 @@ mod tests {
             std::env::set_var("HOME", _temp.path());
         }
 
-        let result = execute(&ctx, "nonexistent", false, false);
+        let result = execute(&ctx, "nonexistent", false, false, false, false, &[]);
         assert!(result.is_err());
 
         Ok(())
@@ -335,6 +467,38 @@ mod tests {
         // Check that the branch was updated
         let commit = ref_manager.get_branch_commit("main")?;
         assert_eq!(commit, "new_commit");
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_reset_beyond_initial_commit() -> Result<()> {
+        let (_temp, ctx) = setup_test_context()?;
+
+        // Create a single initial commit
+        let commit_id = test_commit_id("initial");
+        create_test_snapshot(&ctx, "initial", "Initial commit")?;
+
+        // Initialize refs and set HEAD
+        use crate::refs::RefManager;
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        ref_manager.init()?;
+        ref_manager.update_branch("main", &commit_id)?;
+
+        unsafe {
+            std::env::set_var("HOME", _temp.path());
+        }
+
+        // Try to reset to HEAD~1 (should fail as this is the initial commit)
+        let result = execute(&ctx, "HEAD~1", true, false, false, false, &[]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("initial commit"));
+
+        // Try to reset to HEAD^ (should also fail)
+        let result = execute(&ctx, "HEAD^", true, false, false, false, &[]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("initial commit"));
 
         Ok(())
     }
