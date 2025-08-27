@@ -40,6 +40,8 @@ pub struct CoreConfig {
     pub compression: CompressionType,
     #[serde(default = "default_compression_level")]
     pub compression_level: i32,
+    #[serde(default)]
+    pub pager: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,6 +117,7 @@ impl Default for CoreConfig {
             default_branch: "main".to_string(),
             compression: CompressionType::Zstd,
             compression_level: 3,
+            pager: None,
         }
     }
 }
@@ -208,6 +211,7 @@ impl Config {
             ("core", "compression") => Some(format!("{:?}", self.core.compression).to_lowercase()),
             ("core", "compression_level") => Some(self.core.compression_level.to_string()),
             ("core", "default_branch") => Some(self.core.default_branch.clone()),
+            ("core", "pager") => self.core.pager.clone(),
             ("performance", "parallel_threads") => {
                 Some(self.performance.parallel_threads.to_string())
             }
@@ -248,6 +252,7 @@ impl Config {
                 self.core.compression_level = level;
             }
             ("core", "default_branch") => self.core.default_branch = value,
+            ("core", "pager") => self.core.pager = Some(value),
             ("performance", "parallel_threads") => {
                 self.performance.parallel_threads = value
                     .parse()
@@ -293,6 +298,7 @@ impl Config {
         match (parts[0], parts[1]) {
             ("user", "name") => self.user.name = None,
             ("user", "email") => self.user.email = None,
+            ("core", "pager") => self.core.pager = None,
             _ => anyhow::bail!("Cannot unset configuration key: {}", key),
         }
         Ok(())
@@ -475,6 +481,7 @@ mod tests {
                 default_branch: "a".repeat(1000), // Very long branch name
                 compression: CompressionType::Zstd,
                 compression_level: 22, // Maximum zstd compression level
+                pager: None,
             },
             remotes: {
                 let mut remotes = std::collections::HashMap::new();
@@ -526,6 +533,7 @@ mod tests {
                 default_branch: "主分支".to_string(), // Chinese for "main branch"
                 compression: CompressionType::Zstd,
                 compression_level: 3,
+                pager: None,
             },
             remotes: {
                 let mut remotes = std::collections::HashMap::new();
