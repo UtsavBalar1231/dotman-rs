@@ -19,6 +19,9 @@ struct Cli {
 
     #[arg(short, long, global = true)]
     verbose: bool,
+
+    #[arg(long, global = true, help = "Disable pager output")]
+    no_pager: bool,
 }
 
 #[derive(Subcommand)]
@@ -427,13 +430,13 @@ fn run() -> Result<()> {
         Commands::Init { .. } | Commands::Completion { .. } => None,
         Commands::Remote { .. } | Commands::Branch { .. } | Commands::Config { .. } => {
             // Remote, Branch and Config commands need mutable context
-            Some(DotmanContext::new()?)
+            Some(DotmanContext::new_with_pager(cli.no_pager)?)
         }
         Commands::Stash { .. } => {
             // Stash command needs context
-            Some(DotmanContext::new()?)
+            Some(DotmanContext::new_with_pager(cli.no_pager)?)
         }
-        _ => Some(DotmanContext::new()?),
+        _ => Some(DotmanContext::new_with_pager(cli.no_pager)?),
     };
 
     // Execute command
