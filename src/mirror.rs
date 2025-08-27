@@ -198,15 +198,34 @@ impl GitMirror {
 
     /// Push changes to the remote repository
     pub fn push(&self, branch: &str) -> Result<()> {
+        self.push_with_options(branch, false, false)
+    }
+
+    /// Push changes with force options
+    pub fn push_with_options(
+        &self,
+        branch: &str,
+        force: bool,
+        force_with_lease: bool,
+    ) -> Result<()> {
         // First try to fetch to see if remote exists
         let _ = Command::new("git")
             .args(["fetch", "origin"])
             .current_dir(&self.mirror_path)
             .output();
 
+        // Build push command arguments
+        let mut args = vec!["push", "origin", branch];
+
+        if force {
+            args.push("--force");
+        } else if force_with_lease {
+            args.push("--force-with-lease");
+        }
+
         // Push to remote
         let output = Command::new("git")
-            .args(["push", "origin", branch])
+            .args(&args)
             .current_dir(&self.mirror_path)
             .output()
             .context("Failed to push to remote")?;
@@ -214,8 +233,11 @@ impl GitMirror {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
 
-            // Try with --set-upstream if branch doesn't exist on remote
-            if stderr.contains("has no upstream branch") || stderr.contains("src refspec") {
+            // Try with --set-upstream if branch doesn't exist on remote and not forcing
+            if !force
+                && !force_with_lease
+                && (stderr.contains("has no upstream branch") || stderr.contains("src refspec"))
+            {
                 let output = Command::new("git")
                     .args(["push", "--set-upstream", "origin", branch])
                     .current_dir(&self.mirror_path)
@@ -229,6 +251,66 @@ impl GitMirror {
             } else {
                 anyhow::bail!("Git push failed: {}", stderr);
             }
+        }
+
+        Ok(())
+    }
+
+    /// Fetch changes from remote without merging
+    pub fn fetch(&self, branch: Option<&str>) -> Result<()> {
+        let mut args = vec!["fetch", "origin"];
+
+        if let Some(b) = branch {
+            args.push(b);
+        }
+
+        let output = Command::new("git")
+            .args(&args)
+            .current_dir(&self.mirror_path)
+            .output()
+            .context("Failed to fetch from remote")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("Git fetch failed: {}", stderr);
+        }
+
+        Ok(())
+    }
+
+    /// Merge a branch into the current branch
+    pub fn merge(&self, branch: &str, no_ff: bool) -> Result<()> {
+        let mut args = vec!["merge", branch];
+
+        if no_ff {
+            args.push("--no-ff");
+        }
+
+        let output = Command::new("git")
+            .args(&args)
+            .current_dir(&self.mirror_path)
+            .output()
+            .context("Failed to merge branch")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("Git merge failed: {}", stderr);
+        }
+
+        Ok(())
+    }
+
+    /// Push tags to remote
+    pub fn push_tags(&self) -> Result<()> {
+        let output = Command::new("git")
+            .args(["push", "origin", "--tags"])
+            .current_dir(&self.mirror_path)
+            .output()
+            .context("Failed to push tags")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("Git push tags failed: {}", stderr);
         }
 
         Ok(())

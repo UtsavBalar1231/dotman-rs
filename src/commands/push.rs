@@ -8,8 +8,30 @@ use crate::sync::Exporter;
 use anyhow::Result;
 use std::process::Command;
 
-pub fn execute(ctx: &DotmanContext, remote: &str, branch: &str) -> Result<()> {
+/// Options for push operations
+struct PushOptions<'a> {
+    remote: &'a str,
+    branch: &'a str,
+    force: bool,
+    force_with_lease: bool,
+    dry_run: bool,
+    tags: bool,
+}
+
+pub fn execute(
+    ctx: &DotmanContext,
+    remote: &str,
+    branch: &str,
+    force: bool,
+    force_with_lease: bool,
+    dry_run: bool,
+    tags: bool,
+) -> Result<()> {
     ctx.check_repo_initialized()?;
+
+    if force && force_with_lease {
+        anyhow::bail!("Cannot use both --force and --force-with-lease");
+    }
 
     // Get the specified remote
     let remote_config = ctx.config.get_remote(remote).ok_or_else(|| {
@@ -19,10 +41,28 @@ pub fn execute(ctx: &DotmanContext, remote: &str, branch: &str) -> Result<()> {
         )
     })?;
 
+    if dry_run {
+        super::print_info(&format!(
+            "Dry run mode - would push to {} ({})",
+            remote, branch
+        ));
+    }
+
+    let push_opts = PushOptions {
+        remote,
+        branch,
+        force,
+        force_with_lease,
+        dry_run,
+        tags,
+    };
+
     match &remote_config.remote_type {
-        crate::config::RemoteType::Git => push_to_git(ctx, remote_config, remote, branch),
-        crate::config::RemoteType::S3 => push_to_s3(ctx, remote_config, remote, branch),
-        crate::config::RemoteType::Rsync => push_to_rsync(ctx, remote_config, remote, branch),
+        crate::config::RemoteType::Git => push_to_git(ctx, remote_config, &push_opts),
+        crate::config::RemoteType::S3 => push_to_s3(ctx, remote_config, remote, branch, dry_run),
+        crate::config::RemoteType::Rsync => {
+            push_to_rsync(ctx, remote_config, remote, branch, dry_run)
+        }
         crate::config::RemoteType::None => {
             anyhow::bail!("Remote '{}' has no type configured.", remote);
         }
@@ -32,22 +72,27 @@ pub fn execute(ctx: &DotmanContext, remote: &str, branch: &str) -> Result<()> {
 fn push_to_git(
     ctx: &DotmanContext,
     remote_config: &crate::config::RemoteConfig,
-    remote: &str,
-    branch: &str,
+    opts: &PushOptions,
 ) -> Result<()> {
     let url = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no URL configured", remote))?;
+        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no URL configured", opts.remote))?;
 
-    super::print_info(&format!("Pushing to git remote {} ({})", remote, url));
+    super::print_info(&format!("Pushing to git remote {} ({})", opts.remote, url));
+
+    if opts.force {
+        super::print_warning("Force push requested - this may overwrite remote changes!");
+    } else if opts.force_with_lease {
+        super::print_info("Using --force-with-lease for safer force push");
+    }
 
     // Create and initialize mirror
-    let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
+    let mirror = GitMirror::new(&ctx.repo_path, opts.remote, url, ctx.config.clone());
     mirror.init_mirror()?;
 
     // Checkout the branch in mirror
-    mirror.checkout_branch(branch)?;
+    mirror.checkout_branch(opts.branch)?;
 
     // Load current state
     let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -83,19 +128,87 @@ fn push_to_git(
     super::print_info("Creating git commit...");
     let git_commit = mirror.commit(&commit_message, &author)?;
 
-    // Push to remote
-    super::print_info(&format!("Pushing branch '{}' to remote...", branch));
-    mirror.push(branch)?;
+    if opts.dry_run {
+        super::print_info("Dry run - not pushing to remote");
+        super::print_success(&format!(
+            "Dry run complete - would push {} to {} ({})",
+            opts.branch, opts.remote, url
+        ));
+        return Ok(());
+    }
+
+    // Push to remote with force options
+    super::print_info(&format!("Pushing branch '{}' to remote...", opts.branch));
+
+    if opts.force || opts.force_with_lease {
+        // Use mirror's force push method (we'll need to add this to GitMirror)
+        push_with_force(&mirror, opts.branch, opts.force_with_lease)?;
+    } else {
+        mirror.push(opts.branch)?;
+    }
+
+    // Push tags if requested
+    if opts.tags {
+        super::print_info("Pushing tags...");
+        push_tags(&mirror)?;
+    }
 
     // Update mapping
     let mut mapping_manager = MappingManager::new(&ctx.repo_path)?;
-    mapping_manager.add_and_save(remote, &current_commit, &git_commit)?;
-    mapping_manager.update_branch_and_save(branch, &current_commit, Some((remote, &git_commit)))?;
+    mapping_manager.add_and_save(opts.remote, &current_commit, &git_commit)?;
+    mapping_manager.update_branch_and_save(
+        opts.branch,
+        &current_commit,
+        Some((opts.remote, &git_commit)),
+    )?;
 
     super::print_success(&format!(
         "Successfully pushed to {} ({}) - branch '{}'",
-        remote, url, branch
+        opts.remote, url, opts.branch
     ));
+    Ok(())
+}
+
+// Helper function to push with force options
+fn push_with_force(mirror: &GitMirror, branch: &str, force_with_lease: bool) -> Result<()> {
+    let mirror_path = mirror.get_mirror_path();
+
+    let mut args = vec!["push", "origin", branch];
+
+    if force_with_lease {
+        args.push("--force-with-lease");
+    } else {
+        args.push("--force");
+    }
+
+    let output = Command::new("git")
+        .args(&args)
+        .current_dir(mirror_path)
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("Git force push failed: {}", stderr);
+    }
+
+    Ok(())
+}
+
+// Helper function to push tags
+fn push_tags(mirror: &GitMirror) -> Result<()> {
+    let output = Command::new("git")
+        .args(["push", "origin", "--tags"])
+        .current_dir(mirror.get_mirror_path())
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        super::print_warning(&format!("Failed to push tags: {}", stderr));
+        // Don't fail the entire operation if tags fail
+    } else {
+        super::print_success("Tags pushed successfully");
+    }
+
     Ok(())
 }
 
@@ -104,6 +217,7 @@ fn push_to_s3(
     remote_config: &crate::config::RemoteConfig,
     remote: &str,
     _branch: &str,
+    dry_run: bool,
 ) -> Result<()> {
     let bucket = remote_config
         .url
@@ -111,6 +225,11 @@ fn push_to_s3(
         .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no S3 bucket configured", remote))?;
 
     super::print_info(&format!("Pushing to S3 bucket {}", bucket));
+
+    if dry_run {
+        super::print_info("Dry run - would sync to S3");
+        return Ok(());
+    }
 
     // Use aws CLI or rusoto for S3 sync
     let output = Command::new("aws")
@@ -137,12 +256,18 @@ fn push_to_rsync(
     remote_config: &crate::config::RemoteConfig,
     remote: &str,
     _branch: &str,
+    dry_run: bool,
 ) -> Result<()> {
     let destination = remote_config.url.as_ref().ok_or_else(|| {
         anyhow::anyhow!("Remote '{}' has no rsync destination configured", remote)
     })?;
 
     super::print_info(&format!("Pushing via rsync to {}", destination));
+
+    if dry_run {
+        super::print_info("Dry run - would sync via rsync");
+        return Ok(());
+    }
 
     let output = Command::new("rsync")
         .args([
@@ -198,7 +323,7 @@ mod tests {
     fn test_execute_no_remote() -> Result<()> {
         let ctx = create_test_context(RemoteType::None, None)?;
 
-        let result = execute(&ctx, "origin", "main");
+        let result = execute(&ctx, "origin", "main", false, false, false, false);
         assert!(result.is_err());
 
         Ok(())
@@ -245,7 +370,15 @@ mod tests {
             remote_type: RemoteType::Git,
             url: None,
         };
-        let result = push_to_git(&ctx, &remote_config, "origin", "main");
+        let opts = PushOptions {
+            remote: "origin",
+            branch: "main",
+            force: false,
+            force_with_lease: false,
+            dry_run: false,
+            tags: false,
+        };
+        let result = push_to_git(&ctx, &remote_config, &opts);
         assert!(result.is_err());
         assert!(
             result
@@ -265,7 +398,7 @@ mod tests {
             remote_type: RemoteType::S3,
             url: None,
         };
-        let result = push_to_s3(&ctx, &remote_config, "origin", "main");
+        let result = push_to_s3(&ctx, &remote_config, "origin", "main", false);
         assert!(result.is_err());
         assert!(
             result
@@ -285,7 +418,7 @@ mod tests {
             remote_type: RemoteType::Rsync,
             url: None,
         };
-        let result = push_to_rsync(&ctx, &remote_config, "origin", "main");
+        let result = push_to_rsync(&ctx, &remote_config, "origin", "main", false);
         assert!(result.is_err());
         assert!(
             result
@@ -313,7 +446,7 @@ mod tests {
             no_pager: true,
         };
 
-        let result = execute(&ctx, "origin", "main");
+        let result = execute(&ctx, "origin", "main", false, false, false, false);
         assert!(result.is_err());
 
         Ok(())
