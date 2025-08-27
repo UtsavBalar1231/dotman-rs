@@ -55,7 +55,8 @@ fn test_push_workflow() -> Result<()> {
     dotman::commands::remote::add(&mut ctx, "origin", remote_path.to_str().unwrap())?;
 
     // Push to remote
-    let result = dotman::commands::push::execute(&ctx, "origin", "main");
+    let result =
+        dotman::commands::push::execute(&ctx, "origin", "main", false, false, false, false);
 
     // We expect this to succeed or fail gracefully
     // In CI environments, git operations might fail due to configuration
@@ -131,7 +132,7 @@ fn test_pull_workflow() -> Result<()> {
     dotman::commands::remote::add(&mut ctx, "origin", remote_path.to_str().unwrap())?;
 
     // Pull from remote
-    let result = dotman::commands::pull::execute(&ctx, "origin", "main");
+    let result = dotman::commands::pull::execute(&ctx, "origin", "main", false, false, false);
 
     // We expect this to work or fail gracefully
     if result.is_ok() {

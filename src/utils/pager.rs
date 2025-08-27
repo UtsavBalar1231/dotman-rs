@@ -11,7 +11,9 @@ pub fn get_pager(ctx: Option<&crate::DotmanContext>) -> String {
     }
 
     // 2. Check core.pager config (if context available)
-    if let Some(ctx) = ctx && let Some(pager) = ctx.config.core.pager.as_ref() {
+    if let Some(ctx) = ctx
+        && let Some(pager) = ctx.config.core.pager.as_ref()
+    {
         return pager.clone();
     }
 

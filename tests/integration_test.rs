@@ -241,7 +241,7 @@ fn test_reset_workflow() -> Result<()> {
     commands::commit::execute(&ctx, "Third commit", false)?;
 
     // Soft reset to second commit (keeps working directory)
-    commands::reset::execute(&ctx, &second_commit, false, true)?;
+    commands::reset::execute(&ctx, &second_commit, false, true, false, false, &[])?;
 
     // File should still have version 3
     let content = fs::read_to_string(&test_file)?;
@@ -259,7 +259,7 @@ fn test_reset_workflow() -> Result<()> {
     assert_eq!(head, second_commit);
 
     // Hard reset to first commit
-    commands::reset::execute(&ctx, &first_commit, true, false)?;
+    commands::reset::execute(&ctx, &first_commit, true, false, false, false, &[])?;
 
     // File should now have version 1
     let content = fs::read_to_string(&test_file)?;
@@ -349,7 +349,7 @@ fn test_rm_workflow() -> Result<()> {
 
     // Remove file2 from tracking (--cached keeps file on disk)
     let rm_paths = [file2.to_string_lossy().to_string()];
-    commands::rm::execute(&ctx, &rm_paths, true, false, false)?;
+    commands::rm::execute(&ctx, &rm_paths, true, false, false, false, false)?;
 
     // File should still exist on disk
     assert!(file2.exists());
