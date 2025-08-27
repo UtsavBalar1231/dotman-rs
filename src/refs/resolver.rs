@@ -91,15 +91,6 @@ impl RefResolver {
         let snapshot_manager = SnapshotManager::new(self.repo_path.clone(), 3);
 
         for i in 0..parent_count {
-            // Handle case where current points to null SHA (initial repository state)
-            if current == "0".repeat(40) || current.chars().all(|c| c == '0') {
-                anyhow::bail!(
-                    "Cannot go back {} commits from HEAD (only {} commits in history)",
-                    parent_count,
-                    i
-                );
-            }
-
             let snapshot = match snapshot_manager.load_snapshot(&current) {
                 Ok(s) => s,
                 Err(_) => anyhow::bail!(
@@ -110,13 +101,43 @@ impl RefResolver {
             };
 
             if let Some(parent) = snapshot.commit.parent {
+                // Check if parent is all zeros (represents no parent)
+                if parent == "0".repeat(40)
+                    || parent == "0".repeat(32)
+                    || parent.chars().all(|c| c == '0')
+                {
+                    if i == 0 {
+                        anyhow::bail!(
+                            "Cannot go back {} commit{} from HEAD: current commit is the initial commit",
+                            parent_count,
+                            if parent_count == 1 { "" } else { "s" }
+                        );
+                    } else {
+                        anyhow::bail!(
+                            "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
+                            parent_count,
+                            i,
+                            if i == 1 { "" } else { "s" }
+                        );
+                    }
+                }
                 current = parent;
             } else {
-                anyhow::bail!(
-                    "Cannot go back {} commits from HEAD (only {} commits in history)",
-                    parent_count,
-                    i + 1
-                );
+                // No parent means we've reached the initial commit
+                if i == 0 {
+                    anyhow::bail!(
+                        "Cannot go back {} commit{} from HEAD: current commit is the initial commit",
+                        parent_count,
+                        if parent_count == 1 { "" } else { "s" }
+                    );
+                } else {
+                    anyhow::bail!(
+                        "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
+                        parent_count,
+                        i,
+                        if i == 1 { "" } else { "s" }
+                    );
+                }
             }
         }
 
@@ -479,6 +500,61 @@ mod tests {
 
         let result = resolver.resolve("HEAD^3");
         // Should fail when going beyond available commit history
+        assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_initial_commit_parent() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        // Create a single commit (initial commit)
+        let commit1 = format!("l1{}", "0".repeat(30));
+        create_test_commit(&resolver.repo_path, &commit1, None)?;
+        resolver.ref_manager.update_branch("main", &commit1)?;
+
+        // Test trying to get parent of initial commit
+        let result = resolver.resolve("HEAD~1");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("initial commit"));
+
+        let result = resolver.resolve("HEAD^");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("initial commit"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_commit_with_zero_parent() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        // Create a commit with all-zeros parent (simulating initial commit)
+        let commit1 = format!("m1{}", "0".repeat(30));
+        let commit2 = format!("m2{}", "0".repeat(30));
+
+        // First commit has no parent
+        create_test_commit(&resolver.repo_path, &commit1, None)?;
+        // Second commit has first as parent, but let's also test with zeros
+        create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
+
+        // Now create a third commit that has the second as parent
+        let commit3 = format!("m3{}", "0".repeat(30));
+        create_test_commit(&resolver.repo_path, &commit3, Some(commit2.clone()))?;
+
+        resolver.ref_manager.update_branch("main", &commit3)?;
+
+        // Should be able to go back to commit2
+        let result = resolver.resolve("HEAD~1")?;
+        assert_eq!(result, commit2);
+
+        // Should be able to go back to commit1
+        let result = resolver.resolve("HEAD~2")?;
+        assert_eq!(result, commit1);
+
+        // Should fail trying to go beyond commit1
+        let result = resolver.resolve("HEAD~3");
         assert!(result.is_err());
 
         Ok(())
