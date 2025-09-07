@@ -121,8 +121,8 @@ fn parse_pager_command(pager_cmd: &str) -> (String, Vec<String>) {
 
 /// Get terminal height, defaulting to 24 if unknown
 fn get_terminal_height() -> usize {
-    if let Some((_, height)) = term_size::dimensions() {
-        height
+    if let Some((_, height)) = terminal_size::terminal_size() {
+        height.0 as usize
     } else {
         24 // Default terminal height
     }
