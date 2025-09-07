@@ -143,6 +143,7 @@ mod tests {
         let _index = Index {
             version: 1,
             entries: HashMap::new(),
+            staged_entries: HashMap::new(),
         };
 
         // Note: In a real test, we'd need to handle the home directory properly
@@ -172,6 +173,7 @@ mod tests {
         let index = Index {
             version: 1,
             entries: HashMap::new(),
+            staged_entries: HashMap::new(),
         };
         let index_path = repo_path.join(INDEX_FILE);
         index.save(&index_path)?;

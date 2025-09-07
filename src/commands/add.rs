@@ -57,17 +57,25 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
 
     let entries = entries?;
 
-    // Add entries to index
+    // Add entries to staging area
     let mut added_count = 0;
     let mut updated_count = 0;
 
     for entry in entries {
-        let is_update = index.get_entry(&entry.path).is_some();
-        index.add_entry(entry.clone());
+        // Check if file is already tracked (in committed entries)
+        let is_tracked = index.get_entry(&entry.path).is_some();
+        // Check if file is already staged
+        let is_staged = index.get_staged_entry(&entry.path).is_some();
 
-        if is_update {
+        // Stage the entry
+        index.stage_entry(entry.clone());
+
+        if is_tracked {
             updated_count += 1;
             println!("  {} {}", "modified:".yellow(), entry.path.display());
+        } else if is_staged {
+            updated_count += 1;
+            println!("  {} {}", "updated:".yellow(), entry.path.display());
         } else {
             added_count += 1;
             println!("  {} {}", "added:".green(), entry.path.display());

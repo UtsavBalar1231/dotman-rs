@@ -196,6 +196,102 @@ impl GitMirror {
         self.get_head_commit()
     }
 
+    /// Add all changes and commit with a specific timestamp
+    pub fn commit_with_timestamp(
+        &self,
+        message: &str,
+        author: &str,
+        timestamp: i64,
+    ) -> Result<String> {
+        // Add all changes
+        let output = Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(&self.mirror_path)
+            .output()
+            .context("Failed to add files to git")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("Git add failed: {}", stderr);
+        }
+
+        // Check if there are changes to commit
+        let output = Command::new("git")
+            .args(["status", "--porcelain"])
+            .current_dir(&self.mirror_path)
+            .output()
+            .context("Failed to check git status")?;
+
+        if output.stdout.is_empty() {
+            // No changes to commit, get current commit ID
+            return self.get_head_commit();
+        }
+
+        // Format author as "Name <email@example.com>" for git
+        let formatted_author = if author.contains('<') && author.contains('>') {
+            author.to_string()
+        } else {
+            format!(
+                "{} <{}@dotman.local>",
+                author,
+                author.to_lowercase().replace(' ', ".")
+            )
+        };
+
+        // Format timestamp for git (ISO 8601 format)
+        use chrono::{TimeZone, Utc};
+        let dt = Utc
+            .timestamp_opt(timestamp, 0)
+            .single()
+            .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?;
+        let date_str = dt.format("%Y-%m-%d %H:%M:%S %z").to_string();
+
+        // Commit changes with specific date
+        let output = Command::new("git")
+            .args(["commit", "-m", message, "--author", &formatted_author])
+            .env("GIT_AUTHOR_DATE", &date_str)
+            .env("GIT_COMMITTER_DATE", &date_str)
+            .current_dir(&self.mirror_path)
+            .output()
+            .context("Failed to commit changes")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("Git commit failed: {}", stderr);
+        }
+
+        // Get the commit ID
+        self.get_head_commit()
+    }
+
+    /// Clear all files from the working directory (but keep .git)
+    pub fn clear_working_directory(&self) -> Result<()> {
+        // Remove all tracked files
+        let _output = Command::new("git")
+            .args(["rm", "-rf", "--cached", "."])
+            .current_dir(&self.mirror_path)
+            .output()
+            .context("Failed to remove tracked files")?;
+
+        // Also physically remove the files (except .git)
+        for entry in std::fs::read_dir(&self.mirror_path)? {
+            let entry = entry?;
+            let path = entry.path();
+            let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+            // Skip .git directory
+            if file_name != ".git" {
+                if path.is_dir() {
+                    std::fs::remove_dir_all(&path)?;
+                } else {
+                    std::fs::remove_file(&path)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Push changes to the remote repository
     pub fn push(&self, branch: &str) -> Result<()> {
         self.push_with_options(branch, false, false)

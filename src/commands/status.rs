@@ -1,7 +1,6 @@
 use crate::refs::RefManager;
 use crate::storage::FileStatus;
-use crate::storage::index::{ConcurrentIndex, Index};
-use crate::storage::snapshots::SnapshotManager;
+use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::Result;
 use colored::Colorize;
@@ -34,8 +33,8 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
         .get_head_commit()?
         .is_some_and(|c| c != placeholder_commit);
 
-    // Check if index is empty (no tracked files)
-    if index.entries.is_empty() {
+    // Check if index is empty (no tracked files and no staged files)
+    if index.entries.is_empty() && index.staged_entries.is_empty() {
         if !has_commits {
             println!("\nNo commits yet");
         }
@@ -43,63 +42,54 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
         return Ok(());
     }
 
-    let concurrent_index = ConcurrentIndex::from_index(index.clone());
+    // Collect all file statuses
+    let mut statuses = Vec::new();
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    // Get all current files in tracked directories
-    let current_files = get_current_files(ctx)?;
+    // Check staged vs committed (changes to be committed)
+    for (path, staged_entry) in &index.staged_entries {
+        match index.entries.get(path) {
+            Some(committed_entry) => {
+                if staged_entry.hash != committed_entry.hash {
+                    statuses.push(FileStatus::Added(path.clone())); // Staged modification
+                }
+            }
+            None => {
+                statuses.push(FileStatus::Added(path.clone())); // New file staged
+            }
+        }
+    }
 
-    // Get status in parallel (this detects modified/deleted)
-    let mut statuses = concurrent_index.get_status_parallel(&current_files);
+    // Check for deleted files (in committed but not in staged)
+    for path in index.entries.keys() {
+        if !index.staged_entries.contains_key(path) {
+            statuses.push(FileStatus::Deleted(path.clone())); // Staged deletion
+        }
+    }
+
+    // Check working directory vs staged (changes not staged)
+    for (path, staged_entry) in &index.staged_entries {
+        let abs_path = if path.is_relative() {
+            home.join(path)
+        } else {
+            path.clone()
+        };
+
+        if abs_path.exists() {
+            // Check if file has been modified since staging
+            if let Ok(current_hash) = crate::utils::hash::hash_file(&abs_path)
+                && current_hash != staged_entry.hash
+            {
+                statuses.push(FileStatus::Modified(path.clone()));
+            }
+        }
+    }
 
     // If --untracked flag is set, scan for untracked files
     if show_untracked {
         let untracked = find_untracked_files(ctx, &index)?;
         for file in untracked {
             statuses.push(FileStatus::Untracked(file));
-        }
-    }
-
-    // Check for added files (in index but not in last commit)
-    // Get the actual HEAD commit (resolves through branch if needed)
-    let head_commit = ref_manager.get_head_commit()?;
-    let placeholder_commit_check = "0".repeat(40);
-
-    if let Some(commit_id) = head_commit {
-        // Check if this is a real commit (not the placeholder)
-        if commit_id != placeholder_commit_check {
-            // We have real commits, compare index against last commit
-            let snapshot_manager =
-                SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
-
-            if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
-                let committed_files: HashSet<_> = snapshot.files.keys().cloned().collect();
-
-                // Files in index but not in last commit are "Added"
-                for path in index.entries.keys() {
-                    if !committed_files.contains(path) {
-                        // Remove from untracked if it's there
-                        statuses.retain(|s| !matches!(s, FileStatus::Untracked(p) if p == path));
-                        // Add as Added status
-                        statuses.push(FileStatus::Added(path.clone()));
-                    }
-                }
-            }
-        } else {
-            // Placeholder commit, treat as no commits yet
-            for path in index.entries.keys() {
-                // Remove from untracked if it's there
-                statuses.retain(|s| !matches!(s, FileStatus::Untracked(p) if p == path));
-                // Add as Added status
-                statuses.push(FileStatus::Added(path.clone()));
-            }
-        }
-    } else {
-        // No HEAD at all, all indexed files are "Added"
-        for path in index.entries.keys() {
-            // Remove from untracked if it's there
-            statuses.retain(|s| !matches!(s, FileStatus::Untracked(p) if p == path));
-            // Add as Added status
-            statuses.push(FileStatus::Added(path.clone()));
         }
     }
 
@@ -179,18 +169,17 @@ pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<Pa
     let mut untracked = Vec::new();
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    // Get set of tracked paths for quick lookup
-    let tracked_paths: HashSet<PathBuf> = index
-        .entries
-        .keys()
-        .map(|p| {
-            if p.is_relative() {
-                home.join(p)
-            } else {
-                p.clone()
-            }
-        })
-        .collect();
+    // Get set of tracked and staged paths for quick lookup
+    let mut tracked_paths: HashSet<PathBuf> = HashSet::new();
+
+    // Include both committed and staged files as tracked
+    for path in index.entries.keys().chain(index.staged_entries.keys()) {
+        if path.is_relative() {
+            tracked_paths.insert(home.join(path));
+        } else {
+            tracked_paths.insert(path.clone());
+        }
+    }
 
     // Walk home directory but skip .dotman and other ignored directories
     for entry in WalkDir::new(&home)

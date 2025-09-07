@@ -69,6 +69,81 @@ pub fn execute(
     }
 }
 
+/// Build a chain of commits from root to the given commit
+fn build_commit_chain(
+    snapshot_manager: &SnapshotManager,
+    target_commit: &str,
+) -> Result<Vec<String>> {
+    let mut commits = Vec::new();
+    let mut current_commit = Some(target_commit.to_string());
+
+    // Follow parent links to collect all commits
+    while let Some(commit_id) = current_commit {
+        // Skip the special "all zeros" parent that represents no parent
+        if commit_id.chars().all(|c| c == '0') {
+            break;
+        }
+
+        commits.push(commit_id.clone());
+
+        // Load snapshot to get parent
+        match snapshot_manager.load_snapshot(&commit_id) {
+            Ok(snapshot) => {
+                current_commit = snapshot.commit.parent.clone();
+            }
+            Err(_) => {
+                // Stop if we can't load a commit
+                break;
+            }
+        }
+    }
+
+    // Load snapshots to get timestamps and sort chronologically
+    let mut commits_with_timestamps = Vec::new();
+    for commit_id in commits {
+        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+            commits_with_timestamps.push((commit_id, snapshot.commit.timestamp));
+        }
+    }
+
+    // Sort by timestamp (oldest first)
+    commits_with_timestamps.sort_by_key(|(_, timestamp)| *timestamp);
+
+    // Extract just the commit IDs in chronological order
+    let chain: Vec<String> = commits_with_timestamps
+        .into_iter()
+        .map(|(commit_id, _)| commit_id)
+        .collect();
+
+    Ok(chain)
+}
+
+/// Get commits that haven't been pushed yet
+fn get_unpushed_commits(
+    snapshot_manager: &SnapshotManager,
+    mapping_manager: &MappingManager,
+    remote: &str,
+    target_commit: &str,
+) -> Result<Vec<String>> {
+    // Build full chain
+    let full_chain = build_commit_chain(snapshot_manager, target_commit)?;
+
+    // Find the last pushed commit
+    let mut unpushed = Vec::new();
+    for commit_id in full_chain {
+        // Check if this commit has been pushed
+        if mapping_manager
+            .mapping()
+            .get_git_commit(remote, &commit_id)
+            .is_none()
+        {
+            unpushed.push(commit_id);
+        }
+    }
+
+    Ok(unpushed)
+}
+
 fn push_to_git(
     ctx: &DotmanContext,
     remote_config: &crate::config::RemoteConfig,
@@ -100,39 +175,79 @@ fn push_to_git(
         .get_head_commit()?
         .ok_or_else(|| anyhow::anyhow!("No commits to push"))?;
 
-    // Export dotman state to mirror
-    let index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
+    // Initialize managers
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let mut mapping_manager = MappingManager::new(&ctx.repo_path)?;
+
+    // Get commits that need to be pushed
+    let commits_to_push = get_unpushed_commits(
+        &snapshot_manager,
+        &mapping_manager,
+        opts.remote,
+        &current_commit,
+    )?;
+
+    if commits_to_push.is_empty() {
+        super::print_info("Already up to date - no new commits to push");
+        return Ok(());
+    }
+
+    super::print_info(&format!(
+        "Found {} new commit{} to push",
+        commits_to_push.len(),
+        if commits_to_push.len() == 1 { "" } else { "s" }
+    ));
+
+    // Export and commit each dotman commit to git
+    let index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
     let exporter = Exporter::new(&snapshot_manager, &index);
 
-    super::print_info("Exporting files to mirror repository...");
+    for (i, commit_id) in commits_to_push.iter().enumerate() {
+        super::print_info(&format!(
+            "Processing commit {}/{}: {}",
+            i + 1,
+            commits_to_push.len(),
+            &commit_id[..8.min(commit_id.len())]
+        ));
 
-    // Export current commit to mirror
-    let exported_files = exporter.export_commit(&current_commit, mirror.get_mirror_path())?;
+        // Load the snapshot for this commit
+        let snapshot = snapshot_manager.load_snapshot(commit_id)?;
 
-    // Clean up removed files from mirror
-    let current_files: Vec<_> = exported_files.iter().map(|(_, rel)| rel.clone()).collect();
-    mirror.clean_removed_files(&current_files)?;
+        // Clear the working directory to ensure we have exact state
+        // This is important because dotman snapshots are cumulative
+        mirror.clear_working_directory()?;
 
-    // Commit in mirror
-    let author = crate::utils::get_current_user_with_config(&ctx.config);
+        // Export this commit's exact state to mirror
+        let _exported_files = exporter.export_commit(commit_id, mirror.get_mirror_path())?;
 
-    // Get commit message from dotman
-    let commit_message = if let Ok(snapshot) = snapshot_manager.load_snapshot(&current_commit) {
-        snapshot.commit.message
-    } else {
-        format!("Dotman commit {}", &current_commit[..8])
-    };
+        // Create git commit with original metadata
+        let author = &snapshot.commit.author;
+        let message = &snapshot.commit.message;
+        let timestamp = snapshot.commit.timestamp;
 
-    super::print_info("Creating git commit...");
-    let git_commit = mirror.commit(&commit_message, &author)?;
+        // Commit in mirror with original timestamp
+        let git_commit = mirror.commit_with_timestamp(message, author, timestamp)?;
+
+        // Update mapping for this commit
+        mapping_manager.add_and_save(opts.remote, commit_id, &git_commit)?;
+    }
+
+    // Update branch mapping with the latest commit
+    let last_dotman_commit = commits_to_push.last().unwrap();
+    let last_git_commit = mapping_manager
+        .mapping()
+        .get_git_commit(opts.remote, last_dotman_commit)
+        .ok_or_else(|| anyhow::anyhow!("Failed to get git commit mapping"))?;
 
     if opts.dry_run {
         super::print_info("Dry run - not pushing to remote");
         super::print_success(&format!(
-            "Dry run complete - would push {} to {} ({})",
-            opts.branch, opts.remote, url
+            "Dry run complete - would push {} commit{} to {} ({})",
+            commits_to_push.len(),
+            if commits_to_push.len() == 1 { "" } else { "s" },
+            opts.remote,
+            url
         ));
         return Ok(());
     }
@@ -141,7 +256,7 @@ fn push_to_git(
     super::print_info(&format!("Pushing branch '{}' to remote...", opts.branch));
 
     if opts.force || opts.force_with_lease {
-        // Use mirror's force push method (we'll need to add this to GitMirror)
+        // Use mirror's force push method
         push_with_force(&mirror, opts.branch, opts.force_with_lease)?;
     } else {
         mirror.push(opts.branch)?;
@@ -153,18 +268,20 @@ fn push_to_git(
         push_tags(&mirror)?;
     }
 
-    // Update mapping
-    let mut mapping_manager = MappingManager::new(&ctx.repo_path)?;
-    mapping_manager.add_and_save(opts.remote, &current_commit, &git_commit)?;
+    // Update branch mapping
     mapping_manager.update_branch_and_save(
         opts.branch,
-        &current_commit,
-        Some((opts.remote, &git_commit)),
+        last_dotman_commit,
+        Some((opts.remote, &last_git_commit)),
     )?;
 
     super::print_success(&format!(
-        "Successfully pushed to {} ({}) - branch '{}'",
-        opts.remote, url, opts.branch
+        "Successfully pushed {} commit{} to {} ({}) - branch '{}'",
+        commits_to_push.len(),
+        if commits_to_push.len() == 1 { "" } else { "s" },
+        opts.remote,
+        url,
+        opts.branch
     ));
     Ok(())
 }

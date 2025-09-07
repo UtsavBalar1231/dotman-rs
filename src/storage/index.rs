@@ -16,6 +16,8 @@ use std::sync::Arc;
 pub struct Index {
     pub version: u32,
     pub entries: HashMap<PathBuf, FileEntry>,
+    #[serde(default)]
+    pub staged_entries: HashMap<PathBuf, FileEntry>,
 }
 
 impl Default for Index {
@@ -29,6 +31,7 @@ impl Index {
         Self {
             version: 1,
             entries: HashMap::new(),
+            staged_entries: HashMap::new(),
         }
     }
 
@@ -44,20 +47,26 @@ impl Index {
 
         let metadata = file.metadata()?;
 
-        let result = if metadata.len() < 1024 {
+        let mut index: Index = if metadata.len() < 1024 {
             // Small index - read directly
             let data = std::fs::read(path)?;
-            serialization::deserialize(&data).context("Failed to deserialize index")
+            serialization::deserialize(&data).context("Failed to deserialize index")?
         } else {
             // Large index - use memory mapping
             let mmap = unsafe { MmapOptions::new().map(&file)? };
-            serialization::deserialize(&mmap).context("Failed to deserialize index")
+            serialization::deserialize(&mmap).context("Failed to deserialize index")?
         };
 
         // Unlock the file
         file.unlock()?;
 
-        result
+        // For backwards compatibility: if staged_entries is empty but entries is not,
+        // initialize staged_entries from entries (first time using staging area)
+        if index.staged_entries.is_empty() && !index.entries.is_empty() {
+            index.staged_entries = index.entries.clone();
+        }
+
+        Ok(index)
     }
 
     pub fn save(&self, path: &Path) -> Result<()> {
@@ -120,6 +129,13 @@ impl Index {
             final_index.entries.insert(path.clone(), entry.clone());
         }
 
+        // Also merge staged entries
+        for (path, entry) in &self.staged_entries {
+            final_index
+                .staged_entries
+                .insert(path.clone(), entry.clone());
+        }
+
         // Serialize and write the merged index
         let data = serialization::serialize(&final_index)?;
 
@@ -147,11 +163,48 @@ impl Index {
     pub fn get_entry(&self, path: &Path) -> Option<&FileEntry> {
         self.entries.get(path)
     }
+
+    pub fn stage_entry(&mut self, entry: FileEntry) {
+        self.staged_entries.insert(entry.path.clone(), entry);
+    }
+
+    pub fn get_staged_entry(&self, path: &Path) -> Option<&FileEntry> {
+        self.staged_entries.get(path)
+    }
+
+    pub fn has_staged_changes(&self) -> bool {
+        // Check if there are any differences between staged and committed entries
+        for (path, staged_entry) in &self.staged_entries {
+            match self.entries.get(path) {
+                Some(committed_entry) => {
+                    if staged_entry.hash != committed_entry.hash {
+                        return true;
+                    }
+                }
+                None => return true, // New file staged
+            }
+        }
+
+        // Check for deleted files (in entries but not in staged)
+        for path in self.entries.keys() {
+            if !self.staged_entries.contains_key(path) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn commit_staged(&mut self) {
+        // Move all staged entries to committed entries
+        self.entries = self.staged_entries.clone();
+    }
 }
 
 // High-performance concurrent index for parallel operations
 pub struct ConcurrentIndex {
     entries: Arc<DashMap<PathBuf, FileEntry>>,
+    staged_entries: Arc<DashMap<PathBuf, FileEntry>>,
     version: Arc<RwLock<u32>>,
 }
 
@@ -165,6 +218,7 @@ impl ConcurrentIndex {
     pub fn new() -> Self {
         Self {
             entries: Arc::new(DashMap::new()),
+            staged_entries: Arc::new(DashMap::new()),
             version: Arc::new(RwLock::new(1)),
         }
     }
@@ -175,8 +229,14 @@ impl ConcurrentIndex {
             entries.insert(path, entry);
         }
 
+        let staged_entries = Arc::new(DashMap::new());
+        for (path, entry) in index.staged_entries {
+            staged_entries.insert(path, entry);
+        }
+
         Self {
             entries,
+            staged_entries,
             version: Arc::new(RwLock::new(index.version)),
         }
     }
@@ -187,9 +247,15 @@ impl ConcurrentIndex {
             entries.insert(entry.key().clone(), entry.value().clone());
         }
 
+        let mut staged_entries = HashMap::new();
+        for entry in self.staged_entries.iter() {
+            staged_entries.insert(entry.key().clone(), entry.value().clone());
+        }
+
         Index {
             version: *self.version.read(),
             entries,
+            staged_entries,
         }
     }
 

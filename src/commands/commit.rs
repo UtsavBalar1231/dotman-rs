@@ -14,25 +14,25 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
-    let index = Index::load(&index_path)?;
+    let mut index = Index::load(&index_path)?;
 
-    if index.entries.is_empty() {
+    if index.staged_entries.is_empty() && index.entries.is_empty() {
         super::print_warning("No files tracked. Use 'dot add' to track files first.");
         return Ok(());
     }
 
-    // If --all flag is set, update all tracked files first
+    // If --all flag is set, stage all modified tracked files first
     if all {
-        super::print_info("Updating all tracked files...");
-        update_all_tracked_files(ctx)?;
-    } else {
-        // Without --all, check if there are any staged changes
-        if !has_staged_changes(ctx)? {
-            super::print_warning(
-                "No changes staged for commit. Use 'dot add' to stage changes or 'dot commit --all' to commit all changes.",
-            );
-            return Ok(());
-        }
+        super::print_info("Staging all tracked files...");
+        stage_all_tracked_files(ctx, &mut index)?;
+    }
+
+    // Check if there are any staged changes
+    if !index.has_staged_changes() {
+        super::print_warning(
+            "No changes staged for commit. Use 'dot add' to stage changes or 'dot commit --all' to commit all changes.",
+        );
+        return Ok(());
     }
 
     // Get timestamp and author for commit
@@ -42,9 +42,9 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     // Get parent commit (if any)
     let parent = get_last_commit_id(ctx)?;
 
-    // Create tree hash from all file hashes
+    // Create tree hash from all staged file hashes
     let mut tree_content = String::new();
-    for (path, entry) in &index.entries {
+    for (path, entry) in &index.staged_entries {
         tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
@@ -66,8 +66,12 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    let files: Vec<FileEntry> = index.entries.values().cloned().collect();
+    let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit.clone(), &files)?;
+
+    // After successful commit, move staged entries to committed entries
+    index.commit_staged();
+    index.save(&index_path)?;
 
     // Update HEAD
     update_head(ctx, &commit_id)?;
@@ -103,27 +107,27 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
         .load_snapshot(&last_commit_id)
         .with_context(|| format!("Failed to load commit: {}", last_commit_id))?;
 
-    // If --all flag is set, update all tracked files first
-    if all {
-        super::print_info("Updating all tracked files...");
-        update_all_tracked_files(ctx)?;
-    }
-
     // Load current index
     let index_path = ctx.repo_path.join(INDEX_FILE);
-    let index = Index::load(&index_path)?;
+    let mut index = Index::load(&index_path)?;
 
-    if index.entries.is_empty() {
-        super::print_warning("No files tracked. Use 'dot add' to track files first.");
+    // If --all flag is set, stage all tracked files first
+    if all {
+        super::print_info("Staging all tracked files...");
+        stage_all_tracked_files(ctx, &mut index)?;
+    }
+
+    if index.staged_entries.is_empty() {
+        super::print_warning("No files staged. Use 'dot add' to stage files first.");
         return Ok(());
     }
 
     // Use provided message or keep the original
     let commit_message = message.unwrap_or(&last_snapshot.commit.message);
 
-    // Create tree hash from all file hashes
+    // Create tree hash from all staged file hashes
     let mut tree_content = String::new();
-    for (path, entry) in &index.entries {
+    for (path, entry) in &index.staged_entries {
         tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
@@ -155,8 +159,12 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     snapshot_manager.delete_snapshot(&last_commit_id)?;
 
     // Create new snapshot with amended content
-    let files: Vec<FileEntry> = index.entries.values().cloned().collect();
+    let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit.clone(), &files)?;
+
+    // After successful commit, move staged entries to committed entries
+    index.commit_staged();
+    index.save(&index_path)?;
 
     // Update HEAD to point to the new commit ID since it's content-addressed
     update_head(ctx, &commit_id)?;
@@ -178,52 +186,30 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     Ok(())
 }
 
-fn update_all_tracked_files(ctx: &DotmanContext) -> Result<()> {
-    let index_path = ctx.repo_path.join(INDEX_FILE);
-    let mut index = Index::load(&index_path)?;
-
+fn stage_all_tracked_files(_ctx: &DotmanContext, index: &mut Index) -> Result<()> {
     // Get home directory for making paths relative
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    let mut updated = 0;
-    let entries: Vec<_> = index.entries.keys().cloned().collect();
+    let mut staged = 0;
 
+    // Stage all currently tracked files with their current state
+    let entries: Vec<_> = index.entries.keys().cloned().collect();
     for path in entries {
         // Need to convert relative path back to absolute for checking existence
         let abs_path = home.join(&path);
         if abs_path.exists()
             && let Ok(entry) = crate::commands::add::create_file_entry(&abs_path, &home)
         {
-            index.add_entry(entry);
-            updated += 1;
+            index.stage_entry(entry);
+            staged += 1;
         }
     }
 
-    if updated > 0 {
-        index.save(&index_path)?;
-        super::print_info(&format!("Updated {} tracked file(s)", updated));
+    if staged > 0 {
+        super::print_info(&format!("Staged {} tracked file(s)", staged));
     }
 
     Ok(())
-}
-
-fn has_staged_changes(ctx: &DotmanContext) -> Result<bool> {
-    let index_path = ctx.repo_path.join(INDEX_FILE);
-    let index = Index::load(&index_path)?;
-
-    if index.entries.is_empty() {
-        return Ok(false);
-    }
-
-    // If there's no HEAD file (first commit), we have staged changes if index has entries
-    let head_path = ctx.repo_path.join("HEAD");
-    if !head_path.exists() {
-        return Ok(true);
-    }
-
-    // For now, always allow commits if index has entries
-    // A more sophisticated check would compare index against HEAD commit
-    Ok(true)
 }
 
 fn get_last_commit_id(ctx: &DotmanContext) -> Result<Option<String>> {
@@ -331,7 +317,8 @@ mod tests {
         // Create an index with a file
         let mut index = Index::new();
         let test_file = PathBuf::from(".bashrc");
-        index.add_entry(FileEntry {
+        // Stage the entry for commit
+        index.stage_entry(FileEntry {
             path: test_file.clone(),
             hash: "test_hash_1".to_string(),
             size: 100,
@@ -352,8 +339,9 @@ mod tests {
         // Create first commit
         execute(&ctx, "Initial commit", false)?;
 
-        // Update the file in index
-        index.add_entry(FileEntry {
+        // Load the index (it was modified by execute), update and stage the file
+        let mut index = Index::load(&index_path)?;
+        index.stage_entry(FileEntry {
             path: test_file,
             hash: "test_hash_2".to_string(),
             size: 200,
