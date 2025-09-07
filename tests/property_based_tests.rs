@@ -186,13 +186,13 @@ proptest! {
             // Should handle nested paths properly
             match result {
                 Ok(_) => {
-                    // Verify the file was added to index
+                    // Verify the file was added to staging area
                     let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
-                    let has_entry = index.entries.keys().any(|p| {
+                    let has_entry = index.staged_entries.keys().any(|p| {
                         p.to_string_lossy().contains(&path_components.join("/")) ||
                         p.file_name() == nested_path.file_name()
                     });
-                    prop_assert!(has_entry, "File should be in index");
+                    prop_assert!(has_entry, "File should be in staging area");
                 }
                 Err(_) => {
                     // Graceful failure acceptable
@@ -231,9 +231,9 @@ proptest! {
             // Should handle batch operations
             match result {
                 Ok(_) => {
-                    // Verify all files were added
+                    // Verify all files were added to staging area
                     let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
-                    prop_assert!(index.entries.len() >= created_files.len());
+                    prop_assert!(index.staged_entries.len() >= created_files.len());
 
                     // Status should work with many files
                     let status_result = commands::status::execute(&ctx, false, false);

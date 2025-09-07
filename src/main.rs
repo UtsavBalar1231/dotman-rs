@@ -314,6 +314,28 @@ enum Commands {
         #[arg(long)]
         all: bool,
     },
+
+    /// Import dotfiles from a git repository
+    Import {
+        /// Repository path or URL to import from
+        source: String,
+
+        /// Automatically track imported files with dotman
+        #[arg(short, long)]
+        track: bool,
+
+        /// Force overwrite existing files
+        #[arg(short, long)]
+        force: bool,
+
+        /// Only show what would be imported without making changes
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Skip confirmation prompts
+        #[arg(short = 'y', long)]
+        yes: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -754,6 +776,16 @@ fn run() -> Result<()> {
         } => {
             let ctx = context.unwrap();
             commands::reflog::execute(&ctx, limit, oneline, all)?;
+        }
+        Commands::Import {
+            source,
+            track,
+            force,
+            dry_run,
+            yes,
+        } => {
+            let ctx = context.unwrap();
+            commands::import::execute(&ctx, &source, track, force, dry_run, yes)?;
         }
     }
 

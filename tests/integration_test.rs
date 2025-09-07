@@ -396,26 +396,26 @@ fn test_ignore_patterns_workflow() -> Result<()> {
     let paths = [dir.path().to_string_lossy().to_string()];
     commands::add::execute(&ctx, &paths, false)?;
 
-    // Check what was added
+    // Check what was added to staging area
     let index = dotman::storage::index::Index::load(&ctx.repo_path.join("index.bin"))?;
 
     // Should have added good_file and other non-ignored files
     // But not log, tmp, or cache files
-    // Check for specific files we created
+    // Check for specific files we created (in staged_entries since they haven't been committed)
     let has_important = index
-        .entries
+        .staged_entries
         .keys()
         .any(|p| p.file_name() == Some(std::ffi::OsStr::new("important.txt")));
     let has_debug_log = index
-        .entries
+        .staged_entries
         .keys()
         .any(|p| p.file_name() == Some(std::ffi::OsStr::new("debug.log")));
     let has_temp_tmp = index
-        .entries
+        .staged_entries
         .keys()
         .any(|p| p.file_name() == Some(std::ffi::OsStr::new("temp.tmp")));
     let has_cached_dat = index
-        .entries
+        .staged_entries
         .keys()
         .any(|p| p.file_name() == Some(std::ffi::OsStr::new("cached.dat")));
 
@@ -464,9 +464,9 @@ fn test_concurrent_operations() -> Result<()> {
         handle.join().unwrap();
     }
 
-    // Verify all files were added
+    // Verify all files were added to staging area
     let index = dotman::storage::index::Index::load(&ctx.repo_path.join("index.bin"))?;
-    assert_eq!(index.entries.len(), 100);
+    assert_eq!(index.staged_entries.len(), 100);
 
     Ok(())
 }

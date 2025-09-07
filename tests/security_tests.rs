@@ -267,11 +267,11 @@ fn test_malicious_file_content() -> Result<()> {
                         i
                     );
 
-                    // Verify the file was actually added
+                    // Verify the file was actually added to staging area
                     let index = Index::load(&ctx.repo_path.join("index.bin"))?;
                     assert!(
-                        index.entries.contains_key(&test_file),
-                        "File should be in index after successful add"
+                        index.staged_entries.contains_key(&test_file),
+                        "File should be in staging area after successful add"
                     );
                 }
                 // Graceful failure for very large or problematic content is also acceptable
@@ -325,13 +325,13 @@ fn test_resource_exhaustion_attacks() -> Result<()> {
             "Status should work after adding many files"
         );
 
-        // Verify files were actually added
+        // Verify files were actually added to staging area
         let index = Index::load(&ctx.repo_path.join("index.bin"))?;
         assert!(
-            index.entries.len() == created_files.len(),
-            "All {} files should be in index, found {}",
+            index.staged_entries.len() == created_files.len(),
+            "All {} files should be in staging area, found {}",
             created_files.len(),
-            index.entries.len()
+            index.staged_entries.len()
         );
     }
 

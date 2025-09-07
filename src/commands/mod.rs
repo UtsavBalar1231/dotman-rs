@@ -6,6 +6,7 @@ pub mod commit;
 pub mod config;
 pub mod diff;
 pub mod fetch;
+pub mod import;
 pub mod init;
 pub mod log;
 pub mod merge;
