@@ -6,6 +6,15 @@ use colored::Colorize;
 use std::process::Command;
 
 /// Execute fetch command - download objects and refs from remote repository
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The specified remote does not exist
+/// - The remote has no URL configured
+/// - Network operations fail
+/// - The fetch operation fails
 pub fn execute(
     ctx: &DotmanContext,
     remote: &str,
@@ -16,10 +25,7 @@ pub fn execute(
     ctx.check_repo_initialized()?;
 
     let remote_config = ctx.config.get_remote(remote).with_context(|| {
-        format!(
-            "Remote '{}' does not exist. Use 'dot remote add' to add it.",
-            remote
-        )
+        format!("Remote '{remote}' does not exist. Use 'dot remote add' to add it.")
     })?;
 
     match &remote_config.remote_type {
@@ -46,9 +52,9 @@ fn fetch_from_git(
     let url = remote_config
         .url
         .as_ref()
-        .with_context(|| format!("Remote '{}' has no URL configured", remote))?;
+        .with_context(|| format!("Remote '{remote}' has no URL configured"))?;
 
-    super::print_info(&format!("Fetching from git remote {} ({})", remote, url));
+    super::print_info(&format!("Fetching from git remote {remote} ({url})"));
 
     // Create and initialize mirror
     let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
@@ -81,7 +87,7 @@ fn fetch_from_git(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("Git fetch failed: {}", stderr));
+        return Err(anyhow::anyhow!("Git fetch failed: {stderr}"));
     }
 
     let _stdout = String::from_utf8_lossy(&output.stdout);
@@ -91,7 +97,7 @@ fn fetch_from_git(
     if !stderr.is_empty() {
         for line in stderr.lines() {
             if line.contains("->") || line.contains("new") || line.contains("tag") {
-                println!("  {}", line);
+                println!("  {line}");
             }
         }
     }
@@ -109,7 +115,7 @@ fn fetch_from_git(
         let branches = String::from_utf8_lossy(&output.stdout);
         let remote_branches: Vec<&str> = branches
             .lines()
-            .map(|l| l.trim())
+            .map(str::trim)
             .filter(|l| l.starts_with("origin/"))
             .collect();
 
@@ -124,7 +130,7 @@ fn fetch_from_git(
         }
     }
 
-    super::print_success(&format!("Successfully fetched from {} ({})", remote, url));
+    super::print_success(&format!("Successfully fetched from {remote} ({url})"));
 
     // Suggest next steps
     if branch.is_none() && !all {
@@ -142,9 +148,9 @@ fn fetch_from_s3(
     let bucket = remote_config
         .url
         .as_ref()
-        .with_context(|| format!("Remote '{}' has no S3 bucket configured", remote))?;
+        .with_context(|| format!("Remote '{remote}' has no S3 bucket configured"))?;
 
-    super::print_info(&format!("Fetching from S3 bucket {}", bucket));
+    super::print_info(&format!("Fetching from S3 bucket {bucket}"));
 
     // Use aws CLI to sync from S3
     let temp_dir = tempfile::tempdir()?;
@@ -152,7 +158,7 @@ fn fetch_from_s3(
         .args([
             "s3",
             "sync",
-            &format!("s3://{}/", bucket),
+            &format!("s3://{bucket}/"),
             temp_dir
                 .path()
                 .to_str()
@@ -163,13 +169,13 @@ fn fetch_from_s3(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("S3 sync failed: {}", stderr));
+        return Err(anyhow::anyhow!("S3 sync failed: {stderr}"));
     }
 
     // Compare with local repository
     super::print_info("Comparing fetched data with local repository...");
 
-    super::print_success(&format!("Successfully fetched from S3 bucket {}", bucket));
+    super::print_success(&format!("Successfully fetched from S3 bucket {bucket}"));
     super::print_info("Use 'dot pull' to integrate the changes");
 
     Ok(())
@@ -183,9 +189,9 @@ fn fetch_from_rsync(
     let source = remote_config
         .url
         .as_ref()
-        .with_context(|| format!("Remote '{}' has no rsync source configured", remote))?;
+        .with_context(|| format!("Remote '{remote}' has no rsync source configured"))?;
 
-    super::print_info(&format!("Fetching via rsync from {}", source));
+    super::print_info(&format!("Fetching via rsync from {source}"));
 
     // Use rsync to fetch to a temporary location
     let temp_dir = tempfile::tempdir()?;
@@ -200,12 +206,12 @@ fn fetch_from_rsync(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("Rsync failed: {}", stderr));
+        return Err(anyhow::anyhow!("Rsync failed: {stderr}"));
     }
 
     super::print_info("Comparing fetched data with local repository...");
 
-    super::print_success(&format!("Successfully fetched via rsync from {}", source));
+    super::print_success(&format!("Successfully fetched via rsync from {source}"));
     super::print_info("Use 'dot pull' to integrate the changes");
 
     Ok(())

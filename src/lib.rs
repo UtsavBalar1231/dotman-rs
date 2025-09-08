@@ -30,11 +30,28 @@ pub struct DotmanContext {
     pub no_pager: bool,
 }
 
+/// Context for Dotman operations, holding configuration and repository information.
+/// This struct is used throughout the application to access settings and paths.
+/// # Fields
+/// - `repo_path`: The path to the Dotman repository.
+/// - `config_path`: The path to the configuration file.
+/// - `config`: The loaded configuration settings.
+/// - `no_pager`: A flag indicating whether to disable pager functionality.
 impl DotmanContext {
+    /// Creates a new `DotmanContext` by loading the configuration from the default path.
+    ///
+    /// # Errors
+    /// Returns an error if the home directory cannot be determined or if the configuration
+    /// file cannot be read or created.
     pub fn new() -> Result<Self> {
         Self::new_with_pager(false)
     }
 
+    /// Creates a new `DotmanContext` with an option to disable pager functionality.
+    ///
+    /// # Errors
+    /// Returns an error if the home directory cannot be determined or if the configuration
+    /// file cannot be read or created.
     pub fn new_with_pager(no_pager: bool) -> Result<Self> {
         let home = dirs::home_dir().context("Could not find home directory")?;
         let config_path = home.join(DEFAULT_CONFIG_PATH);
@@ -49,12 +66,18 @@ impl DotmanContext {
         })
     }
 
+    /// Checks if the repository is initialized by verifying the existence of
+    #[must_use]
     pub fn is_repo_initialized(&self) -> bool {
         self.repo_path.exists()
             && self.repo_path.join(INDEX_FILE).exists()
             && self.repo_path.join("HEAD").exists()
     }
 
+    /// Checks if the repository is initialized, returning an error if not.
+    ///
+    /// # Errors
+    /// Returns an error if the repository is not initialized.
     pub fn check_repo_initialized(&self) -> Result<()> {
         if !self.is_repo_initialized() {
             return Err(anyhow::anyhow!(
@@ -65,6 +88,11 @@ impl DotmanContext {
         Ok(())
     }
 
+    /// Ensures that the repository directory and its subdirectories exist.
+    ///
+    /// # Errors
+    /// Returns an error if the directories cannot be created.
+    /// This can happen due to permission issues or invalid paths.
     pub fn ensure_repo_exists(&self) -> Result<()> {
         std::fs::create_dir_all(&self.repo_path).with_context(|| {
             format!(
@@ -140,7 +168,7 @@ preserve_permissions = true
 
         let result = DotmanContext::new();
         if let Err(e) = &result {
-            eprintln!("Error creating context: {}", e);
+            eprintln!("Error creating context: {e}");
         }
         assert!(
             result.is_ok(),
@@ -206,6 +234,7 @@ preserve_permissions = true
 
     #[test]
     fn test_ensure_repo_exists_permission_denied() -> Result<()> {
+        use std::os::unix::fs::PermissionsExt;
         // Skip this test if running as root (common in CI/Docker environments)
         // Root can bypass permission restrictions
         #[cfg(unix)]
@@ -222,13 +251,12 @@ preserve_permissions = true
 
         // Make directory read-only
         let mut perms = fs::metadata(&readonly_dir)?.permissions();
-        use std::os::unix::fs::PermissionsExt;
         perms.set_mode(0o444);
         fs::set_permissions(&readonly_dir, perms)?;
 
         let repo_path = readonly_dir.join("test_repo");
         let ctx = DotmanContext {
-            repo_path: repo_path.clone(),
+            repo_path,
             config_path: temp.path().join("config"),
             config: config::Config::default(),
             no_pager: true,

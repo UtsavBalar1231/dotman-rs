@@ -14,6 +14,11 @@ pub mod fixtures {
     }
 
     impl TestRepository {
+        /// Create a new test repository
+        ///
+        /// # Errors
+        ///
+        /// Returns an error if failed to create repository structure
         pub fn new() -> Result<Self> {
             let temp_dir = tempfile::tempdir()?;
             let repo_path = temp_dir.path().join(".dotman");
@@ -36,7 +41,7 @@ pub mod fixtures {
             let context = DotmanContext {
                 repo_path: repo_path.clone(),
                 config_path: config_path.clone(),
-                config: config.clone(),
+                config,
                 no_pager: true,
             };
 
@@ -48,6 +53,11 @@ pub mod fixtures {
             })
         }
 
+        /// Create a test file in the repository
+        ///
+        /// # Errors
+        ///
+        /// Returns an error if failed to create file
         pub fn create_file(&self, name: &str, content: &str) -> Result<PathBuf> {
             let path = self.temp_dir.path().join(name);
             if let Some(parent) = path.parent() {
@@ -57,6 +67,11 @@ pub mod fixtures {
             Ok(path)
         }
 
+        /// Create a test commit
+        ///
+        /// # Errors
+        ///
+        /// Returns an error if failed to create or save commit
         pub fn create_commit(&self, id: &str, message: &str) -> Result<()> {
             let commit_id = test_commit_id(id);
             let commit = crate::storage::Commit {
@@ -70,7 +85,7 @@ pub mod fixtures {
 
             let snapshot = crate::storage::snapshots::Snapshot {
                 commit,
-                files: Default::default(),
+                files: std::collections::HashMap::default(),
             };
 
             // Serialize and compress snapshot
@@ -88,6 +103,11 @@ pub mod fixtures {
             Ok(())
         }
 
+        /// Set remote configuration for testing
+        ///
+        /// # Errors
+        ///
+        /// Returns an error if failed to save configuration
         pub fn set_config_remote(
             &mut self,
             remote_type: crate::config::RemoteType,
@@ -104,6 +124,11 @@ pub mod fixtures {
     }
 
     // Helper function to create a basic test context
+    /// Create a basic test context
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if failed to create test environment
     pub fn create_test_context() -> Result<(TempDir, DotmanContext)> {
         let temp = tempfile::tempdir()?;
         let repo_path = temp.path().join(".dotman");
@@ -138,6 +163,7 @@ pub mod fixtures {
 
     /// Generates a valid 32-character hexadecimal commit ID for tests
     /// Pads the input with zeros to ensure it's exactly 32 characters
+    #[must_use]
     pub fn test_commit_id(suffix: &str) -> String {
         if suffix.len() >= 32 {
             // If suffix is already 32+ chars, take first 32 and ensure they're all hex
@@ -147,14 +173,15 @@ pub mod fixtures {
                 .collect()
         } else {
             // Pad with zeros at the start to make exactly 32 characters
-            format!("{:0>32}", suffix)
+            format!("{suffix:0>32}")
         }
     }
 
     /// Generates a sequence of test commit IDs (01, 02, 03, etc.)
+    #[must_use]
     pub fn test_commit_ids(count: usize) -> Vec<String> {
         (1..=count)
-            .map(|i| test_commit_id(&format!("{:02}", i)))
+            .map(|i| test_commit_id(&format!("{i:02}")))
             .collect()
     }
 }

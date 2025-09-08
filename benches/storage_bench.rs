@@ -11,8 +11,8 @@ fn create_test_files(dir: &std::path::Path, count: usize) -> Vec<PathBuf> {
     let mut paths = Vec::new();
 
     for i in 0..count {
-        let path = dir.join(format!("file_{}.txt", i));
-        let content = format!("This is test file number {} with some content to hash", i);
+        let path = dir.join(format!("file_{i}.txt"));
+        let content = format!("This is test file number {i} with some content to hash");
         fs::write(&path, content).unwrap();
         paths.push(path);
     }
@@ -35,11 +35,11 @@ fn benchmark_hashing(c: &mut Criterion) {
     group.bench_function("hash_1kb", |b| b.iter(|| hash_file(black_box(&small_file))));
 
     group.bench_function("hash_100kb", |b| {
-        b.iter(|| hash_file(black_box(&medium_file)))
+        b.iter(|| hash_file(black_box(&medium_file)));
     });
 
     group.bench_function("hash_10mb", |b| {
-        b.iter(|| hash_file(black_box(&large_file)))
+        b.iter(|| hash_file(black_box(&large_file)));
     });
 
     group.finish();
@@ -50,11 +50,11 @@ fn benchmark_parallel_hashing(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("parallel_hashing");
 
-    for count in [10, 50, 100].iter() {
+    for count in &[10, 50, 100] {
         let files = create_test_files(dir.path(), *count);
 
         group.bench_with_input(BenchmarkId::from_parameter(count), &files, |b, files| {
-            b.iter(|| hash_files_parallel(black_box(files)))
+            b.iter(|| hash_files_parallel(black_box(files)));
         });
     }
 
@@ -68,10 +68,10 @@ fn benchmark_index_operations(c: &mut Criterion) {
     // Create test entries
     let entries: Vec<FileEntry> = (0..1000)
         .map(|i| FileEntry {
-            path: PathBuf::from(format!("/home/user/file_{}.txt", i)),
-            hash: format!("{:032x}", i),
-            size: (i * 100) as u64,
-            modified: 1234567890 + i as i64,
+            path: PathBuf::from(format!("/home/user/file_{i}.txt")),
+            hash: format!("{i:032x}"),
+            size: u64::try_from(i).unwrap_or(0) * 100,
+            modified: 1_234_567_890 + i64::from(i),
             mode: 0o644,
         })
         .collect();
@@ -85,7 +85,7 @@ fn benchmark_index_operations(c: &mut Criterion) {
             for entry in &entries {
                 index.add_entry(entry.clone());
             }
-        })
+        });
     });
 
     // Benchmark parallel index operations
@@ -93,7 +93,7 @@ fn benchmark_index_operations(c: &mut Criterion) {
         b.iter(|| {
             let mut index = Index::new();
             index.add_entries_parallel(entries.clone());
-        })
+        });
     });
 
     // Benchmark index serialization
@@ -103,14 +103,14 @@ fn benchmark_index_operations(c: &mut Criterion) {
     }
 
     group.bench_function("index_save", |b| {
-        b.iter(|| index.save(black_box(&index_path)))
+        b.iter(|| index.save(black_box(&index_path)));
     });
 
     // Save index for loading benchmark
     index.save(&index_path).unwrap();
 
     group.bench_function("index_load", |b| {
-        b.iter(|| Index::load(black_box(&index_path)))
+        b.iter(|| Index::load(black_box(&index_path)));
     });
 
     group.finish();
@@ -125,17 +125,17 @@ fn benchmark_compression(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("compression");
 
-    for level in [1, 3, 9].iter() {
-        group.bench_function(format!("compress_1kb_level_{}", level), |b| {
-            b.iter(|| compress_bytes(black_box(&small_data), *level))
+    for level in &[1, 3, 9] {
+        group.bench_function(format!("compress_1kb_level_{level}"), |b| {
+            b.iter(|| compress_bytes(black_box(&small_data), *level));
         });
 
-        group.bench_function(format!("compress_100kb_level_{}", level), |b| {
-            b.iter(|| compress_bytes(black_box(&medium_data), *level))
+        group.bench_function(format!("compress_100kb_level_{level}"), |b| {
+            b.iter(|| compress_bytes(black_box(&medium_data), *level));
         });
 
-        group.bench_function(format!("compress_1mb_level_{}", level), |b| {
-            b.iter(|| compress_bytes(black_box(&large_data), *level))
+        group.bench_function(format!("compress_1mb_level_{level}"), |b| {
+            b.iter(|| compress_bytes(black_box(&large_data), *level));
         });
     }
 
@@ -145,15 +145,15 @@ fn benchmark_compression(c: &mut Criterion) {
     let compressed_large = compress_bytes(&large_data, 3).unwrap();
 
     group.bench_function("decompress_1kb", |b| {
-        b.iter(|| decompress_bytes(black_box(&compressed_small)))
+        b.iter(|| decompress_bytes(black_box(&compressed_small)));
     });
 
     group.bench_function("decompress_100kb", |b| {
-        b.iter(|| decompress_bytes(black_box(&compressed_medium)))
+        b.iter(|| decompress_bytes(black_box(&compressed_medium)));
     });
 
     group.bench_function("decompress_1mb", |b| {
-        b.iter(|| decompress_bytes(black_box(&compressed_large)))
+        b.iter(|| decompress_bytes(black_box(&compressed_large)));
     });
 
     group.finish();

@@ -7,8 +7,19 @@ use crate::storage::snapshots::SnapshotManager;
 use crate::sync::Importer;
 use anyhow::{Context, Result};
 use colored::Colorize;
+use std::fmt::Write;
 use std::process::Command;
 
+/// Execute pull command - fetch from and integrate with another repository or local branch
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - Conflicting options are specified (e.g., --rebase with --no-ff)
+/// - The remote does not exist or cannot be reached
+/// - The fetch operation fails
+/// - The merge or rebase operation fails
 pub fn execute(
     ctx: &DotmanContext,
     remote: &str,
@@ -26,10 +37,7 @@ pub fn execute(
     }
 
     let remote_config = ctx.config.get_remote(remote).with_context(|| {
-        format!(
-            "Remote '{}' does not exist. Use 'dot remote add' to add it.",
-            remote
-        )
+        format!("Remote '{remote}' does not exist. Use 'dot remote add' to add it.")
     })?;
 
     match &remote_config.remote_type {
@@ -54,19 +62,25 @@ fn pull_from_git(
     no_ff: bool,
     squash: bool,
 ) -> Result<()> {
+    use crate::storage::{Commit, FileEntry};
+    use crate::utils::{
+        commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
+        hash::hash_bytes,
+    };
+
     let url = remote_config
         .url
         .as_ref()
-        .with_context(|| format!("Remote '{}' has no URL configured", remote))?;
+        .with_context(|| format!("Remote '{remote}' has no URL configured"))?;
 
-    super::print_info(&format!("Pulling from git remote {} ({})", remote, url));
+    super::print_info(&format!("Pulling from git remote {remote} ({url})"));
 
     // Create and initialize mirror
     let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
     mirror.init_mirror()?;
 
     // Pull changes in mirror
-    super::print_info(&format!("Fetching branch '{}' from remote...", branch));
+    super::print_info(&format!("Fetching branch '{branch}' from remote..."));
     mirror.pull(branch)?;
 
     let git_commit = mirror.get_head_commit()?;
@@ -86,8 +100,7 @@ fn pull_from_git(
         crate::commands::checkout::execute(ctx, &dotman_commit, false)?;
 
         super::print_success(&format!(
-            "Successfully pulled from {} ({}) - already up to date",
-            remote, branch
+            "Successfully pulled from {remote} ({branch}) - already up to date"
         ));
         return Ok(());
     }
@@ -106,8 +119,7 @@ fn pull_from_git(
     if changes.is_empty() {
         super::print_info("No changes to import");
         super::print_success(&format!(
-            "Successfully pulled from {} ({}) - already up to date",
-            remote, branch
+            "Successfully pulled from {remote} ({branch}) - already up to date"
         ));
         return Ok(());
     }
@@ -122,12 +134,6 @@ fn pull_from_git(
     let message = format!("Pull from {} ({}): {}", remote, branch, changes.summary());
 
     // Create commit similar to how commit command does it
-    use crate::storage::{Commit, FileEntry};
-    use crate::utils::{
-        commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
-        hash::hash_bytes,
-    };
-
     // Get timestamp and author for commit
     let timestamp = get_current_timestamp();
     let author = get_current_user_with_config(&ctx.config);
@@ -139,7 +145,7 @@ fn pull_from_git(
     // Create tree hash from all file hashes
     let mut tree_content = String::new();
     for (path, entry) in &index.entries {
-        tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
+        writeln!(tree_content, "{} {}", entry.hash, path.display())?;
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
@@ -150,7 +156,7 @@ fn pull_from_git(
     let commit = Commit {
         id: commit_id.clone(),
         parent,
-        message: message.to_string(),
+        message,
         author,
         timestamp,
         tree_hash,
@@ -189,13 +195,7 @@ fn pull_from_git(
             "Merging with {} strategy...",
             if squash { "squash" } else { "no-ff" }
         ));
-        crate::commands::merge::execute(
-            ctx,
-            &format!("{}/{}", remote, branch),
-            no_ff,
-            squash,
-            None,
-        )?;
+        crate::commands::merge::execute(ctx, &format!("{remote}/{branch}"), no_ff, squash, None)?;
     } else {
         // Default: checkout the new commit to update working directory
         super::print_info("Updating working directory to match pulled changes...");
@@ -234,15 +234,15 @@ fn pull_from_s3(
     let bucket = remote_config
         .url
         .as_ref()
-        .with_context(|| format!("Remote '{}' has no S3 bucket configured", remote))?;
+        .with_context(|| format!("Remote '{remote}' has no S3 bucket configured"))?;
 
-    super::print_info(&format!("Pulling from S3 bucket {}", bucket));
+    super::print_info(&format!("Pulling from S3 bucket {bucket}"));
 
     let output = Command::new("aws")
         .args([
             "s3",
             "sync",
-            &format!("s3://{}/", bucket),
+            &format!("s3://{bucket}/"),
             ctx.repo_path.to_str().context("Invalid repository path")?,
             "--delete",
         ])
@@ -250,10 +250,10 @@ fn pull_from_s3(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("S3 sync failed: {}", stderr));
+        return Err(anyhow::anyhow!("S3 sync failed: {stderr}"));
     }
 
-    super::print_success(&format!("Successfully pulled from S3 bucket {}", bucket));
+    super::print_success(&format!("Successfully pulled from S3 bucket {bucket}"));
     Ok(())
 }
 
@@ -266,9 +266,9 @@ fn pull_from_rsync(
     let source = remote_config
         .url
         .as_ref()
-        .with_context(|| format!("Remote '{}' has no rsync source configured", remote))?;
+        .with_context(|| format!("Remote '{remote}' has no rsync source configured"))?;
 
-    super::print_info(&format!("Pulling via rsync from {}", source));
+    super::print_info(&format!("Pulling via rsync from {source}"));
 
     let output = Command::new("rsync")
         .args([
@@ -281,10 +281,10 @@ fn pull_from_rsync(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("Rsync failed: {}", stderr));
+        return Err(anyhow::anyhow!("Rsync failed: {stderr}"));
     }
 
-    super::print_success(&format!("Successfully pulled via rsync from {}", source));
+    super::print_success(&format!("Successfully pulled via rsync from {source}"));
     Ok(())
 }
 

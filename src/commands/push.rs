@@ -9,6 +9,7 @@ use anyhow::{Context, Result};
 use std::process::Command;
 
 /// Options for push operations
+#[allow(clippy::struct_excessive_bools)]
 struct PushOptions<'a> {
     remote: &'a str,
     branch: &'a str,
@@ -18,6 +19,17 @@ struct PushOptions<'a> {
     tags: bool,
 }
 
+/// Execute push command - update remote refs along with associated objects
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The remote does not exist or cannot be reached
+/// - The branch does not exist locally
+/// - The push is rejected by the remote
+/// - Network operations fail
+#[allow(clippy::fn_params_excessive_bools)]
 pub fn execute(
     ctx: &DotmanContext,
     remote: &str,
@@ -36,17 +48,11 @@ pub fn execute(
     }
 
     let remote_config = ctx.config.get_remote(remote).with_context(|| {
-        format!(
-            "Remote '{}' does not exist. Use 'dot remote add' to add it.",
-            remote
-        )
+        format!("Remote '{remote}' does not exist. Use 'dot remote add' to add it.")
     })?;
 
     if dry_run {
-        super::print_info(&format!(
-            "Dry run mode - would push to {} ({})",
-            remote, branch
-        ));
+        super::print_info(&format!("Dry run mode - would push to {remote} ({branch})"));
     }
 
     let push_opts = PushOptions {
@@ -72,10 +78,7 @@ pub fn execute(
 }
 
 /// Build a chain of commits from root to the given commit
-fn build_commit_chain(
-    snapshot_manager: &SnapshotManager,
-    target_commit: &str,
-) -> Result<Vec<String>> {
+fn build_commit_chain(snapshot_manager: &SnapshotManager, target_commit: &str) -> Vec<String> {
     let mut commits = Vec::new();
     let mut current_commit = Some(target_commit.to_string());
 
@@ -90,7 +93,10 @@ fn build_commit_chain(
 
         match snapshot_manager.load_snapshot(&commit_id) {
             Ok(snapshot) => {
-                current_commit = snapshot.commit.parent.clone();
+                #[allow(clippy::assigning_clones)]
+                {
+                    current_commit = snapshot.commit.parent.clone();
+                }
             }
             Err(_) => {
                 // Stop if we can't load a commit
@@ -115,7 +121,7 @@ fn build_commit_chain(
         .map(|(commit_id, _)| commit_id)
         .collect();
 
-    Ok(chain)
+    chain
 }
 
 /// Get commits that haven't been pushed yet
@@ -124,8 +130,8 @@ fn get_unpushed_commits(
     mapping_manager: &MappingManager,
     remote: &str,
     target_commit: &str,
-) -> Result<Vec<String>> {
-    let full_chain = build_commit_chain(snapshot_manager, target_commit)?;
+) -> Vec<String> {
+    let full_chain = build_commit_chain(snapshot_manager, target_commit);
 
     // Find the last pushed commit
     let mut unpushed = Vec::new();
@@ -139,7 +145,7 @@ fn get_unpushed_commits(
         }
     }
 
-    Ok(unpushed)
+    unpushed
 }
 
 fn push_to_git(
@@ -179,7 +185,7 @@ fn push_to_git(
         &mapping_manager,
         opts.remote,
         &current_commit,
-    )?;
+    );
 
     if commits_to_push.is_empty() {
         super::print_info("Already up to date - no new commits to push");
@@ -293,7 +299,7 @@ fn push_with_force(mirror: &GitMirror, branch: &str, force_with_lease: bool) -> 
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("Git force push failed: {}", stderr));
+        return Err(anyhow::anyhow!("Git force push failed: {stderr}"));
     }
 
     Ok(())
@@ -306,12 +312,12 @@ fn push_tags(mirror: &GitMirror) -> Result<()> {
         .current_dir(mirror.get_mirror_path())
         .output()?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        super::print_warning(&format!("Failed to push tags: {}", stderr));
-        // Don't fail the entire operation if tags fail
-    } else {
+    if output.status.success() {
         super::print_success("Tags pushed successfully");
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        super::print_warning(&format!("Failed to push tags: {stderr}"));
+        // Don't fail the entire operation if tags fail
     }
 
     Ok(())
@@ -327,9 +333,9 @@ fn push_to_s3(
     let bucket = remote_config
         .url
         .as_ref()
-        .with_context(|| format!("Remote '{}' has no S3 bucket configured", remote))?;
+        .with_context(|| format!("Remote '{remote}' has no S3 bucket configured"))?;
 
-    super::print_info(&format!("Pushing to S3 bucket {}", bucket));
+    super::print_info(&format!("Pushing to S3 bucket {bucket}"));
 
     if dry_run {
         super::print_info("Dry run - would sync to S3");
@@ -342,17 +348,17 @@ fn push_to_s3(
             "s3",
             "sync",
             ctx.repo_path.to_str().context("Invalid repository path")?,
-            &format!("s3://{}/", bucket),
+            &format!("s3://{bucket}/"),
             "--delete",
         ])
         .output()?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("S3 sync failed: {}", stderr));
+        return Err(anyhow::anyhow!("S3 sync failed: {stderr}"));
     }
 
-    super::print_success(&format!("Successfully pushed to S3 bucket {}", bucket));
+    super::print_success(&format!("Successfully pushed to S3 bucket {bucket}"));
     Ok(())
 }
 
@@ -366,9 +372,9 @@ fn push_to_rsync(
     let destination = remote_config
         .url
         .as_ref()
-        .with_context(|| format!("Remote '{}' has no rsync destination configured", remote))?;
+        .with_context(|| format!("Remote '{remote}' has no rsync destination configured"))?;
 
-    super::print_info(&format!("Pushing via rsync to {}", destination));
+    super::print_info(&format!("Pushing via rsync to {destination}"));
 
     if dry_run {
         super::print_info("Dry run - would sync via rsync");
@@ -386,10 +392,10 @@ fn push_to_rsync(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("Rsync failed: {}", stderr));
+        return Err(anyhow::anyhow!("Rsync failed: {stderr}"));
     }
 
-    super::print_success(&format!("Successfully pushed via rsync to {}", destination));
+    super::print_success(&format!("Successfully pushed via rsync to {destination}"));
     Ok(())
 }
 

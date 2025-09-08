@@ -6,6 +6,15 @@ use colored::Colorize;
 use rayon::prelude::*;
 use std::path::{Path, PathBuf};
 
+/// Execute the add command to stage files for tracking
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - A specified path does not exist (when not using force)
+/// - Failed to read directory entries
+/// - Failed to save the index
 pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -20,10 +29,9 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
         if !path.exists() {
             if !force {
                 return Err(anyhow::anyhow!("Path does not exist: {}", path.display()));
-            } else {
-                super::print_warning(&format!("Skipping non-existent path: {}", path.display()));
-                continue;
             }
+            super::print_warning(&format!("Skipping non-existent path: {}", path.display()));
+            continue;
         }
 
         if path.is_file() {
@@ -77,8 +85,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
 
     if added_count > 0 || updated_count > 0 {
         super::print_success(&format!(
-            "Added {} file(s), updated {} file(s)",
-            added_count, updated_count
+            "Added {added_count} file(s), updated {updated_count} file(s)"
         ));
     } else {
         super::print_info("No changes made");
@@ -87,6 +94,11 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
     Ok(())
 }
 
+/// Collect all files from a directory recursively
+///
+/// # Errors
+///
+/// Returns an error if failed to read directory entries
 fn collect_files_from_dir(
     dir: &Path,
     files: &mut Vec<PathBuf>,
@@ -108,30 +120,39 @@ fn collect_files_from_dir(
     Ok(())
 }
 
+#[cfg(unix)]
+#[allow(clippy::cast_precision_loss)]
 fn check_special_file_type(path: &Path) {
     use std::os::unix::fs::FileTypeExt;
 
     if let Ok(metadata) = std::fs::metadata(path) {
         let file_type = metadata.file_type();
 
-        #[cfg(unix)]
         {
             if file_type.is_block_device() {
-                super::print_warning(&format!("⚠️  {} is a block device", path.display()));
+                super::print_warning(&format!("Warning: {} is a block device", path.display()));
             } else if file_type.is_char_device() {
-                super::print_warning(&format!("⚠️  {} is a character device", path.display()));
+                super::print_warning(&format!(
+                    "Warning: {} is a character device",
+                    path.display()
+                ));
             } else if file_type.is_fifo() {
-                super::print_warning(&format!("⚠️  {} is a named pipe (FIFO)", path.display()));
+                super::print_warning(&format!(
+                    "Warning: {} is a named pipe (FIFO)",
+                    path.display()
+                ));
             } else if file_type.is_socket() {
-                super::print_warning(&format!("⚠️  {} is a socket", path.display()));
+                super::print_warning(&format!("Warning: {} is a socket", path.display()));
             }
         }
 
         if metadata.len() > 100_000_000 {
+            #[allow(clippy::cast_precision_loss)]
+            let size_mb = metadata.len() as f64 / 1_048_576.0;
             super::print_warning(&format!(
-                "⚠️  {} is very large ({:.2} MB)",
+                "Warning: {} is very large ({:.2} MB)",
                 path.display(),
-                metadata.len() as f64 / 1_048_576.0
+                size_mb
             ));
         }
 
@@ -144,13 +165,50 @@ fn check_special_file_type(path: &Path) {
                 || name.contains(".pfx"))
         {
             super::print_warning(&format!(
-                "⚠️  {} may contain sensitive information",
+                "Warning: {} may contain sensitive information",
                 path.display()
             ));
         }
     }
 }
 
+#[cfg(not(unix))]
+fn check_special_file_type(path: &Path) {
+    if let Ok(metadata) = std::fs::metadata(path) {
+        if metadata.len() > 100_000_000 {
+            #[allow(clippy::cast_precision_loss)]
+            let size_mb = metadata.len() as f64 / 1_048_576.0;
+            super::print_warning(&format!(
+                "Warning: {} is very large ({:.2} MB)",
+                path.display(),
+                size_mb
+            ));
+        }
+
+        if let Some(name) = path.file_name().and_then(|n| n.to_str())
+            && (name.contains("password")
+                || name.contains("secret")
+                || name.contains("key")
+                || name.contains(".pem")
+                || name.contains(".key")
+                || name.contains(".pfx"))
+        {
+            super::print_warning(&format!(
+                "Warning: {} may contain sensitive information",
+                path.display()
+            ));
+        }
+    }
+}
+
+/// Create a `FileEntry` from a file path
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Failed to get file metadata
+/// - Failed to hash the file
+/// - Failed to make path relative
 pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
     let metadata = std::fs::metadata(path)
         .with_context(|| format!("Failed to get metadata for: {}", path.display()))?;
@@ -158,12 +216,15 @@ pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
     let hash =
         hash_file(path).with_context(|| format!("Failed to hash file: {}", path.display()))?;
 
-    let modified = metadata
-        .modified()
-        .context("Failed to get file modification time")?
-        .duration_since(std::time::UNIX_EPOCH)
-        .context("Invalid file modification time")?
-        .as_secs() as i64;
+    let modified = i64::try_from(
+        metadata
+            .modified()
+            .context("Failed to get file modification time")?
+            .duration_since(std::time::UNIX_EPOCH)
+            .context("Invalid file modification time")?
+            .as_secs(),
+    )
+    .context("File modification time too large")?;
 
     #[cfg(unix)]
     let mode = {

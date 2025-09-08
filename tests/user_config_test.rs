@@ -36,7 +36,7 @@ fn test_user_config_workflow() -> Result<()> {
     let config = dotman::config::Config::load(&config_path)?;
     let ctx = DotmanContext {
         repo_path: repo_path.clone(),
-        config_path: config_path.clone(),
+        config_path,
         config: config.clone(),
         no_pager: true,
     };
@@ -52,10 +52,8 @@ fn test_user_config_workflow() -> Result<()> {
         .get_head_commit()?
         .unwrap();
 
-    let snapshot_manager = dotman::storage::snapshots::SnapshotManager::new(
-        repo_path.clone(),
-        config.core.compression_level,
-    );
+    let snapshot_manager =
+        dotman::storage::snapshots::SnapshotManager::new(repo_path, config.core.compression_level);
     let snapshot = snapshot_manager.load_snapshot(&head_commit)?;
 
     assert_eq!(snapshot.commit.author, "Test User <test@example.com>");
@@ -150,7 +148,7 @@ fn test_mirror_uses_dotman_config() -> Result<()> {
         &repo_path,
         "test-remote",
         "https://example.com/repo.git",
-        config.clone(),
+        config,
     );
 
     mirror.init_mirror()?;

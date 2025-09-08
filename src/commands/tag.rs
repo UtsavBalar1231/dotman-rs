@@ -4,6 +4,14 @@ use anyhow::Result;
 use colored::Colorize;
 
 /// Create a new tag
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The tag name is empty or invalid
+/// - The tag already exists
+/// - The specified commit does not exist
 pub fn create(ctx: &DotmanContext, name: &str, commit: Option<&str>) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -19,17 +27,19 @@ pub fn create(ctx: &DotmanContext, name: &str, commit: Option<&str>) -> Result<(
 
     ref_manager.create_tag(name, commit)?;
 
-    let target = if let Some(c) = commit {
-        &c[..8.min(c.len())]
-    } else {
-        "HEAD"
-    };
+    let target = commit.map_or("HEAD", |c| &c[..8.min(c.len())]);
 
-    super::print_success(&format!("Created tag '{}' at {}", name, target));
+    super::print_success(&format!("Created tag '{name}' at {target}"));
     Ok(())
 }
 
 /// List all tags
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - Cannot read tags from the repository
 pub fn list(ctx: &DotmanContext) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -59,6 +69,13 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
 }
 
 /// Delete a tag
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The tag does not exist
+/// - The tag deletion fails
 pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -72,16 +89,23 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
     // points to an important commit and require force flag
     if !force {
         // For now, just show a warning
-        super::print_warning(&format!("Deleting tag '{}'", name));
+        super::print_warning(&format!("Deleting tag '{name}'"));
     }
 
     ref_manager.delete_tag(name)?;
-    super::print_success(&format!("Deleted tag '{}'", name));
+    super::print_success(&format!("Deleted tag '{name}'"));
 
     Ok(())
 }
 
 /// Show details about a specific tag
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The tag does not exist
+/// - Failed to read tag reference
 pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -125,7 +149,7 @@ mod tests {
         create(&ctx, "v1.0.0", None)?;
 
         // Verify tag was created
-        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        let ref_manager = RefManager::new(ctx.repo_path);
         assert!(ref_manager.tag_exists("v1.0.0"));
 
         Ok(())
@@ -138,7 +162,7 @@ mod tests {
         create(&ctx, "v1.0.0", Some("fedcba987654"))?;
 
         // Verify tag points to correct commit
-        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        let ref_manager = RefManager::new(ctx.repo_path);
         let commit = ref_manager.get_tag_commit("v1.0.0")?;
         assert_eq!(commit, "fedcba987654");
 

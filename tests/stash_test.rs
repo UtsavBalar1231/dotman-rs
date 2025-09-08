@@ -193,9 +193,9 @@ fn test_stash_clear() -> Result<()> {
 
     // Create multiple stashes
     for i in 1..=3 {
-        fs::write(&test_file, format!("change{}", i))?;
+        fs::write(&test_file, format!("change{i}"))?;
         Command::cargo_bin("dot")?
-            .args(["stash", "push", "-m", &format!("Stash {}", i)])
+            .args(["stash", "push", "-m", &format!("Stash {i}")])
             .assert()
             .success();
     }

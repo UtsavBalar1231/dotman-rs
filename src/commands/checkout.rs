@@ -5,6 +5,15 @@ use crate::storage::snapshots::SnapshotManager;
 use anyhow::{Context, Result};
 use colored::Colorize;
 
+/// Execute checkout to switch to a different commit or branch
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - Working directory has uncommitted changes (unless forced)
+/// - Failed to resolve the target reference
+/// - Failed to load or restore the snapshot
 pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -21,14 +30,14 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let commit_id = resolver
         .resolve(target)
-        .with_context(|| format!("Failed to resolve reference: {}", target))?;
+        .with_context(|| format!("Failed to resolve reference: {target}"))?;
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
-        .with_context(|| format!("Failed to load commit: {}", commit_id))?;
+        .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
     let display_target = if commit_id.len() >= 8 {
         &commit_id[..8]
@@ -48,7 +57,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
 
     // Update HEAD with reflog entry
     let ref_manager = RefManager::new(ctx.repo_path.clone());
-    let message = format!("checkout: moving to {}", target);
+    let message = format!("checkout: moving to {target}");
     ref_manager.set_head_to_commit_with_reflog(&commit_id, "checkout", &message)?;
 
     let display_id = if commit_id.len() >= 8 {
@@ -69,6 +78,11 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     Ok(())
 }
 
+/// Check if working directory is clean
+///
+/// # Errors
+///
+/// Returns an error if failed to check file status
 fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     use crate::INDEX_FILE;
     use crate::commands::status::get_current_files;
@@ -86,6 +100,7 @@ fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
 // Helper to get current files - removed duplicate, use the one from status module
 
 #[cfg(test)]
+#[allow(clippy::used_underscore_binding)]
 mod tests {
     use super::*;
     use crate::config::Config;
@@ -149,7 +164,7 @@ mod tests {
         let snapshot_path = ctx
             .repo_path
             .join("commits")
-            .join(format!("{}.zst", valid_id));
+            .join(format!("{valid_id}.zst"));
         fs::write(&snapshot_path, compressed)?;
 
         Ok(())

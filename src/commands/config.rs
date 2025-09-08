@@ -2,6 +2,13 @@ use crate::DotmanContext;
 use anyhow::Result;
 use colored::Colorize;
 
+/// Execute config command to get/set configuration values
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Failed to set or unset configuration value
+/// - Failed to save configuration
 pub fn execute(
     ctx: &mut DotmanContext,
     key: Option<&str>,
@@ -22,28 +29,34 @@ pub fn execute(
         // Unset a configuration value
         ctx.config.unset(key)?;
         ctx.config.save(&ctx.config_path)?;
-        super::print_success(&format!("Unset {}", key));
+        super::print_success(&format!("Unset {key}"));
     } else if let Some(val) = value {
         // Set a configuration value
         ctx.config.set(key, val.clone())?;
         ctx.config.save(&ctx.config_path)?;
-        super::print_success(&format!("Set {} = {}", key, val));
+        super::print_success(&format!("Set {key} = {val}"));
     } else if let Some(val) = ctx.config.get(key) {
-        println!("{}", val);
+        println!("{val}");
     } else {
-        super::print_warning(&format!("Configuration key '{}' is not set", key));
+        super::print_warning(&format!("Configuration key '{key}' is not set"));
     }
 
     Ok(())
 }
 
+/// Show all configuration values
+///
+/// # Errors
+///
+/// This function currently doesn't return errors but returns `Result` for future compatibility
+#[allow(clippy::unnecessary_wraps)]
 fn show_all_config(ctx: &DotmanContext) -> Result<()> {
     println!("{}", "[user]".bold());
     if let Some(name) = &ctx.config.user.name {
-        println!("  name = {}", name);
+        println!("  name = {name}");
     }
     if let Some(email) = &ctx.config.user.email {
-        println!("  email = {}", email);
+        println!("  email = {email}");
     }
 
     println!("\n{}", "[core]".bold());
@@ -83,17 +96,17 @@ fn show_all_config(ctx: &DotmanContext) -> Result<()> {
     if !ctx.config.branches.tracking.is_empty() {
         println!("\n{}", "[branch]".bold());
         for (branch, tracking) in &ctx.config.branches.tracking {
-            println!("  {}.remote = {}", branch, tracking.remote);
-            println!("  {}.branch = {}", branch, tracking.branch);
+            println!("  {branch}.remote = {}", tracking.remote);
+            println!("  {branch}.branch = {}", tracking.branch);
         }
     }
 
     if !ctx.config.remotes.is_empty() {
         println!("\n{}", "[remote]".bold());
         for (name, remote) in &ctx.config.remotes {
-            println!("  {}.type = {:?}", name, remote.remote_type);
+            println!("  {name}.type = {:?}", remote.remote_type);
             if let Some(url) = &remote.url {
-                println!("  {}.url = {}", name, url);
+                println!("  {name}.url = {url}");
             }
         }
     }
@@ -200,7 +213,7 @@ mod tests {
 
         let mut ctx = DotmanContext {
             repo_path,
-            config_path: config_path.clone(),
+            config_path,
             config,
             no_pager: true,
         };
@@ -233,7 +246,7 @@ mod tests {
 
         let mut ctx = DotmanContext {
             repo_path,
-            config_path: config_path.clone(),
+            config_path,
             config,
             no_pager: true,
         };

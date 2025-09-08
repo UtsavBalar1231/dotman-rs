@@ -27,7 +27,7 @@ fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
     fs::write(repo_path.join("HEAD"), "")?;
 
     let mut config = Config::default();
-    config.core.repo_path = repo_path.clone();
+    config.core.repo_path.clone_from(&repo_path);
     config.save(&config_path)?;
 
     let context = DotmanContext {
@@ -119,8 +119,7 @@ fn test_partial_write_corruption() -> Result<()> {
             let result = Index::load(&index_path);
             assert!(
                 result.is_err(),
-                "Should reject partial write at {} bytes",
-                partial_size
+                "Should reject partial write at {partial_size} bytes"
             );
         }
     }
@@ -152,7 +151,7 @@ fn test_concurrent_corruption() -> Result<()> {
                 0 => vec![0x00; 100],
                 1 => vec![0xFF; 100],
                 2 => vec![0xAA; 100],
-                _ => (0..100).map(|x| x as u8).collect(),
+                _ => (0..100u8).collect(),
             };
             let _ = fs::write(&index_path, corrupt_data);
             thread::sleep(Duration::from_millis(5));
@@ -161,11 +160,10 @@ fn test_concurrent_corruption() -> Result<()> {
 
     // Thread that tries to perform operations
     let ctx_clone2 = ctx.clone();
-    let paths_clone = paths.clone();
     let operator = thread::spawn(move || {
         for _ in 0..50 {
             // All these operations should either succeed or fail gracefully
-            let _ = commands::add::execute(&ctx_clone2, &paths_clone, false);
+            let _ = commands::add::execute(&ctx_clone2, &paths, false);
             let _ = commands::status::execute(&ctx_clone2, false, false);
             thread::sleep(Duration::from_millis(10));
         }
@@ -297,7 +295,7 @@ fn test_snapshot_corruption() -> Result<()> {
     let commit_id = fs::read_to_string(&head_path)?.trim().to_string();
 
     let commits_dir = ctx.repo_path.join("commits");
-    let snapshot_file = commits_dir.join(format!("{}.zst", commit_id));
+    let snapshot_file = commits_dir.join(format!("{commit_id}.zst"));
 
     if snapshot_file.exists() {
         let original_data = fs::read(&snapshot_file)?;
@@ -351,7 +349,7 @@ fn test_index_consistency_validation() -> Result<()> {
     // Corrupt hash for one file
     if let Some(entry) = index.entries.values_mut().next() {
         entry.hash = "invalid_hash".to_string();
-        entry.size = 999999; // Wrong size
+        entry.size = 999_999; // Wrong size
         entry.modified = 0; // Wrong timestamp
     }
 

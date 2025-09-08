@@ -11,7 +11,8 @@ pub struct Exporter<'a> {
 }
 
 impl<'a> Exporter<'a> {
-    pub fn new(snapshot_manager: &'a SnapshotManager, index: &'a Index) -> Self {
+    #[must_use]
+    pub const fn new(snapshot_manager: &'a SnapshotManager, index: &'a Index) -> Self {
         Self {
             snapshot_manager,
             index,
@@ -19,6 +20,13 @@ impl<'a> Exporter<'a> {
     }
 
     /// Export all files from a commit to a target directory
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to load snapshot
+    /// - Failed to create directories
+    /// - Failed to read or write files
     pub fn export_commit(
         &self,
         commit_id: &str,
@@ -27,7 +35,7 @@ impl<'a> Exporter<'a> {
         let snapshot = self
             .snapshot_manager
             .load_snapshot(commit_id)
-            .with_context(|| format!("Failed to load snapshot for commit {}", commit_id))?;
+            .with_context(|| format!("Failed to load snapshot for commit {commit_id}"))?;
 
         let mut exported_files = Vec::new();
 
@@ -79,6 +87,12 @@ impl<'a> Exporter<'a> {
     }
 
     /// Export current index state to a target directory
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to create directories
+    /// - Failed to copy files
     pub fn export_current(&self, target_dir: &Path) -> Result<Vec<(PathBuf, PathBuf)>> {
         let mut exported_files = Vec::new();
 
@@ -129,7 +143,7 @@ pub struct Importer<'a> {
 }
 
 impl<'a> Importer<'a> {
-    pub fn new(snapshot_manager: &'a mut SnapshotManager, index: &'a mut Index) -> Self {
+    pub const fn new(snapshot_manager: &'a mut SnapshotManager, index: &'a mut Index) -> Self {
         Self {
             _snapshot_manager: snapshot_manager,
             index,
@@ -137,6 +151,10 @@ impl<'a> Importer<'a> {
     }
 
     /// Import files from a source directory
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if failed to walk directory or add files to index
     pub fn import_directory(&mut self, source_dir: &Path, home_dir: &Path) -> Result<Vec<PathBuf>> {
         let mut imported_files = Vec::new();
 
@@ -144,7 +162,7 @@ impl<'a> Importer<'a> {
         for entry in walkdir::WalkDir::new(source_dir)
             .follow_links(false)
             .into_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(std::result::Result::ok)
         {
             let path = entry.path();
 
@@ -194,10 +212,13 @@ impl<'a> Importer<'a> {
                 path: target_path.clone(),
                 hash: crate::storage::file_ops::hash_file(&target_path)?,
                 size: metadata.len(),
-                modified: metadata
-                    .modified()?
-                    .duration_since(std::time::UNIX_EPOCH)?
-                    .as_secs() as i64,
+                modified: i64::try_from(
+                    metadata
+                        .modified()?
+                        .duration_since(std::time::UNIX_EPOCH)?
+                        .as_secs(),
+                )
+                .unwrap_or(i64::MAX),
                 mode: {
                     #[cfg(unix)]
                     {
@@ -219,6 +240,11 @@ impl<'a> Importer<'a> {
     }
 
     /// Compare a directory with current index and import changes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if failed to walk directory or compare files
+    #[allow(clippy::too_many_lines)]
     pub fn import_changes(&mut self, source_dir: &Path, home_dir: &Path) -> Result<ImportChanges> {
         let mut added = Vec::new();
         let mut modified = Vec::new();
@@ -231,7 +257,7 @@ impl<'a> Importer<'a> {
         for entry in walkdir::WalkDir::new(source_dir)
             .follow_links(false)
             .into_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(std::result::Result::ok)
         {
             let path = entry.path();
 
@@ -272,10 +298,13 @@ impl<'a> Importer<'a> {
                         path: target_path.clone(),
                         hash: crate::storage::file_ops::hash_file(&target_path)?,
                         size: metadata.len(),
-                        modified: metadata
-                            .modified()?
-                            .duration_since(std::time::UNIX_EPOCH)?
-                            .as_secs() as i64,
+                        modified: i64::try_from(
+                            metadata
+                                .modified()?
+                                .duration_since(std::time::UNIX_EPOCH)?
+                                .as_secs(),
+                        )
+                        .unwrap_or(i64::MAX),
                         mode: {
                             #[cfg(unix)]
                             {
@@ -311,10 +340,13 @@ impl<'a> Importer<'a> {
                     path: target_path.clone(),
                     hash: crate::storage::file_ops::hash_file(&target_path)?,
                     size: metadata.len(),
-                    modified: metadata
-                        .modified()?
-                        .duration_since(std::time::UNIX_EPOCH)?
-                        .as_secs() as i64,
+                    modified: i64::try_from(
+                        metadata
+                            .modified()?
+                            .duration_since(std::time::UNIX_EPOCH)?
+                            .as_secs(),
+                    )
+                    .unwrap_or(i64::MAX),
                     mode: {
                         #[cfg(unix)]
                         {
@@ -360,10 +392,12 @@ pub struct ImportChanges {
 }
 
 impl ImportChanges {
-    pub fn is_empty(&self) -> bool {
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
         self.added.is_empty() && self.modified.is_empty() && self.deleted.is_empty()
     }
 
+    #[must_use]
     pub fn summary(&self) -> String {
         let mut parts = Vec::new();
 
@@ -386,6 +420,7 @@ impl ImportChanges {
 }
 
 #[cfg(test)]
+#[allow(clippy::similar_names)]
 mod tests {
     use super::*;
     use tempfile::tempdir;
@@ -408,10 +443,13 @@ mod tests {
             path: file1.clone(),
             hash: crate::storage::file_ops::hash_file(&file1)?,
             size: metadata.len(),
-            modified: metadata
-                .modified()?
-                .duration_since(std::time::UNIX_EPOCH)?
-                .as_secs() as i64,
+            modified: i64::try_from(
+                metadata
+                    .modified()?
+                    .duration_since(std::time::UNIX_EPOCH)?
+                    .as_secs(),
+            )
+            .unwrap_or(i64::MAX),
             mode: {
                 #[cfg(unix)]
                 {
@@ -449,6 +487,11 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn test_export_commit() -> Result<()> {
+        use crate::storage::{
+            Commit,
+            snapshots::{Snapshot, SnapshotFile},
+        };
+        use std::collections::HashMap;
         let temp = tempdir()?;
         let storage_path = temp.path().join(".dotman");
         fs::create_dir_all(&storage_path)?;
@@ -458,18 +501,12 @@ mod tests {
         let snapshot_manager = SnapshotManager::new(storage_path.clone(), 3);
         let index = Index::new();
 
-        use crate::storage::{
-            Commit,
-            snapshots::{Snapshot, SnapshotFile},
-        };
-        use std::collections::HashMap;
-
         let commit = Commit {
             id: "test_commit_123".to_string(),
             parent: None,
             message: "Test commit".to_string(),
             author: "Test User".to_string(),
-            timestamp: 1234567890,
+            timestamp: 1_234_567_890,
             tree_hash: "test_tree".to_string(),
         };
 
@@ -483,10 +520,7 @@ mod tests {
             },
         );
 
-        let snapshot = Snapshot {
-            commit: commit.clone(),
-            files,
-        };
+        let snapshot = Snapshot { commit, files };
 
         // Save snapshot
         let snapshot_data = crate::utils::serialization::serialize(&snapshot)?;
@@ -568,10 +602,13 @@ mod tests {
             path: existing_file.clone(),
             hash: crate::storage::file_ops::hash_file(&existing_file)?,
             size: metadata.len(),
-            modified: metadata
-                .modified()?
-                .duration_since(std::time::UNIX_EPOCH)?
-                .as_secs() as i64,
+            modified: i64::try_from(
+                metadata
+                    .modified()?
+                    .duration_since(std::time::UNIX_EPOCH)?
+                    .as_secs(),
+            )
+            .unwrap_or(i64::MAX),
             mode: 0o644,
         };
         index.add_entry(file_entry);

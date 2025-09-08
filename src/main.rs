@@ -512,6 +512,7 @@ fn main() {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn run() -> Result<()> {
     let cli = Cli::parse();
 
@@ -666,11 +667,11 @@ fn run() -> Result<()> {
                 RemoteAction::Add { name, url } => commands::remote::add(&mut ctx, &name, &url)?,
                 RemoteAction::Remove { name } => commands::remote::remove(&mut ctx, &name)?,
                 RemoteAction::SetUrl { name, url } => {
-                    commands::remote::set_url(&mut ctx, &name, &url)?
+                    commands::remote::set_url(&mut ctx, &name, &url)?;
                 }
                 RemoteAction::Show { name } => commands::remote::show(&ctx, &name)?,
                 RemoteAction::Rename { old_name, new_name } => {
-                    commands::remote::rename(&mut ctx, &old_name, &new_name)?
+                    commands::remote::rename(&mut ctx, &old_name, &new_name)?;
                 }
             }
         }
@@ -681,20 +682,20 @@ fn run() -> Result<()> {
             list,
         } => {
             let mut ctx = context.context("Context not initialized for config command")?;
-            commands::config::execute(&mut ctx, key.as_deref(), value, unset, list)?
+            commands::config::execute(&mut ctx, key.as_deref(), value, unset, list)?;
         }
         Commands::Branch { action } => {
             let mut ctx = context.context("Context not initialized for branch command")?;
             match action {
                 None | Some(BranchAction::List) => commands::branch::list(&ctx)?,
                 Some(BranchAction::Create { name, from }) => {
-                    commands::branch::create(&ctx, &name, from.as_deref())?
+                    commands::branch::create(&ctx, &name, from.as_deref())?;
                 }
                 Some(BranchAction::Delete { name, force }) => {
-                    commands::branch::delete(&ctx, &name, force)?
+                    commands::branch::delete(&ctx, &name, force)?;
                 }
                 Some(BranchAction::Rename { old_name, new_name }) => {
-                    commands::branch::rename(&ctx, old_name.as_deref(), &new_name)?
+                    commands::branch::rename(&ctx, old_name.as_deref(), &new_name)?;
                 }
                 Some(BranchAction::SetUpstream {
                     branch,
@@ -707,7 +708,7 @@ fn run() -> Result<()> {
                     remote_branch.as_deref(),
                 )?,
                 Some(BranchAction::UnsetUpstream { branch }) => {
-                    commands::branch::unset_upstream(&mut ctx, branch.as_deref())?
+                    commands::branch::unset_upstream(&mut ctx, branch.as_deref())?;
                 }
             }
         }
@@ -719,10 +720,10 @@ fn run() -> Result<()> {
             match action {
                 None | Some(TagAction::List) => commands::tag::list(&ctx)?,
                 Some(TagAction::Create { name, commit }) => {
-                    commands::tag::create(&ctx, &name, commit.as_deref())?
+                    commands::tag::create(&ctx, &name, commit.as_deref())?;
                 }
                 Some(TagAction::Delete { name, force }) => {
-                    commands::tag::delete(&ctx, &name, force)?
+                    commands::tag::delete(&ctx, &name, force)?;
                 }
                 Some(TagAction::Show { name }) => commands::tag::show(&ctx, &name)?,
             }
@@ -783,7 +784,13 @@ fn run() -> Result<()> {
             yes,
         } => {
             let ctx = context.context("Context not initialized for import command")?;
-            commands::import::execute(&ctx, &source, track, force, dry_run, yes)?;
+            let options = commands::import::ImportOptions {
+                track,
+                force,
+                dry_run,
+                yes,
+            };
+            commands::import::execute(&ctx, &source, &options)?;
         }
     }
 

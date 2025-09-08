@@ -6,6 +6,14 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
+/// Execute clean command to remove untracked files
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - Failed to load index
+/// - Failed to find untracked files
 pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -51,12 +59,12 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
         } else {
             // Actually remove the file
             match std::fs::remove_file(path) {
-                Ok(_) => {
+                Ok(()) => {
                     println!("  {} {}", "removed:".red(), path.display());
                     removed_count += 1;
                 }
                 Err(e) => {
-                    super::print_warning(&format!("Failed to remove {}: {}", path.display(), e));
+                    super::print_warning(&format!("Failed to remove {}: {e}", path.display()));
                     failed_count += 1;
                 }
             }
@@ -67,20 +75,24 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
     println!();
     if dry_run {
         super::print_info(&format!(
-            "{} untracked file(s) would be removed",
-            removed_count
+            "{removed_count} untracked file(s) would be removed"
         ));
         super::print_info("Run 'dot clean -f' to actually remove these files");
     } else {
-        super::print_success(&format!("Removed {} untracked file(s)", removed_count));
+        super::print_success(&format!("Removed {removed_count} untracked file(s)"));
         if failed_count > 0 {
-            super::print_warning(&format!("Failed to remove {} file(s)", failed_count));
+            super::print_warning(&format!("Failed to remove {failed_count} file(s)"));
         }
     }
 
     Ok(())
 }
 
+/// Find all untracked files in the home directory
+///
+/// # Errors
+///
+/// Returns an error if failed to find home directory
 fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
     let home = dirs::home_dir().context("Could not find home directory")?;
 
@@ -99,8 +111,7 @@ fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBu
                 && path
                     .file_name()
                     .and_then(|n| n.to_str())
-                    .map(|n| n.starts_with('.'))
-                    .unwrap_or(false)
+                    .is_some_and(|n| n.starts_with('.'))
             {
                 return false;
             }

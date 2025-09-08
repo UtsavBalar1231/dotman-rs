@@ -6,6 +6,15 @@ use anyhow::{Context, Result};
 use chrono::{Local, TimeZone};
 use colored::Colorize;
 
+/// Execute show command - show various types of objects
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The specified object cannot be resolved
+/// - The commit does not exist
+/// - Decompression fails
 pub fn execute(ctx: &DotmanContext, object: &str) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -13,7 +22,7 @@ pub fn execute(ctx: &DotmanContext, object: &str) -> Result<()> {
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let commit_id = resolver
         .resolve(object)
-        .with_context(|| format!("Failed to resolve reference: {}", object))?;
+        .with_context(|| format!("Failed to resolve reference: {object}"))?;
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
@@ -21,7 +30,7 @@ pub fn execute(ctx: &DotmanContext, object: &str) -> Result<()> {
     // Try to load as a commit
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
-        .with_context(|| format!("Failed to load object: {}", commit_id))?;
+        .with_context(|| format!("Failed to load object: {commit_id}"))?;
 
     let commit = &snapshot.commit;
 

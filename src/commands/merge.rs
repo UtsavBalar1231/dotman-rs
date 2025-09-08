@@ -12,9 +12,19 @@ use crate::utils::{
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::fmt::Write as FmtWrite;
 
 /// Execute merge command - join two or more development histories together
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The target branch or commit cannot be resolved
+/// - There are conflicts during the merge
+/// - The merge operation fails
+/// - Fast-forward is not possible when `no_ff` is false
 pub fn execute(
     ctx: &DotmanContext,
     branch: &str,
@@ -33,7 +43,7 @@ pub fn execute(
         // Handle local branch/commit
         resolver
             .resolve(branch)
-            .with_context(|| format!("Failed to resolve reference: {}", branch))?
+            .with_context(|| format!("Failed to resolve reference: {branch}"))?
     };
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -46,7 +56,7 @@ pub fn execute(
         return Ok(());
     }
 
-    let can_fast_forward = is_ancestor(ctx, &current_commit, &target_commit)?;
+    let can_fast_forward = is_ancestor(ctx, &current_commit, &target_commit);
 
     if can_fast_forward && !no_ff && !squash {
         // Fast-forward merge
@@ -108,12 +118,12 @@ fn handle_remote_branch_merge(
     let remote_config = ctx
         .config
         .get_remote(remote)
-        .with_context(|| format!("Remote '{}' does not exist", remote))?;
+        .with_context(|| format!("Remote '{remote}' does not exist"))?;
 
     let url = remote_config
         .url
         .as_ref()
-        .with_context(|| format!("Remote '{}' has no URL configured", remote))?;
+        .with_context(|| format!("Remote '{remote}' has no URL configured"))?;
 
     // Use GitMirror to get the latest commit from remote branch
     let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
@@ -121,7 +131,7 @@ fn handle_remote_branch_merge(
 
     // Checkout the remote branch in mirror
     let output = std::process::Command::new("git")
-        .args(["checkout", &format!("origin/{}", branch)])
+        .args(["checkout", &format!("origin/{branch}")])
         .current_dir(mirror.get_mirror_path())
         .output()?;
 
@@ -140,11 +150,11 @@ fn handle_remote_branch_merge(
         .mapping()
         .get_dotman_commit(remote, &git_commit)
     {
-        return Ok(dotman_commit.to_string());
+        return Ok(dotman_commit);
     }
 
     // Import the remote branch state
-    super::print_info(&format!("Importing {} from remote", branch_ref));
+    super::print_info(&format!("Importing {branch_ref} from remote"));
 
     let mut index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
     let mut snapshot_manager =
@@ -156,12 +166,13 @@ fn handle_remote_branch_merge(
 
     let timestamp = get_current_timestamp();
     let author = get_current_user_with_config(&ctx.config);
-    let message = format!("Import from {}", branch_ref);
+    let message = format!("Import from {branch_ref}");
 
     // Create tree hash
     let mut tree_content = String::new();
     for (path, entry) in &index.entries {
-        tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
+        writeln!(&mut tree_content, "{} {}", entry.hash, path.display())
+            .expect("String write should never fail");
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
@@ -189,17 +200,17 @@ fn handle_remote_branch_merge(
     Ok(commit_id)
 }
 
-fn is_ancestor(ctx: &DotmanContext, ancestor: &str, descendant: &str) -> Result<bool> {
+fn is_ancestor(ctx: &DotmanContext, ancestor: &str, descendant: &str) -> bool {
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     // Walk back from descendant to see if we reach ancestor
     let mut current = Some(descendant.to_string());
-    let mut visited = std::collections::HashSet::new();
+    let mut visited = HashSet::new();
 
     while let Some(commit_id) = current {
         if commit_id == ancestor {
-            return Ok(true);
+            return true;
         }
 
         if !visited.insert(commit_id.clone()) {
@@ -214,9 +225,10 @@ fn is_ancestor(ctx: &DotmanContext, ancestor: &str, descendant: &str) -> Result<
         }
     }
 
-    Ok(false)
+    false
 }
 
+#[allow(clippy::too_many_lines)] // Complex merge logic requires detailed handling
 fn perform_three_way_merge(
     ctx: &DotmanContext,
     current_commit: &str,
@@ -234,7 +246,7 @@ fn perform_three_way_merge(
     let target_snapshot = snapshot_manager.load_snapshot(target_commit)?;
 
     // Find common ancestor (simplified - just use parent chains)
-    let _common_ancestor = find_common_ancestor(ctx, current_commit, target_commit)?;
+    let _common_ancestor = find_common_ancestor(ctx, current_commit, target_commit);
 
     // Perform three-way merge on files
     let mut merged_files = HashMap::new();
@@ -255,14 +267,14 @@ fn perform_three_way_merge(
                 let current_file = &current_snapshot.files[&path];
                 let target_file = &target_snapshot.files[&path];
 
-                if current_file.hash != target_file.hash {
+                if current_file.hash == target_file.hash {
+                    // Same content in both branches
+                    merged_files.insert(path.clone(), current_file.clone());
+                } else {
                     // Files differ - this is a conflict (simplified)
                     conflicts.push(path.clone());
                     // For now, take the target version (in real implementation, would create conflict markers)
                     merged_files.insert(path.clone(), target_file.clone());
-                } else {
-                    // Same content in both branches
-                    merged_files.insert(path.clone(), current_file.clone());
                 }
             }
             (true, false) => {
@@ -291,14 +303,13 @@ fn perform_three_way_merge(
     // Create merge commit
     let timestamp = get_current_timestamp();
     let author = get_current_user_with_config(&ctx.config);
-    let merge_message = message
-        .map(String::from)
-        .unwrap_or_else(|| format!("Merge branch '{}'", branch));
+    let merge_message = message.map_or_else(|| format!("Merge branch '{branch}'"), String::from);
 
     // Create tree hash from merged files
     let mut tree_content = String::new();
     for (path, file) in &merged_files {
-        tree_content.push_str(&format!("{} {}\n", file.hash, path.display()));
+        writeln!(&mut tree_content, "{} {}", file.hash, path.display())
+            .expect("String write should never fail");
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
@@ -351,7 +362,7 @@ fn perform_three_way_merge(
         ref_manager.set_head_to_commit_with_reflog(
             &commit_id,
             "merge",
-            &format!("merge: {}", branch),
+            &format!("merge: {branch}"),
         )?;
     }
 
@@ -403,40 +414,33 @@ fn perform_squash_merge(
     super::print_success("Squash merge complete. Changes staged for commit.");
     super::print_info(&format!(
         "Use 'dot commit -m \"{}\"' to complete the merge",
-        message.unwrap_or(&format!("Squashed commit from {}", branch))
+        message.unwrap_or(&format!("Squashed commit from {branch}"))
     ));
 
     Ok(())
 }
 
-fn find_common_ancestor(
-    ctx: &DotmanContext,
-    commit1: &str,
-    commit2: &str,
-) -> Result<Option<String>> {
+fn find_common_ancestor(ctx: &DotmanContext, commit1: &str, commit2: &str) -> Option<String> {
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     // Build ancestor sets for both commits
-    let ancestors1 = get_all_ancestors(&snapshot_manager, commit1)?;
-    let ancestors2 = get_all_ancestors(&snapshot_manager, commit2)?;
+    let ancestors1 = get_all_ancestors(&snapshot_manager, commit1);
+    let ancestors2 = get_all_ancestors(&snapshot_manager, commit2);
 
     // Find common ancestors
     let common: Vec<_> = ancestors1.intersection(&ancestors2).cloned().collect();
 
     if common.is_empty() {
-        return Ok(None);
+        return None;
     }
 
     // Return the first common ancestor (simplified - should find the most recent)
-    Ok(Some(common[0].clone()))
+    Some(common[0].clone())
 }
 
-fn get_all_ancestors(
-    snapshot_manager: &SnapshotManager,
-    commit: &str,
-) -> Result<std::collections::HashSet<String>> {
-    let mut ancestors = std::collections::HashSet::new();
+fn get_all_ancestors(snapshot_manager: &SnapshotManager, commit: &str) -> HashSet<String> {
+    let mut ancestors = HashSet::new();
     let mut to_visit = vec![commit.to_string()];
 
     while let Some(current) = to_visit.pop() {
@@ -451,7 +455,7 @@ fn get_all_ancestors(
         }
     }
 
-    Ok(ancestors)
+    ancestors
 }
 
 #[cfg(test)]
@@ -497,7 +501,7 @@ mod tests {
     fn test_is_ancestor_same_commit() -> Result<()> {
         let ctx = create_test_context()?;
 
-        let result = is_ancestor(&ctx, "abc123", "abc123")?;
+        let result = is_ancestor(&ctx, "abc123", "abc123");
         assert!(result); // A commit is its own ancestor
 
         Ok(())

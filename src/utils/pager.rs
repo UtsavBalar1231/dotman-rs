@@ -4,6 +4,7 @@ use std::io::{self, IsTerminal, Write};
 use std::process::{Command, Stdio};
 
 /// Get the pager command using Git's priority order
+#[must_use]
 pub fn get_pager(ctx: Option<&crate::DotmanContext>) -> String {
     // 1. Check DOT_PAGER environment variable
     if let Ok(pager) = env::var("DOT_PAGER") {
@@ -33,6 +34,13 @@ pub fn get_pager(ctx: Option<&crate::DotmanContext>) -> String {
 }
 
 /// Output content through a pager if appropriate, with Git-style behavior
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Failed to spawn the pager process
+/// - Failed to write to the pager's stdin
+/// - Failed to flush stdout
 pub fn output_through_pager(
     content: &str,
     use_pager: bool,
@@ -40,14 +48,14 @@ pub fn output_through_pager(
 ) -> Result<()> {
     // Check NO_PAGER environment variable
     if env::var("NO_PAGER").is_ok() {
-        print!("{}", content);
+        print!("{content}");
         io::stdout().flush()?;
         return Ok(());
     }
 
     // Skip pager if disabled or not a terminal
     if !use_pager || !io::stdout().is_terminal() {
-        print!("{}", content);
+        print!("{content}");
         io::stdout().flush()?;
         return Ok(());
     }
@@ -58,7 +66,7 @@ pub fn output_through_pager(
 
     // Skip pager if content fits on one screen (like Git's -F flag)
     if line_count < terminal_height.saturating_sub(1) {
-        print!("{}", content);
+        print!("{content}");
         io::stdout().flush()?;
         return Ok(());
     }
@@ -74,28 +82,25 @@ pub fn output_through_pager(
     }
 
     // Try to spawn the pager
-    match Command::new(&pager)
+    if let Ok(mut child) = Command::new(&pager)
         .args(&args)
         .stdin(Stdio::piped())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .spawn()
     {
-        Ok(mut child) => {
-            // Write content to pager's stdin
-            if let Some(mut stdin) = child.stdin.take() {
-                stdin.write_all(content.as_bytes())?;
-                stdin.flush()?;
-            }
+        // Write content to pager's stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(content.as_bytes())?;
+            stdin.flush()?;
+        }
 
-            // Wait for pager to finish
-            child.wait()?;
-        }
-        Err(_) => {
-            // Fallback to direct output if pager fails
-            print!("{}", content);
-            io::stdout().flush()?;
-        }
+        // Wait for pager to finish
+        child.wait()?;
+    } else {
+        // Fallback to direct output if pager fails
+        print!("{content}");
+        io::stdout().flush()?;
     }
 
     Ok(())
@@ -109,7 +114,7 @@ fn parse_pager_command(pager_cmd: &str) -> (String, Vec<String>) {
     }
 
     let pager = parts[0].to_string();
-    let mut args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+    let mut args: Vec<String> = parts[1..].iter().map(|s| (*s).to_string()).collect();
 
     // Add default flags for less if no args provided
     if pager == "less" && args.is_empty() {
@@ -135,7 +140,7 @@ pub struct PagerOutput<'a> {
     ctx: Option<&'a crate::DotmanContext>,
 }
 
-impl<'a> Default for PagerOutput<'a> {
+impl Default for PagerOutput<'_> {
     fn default() -> Self {
         Self {
             content: String::new(),
@@ -146,7 +151,8 @@ impl<'a> Default for PagerOutput<'a> {
 }
 
 impl<'a> PagerOutput<'a> {
-    pub fn new(ctx: &'a crate::DotmanContext, no_pager: bool) -> Self {
+    #[must_use]
+    pub const fn new(ctx: &'a crate::DotmanContext, no_pager: bool) -> Self {
         Self {
             content: String::new(),
             use_pager: !no_pager,
@@ -154,6 +160,7 @@ impl<'a> PagerOutput<'a> {
         }
     }
 
+    #[must_use]
     pub fn with_content(mut self, content: String) -> Self {
         self.content = content;
         self
@@ -168,11 +175,18 @@ impl<'a> PagerOutput<'a> {
         self.content.push('\n');
     }
 
-    pub fn disable_pager(mut self) -> Self {
+    #[must_use]
+    pub const fn disable_pager(mut self) -> Self {
         self.use_pager = false;
         self
     }
 
+    /// Display the accumulated content through the configured pager
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to output content through the pager
     pub fn show(self) -> Result<()> {
         output_through_pager(&self.content, self.use_pager, self.ctx)
     }

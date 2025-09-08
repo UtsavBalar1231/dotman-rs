@@ -5,6 +5,16 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 use std::path::PathBuf;
 
+/// Restore files from a specific commit
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - No files are specified
+/// - The source reference cannot be resolved
+/// - The specified commit does not exist
+/// - Failed to restore files
 pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -19,14 +29,14 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let commit_id = resolver
         .resolve(source_ref)
-        .with_context(|| format!("Failed to resolve reference: {}", source_ref))?;
+        .with_context(|| format!("Failed to resolve reference: {source_ref}"))?;
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
-        .with_context(|| format!("Failed to load commit: {}", commit_id))?;
+        .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
     let display_commit = if commit_id.len() >= 8 {
         &commit_id[..8]
@@ -112,6 +122,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
 }
 
 #[cfg(test)]
+#[allow(clippy::used_underscore_binding)]
 mod tests {
     use super::*;
     use crate::config::Config;
@@ -195,7 +206,7 @@ mod tests {
         let serialized = crate::utils::serialization::serialize(&snapshot)?;
         let compressed = zstd::stream::encode_all(&serialized[..], 3)?;
 
-        let snapshot_path = ctx.repo_path.join("commits").join(format!("{}.zst", id));
+        let snapshot_path = ctx.repo_path.join("commits").join(format!("{id}.zst"));
         fs::write(&snapshot_path, compressed)?;
 
         // Also set HEAD to point to this commit
@@ -230,7 +241,7 @@ mod tests {
         // Restore a single file
         let result = execute(&ctx, &["file1.txt".to_string()], Some(commit_id));
         if let Err(e) = &result {
-            eprintln!("Error during restore: {:?}", e);
+            eprintln!("Error during restore: {e:?}");
         }
         assert!(result.is_ok());
 

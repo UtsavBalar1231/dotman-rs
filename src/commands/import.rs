@@ -7,17 +7,32 @@ use std::process::Command;
 use tempfile::TempDir;
 use walkdir::WalkDir;
 
-pub fn execute(
-    ctx: &DotmanContext,
-    source: &str,
-    track: bool,
-    force: bool,
-    dry_run: bool,
-    yes: bool,
-) -> Result<()> {
+/// Options for the import command
+#[derive(Clone, Copy)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct ImportOptions {
+    pub track: bool,
+    pub force: bool,
+    pub dry_run: bool,
+    pub yes: bool,
+}
+
+/// Execute import command - import configuration files into dotman
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The source path does not exist or is invalid
+/// - File operations fail
+/// - Symlink creation fails
+/// - The import operation is cancelled by the user
+#[allow(clippy::too_many_lines)] // Complex import logic requires detailed handling
+pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Result<()> {
+    use std::io::{self, Write};
     ctx.check_repo_initialized()?;
 
-    super::print_info(&format!("Importing dotfiles from: {}", source));
+    super::print_info(&format!("Importing dotfiles from: {source}"));
 
     // Step 1: Determine source type and prepare repository
     let (repo_path, _temp_dir) = if source.starts_with("http") || source.starts_with("git@") {
@@ -34,7 +49,7 @@ pub fn execute(
         // Use local path
         let path = PathBuf::from(source);
         if !path.exists() {
-            return Err(anyhow::anyhow!("Source path does not exist: {}", source));
+            return Err(anyhow::anyhow!("Source path does not exist: {source}"));
         }
         if !path.is_dir() {
             return Err(anyhow::anyhow!(
@@ -60,13 +75,13 @@ pub fn execute(
     ));
 
     // Step 3: Check for conflicts if not forcing
-    let conflicts = if !force {
-        check_existing_files(&files_to_import)?
-    } else {
+    let conflicts = if options.force {
         vec![]
+    } else {
+        check_existing_files(&files_to_import)
     };
 
-    if !conflicts.is_empty() && !force {
+    if !conflicts.is_empty() && !options.force {
         super::print_warning(&format!(
             "Found {} existing file{} that would be overwritten:",
             conflicts.len(),
@@ -77,11 +92,10 @@ pub fn execute(
             println!("  {}", target.display().to_string().yellow());
         }
 
-        if !yes {
+        if !options.yes {
             // Ask for confirmation
             println!();
             print!("Do you want to overwrite these files? [y/N]: ");
-            use std::io::{self, Write};
             io::stdout().flush()?;
 
             let mut input = String::new();
@@ -99,7 +113,7 @@ pub fn execute(
     let mut failed_files = Vec::new();
 
     for (source_file, target_file) in &files_to_import {
-        if dry_run {
+        if options.dry_run {
             println!(
                 "  {} {} -> {}",
                 "Would import:".blue(),
@@ -108,9 +122,9 @@ pub fn execute(
             );
         } else {
             match import_file(source_file, target_file) {
-                Ok(_) => {
+                Ok(()) => {
                     imported_count += 1;
-                    if !track {
+                    if !options.track {
                         println!(
                             "  {} {}",
                             "Imported:".green(),
@@ -130,7 +144,7 @@ pub fn execute(
         }
     }
 
-    if dry_run {
+    if options.dry_run {
         super::print_info(&format!(
             "Dry run complete. Would import {} file{}",
             files_to_import.len(),
@@ -140,7 +154,7 @@ pub fn execute(
     }
 
     // Step 5: Optionally track with dotman
-    if track && imported_count > 0 {
+    if options.track && imported_count > 0 {
         super::print_info("Tracking imported files with dotman...");
 
         let target_paths: Vec<String> = files_to_import
@@ -149,8 +163,8 @@ pub fn execute(
             .collect();
 
         // Use the add command to track files
-        match crate::commands::add::execute(ctx, &target_paths, force) {
-            Ok(_) => {
+        match crate::commands::add::execute(ctx, &target_paths, options.force) {
+            Ok(()) => {
                 super::print_success(&format!(
                     "Successfully tracked {} file{} with dotman",
                     imported_count,
@@ -158,7 +172,7 @@ pub fn execute(
                 ));
             }
             Err(e) => {
-                super::print_warning(&format!("Files imported but tracking failed: {}", e));
+                super::print_warning(&format!("Files imported but tracking failed: {e}"));
             }
         }
     }
@@ -177,7 +191,7 @@ pub fn execute(
             "Successfully imported {} file{}{}",
             imported_count,
             if imported_count == 1 { "" } else { "s" },
-            if track {
+            if options.track {
                 " and tracked with dotman"
             } else {
                 ""
@@ -205,7 +219,7 @@ fn clone_repository(url: &str, target_dir: &Path) -> Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("Failed to clone repository: {}", stderr));
+        return Err(anyhow::anyhow!("Failed to clone repository: {stderr}"));
     }
 
     Ok(())
@@ -260,7 +274,7 @@ fn scan_repository(repo_path: &Path) -> Result<Vec<(PathBuf, PathBuf)>> {
 }
 
 /// Check for existing files that would be overwritten
-fn check_existing_files(files: &[(PathBuf, PathBuf)]) -> Result<Vec<(PathBuf, PathBuf)>> {
+fn check_existing_files(files: &[(PathBuf, PathBuf)]) -> Vec<(PathBuf, PathBuf)> {
     let mut conflicts = Vec::new();
 
     for (source, target) in files {
@@ -269,7 +283,7 @@ fn check_existing_files(files: &[(PathBuf, PathBuf)]) -> Result<Vec<(PathBuf, Pa
         }
     }
 
-    Ok(conflicts)
+    conflicts
 }
 
 /// Import a single file from source to target

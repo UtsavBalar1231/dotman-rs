@@ -434,8 +434,8 @@ fn test_concurrent_operations() -> Result<()> {
 
     // Create many files
     for i in 0..100 {
-        let file = dir.path().join(format!("file_{}.txt", i));
-        fs::write(&file, format!("content {}", i))?;
+        let file = dir.path().join(format!("file_{i}.txt"));
+        fs::write(&file, format!("content {i}"))?;
     }
 
     // Spawn threads to add files concurrently
@@ -447,7 +447,7 @@ fn test_concurrent_operations() -> Result<()> {
             thread::spawn(move || {
                 let mut paths = Vec::new();
                 for i in (thread_id * 10)..((thread_id + 1) * 10) {
-                    let file = dir_path.join(format!("file_{}.txt", i));
+                    let file = dir_path.join(format!("file_{i}.txt"));
                     paths.push(file.to_string_lossy().to_string());
                 }
                 commands::add::execute(&ctx_clone, &paths, false).unwrap();
@@ -477,13 +477,10 @@ fn test_large_scale_operations() -> Result<()> {
     fs::create_dir_all(&test_dir)?;
 
     for i in 0..500 {
-        let file = test_dir.join(format!("file_{:04}.txt", i));
+        let file = test_dir.join(format!("file_{i:04}.txt"));
         fs::write(
             &file,
-            format!(
-                "This is file number {} with some content to make it not tiny",
-                i
-            ),
+            format!("This is file number {i} with some content to make it not tiny"),
         )?;
     }
 
@@ -493,21 +490,21 @@ fn test_large_scale_operations() -> Result<()> {
     commands::add::execute(&ctx, &paths, false)?;
     let add_time = start.elapsed();
 
-    println!("Added 500 files in {:?}", add_time);
+    println!("Added 500 files in {add_time:?}");
 
     // Commit
     let start = std::time::Instant::now();
     commands::commit::execute(&ctx, "Large commit with 500 files", false)?;
     let commit_time = start.elapsed();
 
-    println!("Committed 500 files in {:?}", commit_time);
+    println!("Committed 500 files in {commit_time:?}");
 
     // Status check
     let start = std::time::Instant::now();
     commands::status::execute(&ctx, false, false)?;
     let status_time = start.elapsed();
 
-    println!("Status check on 500 files in {:?}", status_time);
+    println!("Status check on 500 files in {status_time:?}");
 
     // Verify performance is reasonable
     assert!(

@@ -5,6 +5,15 @@ use crate::{DEFAULT_CONFIG_PATH, DEFAULT_REPO_DIR, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
 
+/// Initialize a new dotman repository
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Home directory cannot be found
+/// - Repository already exists
+/// - Failed to create repository directory structure
+/// - Failed to initialize repository components
 pub fn execute(bare: bool) -> Result<()> {
     let home = dirs::home_dir().context("Could not find home directory")?;
     let repo_path = home.join(DEFAULT_REPO_DIR);

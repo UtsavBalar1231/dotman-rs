@@ -10,6 +10,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(clippy::unsafe_derive_deserialize)]
 pub struct Index {
     pub version: u32,
     pub entries: HashMap<PathBuf, FileEntry>,
@@ -24,6 +25,7 @@ impl Default for Index {
 }
 
 impl Index {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             version: 1,
@@ -32,6 +34,14 @@ impl Index {
         }
     }
 
+    /// Load an index from disk
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to open or read the index file
+    /// - Failed to deserialize the index
+    /// - Failed to acquire file lock
     pub fn load(path: &Path) -> Result<Self> {
         if !path.exists() {
             return Ok(Self::new());
@@ -47,7 +57,7 @@ impl Index {
             .metadata()
             .context("Failed to get index file metadata")?;
 
-        let mut index: Index = if metadata.len() < 1024 {
+        let mut index: Self = if metadata.len() < 1024 {
             let data = std::fs::read(path)
                 .with_context(|| format!("Failed to read index file: {}", path.display()))?;
             serialization::deserialize(&data).context("Failed to deserialize index")?
@@ -69,7 +79,16 @@ impl Index {
         Ok(index)
     }
 
+    /// Save the index to disk
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to serialize the index
+    /// - Failed to write to disk
+    /// - Failed to acquire file lock
     pub fn save(&self, path: &Path) -> Result<()> {
+        use std::io::Write;
         let data = serialization::serialize(self).context("Failed to serialize index")?;
 
         if let Some(parent) = path.parent() {
@@ -89,7 +108,6 @@ impl Index {
         file.lock_exclusive()
             .context("Failed to acquire exclusive lock on index file")?;
 
-        use std::io::Write;
         let mut file_writer = &file;
         file_writer
             .write_all(&data)
@@ -101,7 +119,16 @@ impl Index {
         Ok(())
     }
 
+    /// Save the index, merging with existing data on disk
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to open or read existing index
+    /// - Failed to serialize or write the merged index
+    /// - Failed to acquire file lock
     pub fn save_merge(&self, path: &Path) -> Result<()> {
+        use std::io::Write;
         if !path.exists() {
             std::fs::write(path, [])
                 .with_context(|| format!("Failed to create index file: {}", path.display()))?;
@@ -125,9 +152,9 @@ impl Index {
         {
             let existing_data = std::fs::read(path)
                 .with_context(|| format!("Failed to read existing index: {}", path.display()))?;
-            serialization::deserialize::<Index>(&existing_data).unwrap_or_else(|_| Index::new())
+            serialization::deserialize::<Self>(&existing_data).unwrap_or_else(|_| Self::new())
         } else {
-            Index::new()
+            Self::new()
         };
 
         for (path, entry) in &self.entries {
@@ -144,7 +171,6 @@ impl Index {
             serialization::serialize(&final_index).context("Failed to serialize merged index")?;
 
         file.set_len(0).context("Failed to truncate index file")?;
-        use std::io::Write;
         let mut file_writer = &file;
         file_writer
             .write_all(&data)
@@ -174,6 +200,7 @@ impl Index {
         self.entries.remove(path)
     }
 
+    #[must_use]
     pub fn get_entry(&self, path: &Path) -> Option<&FileEntry> {
         self.entries.get(path)
     }
@@ -182,10 +209,12 @@ impl Index {
         self.staged_entries.insert(entry.path.clone(), entry);
     }
 
+    #[must_use]
     pub fn get_staged_entry(&self, path: &Path) -> Option<&FileEntry> {
         self.staged_entries.get(path)
     }
 
+    #[must_use]
     pub fn has_staged_changes(&self) -> bool {
         for (path, staged_entry) in &self.staged_entries {
             match self.entries.get(path) {
@@ -213,6 +242,7 @@ impl Index {
 
     /// Get file statuses by comparing index entries with current filesystem state
     /// Uses parallel processing for performance
+    #[must_use]
     pub fn get_status_parallel(&self, _current_files: &[PathBuf]) -> Vec<FileStatus> {
         let mut statuses = Vec::new();
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
@@ -227,37 +257,40 @@ impl Index {
                     stored_path.clone()
                 };
 
-                if !abs_path.exists() {
-                    Some(FileStatus::Deleted(stored_path.clone()))
-                } else {
-                    match crate::utils::hash::hash_file(&abs_path) {
-                        Ok(current_hash) => {
-                            if current_hash != stored_entry.hash {
-                                Some(FileStatus::Modified(stored_path.clone()))
-                            } else {
-                                None
-                            }
-                        }
-                        Err(_) => match std::fs::metadata(&abs_path) {
-                            Ok(metadata) => {
-                                let mtime = metadata
-                                    .modified()
-                                    .ok()
-                                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                                    .map(|d| d.as_secs() as i64)
-                                    .unwrap_or(0);
+                if abs_path.exists() {
+                    crate::utils::hash::hash_file(&abs_path).map_or_else(
+                        |_| {
+                            std::fs::metadata(&abs_path).map_or_else(
+                                |_| Some(FileStatus::Deleted(stored_path.clone())),
+                                |metadata| {
+                                    let mtime = metadata
+                                        .modified()
+                                        .ok()
+                                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                                        .map_or(0, |d| {
+                                            i64::try_from(d.as_secs()).unwrap_or(i64::MAX)
+                                        });
 
-                                if mtime != stored_entry.modified
-                                    || metadata.len() != stored_entry.size
-                                {
-                                    Some(FileStatus::Modified(stored_path.clone()))
-                                } else {
-                                    None
-                                }
-                            }
-                            Err(_) => Some(FileStatus::Deleted(stored_path.clone())),
+                                    if mtime != stored_entry.modified
+                                        || metadata.len() != stored_entry.size
+                                    {
+                                        Some(FileStatus::Modified(stored_path.clone()))
+                                    } else {
+                                        None
+                                    }
+                                },
+                            )
                         },
-                    }
+                        |current_hash| {
+                            if current_hash == stored_entry.hash {
+                                None
+                            } else {
+                                Some(FileStatus::Modified(stored_path.clone()))
+                            }
+                        },
+                    )
+                } else {
+                    Some(FileStatus::Deleted(stored_path.clone()))
                 }
             })
             .collect();
@@ -270,6 +303,9 @@ impl Index {
 pub struct IndexDiffer;
 
 impl IndexDiffer {
+    /// Compute the difference between two indices
+    /// Returns a list of file statuses indicating added, modified, or deleted files
+    #[must_use]
     pub fn diff(old: &Index, new: &Index) -> Vec<FileStatus> {
         let mut statuses = Vec::new();
 
@@ -311,7 +347,7 @@ mod tests {
             path: PathBuf::from("test.txt"),
             hash: "abc123".to_string(),
             size: 100,
-            modified: 1234567890,
+            modified: 1_234_567_890,
             mode: 0o644,
         });
 
@@ -428,7 +464,7 @@ mod tests {
         };
 
         index.add_entry(entry1);
-        index.add_entry(entry2.clone());
+        index.add_entry(entry2);
 
         assert_eq!(index.entries.len(), 1);
         let stored = index.get_entry(&PathBuf::from("duplicate.txt")).unwrap();
@@ -450,12 +486,12 @@ mod tests {
 
         let mut index = Index::new();
 
-        for i in 0..10000 {
+        for i in 0..10_000 {
             index.add_entry(FileEntry {
-                path: PathBuf::from(format!("file_{}.txt", i)),
-                hash: format!("{:032x}", i),
-                size: (i * 100) as u64,
-                modified: i as i64,
+                path: PathBuf::from(format!("file_{i}.txt")),
+                hash: format!("{i:032x}"),
+                size: u64::try_from(i).unwrap_or(0) * 100,
+                modified: i64::from(i),
                 mode: 0o644,
             });
         }
@@ -463,7 +499,7 @@ mod tests {
         index.save(&index_path)?;
         let loaded = Index::load(&index_path)?;
 
-        assert_eq!(loaded.entries.len(), 10000);
+        assert_eq!(loaded.entries.len(), 10_000);
         assert!(loaded.get_entry(&PathBuf::from("file_5000.txt")).is_some());
 
         Ok(())
@@ -479,12 +515,12 @@ mod tests {
 
         let entries: Vec<FileEntry> = (0..10)
             .map(|i| {
-                let file_path = dir.path().join(format!("file_{}.txt", i));
-                std::fs::write(&file_path, format!("content_{}", i)).unwrap();
+                let file_path = dir.path().join(format!("file_{i}.txt"));
+                std::fs::write(&file_path, format!("content_{i}")).unwrap();
 
                 FileEntry {
-                    path: PathBuf::from(format!("file_{}.txt", i)),
-                    hash: format!("hash_{}", i),
+                    path: PathBuf::from(format!("file_{i}.txt")),
+                    hash: format!("hash_{i}"),
                     size: 100,
                     modified: 1000,
                     mode: 0o644,
@@ -503,23 +539,23 @@ mod tests {
 
         let statuses = index.get_status_parallel(&current_files);
 
-        let modified: Vec<_> = statuses
+        let modified: usize = statuses
             .iter()
             .filter(|s| matches!(s, FileStatus::Modified(_)))
-            .collect();
+            .count();
 
-        assert_eq!(modified.len(), 10);
+        assert_eq!(modified, 10);
 
         std::fs::remove_file(dir.path().join("file_5.txt"))?;
 
         let statuses = index.get_status_parallel(&current_files);
 
-        let deleted: Vec<_> = statuses
+        let deleted: usize = statuses
             .iter()
             .filter(|s| matches!(s, FileStatus::Deleted(_)))
-            .collect();
+            .count();
 
-        assert_eq!(deleted.len(), 1);
+        assert_eq!(deleted, 1);
 
         Ok(())
     }
@@ -546,7 +582,7 @@ mod tests {
             path: PathBuf::from("test.txt"),
             hash: "valid_hash".to_string(),
             size: 100,
-            modified: 1234567890,
+            modified: 1_234_567_890,
             mode: 0o644,
         });
 
@@ -580,7 +616,7 @@ mod tests {
             path: PathBuf::from("test.txt"),
             hash: "test_hash".to_string(),
             size: 1234,
-            modified: 1234567890,
+            modified: 1_234_567_890,
             mode: 0o644,
         });
 
@@ -597,8 +633,7 @@ mod tests {
                 let result = Index::load(&index_path);
                 assert!(
                     result.is_err(),
-                    "Should reject partial write at {} bytes",
-                    partial_size
+                    "Should reject partial write at {partial_size} bytes",
                 );
             }
         }
@@ -624,18 +659,18 @@ mod tests {
         std::fs::write(&file2, "content2")?;
 
         index.add_entry(FileEntry {
-            path: file1.clone(),
+            path: file1,
             hash: "hash1".to_string(),
             size: 8,
-            modified: 1234567890,
+            modified: 1_234_567_890,
             mode: 0o644,
         });
 
         index.add_entry(FileEntry {
-            path: file2.clone(),
+            path: file2,
             hash: "hash2".to_string(),
             size: 8,
-            modified: 1234567891,
+            modified: 1_234_567_891,
             mode: 0o644,
         });
 
@@ -645,7 +680,7 @@ mod tests {
         let mut loaded = Index::load(&index_path)?;
         if let Some(entry) = loaded.entries.values_mut().next() {
             entry.hash = "invalid_hash".to_string();
-            entry.size = 999999; // Wrong size
+            entry.size = 999_999; // Wrong size
             entry.modified = 0; // Wrong timestamp
         }
 
@@ -657,7 +692,7 @@ mod tests {
         // Verify the corruption is present in the loaded index
         // The corrupted entry should have the invalid values we set
         let has_corrupted = corrupted.entries.values().any(|entry| {
-            entry.hash == "invalid_hash" && entry.size == 999999 && entry.modified == 0
+            entry.hash == "invalid_hash" && entry.size == 999_999 && entry.modified == 0
         });
 
         assert!(

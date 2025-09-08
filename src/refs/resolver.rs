@@ -10,6 +10,7 @@ pub struct RefResolver {
 }
 
 impl RefResolver {
+    #[must_use]
     pub fn new(repo_path: PathBuf) -> Self {
         let ref_manager = RefManager::new(repo_path.clone());
         Self {
@@ -28,6 +29,13 @@ impl RefResolver {
     /// - Full commit IDs
     /// - Short commit IDs (prefix matching)
     /// - ref: refs/heads/branch format
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The reference cannot be resolved
+    /// - The referenced commit does not exist
+    /// - The reference format is invalid
     pub fn resolve(&self, reference: &str) -> Result<String> {
         if let Some(branch) = reference.strip_prefix("ref: refs/heads/") {
             return self.resolve_branch(branch);
@@ -35,12 +43,16 @@ impl RefResolver {
 
         if reference == "HEAD" {
             return self.resolve_head();
-        } else if let Some(parent_spec) = reference.strip_prefix("HEAD~") {
+        }
+
+        if let Some(parent_spec) = reference.strip_prefix("HEAD~") {
             let parent_count = parent_spec
                 .parse::<usize>()
-                .with_context(|| format!("Invalid parent specification: {}", reference))?;
+                .with_context(|| format!("Invalid parent specification: {reference}"))?;
             return self.resolve_head_parent(parent_count);
-        } else if let Some(caret_spec) = reference.strip_prefix("HEAD^") {
+        }
+
+        if let Some(caret_spec) = reference.strip_prefix("HEAD^") {
             let parent_count = self.parse_caret_notation(caret_spec, reference)?;
             return self.resolve_head_parent(parent_count);
         }
@@ -67,7 +79,7 @@ impl RefResolver {
             return Ok(full_id);
         }
 
-        Err(anyhow::anyhow!("Cannot resolve reference: {}", reference))
+        Err(anyhow::anyhow!("Cannot resolve reference: {reference}"))
     }
 
     /// Resolve HEAD to current commit
@@ -87,15 +99,12 @@ impl RefResolver {
         let snapshot_manager = SnapshotManager::new(self.repo_path.clone(), 3);
 
         for i in 0..parent_count {
-            let snapshot = match snapshot_manager.load_snapshot(&current) {
-                Ok(s) => s,
-                Err(_) => {
-                    return Err(anyhow::anyhow!(
-                        "Cannot go back {} commits from HEAD (only {} commits in history)",
-                        parent_count,
-                        i
-                    ));
-                }
+            let Ok(snapshot) = snapshot_manager.load_snapshot(&current) else {
+                return Err(anyhow::anyhow!(
+                    "Cannot go back {} commits from HEAD (only {} commits in history)",
+                    parent_count,
+                    i
+                ));
             };
 
             if let Some(parent) = snapshot.commit.parent {
@@ -109,14 +118,13 @@ impl RefResolver {
                             parent_count,
                             if parent_count == 1 { "" } else { "s" }
                         ));
-                    } else {
-                        return Err(anyhow::anyhow!(
-                            "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
-                            parent_count,
-                            i,
-                            if i == 1 { "" } else { "s" }
-                        ));
                     }
+                    return Err(anyhow::anyhow!(
+                        "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
+                        parent_count,
+                        i,
+                        if i == 1 { "" } else { "s" }
+                    ));
                 }
                 current = parent;
             } else {
@@ -127,14 +135,13 @@ impl RefResolver {
                         parent_count,
                         if parent_count == 1 { "" } else { "s" }
                     ));
-                } else {
-                    return Err(anyhow::anyhow!(
-                        "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
-                        parent_count,
-                        i,
-                        if i == 1 { "" } else { "s" }
-                    ));
                 }
+                return Err(anyhow::anyhow!(
+                    "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
+                    parent_count,
+                    i,
+                    if i == 1 { "" } else { "s" }
+                ));
             }
         }
 
@@ -147,6 +154,7 @@ impl RefResolver {
     /// - "^" -> 2 (HEAD^^ means second ancestor)
     /// - "^^" -> 3 (HEAD^^^ means third ancestor)
     /// - "n" (number) -> n (HEAD^2 means second ancestor)
+    #[allow(clippy::unused_self)]
     fn parse_caret_notation(&self, caret_spec: &str, full_reference: &str) -> Result<usize> {
         if caret_spec.is_empty() {
             // HEAD^ means first parent
@@ -208,6 +216,7 @@ impl RefResolver {
 }
 
 #[cfg(test)]
+#[allow(clippy::similar_names)]
 mod tests {
     use super::*;
     use crate::storage::{Commit, snapshots::Snapshot};
@@ -225,7 +234,7 @@ mod tests {
         fs::create_dir_all(repo_path.join("commits"))?;
         fs::create_dir_all(repo_path.join("refs/heads"))?;
 
-        let resolver = RefResolver::new(repo_path.clone());
+        let resolver = RefResolver::new(repo_path);
 
         resolver.ref_manager.init()?;
 
@@ -233,11 +242,13 @@ mod tests {
     }
 
     fn create_test_commit(repo_path: &Path, commit_id: &str, parent: Option<String>) -> Result<()> {
+        use crate::utils::compress::compress_bytes;
+        use crate::utils::serialization::serialize;
         let snapshot = Snapshot {
             commit: Commit {
                 id: commit_id.to_string(),
                 message: "Test commit".to_string(),
-                timestamp: 1234567890,
+                timestamp: 1_234_567_890,
                 parent,
                 author: "Test Author".to_string(),
                 tree_hash: "test_tree".to_string(),
@@ -246,11 +257,9 @@ mod tests {
         };
 
         // Save snapshot
-        use crate::utils::compress::compress_bytes;
-        use crate::utils::serialization::serialize;
         let serialized = serialize(&snapshot)?;
         let compressed = compress_bytes(&serialized, 3)?;
-        let snapshot_path = repo_path.join("commits").join(format!("{}.zst", commit_id));
+        let snapshot_path = repo_path.join("commits").join(format!("{commit_id}.zst"));
         fs::write(&snapshot_path, compressed)?;
 
         Ok(())
@@ -264,8 +273,8 @@ mod tests {
         create_test_commit(&resolver.repo_path, &commit_id, None)?;
         resolver.ref_manager.update_branch("main", &commit_id)?;
 
-        let resolved = resolver.resolve("HEAD")?;
-        assert_eq!(resolved, commit_id);
+        let resolved_ref = resolver.resolve("HEAD")?;
+        assert_eq!(resolved_ref, commit_id);
 
         Ok(())
     }
@@ -419,8 +428,8 @@ mod tests {
 
         create_test_commit(&resolver.repo_path, &commit1, None)?;
         create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
-        create_test_commit(&resolver.repo_path, &commit3, Some(commit2.clone()))?;
-        create_test_commit(&resolver.repo_path, &commit4, Some(commit3.clone()))?;
+        create_test_commit(&resolver.repo_path, &commit3, Some(commit2))?;
+        create_test_commit(&resolver.repo_path, &commit4, Some(commit3))?;
 
         resolver.ref_manager.update_branch("main", &commit4)?;
 
@@ -441,8 +450,8 @@ mod tests {
         let commit3 = format!("j3{}", "0".repeat(30));
 
         create_test_commit(&resolver.repo_path, &commit1, None)?;
-        create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
-        create_test_commit(&resolver.repo_path, &commit3, Some(commit2.clone()))?;
+        create_test_commit(&resolver.repo_path, &commit2, Some(commit1))?;
+        create_test_commit(&resolver.repo_path, &commit3, Some(commit2))?;
 
         resolver.ref_manager.update_branch("main", &commit3)?;
 
@@ -481,7 +490,7 @@ mod tests {
         let commit2 = format!("k2{}", "0".repeat(30));
 
         create_test_commit(&resolver.repo_path, &commit1, None)?;
-        create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
+        create_test_commit(&resolver.repo_path, &commit2, Some(commit1))?;
 
         resolver.ref_manager.update_branch("main", &commit2)?;
 

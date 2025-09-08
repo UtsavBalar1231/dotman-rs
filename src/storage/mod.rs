@@ -36,13 +36,17 @@ pub enum FileStatus {
 }
 
 impl FileStatus {
+    /// Returns the path associated with the file status.
+    #[must_use]
     pub fn path(&self) -> &Path {
         match self {
             Self::Added(p) | Self::Modified(p) | Self::Deleted(p) | Self::Untracked(p) => p,
         }
     }
 
-    pub fn status_char(&self) -> char {
+    /// Returns a single-character representation of the file status.
+    #[must_use]
+    pub const fn status_char(&self) -> char {
         match self {
             Self::Added(_) => 'A',
             Self::Modified(_) => 'M',
@@ -54,12 +58,18 @@ impl FileStatus {
 
 // Fast file operations using memory mapping and parallel processing
 pub mod file_ops {
-    use super::*;
+    use super::{Path, PathBuf, Result};
     use memmap2::MmapOptions;
     use rayon::prelude::*;
     use std::fs::File;
     use xxhash_rust::xxh3::xxh3_128;
 
+    /// Computes the XXH3 128-bit hash of a file at the given path.
+    /// Uses memory mapping for large files for efficiency.
+    /// Returns "0" for empty files.
+    ///
+    /// # Errors
+    /// Returns an error if the file cannot be read or mapped.
     pub fn hash_file(path: &Path) -> Result<String> {
         let file = File::open(path)?;
         let metadata = file.metadata()?;
@@ -72,15 +82,21 @@ pub mod file_ops {
             // Small file - read directly
             let content = std::fs::read(path)?;
             let hash = xxh3_128(&content);
-            Ok(format!("{:032x}", hash))
+            Ok(format!("{hash:032x}"))
         } else {
             // Large file - use memory mapping
             let mmap = unsafe { MmapOptions::new().map(&file)? };
             let hash = xxh3_128(&mmap);
-            Ok(format!("{:032x}", hash))
+            Ok(format!("{hash:032x}"))
         }
     }
 
+    /// Hash multiple files in parallel
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Any file cannot be read or hashed
     pub fn hash_files_parallel(paths: &[PathBuf]) -> Result<Vec<(PathBuf, String)>> {
         paths
             .par_iter()
@@ -91,6 +107,12 @@ pub mod file_ops {
             .collect::<Result<Vec<_>>>()
     }
 
+    /// Fast file copy using hard links when possible
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The file cannot be copied
     pub fn copy_file_fast(src: &Path, dst: &Path) -> Result<()> {
         // Try to create hard link first (fastest)
         if std::fs::hard_link(src, dst).is_ok() {
@@ -207,8 +229,8 @@ mod tests {
 
         let mut paths = Vec::new();
         for i in 0..5 {
-            let file_path = dir.path().join(format!("file{}.txt", i));
-            std::fs::write(&file_path, format!("Content {}", i))?;
+            let file_path = dir.path().join(format!("file{i}.txt"));
+            std::fs::write(&file_path, format!("Content {i}"))?;
             paths.push(file_path);
         }
 
@@ -305,14 +327,14 @@ mod tests {
             path: PathBuf::from("/test/path.txt"),
             hash: "test_hash".to_string(),
             size: 1024,
-            modified: 1234567890,
+            modified: 1_234_567_890,
             mode: 0o644,
         };
 
         assert_eq!(entry.path, PathBuf::from("/test/path.txt"));
         assert_eq!(entry.hash, "test_hash");
         assert_eq!(entry.size, 1024);
-        assert_eq!(entry.modified, 1234567890);
+        assert_eq!(entry.modified, 1_234_567_890);
         assert_eq!(entry.mode, 0o644);
     }
 
@@ -323,7 +345,7 @@ mod tests {
             parent: Some("parent123".to_string()),
             message: "Test commit".to_string(),
             author: "Test Author".to_string(),
-            timestamp: 1234567890,
+            timestamp: 1_234_567_890,
             tree_hash: "tree_hash_123".to_string(),
         };
 
@@ -331,7 +353,7 @@ mod tests {
         assert_eq!(commit.parent, Some("parent123".to_string()));
         assert_eq!(commit.message, "Test commit");
         assert_eq!(commit.author, "Test Author");
-        assert_eq!(commit.timestamp, 1234567890);
+        assert_eq!(commit.timestamp, 1_234_567_890);
         assert_eq!(commit.tree_hash, "tree_hash_123");
     }
 

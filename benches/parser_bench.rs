@@ -1,5 +1,6 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use dotman::config::parser::parse_config_file;
+use std::fmt::Write;
 use std::fs;
 use std::hint::black_box;
 use tempfile::tempdir;
@@ -21,7 +22,7 @@ fn create_test_config(size: usize) -> String {
 
     // Add many ignore patterns to increase config size
     for i in 0..size {
-        config.push_str(&format!("  \"pattern_{}\",\n", i));
+        let _ = writeln!(&mut config, "  \"pattern_{i}\",");
     }
 
     config.push_str("]\n");
@@ -52,15 +53,15 @@ fn benchmark_config_parsing(c: &mut Criterion) {
     let mut group = c.benchmark_group("config_parsing");
 
     group.bench_function("small_config", |b| {
-        b.iter(|| parse_config_file(black_box(&small_path)))
+        b.iter(|| parse_config_file(black_box(&small_path)));
     });
 
     group.bench_function("medium_config", |b| {
-        b.iter(|| parse_config_file(black_box(&medium_path)))
+        b.iter(|| parse_config_file(black_box(&medium_path)));
     });
 
     group.bench_function("large_config", |b| {
-        b.iter(|| parse_config_file(black_box(&large_path)))
+        b.iter(|| parse_config_file(black_box(&large_path)));
     });
 
     group.finish();
@@ -77,11 +78,11 @@ fn benchmark_simd_validation(c: &mut Criterion) {
     let mut group = c.benchmark_group("simd_utf8_validation");
 
     group.bench_function("valid_10kb", |b| {
-        b.iter(|| simdutf8::basic::from_utf8(black_box(&valid_utf8)))
+        b.iter(|| simdutf8::basic::from_utf8(black_box(&valid_utf8)));
     });
 
     group.bench_function("invalid_10kb", |b| {
-        b.iter(|| simdutf8::basic::from_utf8(black_box(&invalid_utf8)).is_err())
+        b.iter(|| simdutf8::basic::from_utf8(black_box(&invalid_utf8)).is_err());
     });
 
     group.finish();

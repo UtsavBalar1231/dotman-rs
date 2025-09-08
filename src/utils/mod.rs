@@ -8,6 +8,8 @@ use anyhow::Result;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
+/// Expands a path starting with `~` to the user's home directory.
+#[must_use]
 pub fn expand_tilde(path: &str) -> PathBuf {
     if path.starts_with("~/")
         && let Some(home) = dirs::home_dir()
@@ -17,12 +19,20 @@ pub fn expand_tilde(path: &str) -> PathBuf {
     PathBuf::from(path)
 }
 
+/// Make `path` relative to `base` if possible, otherwise return `path` as is.
+///
+/// # Errors
+/// If `base` is not a prefix of `path`, an error is returned.
 pub fn make_relative(path: &Path, base: &Path) -> Result<PathBuf> {
     path.strip_prefix(base)
-        .map(|p| p.to_path_buf())
+        .map(Path::to_path_buf)
         .or_else(|_| Ok(path.to_path_buf()))
 }
 
+/// Walks a directory and returns all file paths that pass the provided filter function.
+///
+/// # Errors
+/// Returns an error if any entry cannot be accessed.
 pub fn walk_dir_filtered<F>(dir: &Path, filter: F) -> Result<Vec<PathBuf>>
 where
     F: Fn(&Path) -> bool,
@@ -43,6 +53,8 @@ where
     Ok(paths)
 }
 
+/// Determines if a given path should be ignored based on provided patterns.
+#[must_use]
 pub fn should_ignore(path: &Path, patterns: &[String]) -> bool {
     let path_str = path.to_string_lossy();
 
@@ -55,8 +67,8 @@ pub fn should_ignore(path: &Path, patterns: &[String]) -> bool {
                 return true;
             }
             // Also check if path starts with or contains the directory pattern
-            if path_str.contains(&format!("/{}/", dir_name))
-                || path_str.starts_with(&format!("{}/", dir_name))
+            if path_str.contains(&format!("/{dir_name}/"))
+                || path_str.starts_with(&format!("{dir_name}/"))
                 || path_str == dir_name
             {
                 return true;
@@ -91,6 +103,13 @@ pub fn should_ignore(path: &Path, patterns: &[String]) -> bool {
     false
 }
 
+/// Formats a file size in bytes into a human-readable string with appropriate units.
+#[must_use]
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
 pub fn format_size(size: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
     let mut size = size as f64;
@@ -102,30 +121,36 @@ pub fn format_size(size: u64) -> String {
     }
 
     if unit_index == 0 {
-        format!("{} {}", size as u64, UNITS[unit_index])
+        format!("{} {}", size.round() as u64, UNITS[unit_index])
     } else {
         format!("{:.2} {}", size, UNITS[unit_index])
     }
 }
 
+/// Returns the current timestamp as seconds since the Unix epoch.
+#[must_use]
 pub fn get_current_timestamp() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
+        .map(|d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
         .unwrap_or(0)
 }
 
+/// Retrieves the current system username, falling back to "unknown" if not found.
+#[must_use]
 pub fn get_current_user() -> String {
     std::env::var("USER")
         .or_else(|_| std::env::var("USERNAME"))
         .unwrap_or_else(|_| "unknown".to_string())
 }
 
+/// Constructs the current user string based on the provided configuration.
+#[must_use]
 pub fn get_current_user_with_config(config: &crate::config::Config) -> String {
     match (&config.user.name, &config.user.email) {
         (Some(name), Some(email)) => {
             // Format as "Name <email>" like git does
-            format!("{} <{}>", name, email)
+            format!("{name} <{email}>")
         }
         (Some(name), None) => {
             // Only name is set
@@ -134,7 +159,7 @@ pub fn get_current_user_with_config(config: &crate::config::Config) -> String {
         (None, Some(email)) => {
             // Only email is set, use system username with email
             let username = get_current_user();
-            format!("{} <{}>", username, email)
+            format!("{username} <{email}>")
         }
         (None, None) => {
             // Neither is set, fall back to system username
@@ -230,7 +255,7 @@ mod tests {
 
         let user = get_current_user_with_config(&config);
         let system_user = get_current_user();
-        assert_eq!(user, format!("{} <user@example.com>", system_user));
+        assert_eq!(user, format!("{system_user} <user@example.com>"));
     }
 
     #[test]

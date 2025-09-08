@@ -34,7 +34,7 @@ fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
     index.save(&index_path)?;
 
     let mut config = Config::default();
-    config.core.repo_path = repo_path.clone();
+    config.core.repo_path.clone_from(&repo_path);
     config.save(&config_path)?;
 
     let context = DotmanContext {
@@ -55,7 +55,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(10))] // Fewer cases to reduce noise
 
     #[test]
-    #[ignore] // Ignored by default - use --ignored to run vulnerability tests
+    #[ignore = "Vulnerability test - run with --ignored flag"]
     fn test_permission_preservation_vulnerability(
         mode in 0o1000..=0o7777u32 // Only test modes with special bits set
     ) {
@@ -118,7 +118,7 @@ proptest! {
 // Impact: Potential privilege escalation when files are restored
 // CVSS Score: ~7.2 (High)
 #[test]
-#[ignore] // Ignored by default - use --ignored to run vulnerability tests
+#[ignore = "Vulnerability test - run with --ignored flag"]
 fn test_permission_escalation_vulnerability() {
     // SECURITY VULNERABILITY DOCUMENTATION
     // This test documents a CONFIRMED security bug in dotman
@@ -129,12 +129,13 @@ fn test_permission_escalation_vulnerability() {
 
     #[cfg(unix)]
     {
+        use std::os::unix::fs::PermissionsExt;
+
         // Create file with dangerous permissions
         let vuln_file = dir.path().join("setuid_test.txt");
         fs::write(&vuln_file, "test content").unwrap();
 
         // Set setuid bit (dangerous permission)
-        use std::os::unix::fs::PermissionsExt;
         let mut perms = fs::metadata(&vuln_file).unwrap().permissions();
         perms.set_mode(0o4755); // setuid + rwxr-xr-x
         fs::set_permissions(&vuln_file, perms).unwrap();
@@ -143,34 +144,31 @@ fn test_permission_escalation_vulnerability() {
         let result = commands::add::execute(&ctx, &paths, false);
 
         // DOCUMENTED VULNERABILITY: This assertion will fail, confirming the bug
-        match result {
-            Ok(_) => {
-                let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
-                for entry in index.entries.values() {
-                    // This assertion documents the vulnerability - it should pass but will fail
-                    assert!(
-                        entry.mode & 0o4000 == 0,
-                        "VULNERABILITY CONFIRMED: Setuid bit preserved when it should be stripped (mode {:o})",
-                        entry.mode
-                    );
-                    assert!(
-                        entry.mode & 0o2000 == 0,
-                        "VULNERABILITY CONFIRMED: Setgid bit preserved when it should be stripped (mode {:o})",
-                        entry.mode
-                    );
-                }
+        if matches!(result, Ok(())) {
+            let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
+            for entry in index.entries.values() {
+                // This assertion documents the vulnerability - it should pass but will fail
+                assert!(
+                    entry.mode & 0o4000 == 0,
+                    "VULNERABILITY CONFIRMED: Setuid bit preserved when it should be stripped (mode {:o})",
+                    entry.mode
+                );
+                assert!(
+                    entry.mode & 0o2000 == 0,
+                    "VULNERABILITY CONFIRMED: Setgid bit preserved when it should be stripped (mode {:o})",
+                    entry.mode
+                );
             }
-            Err(_) => {
-                // If it fails to add, that's actually good security behavior
-                // But the current implementation succeeds and preserves dangerous bits
-            }
+        } else {
+            // If it fails to add, that's actually good security behavior
+            // But the current implementation succeeds and preserves dangerous bits
         }
     }
 }
 
 // Example test showing how the fixed version should behave
 #[test]
-#[ignore] // Ignored until vulnerability is fixed
+#[ignore = "Known vulnerability - awaiting fix"]
 fn test_permission_preservation_fixed_behavior() {
     // This test shows the EXPECTED behavior after the vulnerability is fixed
     // When the security bug is fixed, remove #[ignore] and this should pass

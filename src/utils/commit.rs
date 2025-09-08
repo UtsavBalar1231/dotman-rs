@@ -5,6 +5,14 @@ use std::path::Path;
 
 /// Resolves a partial commit ID to a full commit ID
 /// Returns an error if no match found or multiple matches exist
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - No commits exist in the repository
+/// - No commit matches the partial ID
+/// - Multiple commits match the partial ID (ambiguous)
+/// - Failed to read the commits directory
 pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<String> {
     // If it's "HEAD", return as-is for special handling
     if partial_id == "HEAD" {
@@ -31,7 +39,7 @@ pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<S
     }
 
     match matches.len() {
-        0 => Err(anyhow::anyhow!("No commit found matching: {}", partial_id)),
+        0 => Err(anyhow::anyhow!("No commit found matching: {partial_id}")),
         1 => Ok(matches[0].clone()),
         _ => {
             // Show the ambiguous matches
@@ -41,7 +49,7 @@ pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<S
                     if m.len() > 8 {
                         format!("  {}", &m[..8])
                     } else {
-                        format!("  {}", m)
+                        format!("  {m}")
                     }
                 })
                 .collect();
@@ -56,6 +64,7 @@ pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<S
 
 /// Generates a content-addressed commit ID using xxhash
 /// Creates a deterministic 32-character hex string based on commit content
+#[must_use]
 pub fn generate_commit_id(
     tree_hash: &str,
     parent: Option<&str>,
@@ -160,12 +169,12 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_commit_id_deterministic() -> Result<()> {
+    fn test_generate_commit_id_deterministic() {
         let tree_hash = "abcd1234";
         let parent = Some("parent123");
         let message = "Test commit";
         let author = "Test User";
-        let timestamp = 1234567890i64;
+        let timestamp = 1_234_567_890i64;
 
         let id1 = generate_commit_id(tree_hash, parent, message, author, timestamp);
         let id2 = generate_commit_id(tree_hash, parent, message, author, timestamp);
@@ -173,17 +182,15 @@ mod tests {
         assert_eq!(id1, id2);
         assert_eq!(id1.len(), 32); // 32 hex characters
         assert!(id1.chars().all(|c| c.is_ascii_hexdigit()));
-
-        Ok(())
     }
 
     #[test]
-    fn test_generate_commit_id_different_inputs() -> Result<()> {
+    fn test_generate_commit_id_different_inputs() {
         let tree_hash = "abcd1234";
         let parent = Some("parent123");
         let message = "Test commit";
         let author = "Test User";
-        let timestamp = 1234567890i64;
+        let timestamp = 1_234_567_890i64;
 
         let id1 = generate_commit_id(tree_hash, parent, message, author, timestamp);
 
@@ -194,17 +201,15 @@ mod tests {
         // Different timestamp should produce different ID
         let id3 = generate_commit_id(tree_hash, parent, message, author, timestamp + 1);
         assert_ne!(id1, id3);
-
-        Ok(())
     }
 
     #[test]
-    fn test_generate_commit_id_no_parent() -> Result<()> {
+    fn test_generate_commit_id_no_parent() {
         // Test commit without parent (initial commit)
         let tree_hash = "abcd1234";
         let message = "Initial commit";
         let author = "Test User";
-        let timestamp = 1234567890i64;
+        let timestamp = 1_234_567_890i64;
 
         let id1 = generate_commit_id(tree_hash, None, message, author, timestamp);
         let id2 = generate_commit_id(tree_hash, Some("parent123"), message, author, timestamp);
@@ -212,7 +217,5 @@ mod tests {
         assert_ne!(id1, id2); // Should be different with and without parent
         assert_eq!(id1.len(), 32);
         assert!(id1.chars().all(|c| c.is_ascii_hexdigit()));
-
-        Ok(())
     }
 }

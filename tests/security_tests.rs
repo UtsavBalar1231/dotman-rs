@@ -28,11 +28,10 @@ fn validate_security_test_path_safety(path: &str, allowed_base: &std::path::Path
     }
 
     // Additional check - try to resolve and see if it would escape
-    if let Ok(resolved) = allowed_base.join(path).canonicalize() {
-        resolved.starts_with(allowed_base)
-    } else {
-        true // If it can't be resolved, it's probably safe (non-existent)
-    }
+    allowed_base
+        .join(path)
+        .canonicalize()
+        .map_or(true, |resolved| resolved.starts_with(allowed_base))
 }
 
 // Helper function to create test context
@@ -55,7 +54,7 @@ fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
     fs::write(repo_path.join("HEAD"), "")?;
 
     let mut config = Config::default();
-    config.core.repo_path = repo_path.clone();
+    config.core.repo_path.clone_from(&repo_path);
     config.save(&config_path)?;
 
     let context = DotmanContext {
@@ -107,8 +106,7 @@ fn test_path_traversal_attacks() -> Result<()> {
                     || err_msg.contains("not found")
                     || err_msg.contains("does not exist")
                     || err_msg.contains("Path"),
-                "Should reject with appropriate error: {}",
-                err_msg
+                "Should reject with appropriate error: {err_msg}"
             );
         } else {
             // If it succeeds, verify all indexed paths are within safe boundaries
@@ -162,31 +160,28 @@ fn test_symlink_attack_prevention() -> Result<()> {
         let result = commands::add::execute(&ctx, &paths, false);
 
         // Should handle symlinks securely
-        match result {
-            Ok(_) => {
-                // If it succeeds, verify it's handled safely
-                let index = Index::load(&ctx.repo_path.join("index.bin"))?;
+        if matches!(result, Ok(())) {
+            // If it succeeds, verify it's handled safely
+            let index = Index::load(&ctx.repo_path.join("index.bin"))?;
 
-                // Ensure we're not following dangerous symlinks
-                for path in index.entries.keys() {
-                    if path.is_symlink() {
-                        let target = fs::read_link(path)?;
-                        if target.is_absolute() {
-                            // Absolute symlinks should be carefully validated
-                            assert!(
-                                !target.to_string_lossy().contains("etc")
-                                    && !target.to_string_lossy().contains("proc")
-                                    && !target.to_string_lossy().contains("dev"),
-                                "Dangerous symlink target: {}",
-                                target.display()
-                            );
-                        }
+            // Ensure we're not following dangerous symlinks
+            for path in index.entries.keys() {
+                if path.is_symlink() {
+                    let target = fs::read_link(path)?;
+                    if target.is_absolute() {
+                        // Absolute symlinks should be carefully validated
+                        assert!(
+                            !target.to_string_lossy().contains("etc")
+                                && !target.to_string_lossy().contains("proc")
+                                && !target.to_string_lossy().contains("dev"),
+                            "Dangerous symlink target: {}",
+                            target.display()
+                        );
                     }
                 }
             }
-            Err(_) => {
-                // Good - rejected dangerous symlink
-            }
+        } else {
+            // Good - rejected dangerous symlink
         }
 
         // Test TOCTTOU attack - modify symlink target after adding
@@ -249,36 +244,32 @@ fn test_malicious_file_content() -> Result<()> {
     ];
 
     for (i, content) in malicious_contents.iter().enumerate() {
-        let test_file = dir.path().join(format!("malicious_{}.dat", i));
+        let test_file = dir.path().join(format!("malicious_{i}.dat"));
 
         // Some of these might fail to write due to size limits
-        match fs::write(&test_file, content) {
-            Ok(_) => {
-                let paths = vec![test_file.to_string_lossy().to_string()];
-                let result = commands::add::execute(&ctx, &paths, false);
+        if matches!(fs::write(&test_file, content), Ok(())) {
+            let paths = vec![test_file.to_string_lossy().to_string()];
+            let result = commands::add::execute(&ctx, &paths, false);
 
-                // Should handle malicious content without crashing
-                if result.is_ok() {
-                    // If successful, verify dotman still works
-                    let status_result = commands::status::execute(&ctx, false, false);
-                    assert!(
-                        status_result.is_ok(),
-                        "Status should work after adding file with malicious content pattern {}",
-                        i
-                    );
+            // Should handle malicious content without crashing
+            if result.is_ok() {
+                // If successful, verify dotman still works
+                let status_result = commands::status::execute(&ctx, false, false);
+                assert!(
+                    status_result.is_ok(),
+                    "Status should work after adding file with malicious content pattern {i}"
+                );
 
-                    // Verify the file was actually added to staging area
-                    let index = Index::load(&ctx.repo_path.join("index.bin"))?;
-                    assert!(
-                        index.staged_entries.contains_key(&test_file),
-                        "File should be in staging area after successful add"
-                    );
-                }
-                // Graceful failure for very large or problematic content is also acceptable
+                // Verify the file was actually added to staging area
+                let index = Index::load(&ctx.repo_path.join("index.bin"))?;
+                assert!(
+                    index.staged_entries.contains_key(&test_file),
+                    "File should be in staging area after successful add"
+                );
             }
-            Err(_) => {
-                // File system rejected the content
-            }
+            // Graceful failure for very large or problematic content is also acceptable
+        } else {
+            // File system rejected the content
         }
     }
 
@@ -292,8 +283,8 @@ fn test_resource_exhaustion_attacks() -> Result<()> {
     // Test creating many files to exhaust file descriptors
     let mut created_files = Vec::new();
     for i in 0..1000 {
-        let file_path = dir.path().join(format!("file_{}.txt", i));
-        if fs::write(&file_path, format!("content {}", i)).is_ok() {
+        let file_path = dir.path().join(format!("file_{i}.txt"));
+        if fs::write(&file_path, format!("content {i}")).is_ok() {
             created_files.push(file_path);
         }
     }
@@ -314,8 +305,7 @@ fn test_resource_exhaustion_attacks() -> Result<()> {
                 || err_msg.contains("limit")
                 || err_msg.contains("too many")
                 || err_msg.contains("memory"),
-            "Should fail with resource error, got: {}",
-            err_msg
+            "Should fail with resource error, got: {err_msg}"
         );
     } else {
         // Should still be able to perform other operations
@@ -338,14 +328,12 @@ fn test_resource_exhaustion_attacks() -> Result<()> {
     // Test creating files with extremely long names
     let long_name = "a".repeat(10000);
     let long_file = dir.path().join(&long_name);
-    match fs::write(&long_file, "content") {
-        Ok(_) => {
-            let paths = vec![long_file.to_string_lossy().to_string()];
-            let _result = commands::add::execute(&ctx, &paths, false);
-        }
-        Err(_) => {
-            // File system rejected long name
-        }
+
+    if matches!(fs::write(&long_file, "content"), Ok(())) {
+        let paths = vec![long_file.to_string_lossy().to_string()];
+        let _result = commands::add::execute(&ctx, &paths, false);
+    } else {
+        // File system rejected long name
     }
 
     Ok(())
@@ -367,17 +355,17 @@ fn test_race_condition_attacks() -> Result<()> {
     let paths = vec![race_file.to_string_lossy().to_string()];
 
     // Thread that continuously modifies file
-    let race_file_clone = race_file.clone();
+    let race_file_clone = race_file;
     let modifier_handle = thread::spawn(move || {
         for i in 0..1000 {
-            let _ = fs::write(&race_file_clone, format!("modified content {}", i));
+            let _ = fs::write(&race_file_clone, format!("modified content {i}"));
             thread::sleep(Duration::from_millis(1));
         }
     });
 
     // Thread that performs dotman operations
     let ctx_clone = ctx.clone();
-    let paths_clone = paths.clone();
+    let paths_clone = paths;
     let dotman_handle = thread::spawn(move || {
         for _ in 0..100 {
             let _ = commands::add::execute(&ctx_clone, &paths_clone, false);
@@ -444,17 +432,9 @@ fn test_system_file_access_prevention() -> Result<()> {
         for fake_system_path in fake_system_paths {
             let result = commands::add::execute(&ctx, &[fake_system_path.to_string()], false);
             // Should fail gracefully for non-existent files
-            match result {
-                Ok(_) => {
-                    // Shouldn't succeed for non-existent files
-                    panic!(
-                        "Should not succeed adding non-existent file: {}",
-                        fake_system_path
-                    );
-                }
-                Err(_) => {
-                    // Good - rejected non-existent file
-                }
+            if matches!(result, Ok(())) {
+                // Shouldn't succeed for non-existent files
+                panic!("Should not succeed adding non-existent file: {fake_system_path}");
             }
         }
 
@@ -501,19 +481,18 @@ fn test_information_disclosure_prevention() -> Result<()> {
 
         // Should handle sensitive files without leaking info in errors
         match result {
-            Ok(_) => {
+            Ok(()) => {
                 // If added, verify no sensitive data is leaked in logs/status
                 let status_result = commands::status::execute(&ctx, false, false);
                 match status_result {
-                    Ok(_) => {} // Should work without exposing content
+                    Ok(()) => {} // Should work without exposing content
                     Err(e) => {
                         let error_msg = e.to_string();
                         assert!(
                             !error_msg.contains("password")
                                 && !error_msg.contains("secret")
                                 && !error_msg.contains("key"),
-                            "Error message leaked sensitive info: {}",
-                            error_msg
+                            "Error message leaked sensitive info: {error_msg}"
                         );
                     }
                 }
@@ -525,8 +504,7 @@ fn test_information_disclosure_prevention() -> Result<()> {
                     !error_msg.contains("password")
                         && !error_msg.contains("secret")
                         && !error_msg.contains("key"),
-                    "Error message leaked sensitive info: {}",
-                    error_msg
+                    "Error message leaked sensitive info: {error_msg}"
                 );
             }
         }

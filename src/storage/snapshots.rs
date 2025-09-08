@@ -27,13 +27,22 @@ pub struct SnapshotManager {
 }
 
 impl SnapshotManager {
-    pub fn new(repo_path: PathBuf, compression_level: i32) -> Self {
+    #[must_use]
+    pub const fn new(repo_path: PathBuf, compression_level: i32) -> Self {
         Self {
             repo_path,
             compression_level,
         }
     }
 
+    /// Create a new snapshot with the given commit and files
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to create directories
+    /// - Failed to read or compress files
+    /// - Failed to save snapshot
     pub fn create_snapshot(&self, commit: Commit, files: &[FileEntry]) -> Result<String> {
         let snapshot_id = commit.id.clone();
         let snapshot_path = self
@@ -92,11 +101,20 @@ impl SnapshotManager {
         Ok(snapshot_id)
     }
 
+    /// Load a snapshot from disk by its ID
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The snapshot does not exist
+    /// - Multiple snapshots match an ambiguous ID
+    /// - Failed to read or decompress the snapshot
+    /// - Failed to deserialize the snapshot data
     pub fn load_snapshot(&self, snapshot_id: &str) -> Result<Snapshot> {
         let exact_path = self
             .repo_path
             .join("commits")
-            .join(format!("{}.zst", snapshot_id));
+            .join(format!("{snapshot_id}.zst"));
 
         let snapshot_path = if exact_path.exists() {
             exact_path
@@ -121,7 +139,7 @@ impl SnapshotManager {
             }
 
             match matches.len() {
-                0 => return Err(anyhow::anyhow!("No commit found matching: {}", snapshot_id)),
+                0 => return Err(anyhow::anyhow!("No commit found matching: {snapshot_id}")),
                 1 => matches
                     .into_iter()
                     .next()
@@ -138,7 +156,7 @@ impl SnapshotManager {
 
         // Read and decompress snapshot
         let compressed = fs::read(&snapshot_path)
-            .with_context(|| format!("Failed to read snapshot: {}", snapshot_id))?;
+            .with_context(|| format!("Failed to read snapshot: {snapshot_id}"))?;
         let decompressed = decode_all(&compressed[..]).context("Failed to decompress snapshot")?;
 
         // Deserialize snapshot
@@ -147,6 +165,15 @@ impl SnapshotManager {
         Ok(snapshot)
     }
 
+    /// Restore a snapshot to the target directory
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The snapshot cannot be loaded
+    /// - Failed to create target directories
+    /// - Failed to restore file contents
+    /// - Failed to set file permissions
     pub fn restore_snapshot(&self, snapshot_id: &str, target_dir: &Path) -> Result<()> {
         let snapshot = self.load_snapshot(snapshot_id)?;
 
@@ -184,6 +211,14 @@ impl SnapshotManager {
         Ok(())
     }
 
+    /// Restore a snapshot with cleanup of untracked files
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The snapshot cannot be loaded
+    /// - Failed to remove untracked files
+    /// - Failed to restore snapshot files
     pub fn restore_snapshot_with_cleanup(
         &self,
         snapshot_id: &str,
@@ -229,7 +264,7 @@ impl SnapshotManager {
 
     fn store_file_content(&self, file_path: &Path, hash: &str) -> Result<String> {
         let objects_dir = self.repo_path.join("objects");
-        let object_path = objects_dir.join(format!("{}.zst", hash));
+        let object_path = objects_dir.join(format!("{hash}.zst"));
 
         if object_path.exists() {
             return Ok(hash.to_string());
@@ -253,11 +288,19 @@ impl SnapshotManager {
         Ok(hash.to_string())
     }
 
+    /// Restore file content from the object store
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The object file does not exist
+    /// - Failed to read or decompress the object
+    /// - Failed to write the restored file
     pub fn restore_file_content(&self, content_hash: &str, target_path: &Path) -> Result<()> {
         let object_path = self
             .repo_path
             .join("objects")
-            .join(format!("{}.zst", content_hash));
+            .join(format!("{content_hash}.zst"));
 
         // Read and decompress object
         let compressed = fs::read(&object_path)
@@ -271,29 +314,45 @@ impl SnapshotManager {
         Ok(())
     }
 
+    /// Read an object from the object store
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The object file does not exist
+    /// - Failed to read the object file
+    /// - Failed to decompress the object content
     pub fn read_object(&self, content_hash: &str) -> Result<Vec<u8>> {
         let object_path = self
             .repo_path
             .join("objects")
-            .join(format!("{}.zst", content_hash));
+            .join(format!("{content_hash}.zst"));
 
         // Read and decompress object
         let compressed = fs::read(&object_path)
             .with_context(|| format!("Failed to read object file: {}", object_path.display()))?;
         let content = decode_all(&compressed[..])
-            .with_context(|| format!("Failed to decompress object: {}", content_hash))?;
+            .with_context(|| format!("Failed to decompress object: {content_hash}"))?;
 
         Ok(content)
     }
 
+    #[must_use]
     pub fn snapshot_exists(&self, snapshot_id: &str) -> bool {
         let snapshot_path = self
             .repo_path
             .join("commits")
-            .join(format!("{}.zst", snapshot_id));
+            .join(format!("{snapshot_id}.zst"));
         snapshot_path.exists()
     }
 
+    /// List all available snapshots
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to read the commits directory
+    /// - Failed to read directory entries
     pub fn list_snapshots(&self) -> Result<Vec<String>> {
         let commits_dir = self.repo_path.join("commits");
 
@@ -317,15 +376,21 @@ impl SnapshotManager {
         Ok(snapshots)
     }
 
+    /// Delete a snapshot by its ID
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to delete the snapshot file
     pub fn delete_snapshot(&self, snapshot_id: &str) -> Result<()> {
         let snapshot_path = self
             .repo_path
             .join("commits")
-            .join(format!("{}.zst", snapshot_id));
+            .join(format!("{snapshot_id}.zst"));
 
         if snapshot_path.exists() {
             fs::remove_file(snapshot_path)
-                .with_context(|| format!("Failed to delete snapshot: {}", snapshot_id))?;
+                .with_context(|| format!("Failed to delete snapshot: {snapshot_id}"))?;
         }
 
         // Note: We don't delete objects as they might be referenced by other snapshots
@@ -341,10 +406,19 @@ pub struct GarbageCollector {
 }
 
 impl GarbageCollector {
-    pub fn new(repo_path: PathBuf) -> Self {
+    #[must_use]
+    pub const fn new(repo_path: PathBuf) -> Self {
         Self { repo_path }
     }
 
+    /// Collect garbage by removing unreferenced objects
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to read commits or objects directories
+    /// - Failed to deserialize snapshots
+    /// - Failed to delete orphaned objects
     pub fn collect(&self) -> Result<usize> {
         let commits_dir = self.repo_path.join("commits");
         let objects_dir = self.repo_path.join("objects");
@@ -398,6 +472,7 @@ impl GarbageCollector {
 }
 
 #[cfg(test)]
+#[allow(clippy::similar_names)]
 mod tests {
     use super::*;
     use tempfile::tempdir;
@@ -407,17 +482,17 @@ mod tests {
         let dir = tempdir()?;
         let repo_path = dir.path().to_path_buf();
 
-        let manager = SnapshotManager::new(repo_path.clone(), 3);
+        let manager = SnapshotManager::new(repo_path, 3);
 
         // Create test files
         let test_file = dir.path().join("test.txt");
         fs::write(&test_file, "Hello, World!")?;
 
         let files = vec![FileEntry {
-            path: test_file.clone(), // Use absolute path
+            path: test_file, // Use absolute path
             hash: "abc123".to_string(),
             size: 13,
-            modified: 1234567890,
+            modified: 1_234_567_890,
             mode: 0o644,
         }];
 
@@ -426,7 +501,7 @@ mod tests {
             parent: None,
             message: "Initial commit".to_string(),
             author: "Test User".to_string(),
-            timestamp: 1234567890,
+            timestamp: 1_234_567_890,
             tree_hash: "tree123".to_string(),
         };
 
@@ -472,15 +547,14 @@ mod tests {
                 timestamp: 0,
                 tree_hash: "test".to_string(),
             },
-            files: [(
+            files: std::iter::once((
                 PathBuf::from("test.txt"),
                 SnapshotFile {
                     hash: "used".to_string(),
                     mode: 0o644,
                     content_hash: "used".to_string(),
                 },
-            )]
-            .into_iter()
+            ))
             .collect(),
         };
 
@@ -489,7 +563,7 @@ mod tests {
         fs::write(commits_dir.join("test.zst"), compressed)?;
 
         // Run garbage collection
-        let gc = GarbageCollector::new(repo_path.clone());
+        let gc = GarbageCollector::new(repo_path);
         let deleted = gc.collect()?;
 
         assert_eq!(deleted, 1);
@@ -504,7 +578,7 @@ mod tests {
         let dir = tempdir()?;
         let repo_path = dir.path().to_path_buf();
 
-        let manager = SnapshotManager::new(repo_path.clone(), 3);
+        let manager = SnapshotManager::new(repo_path, 3);
 
         let commit = Commit {
             id: "empty".to_string(),
@@ -531,7 +605,7 @@ mod tests {
         let dir = tempdir()?;
         let repo_path = dir.path().to_path_buf();
 
-        let manager = SnapshotManager::new(repo_path.clone(), 3);
+        let manager = SnapshotManager::new(repo_path, 3);
 
         // Create commits with circular reference (should be prevented by application logic)
         let commit1 = Commit {
@@ -581,7 +655,7 @@ mod tests {
         let dir = tempdir()?;
         let repo_path = dir.path().to_path_buf();
 
-        let manager = SnapshotManager::new(repo_path.clone(), 3);
+        let manager = SnapshotManager::new(repo_path, 3);
 
         let commit = Commit {
             id: "to_delete".to_string(),
@@ -618,7 +692,7 @@ mod tests {
         fs::write(&test_file, "content")?;
 
         let files = vec![crate::storage::FileEntry {
-            path: test_file.clone(),
+            path: test_file,
             hash: "test_hash".to_string(),
             size: 7,
             modified: 0,
@@ -655,17 +729,17 @@ mod tests {
         let dir = tempdir()?;
         let repo_path = dir.path().to_path_buf();
 
-        let manager = SnapshotManager::new(repo_path.clone(), 3);
+        let manager = SnapshotManager::new(repo_path, 3);
 
         // Create many files
         let mut files = Vec::new();
         for i in 0..1000 {
-            let file = dir.path().join(format!("file_{}.txt", i));
-            fs::write(&file, format!("content {}", i))?;
+            let file = dir.path().join(format!("file_{i}.txt"));
+            fs::write(&file, format!("content {i}"))?;
 
             files.push(crate::storage::FileEntry {
                 path: file,
-                hash: format!("hash_{}", i),
+                hash: format!("hash_{i}"),
                 size: 10,
                 modified: i,
                 mode: 0o644,
@@ -705,14 +779,14 @@ mod tests {
 
         let files = vec![
             crate::storage::FileEntry {
-                path: file1.clone(),
+                path: file1,
                 hash: "same_hash".to_string(),
                 size: 17,
                 modified: 0,
                 mode: 0o644,
             },
             crate::storage::FileEntry {
-                path: file2.clone(),
+                path: file2,
                 hash: "same_hash".to_string(), // Same hash = same content
                 size: 17,
                 modified: 0,
@@ -753,10 +827,10 @@ mod tests {
         fs::write(&test_file, "snapshot content")?;
 
         let files = vec![FileEntry {
-            path: test_file.clone(),
+            path: test_file,
             hash: "test_hash".to_string(),
             size: 16,
-            modified: 1234567890,
+            modified: 1_234_567_890,
             mode: 0o644,
         }];
 
@@ -765,7 +839,7 @@ mod tests {
             parent: None,
             message: "Test commit".to_string(),
             author: "Test".to_string(),
-            timestamp: 1234567890,
+            timestamp: 1_234_567_890,
             tree_hash: "tree1".to_string(),
         };
 
@@ -823,10 +897,10 @@ mod tests {
         fs::write(&test_file, "test content for objects")?;
 
         let files = vec![FileEntry {
-            path: test_file.clone(),
+            path: test_file,
             hash: "object_hash".to_string(),
             size: 24,
-            modified: 1234567890,
+            modified: 1_234_567_890,
             mode: 0o644,
         }];
 
@@ -835,7 +909,7 @@ mod tests {
             parent: None,
             message: "Object test".to_string(),
             author: "Test".to_string(),
-            timestamp: 1234567890,
+            timestamp: 1_234_567_890,
             tree_hash: "tree".to_string(),
         };
 

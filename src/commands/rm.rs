@@ -6,6 +6,16 @@ use glob::Pattern;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Execute rm command - remove files from the working tree and index
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - No files match the specified patterns
+/// - File operations fail
+/// - Index update fails
+#[allow(clippy::fn_params_excessive_bools)]
 pub fn execute(
     ctx: &DotmanContext,
     paths: &[String],
@@ -44,8 +54,7 @@ pub fn execute(
                     }
                 }
             } else {
-                super::print_warning(&format!("Invalid glob pattern: {}", path_str));
-                continue;
+                super::print_warning(&format!("Invalid glob pattern: {path_str}"));
             }
         } else {
             let path = PathBuf::from(path_str);
@@ -132,13 +141,13 @@ pub fn execute(
     // Save updated index (only if not in dry run mode)
     if removed_count > 0 && !dry_run {
         index.save(&index_path)?;
-        super::print_success(&format!("Removed {} file(s) from tracking", removed_count));
+        super::print_success(&format!("Removed {removed_count} file(s) from tracking"));
     } else if removed_count > 0 && dry_run {
-        super::print_success(&format!("Would remove {} file(s) (dry run)", removed_count));
+        super::print_success(&format!("Would remove {removed_count} file(s) (dry run)"));
     }
 
     if not_found_count > 0 {
-        super::print_info(&format!("{} file(s) were not tracked", not_found_count));
+        super::print_info(&format!("{not_found_count} file(s) were not tracked"));
     }
 
     Ok(())

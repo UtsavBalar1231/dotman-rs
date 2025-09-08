@@ -7,6 +7,14 @@ use colored::Colorize;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+/// Execute status command - show the working tree status
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - Cannot read the index
+/// - File status checks fail
 pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -94,25 +102,25 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
     } else {
         print_status_group(
             &statuses,
-            FileStatus::Added(PathBuf::new()),
+            &FileStatus::Added(PathBuf::new()),
             "Changes to be committed:",
             "new file",
         );
         print_status_group(
             &statuses,
-            FileStatus::Modified(PathBuf::new()),
+            &FileStatus::Modified(PathBuf::new()),
             "Changes not staged:",
             "modified",
         );
         print_status_group(
             &statuses,
-            FileStatus::Deleted(PathBuf::new()),
+            &FileStatus::Deleted(PathBuf::new()),
             "Deleted files:",
             "deleted",
         );
         print_status_group(
             &statuses,
-            FileStatus::Untracked(PathBuf::new()),
+            &FileStatus::Untracked(PathBuf::new()),
             "Untracked files:",
             "untracked",
         );
@@ -121,6 +129,13 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
     Ok(())
 }
 
+/// Get all currently tracked files
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Cannot load the index
+/// - Cannot determine home directory
 pub fn get_current_files(ctx: &DotmanContext) -> Result<Vec<PathBuf>> {
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
@@ -141,6 +156,13 @@ pub fn get_current_files(ctx: &DotmanContext) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// Find untracked files based on configured patterns
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Cannot determine home directory
+/// - File traversal fails
 pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
     use walkdir::WalkDir;
 
@@ -166,8 +188,7 @@ pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<Pa
                 && path
                     .file_name()
                     .and_then(|n| n.to_str())
-                    .map(|n| n.starts_with('.'))
-                    .unwrap_or(false)
+                    .is_some_and(|n| n.starts_with('.'))
             {
                 return false;
             }
@@ -192,10 +213,15 @@ pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<Pa
     Ok(untracked)
 }
 
-fn print_status_group(statuses: &[FileStatus], status_type: FileStatus, header: &str, label: &str) {
+fn print_status_group(
+    statuses: &[FileStatus],
+    status_type: &FileStatus,
+    header: &str,
+    label: &str,
+) {
     let filtered: Vec<&FileStatus> = statuses
         .iter()
-        .filter(|s| std::mem::discriminant(*s) == std::mem::discriminant(&status_type))
+        .filter(|s| std::mem::discriminant(*s) == std::mem::discriminant(status_type))
         .collect();
 
     if !filtered.is_empty() {

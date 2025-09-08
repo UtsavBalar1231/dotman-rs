@@ -10,6 +10,14 @@ use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
 
+/// Execute commit command to create a new commit
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - No files are tracked or staged
+/// - Failed to save index or create snapshot
 pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -40,7 +48,8 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
 
     let mut tree_content = String::new();
     for (path, entry) in &index.staged_entries {
-        tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
+        use std::fmt::Write;
+        let _ = writeln!(&mut tree_content, "{} {}", entry.hash, path.display());
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
@@ -82,6 +91,14 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     Ok(())
 }
 
+/// Execute commit amend to modify the last commit
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - No commits exist to amend
+/// - Failed to load or save changes
 pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -92,7 +109,7 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
     let last_snapshot = snapshot_manager
         .load_snapshot(&last_commit_id)
-        .with_context(|| format!("Failed to load commit: {}", last_commit_id))?;
+        .with_context(|| format!("Failed to load commit: {last_commit_id}"))?;
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let mut index = Index::load(&index_path)?;
@@ -111,7 +128,8 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
 
     let mut tree_content = String::new();
     for (path, entry) in &index.staged_entries {
-        tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
+        use std::fmt::Write;
+        let _ = writeln!(&mut tree_content, "{} {}", entry.hash, path.display());
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
@@ -164,6 +182,11 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     Ok(())
 }
 
+/// Stage all tracked files for commit
+///
+/// # Errors
+///
+/// Returns an error if failed to find home directory or create file entries
 fn stage_all_tracked_files(_ctx: &DotmanContext, index: &mut Index) -> Result<()> {
     // Get home directory for making paths relative
     let home = dirs::home_dir().context("Could not find home directory")?;
@@ -184,12 +207,17 @@ fn stage_all_tracked_files(_ctx: &DotmanContext, index: &mut Index) -> Result<()
     }
 
     if staged > 0 {
-        super::print_info(&format!("Staged {} tracked file(s)", staged));
+        super::print_info(&format!("Staged {staged} tracked file(s)"));
     }
 
     Ok(())
 }
 
+/// Get the ID of the last commit
+///
+/// # Errors
+///
+/// Returns an error if failed to read HEAD
 fn get_last_commit_id(ctx: &DotmanContext) -> Result<Option<String>> {
     use crate::refs::RefManager;
 
@@ -197,6 +225,11 @@ fn get_last_commit_id(ctx: &DotmanContext) -> Result<Option<String>> {
     ref_manager.get_head_commit()
 }
 
+/// Update HEAD to point to a new commit
+///
+/// # Errors
+///
+/// Returns an error if failed to update HEAD or reflog
 fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     use crate::reflog::ReflogManager;
     use crate::refs::RefManager;
@@ -232,6 +265,8 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use crate::config::Config;
+
     use super::*;
     use std::path::PathBuf;
     use tempfile::tempdir;
@@ -245,7 +280,7 @@ mod tests {
         let ctx = DotmanContext {
             repo_path: repo_path.clone(),
             config_path: dir.path().join("config"),
-            config: Default::default(),
+            config: Config::default(),
             no_pager: true,
         };
 
@@ -295,7 +330,7 @@ mod tests {
             path: test_file.clone(),
             hash: "test_hash_1".to_string(),
             size: 100,
-            modified: 1234567890,
+            modified: 1_234_567_890,
             mode: 0o644,
         });
         let index_path = repo_path.join(INDEX_FILE);
@@ -316,7 +351,7 @@ mod tests {
             path: test_file,
             hash: "test_hash_2".to_string(),
             size: 200,
-            modified: 1234567891,
+            modified: 1_234_567_891,
             mode: 0o644,
         });
         index.save(&index_path)?;

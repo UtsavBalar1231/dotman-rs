@@ -6,6 +6,13 @@ use chrono::{Local, TimeZone};
 use colored::Colorize;
 
 /// Execute the reflog command to show HEAD update history
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - Cannot read the reflog entries
+/// - Pager output fails
 pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -37,7 +44,7 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> R
             output.appendln(&format!(
                 "{} {}: {}: {}",
                 entry.short_hash().yellow(),
-                format!("HEAD@{{{}}}", index).cyan(),
+                format!("HEAD@{{{index}}}").cyan(),
                 entry.operation.green(),
                 entry.message
             ));
@@ -51,7 +58,7 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> R
             output.appendln(&format!(
                 "{} {} ({})",
                 entry.short_hash().yellow(),
-                format!("HEAD@{{{}}}", index).cyan(),
+                format!("HEAD@{{{index}}}").cyan(),
                 datetime.format("%Y-%m-%d %H:%M:%S").to_string().dimmed()
             ));
 
@@ -78,6 +85,7 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> R
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::Config;
     use crate::reflog::ReflogManager;
     use crate::test_utils::fixtures::{create_test_context, test_commit_id};
     use tempfile::TempDir;
@@ -145,14 +153,14 @@ mod tests {
 
         // Add multiple entries with valid commit IDs
         for i in 0..5 {
-            let old_commit = test_commit_id(&format!("old{:02}", i));
-            let new_commit = test_commit_id(&format!("new{:02}", i));
+            let old_commit = test_commit_id(&format!("old{i:02}"));
+            let new_commit = test_commit_id(&format!("new{i:02}"));
 
             reflog_manager.log_head_update(
                 &old_commit,
                 &new_commit,
                 "commit",
-                &format!("Commit {}", i),
+                &format!("Commit {i}"),
             )?;
         }
 
@@ -192,7 +200,7 @@ mod tests {
         let ctx = DotmanContext {
             repo_path: home_dir.join("nonexistent"),
             config_path: home_dir.join(".config/dotman/config"),
-            config: Default::default(),
+            config: Config::default(),
             no_pager: true,
         };
 
@@ -208,14 +216,14 @@ mod tests {
 
         // Add more entries than the default limit with valid commit IDs
         for i in 0..25 {
-            let old_commit = test_commit_id(&format!("old{:02}", i));
-            let new_commit = test_commit_id(&format!("new{:02}", i));
+            let old_commit = test_commit_id(&format!("old{i:02}"));
+            let new_commit = test_commit_id(&format!("new{i:02}"));
 
             reflog_manager.log_head_update(
                 &old_commit,
                 &new_commit,
                 "commit",
-                &format!("Commit {}", i),
+                &format!("Commit {i}"),
             )?;
         }
 

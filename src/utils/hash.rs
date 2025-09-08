@@ -5,11 +5,19 @@ use std::fs::File;
 use std::path::Path;
 use xxhash_rust::xxh3::{Xxh3, xxh3_128};
 
+#[must_use]
 pub fn hash_bytes(data: &[u8]) -> String {
     let hash = xxh3_128(data);
-    format!("{:032x}", hash)
+    format!("{hash:032x}")
 }
 
+/// Hash a file using xxHash3
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - File cannot be opened
+/// - Memory mapping fails for large files
 pub fn hash_file(path: &Path) -> Result<String> {
     let file = File::open(path)?;
     let metadata = file.metadata()?;
@@ -27,6 +35,13 @@ pub fn hash_file(path: &Path) -> Result<String> {
     }
 }
 
+/// Hash a file using streaming I/O (useful for very large files)
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - File cannot be opened
+/// - Reading from file fails
 pub fn hash_file_streaming(path: &Path) -> Result<String> {
     use std::io::Read;
 
@@ -43,9 +58,14 @@ pub fn hash_file_streaming(path: &Path) -> Result<String> {
     }
 
     let hash = hasher.digest128();
-    Ok(format!("{:032x}", hash))
+    Ok(format!("{hash:032x}"))
 }
 
+/// Hash multiple files in parallel
+///
+/// # Errors
+///
+/// Returns an error if any file fails to hash
 pub fn hash_files_parallel(paths: &[&Path]) -> Result<Vec<(String, String)>> {
     paths
         .par_iter()
@@ -56,6 +76,11 @@ pub fn hash_files_parallel(paths: &[&Path]) -> Result<Vec<(String, String)>> {
         .collect()
 }
 
+/// Verify a file's hash matches the expected value
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be hashed
 pub fn verify_hash(path: &Path, expected_hash: &str) -> Result<bool> {
     let actual_hash = hash_file(path)?;
     Ok(actual_hash == expected_hash)
@@ -72,20 +97,28 @@ impl Default for Deduplicator {
 }
 
 impl Deduplicator {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             seen_hashes: dashmap::DashSet::new(),
         }
     }
 
+    #[must_use]
     pub fn is_duplicate(&self, hash: &str) -> bool {
         !self.seen_hashes.insert(hash.to_string())
     }
 
+    #[must_use]
     pub fn add_hash(&self, hash: String) -> bool {
         self.seen_hashes.insert(hash)
     }
 
+    /// Filter out duplicate files based on content hash
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any file fails to hash
     pub fn deduplicate_files<'a>(&self, paths: &[&'a Path]) -> Result<Vec<&'a Path>> {
         let mut unique_files = Vec::new();
 

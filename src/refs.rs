@@ -11,11 +11,19 @@ pub struct RefManager {
 }
 
 impl RefManager {
-    pub fn new(repo_path: PathBuf) -> Self {
+    #[must_use]
+    pub const fn new(repo_path: PathBuf) -> Self {
         Self { repo_path }
     }
 
     /// Initialize refs structure for a new repository
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to create directory structure
+    /// - Failed to create default branch
+    /// - Failed to set HEAD
     pub fn init(&self) -> Result<()> {
         fs::create_dir_all(self.repo_path.join("refs/heads"))?;
         fs::create_dir_all(self.repo_path.join("refs/remotes"))?;
@@ -29,6 +37,10 @@ impl RefManager {
     }
 
     /// Get the current branch name
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if HEAD file cannot be read
     pub fn current_branch(&self) -> Result<Option<String>> {
         let head_path = self.repo_path.join("HEAD");
         if !head_path.exists() {
@@ -46,15 +58,25 @@ impl RefManager {
     }
 
     /// Set HEAD to point to a branch
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if HEAD cannot be updated
     pub fn set_head_to_branch(&self, branch: &str) -> Result<()> {
         self.set_head_to_branch_with_reflog(
             branch,
             "checkout",
-            &format!("checkout: moving to {}", branch),
+            &format!("checkout: moving to {branch}"),
         )
     }
 
     /// Set HEAD to point to a branch with reflog entry
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - HEAD file cannot be written
+    /// - Reflog entry cannot be created
     pub fn set_head_to_branch_with_reflog(
         &self,
         branch: &str,
@@ -66,7 +88,7 @@ impl RefManager {
             .unwrap_or_else(|| "0".repeat(40));
 
         let head_path = self.repo_path.join("HEAD");
-        let new_ref = format!("ref: refs/heads/{}", branch);
+        let new_ref = format!("ref: refs/heads/{branch}");
         fs::write(&head_path, &new_ref)?;
 
         // Log the reflog entry
@@ -89,6 +111,10 @@ impl RefManager {
     }
 
     /// Set HEAD to point directly to a commit (detached HEAD)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if HEAD cannot be updated
     pub fn set_head_to_commit(&self, commit_id: &str) -> Result<()> {
         self.set_head_to_commit_with_reflog(
             commit_id,
@@ -101,6 +127,12 @@ impl RefManager {
     }
 
     /// Set HEAD to point directly to a commit with reflog entry
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - HEAD file cannot be written
+    /// - Reflog entry cannot be created
     pub fn set_head_to_commit_with_reflog(
         &self,
         commit_id: &str,
@@ -122,8 +154,14 @@ impl RefManager {
     }
 
     /// Create a new branch
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to get current HEAD commit
+    /// - Failed to write branch file
     pub fn create_branch(&self, name: &str, commit_id: Option<&str>) -> Result<()> {
-        let branch_path = self.repo_path.join(format!("refs/heads/{}", name));
+        let branch_path = self.repo_path.join(format!("refs/heads/{name}"));
 
         // If commit_id is provided, use it; otherwise use current HEAD
         let commit = if let Some(id) = commit_id {
@@ -137,6 +175,14 @@ impl RefManager {
     }
 
     /// Delete a branch
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Trying to delete the current branch
+    /// - Trying to delete the main branch
+    /// - Branch does not exist
+    /// - Failed to delete branch file
     pub fn delete_branch(&self, name: &str) -> Result<()> {
         // Prevent deletion of current branch
         if self.current_branch()?.as_ref().is_some_and(|c| c == name) {
@@ -146,7 +192,7 @@ impl RefManager {
             ));
         }
 
-        let branch_path = self.repo_path.join(format!("refs/heads/{}", name));
+        let branch_path = self.repo_path.join(format!("refs/heads/{name}"));
         if !branch_path.exists() {
             return Err(anyhow::anyhow!("Branch '{}' does not exist", name));
         }
@@ -156,6 +202,10 @@ impl RefManager {
     }
 
     /// List all local branches
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if directory cannot be read
     pub fn list_branches(&self) -> Result<Vec<String>> {
         let heads_dir = self.repo_path.join("refs/heads");
         if !heads_dir.exists() {
@@ -177,8 +227,14 @@ impl RefManager {
     }
 
     /// Get the commit ID for a branch
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Branch does not exist
+    /// - Branch file cannot be read
     pub fn get_branch_commit(&self, branch: &str) -> Result<String> {
-        let branch_path = self.repo_path.join(format!("refs/heads/{}", branch));
+        let branch_path = self.repo_path.join(format!("refs/heads/{branch}"));
         if !branch_path.exists() {
             return Err(anyhow::anyhow!("Branch '{}' does not exist", branch));
         }
@@ -187,8 +243,14 @@ impl RefManager {
     }
 
     /// Update the commit ID for a branch
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Branch does not exist
+    /// - Branch file cannot be written
     pub fn update_branch(&self, branch: &str, commit_id: &str) -> Result<()> {
-        let branch_path = self.repo_path.join(format!("refs/heads/{}", branch));
+        let branch_path = self.repo_path.join(format!("refs/heads/{branch}"));
         if !branch_path.exists() {
             return Err(anyhow::anyhow!("Branch '{}' does not exist", branch));
         }
@@ -198,6 +260,12 @@ impl RefManager {
     }
 
     /// Get the current HEAD commit (whether from branch or detached)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - HEAD file cannot be read
+    /// - Referenced branch file cannot be read
     pub fn get_head_commit(&self) -> Result<Option<String>> {
         let head_path = self.repo_path.join("HEAD");
         if !head_path.exists() {
@@ -208,7 +276,7 @@ impl RefManager {
 
         if let Some(branch_name) = head_content.strip_prefix("ref: refs/heads/") {
             // Read the branch file to get the commit
-            let branch_path = self.repo_path.join(format!("refs/heads/{}", branch_name));
+            let branch_path = self.repo_path.join(format!("refs/heads/{branch_name}"));
             if branch_path.exists() {
                 return Ok(Some(fs::read_to_string(&branch_path)?.trim().to_string()));
             }
@@ -221,14 +289,23 @@ impl RefManager {
     }
 
     /// Check if a branch exists
+    #[must_use]
     pub fn branch_exists(&self, name: &str) -> bool {
-        self.repo_path.join(format!("refs/heads/{}", name)).exists()
+        self.repo_path.join(format!("refs/heads/{name}")).exists()
     }
 
     /// Rename a branch
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Old branch does not exist
+    /// - New branch already exists
+    /// - Failed to rename files
+    /// - Current branch is being renamed and HEAD update fails
     pub fn rename_branch(&self, old_name: &str, new_name: &str) -> Result<()> {
-        let old_path = self.repo_path.join(format!("refs/heads/{}", old_name));
-        let new_path = self.repo_path.join(format!("refs/heads/{}", new_name));
+        let old_path = self.repo_path.join(format!("refs/heads/{old_name}"));
+        let new_path = self.repo_path.join(format!("refs/heads/{new_name}"));
 
         if !old_path.exists() {
             return Err(anyhow::anyhow!("Branch '{}' does not exist", old_name));
@@ -249,7 +326,7 @@ impl RefManager {
             self.set_head_to_branch_with_reflog(
                 new_name,
                 "branch",
-                &format!("Branch: renamed {} to {}", old_name, new_name),
+                &format!("Branch: renamed {old_name} to {new_name}"),
             )?;
         }
 
@@ -259,8 +336,15 @@ impl RefManager {
     // Tag management methods
 
     /// Create a new tag
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Tag already exists
+    /// - No commits available to tag
+    /// - Failed to create tag file
     pub fn create_tag(&self, name: &str, commit_id: Option<&str>) -> Result<()> {
-        let tag_path = self.repo_path.join(format!("refs/tags/{}", name));
+        let tag_path = self.repo_path.join(format!("refs/tags/{name}"));
 
         if tag_path.exists() {
             return Err(anyhow::anyhow!("Tag '{}' already exists", name));
@@ -284,8 +368,14 @@ impl RefManager {
     }
 
     /// Delete a tag
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Tag does not exist
+    /// - Failed to delete tag file
     pub fn delete_tag(&self, name: &str) -> Result<()> {
-        let tag_path = self.repo_path.join(format!("refs/tags/{}", name));
+        let tag_path = self.repo_path.join(format!("refs/tags/{name}"));
 
         if !tag_path.exists() {
             return Err(anyhow::anyhow!("Tag '{}' does not exist", name));
@@ -296,6 +386,10 @@ impl RefManager {
     }
 
     /// List all tags
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if directory cannot be read
     pub fn list_tags(&self) -> Result<Vec<String>> {
         let tags_dir = self.repo_path.join("refs/tags");
         if !tags_dir.exists() {
@@ -317,8 +411,14 @@ impl RefManager {
     }
 
     /// Get the commit ID for a tag
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Tag does not exist
+    /// - Tag file cannot be read
     pub fn get_tag_commit(&self, tag: &str) -> Result<String> {
-        let tag_path = self.repo_path.join(format!("refs/tags/{}", tag));
+        let tag_path = self.repo_path.join(format!("refs/tags/{tag}"));
         if !tag_path.exists() {
             return Err(anyhow::anyhow!("Tag '{}' does not exist", tag));
         }
@@ -327,8 +427,9 @@ impl RefManager {
     }
 
     /// Check if a tag exists
+    #[must_use]
     pub fn tag_exists(&self, name: &str) -> bool {
-        self.repo_path.join(format!("refs/tags/{}", name)).exists()
+        self.repo_path.join(format!("refs/tags/{name}")).exists()
     }
 }
 

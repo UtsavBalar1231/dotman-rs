@@ -13,15 +13,15 @@ use tempfile::tempdir;
 
 /// Safety validator to ensure test paths don't escape temp directories
 fn validate_test_path_safety(path: &std::path::Path, allowed_base: &std::path::Path) -> bool {
-    match path.canonicalize() {
-        Ok(canonical) => canonical.starts_with(allowed_base),
-        Err(_) => {
+    path.canonicalize().map_or_else(
+        |_| {
             // If canonicalization fails, be conservative and check string representation
             !path.to_string_lossy().contains("..")
                 && !path.to_string_lossy().starts_with('/')
                 && !path.to_string_lossy().contains('~')
-        }
-    }
+        },
+        |canonical| canonical.starts_with(allowed_base),
+    )
 }
 
 // Helper function to create test context
@@ -44,7 +44,7 @@ fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
     fs::write(repo_path.join("HEAD"), "")?;
 
     let mut config = Config::default();
-    config.core.repo_path = repo_path.clone();
+    config.core.repo_path.clone_from(&repo_path);
     config.save(&config_path)?;
 
     let context = DotmanContext {
@@ -69,7 +69,7 @@ prop_compose! {
         // Exclude reserved directory names to avoid conflicts
         let reserved_names = ["dotman", ".dotman", "commits", "objects", "config.toml", "index.bin"];
         if reserved_names.contains(&name.as_str()) {
-            format!("safe_{}", name)
+            format!("safe_{name}")
         } else {
             name
         }
@@ -106,7 +106,7 @@ proptest! {
 
         // Safely attempt to write file
         match fs::write(&file_path, &content) {
-            Ok(_) => {},
+            Ok(()) => {},
             Err(_) => return Ok(()), // Skip if file creation fails (e.g., invalid filename)
         }
 
@@ -115,15 +115,12 @@ proptest! {
         let result = commands::add::execute(&ctx, &paths, false);
 
         // Should either succeed or fail gracefully
-        match result {
-            Ok(_) => {
-                // If successful, operations should still work
-                let status_result = commands::status::execute(&ctx, false, false);
-                prop_assert!(status_result.is_ok(), "Status should work after successful add");
-            }
-            Err(_) => {
-                // Graceful failure is acceptable
-            }
+        if matches!(result, Ok(())) {
+            // If successful, operations should still work
+            let status_result = commands::status::execute(&ctx, false, false);
+            prop_assert!(status_result.is_ok(), "Status should work after successful add");
+        } else {
+            // Graceful failure is acceptable
         }
     }
 
@@ -142,20 +139,17 @@ proptest! {
         let file_path = dir.path().join(&filename);
 
         // Try to create file (may fail on some filesystems)
-        if let Ok(()) = fs::write(&file_path, content) {
+        if matches!(fs::write(&file_path, content), Ok(())) {
             let paths = vec![file_path.to_string_lossy().to_string()];
             let result = commands::add::execute(&ctx, &paths, false);
 
             // Should handle Unicode filenames gracefully
-            match result {
-                Ok(_) => {
-                    // Unicode handling should work
-                    let status_result = commands::status::execute(&ctx, false, false);
-                    prop_assert!(status_result.is_ok());
-                }
-                Err(_) => {
-                    // Graceful rejection is acceptable
-                }
+            if matches!(result, Ok(())) {
+                // Unicode handling should work
+                let status_result = commands::status::execute(&ctx, false, false);
+                prop_assert!(status_result.is_ok());
+            } else {
+                // Graceful rejection is acceptable
             }
         }
     }
@@ -179,24 +173,21 @@ proptest! {
         }
 
         // Create file
-        if let Ok(()) = fs::write(&nested_path, content) {
+        if matches!(fs::write(&nested_path, content), Ok(())) {
             let paths = vec![nested_path.to_string_lossy().to_string()];
             let result = commands::add::execute(&ctx, &paths, false);
 
             // Should handle nested paths properly
-            match result {
-                Ok(_) => {
-                    // Verify the file was added to staging area
-                    let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
-                    let has_entry = index.staged_entries.keys().any(|p| {
-                        p.to_string_lossy().contains(&path_components.join("/")) ||
-                        p.file_name() == nested_path.file_name()
-                    });
-                    prop_assert!(has_entry, "File should be in staging area");
-                }
-                Err(_) => {
-                    // Graceful failure acceptable
-                }
+            if matches!(result, Ok(())) {
+                // Verify the file was added to staging area
+                let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
+                let has_entry = index.staged_entries.keys().any(|p| {
+                    p.to_string_lossy().contains(&path_components.join("/")) ||
+                    p.file_name() == nested_path.file_name()
+                });
+                prop_assert!(has_entry, "File should be in staging area");
+            } else {
+                // Graceful failure acceptable
             }
         }
     }
@@ -211,9 +202,9 @@ proptest! {
         // Create many files
         let mut created_files = Vec::new();
         for i in 0..file_count {
-            let filename = format!("{}_{}.txt", base_name, i);
+            let filename = format!("{base_name}_{i}.txt");
             let file_path = dir.path().join(&filename);
-            let content = format!("Content for file {}", i);
+            let content = format!("Content for file {i}");
 
             if fs::write(&file_path, content).is_ok() {
                 created_files.push(file_path);
@@ -229,19 +220,16 @@ proptest! {
             let result = commands::add::execute(&ctx, &paths, false);
 
             // Should handle batch operations
-            match result {
-                Ok(_) => {
-                    // Verify all files were added to staging area
-                    let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
-                    prop_assert!(index.staged_entries.len() >= created_files.len());
+            if matches!(result, Ok(())) {
+                // Verify all files were added to staging area
+                let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
+                prop_assert!(index.staged_entries.len() >= created_files.len());
 
-                    // Status should work with many files
-                    let status_result = commands::status::execute(&ctx, false, false);
-                    prop_assert!(status_result.is_ok());
-                }
-                Err(_) => {
-                    // May fail due to resource limits - acceptable
-                }
+                // Status should work with many files
+                let status_result = commands::status::execute(&ctx, false, false);
+                prop_assert!(status_result.is_ok());
+            } else {
+                // May fail due to resource limits - acceptable
             }
         }
     }
@@ -259,33 +247,26 @@ proptest! {
         let config_content = format!(
             r#"
             [core]
-            default_branch = "{}"
-            compression_level = {}
+            default_branch = "{branch_name}"
+            compression_level = {compression_level}
             
             [performance]
-            parallel_threads = {}
-            cache_size = {}
-            "#,
-            branch_name,
-            compression_level,
-            parallel_threads,
-            cache_size
+            parallel_threads = {parallel_threads}
+            cache_size = {cache_size}
+            "#
         );
 
         fs::write(&config_path, config_content).unwrap();
 
         let result = Config::load(&config_path);
-        match result {
-            Ok(config) => {
-                // If it loads, values should be within valid ranges
-                prop_assert!(config.core.compression_level >= 1 && config.core.compression_level <= 22);
-                prop_assert!(config.performance.parallel_threads >= 1);
-                prop_assert!(config.performance.cache_size <= 10000);
-                prop_assert!(!config.core.default_branch.is_empty());
-            }
-            Err(_) => {
-                // May reject values outside valid ranges
-            }
+        if let Ok(config) = result {
+            // If it loads, values should be within valid ranges
+            prop_assert!(config.core.compression_level >= 1 && config.core.compression_level <= 22);
+            prop_assert!(config.performance.parallel_threads >= 1);
+            prop_assert!(config.performance.cache_size <= 10000);
+            prop_assert!(!config.core.default_branch.is_empty());
+        } else {
+            // May reject values outside valid ranges
         }
     }
 
@@ -350,6 +331,7 @@ proptest! {
         let (dir, ctx) = setup_test_context().unwrap();
 
         // Create large file with pattern
+        #[allow(clippy::cast_possible_truncation)]
         let large_content: Vec<u8> = (0..file_size).map(|i| (i % 256) as u8).collect();
         let large_file = dir.path().join("large_file.dat");
 
@@ -357,19 +339,16 @@ proptest! {
             let paths = vec![large_file.to_string_lossy().to_string()];
             let result = commands::add::execute(&ctx, &paths, false);
 
-            match result {
-                Ok(_) => {
-                    // Large files should be handled correctly
-                    let status_result = commands::status::execute(&ctx, false, false);
-                    prop_assert!(status_result.is_ok(), "Status should work with large files");
+            if matches!(result, Ok(())) {
+                // Large files should be handled correctly
+                let status_result = commands::status::execute(&ctx, false, false);
+                prop_assert!(status_result.is_ok(), "Status should work with large files");
 
-                    // Commit should work
-                    let commit_result = commands::commit::execute(&ctx, "Large file commit", false);
-                    prop_assert!(commit_result.is_ok(), "Should be able to commit large files");
-                }
-                Err(_) => {
-                    // May fail due to size limits - acceptable
-                }
+                // Commit should work
+                let commit_result = commands::commit::execute(&ctx, "Large file commit", false);
+                prop_assert!(commit_result.is_ok(), "Should be able to commit large files");
+            } else {
+                // May fail due to size limits - acceptable
             }
         }
     }
@@ -392,7 +371,7 @@ proptest! {
 
         let legitimate_file = dir.path().join(&safe_filename);
         match fs::write(&legitimate_file, "test content") {
-            Ok(_) => {},
+            Ok(()) => {},
             Err(_) => return Ok(()), // Skip if file creation fails
         }
 
@@ -402,7 +381,7 @@ proptest! {
         for _ in 0..traversal_depth {
             traversal_prefix.push_str("../");
         }
-        let theoretical_malicious_path = format!("{}{}", traversal_prefix, safe_filename);
+        let theoretical_malicious_path = format!("{traversal_prefix}{safe_filename}");
 
         // SAFETY CHECK: Use our safety validator before attempting the test
         let resolved_path = dir.path().join(&theoretical_malicious_path);
@@ -415,29 +394,26 @@ proptest! {
         // This test documents the expected secure behavior, not the current buggy behavior
         let result = commands::add::execute(&ctx, std::slice::from_ref(&theoretical_malicious_path), false);
 
-        match result {
-            Ok(_) => {
-                // If it succeeds, verify the indexed paths are within safe boundaries
-                let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
-                for path in index.entries.keys() {
-                    let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
+        if matches!(result, Ok(())) {
+            // If it succeeds, verify the indexed paths are within safe boundaries
+            let index = Index::load(&ctx.repo_path.join("index.bin")).unwrap();
+            for path in index.entries.keys() {
+                let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
 
-                    // SECURITY CHECK: Ensure no path escapes the temp directory
-                    let is_safe = canonical.starts_with(dir.path()) || canonical.starts_with(&ctx.repo_path);
+                // SECURITY CHECK: Ensure no path escapes the temp directory
+                let is_safe = canonical.starts_with(dir.path()) || canonical.starts_with(&ctx.repo_path);
 
-                    if !is_safe {
-                        // This documents the vulnerability without exploiting it dangerously
-                        println!("WARNING: Path traversal vulnerability detected but contained in test: {} -> {}",
+                if !is_safe {
+                    // This documents the vulnerability without exploiting it dangerously
+                    println!("WARNING: Path traversal vulnerability detected but contained in test: {} -> {}",
+                           theoretical_malicious_path, canonical.display());
+                    prop_assert!(is_safe, "Path traversal vulnerability: {} -> {}",
                                theoretical_malicious_path, canonical.display());
-                        prop_assert!(is_safe, "Path traversal vulnerability: {} -> {}",
-                                   theoretical_malicious_path, canonical.display());
-                    }
                 }
             }
-            Err(_) => {
-                // Good - properly rejected path traversal attempt
-                // This is the expected secure behavior
-            }
+        } else {
+            // Good - properly rejected path traversal attempt
+            // This is the expected secure behavior
         }
     }
 

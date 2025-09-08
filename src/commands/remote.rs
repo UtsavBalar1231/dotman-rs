@@ -4,6 +4,10 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 
 /// List all configured remotes
+///
+/// # Errors
+///
+/// Returns an error if remotes cannot be accessed
 pub fn list(ctx: &DotmanContext) -> Result<()> {
     if ctx.config.remotes.is_empty() {
         super::print_info("No remotes configured");
@@ -24,6 +28,12 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
 }
 
 /// Add a new remote
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - A remote with the same name already exists
+/// - Failed to save configuration
 pub fn add(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
     if ctx.config.remotes.contains_key(name) {
         return Err(anyhow::anyhow!("Remote '{}' already exists", name));
@@ -40,43 +50,59 @@ pub fn add(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
     ctx.config.set_remote(name.to_string(), remote);
     ctx.config.save(&ctx.config_path)?;
 
-    super::print_success(&format!("Added remote '{}'", name));
+    super::print_success(&format!("Added remote '{name}'"));
     Ok(())
 }
 
 /// Remove a remote
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The remote does not exist
+/// - Failed to save configuration
 pub fn remove(ctx: &mut DotmanContext, name: &str) -> Result<()> {
     if ctx.config.remove_remote(name).is_none() {
         return Err(anyhow::anyhow!("Remote '{}' does not exist", name));
     }
 
     ctx.config.save(&ctx.config_path)?;
-    super::print_success(&format!("Removed remote '{}'", name));
+    super::print_success(&format!("Removed remote '{name}'"));
     Ok(())
 }
 
 /// Set or update the URL for a remote
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The remote does not exist
+/// - Failed to save configuration
 pub fn set_url(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
     let remote = ctx
         .config
         .remotes
         .get_mut(name)
-        .with_context(|| format!("Remote '{}' does not exist", name))?;
+        .with_context(|| format!("Remote '{name}' does not exist"))?;
 
     remote.url = Some(url.to_string());
     remote.remote_type = detect_remote_type(url);
 
     ctx.config.save(&ctx.config_path)?;
-    super::print_success(&format!("Updated URL for remote '{}'", name));
+    super::print_success(&format!("Updated URL for remote '{name}'"));
     Ok(())
 }
 
 /// Show detailed information about a remote
+///
+/// # Errors
+///
+/// Returns an error if the remote does not exist
 pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
     let remote = ctx
         .config
         .get_remote(name)
-        .with_context(|| format!("Remote '{}' does not exist", name))?;
+        .with_context(|| format!("Remote '{name}' does not exist"))?;
 
     println!("* remote {}", name.yellow());
     println!("  URL: {}", remote.url.as_deref().unwrap_or("<no url>"));
@@ -102,6 +128,13 @@ pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
 }
 
 /// Rename a remote
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The old remote does not exist
+/// - The new name is already in use
+/// - Failed to save configuration
 pub fn rename(ctx: &mut DotmanContext, old_name: &str, new_name: &str) -> Result<()> {
     if !ctx.config.remotes.contains_key(old_name) {
         return Err(anyhow::anyhow!("Remote '{}' does not exist", old_name));
@@ -115,7 +148,7 @@ pub fn rename(ctx: &mut DotmanContext, old_name: &str, new_name: &str) -> Result
     let remote = ctx
         .config
         .remove_remote(old_name)
-        .with_context(|| format!("Failed to remove remote '{}' during rename", old_name))?;
+        .with_context(|| format!("Failed to remove remote '{old_name}' during rename"))?;
     ctx.config.set_remote(new_name.to_string(), remote);
 
     // Update branch tracking references
@@ -126,11 +159,12 @@ pub fn rename(ctx: &mut DotmanContext, old_name: &str, new_name: &str) -> Result
     }
 
     ctx.config.save(&ctx.config_path)?;
-    super::print_success(&format!("Renamed remote '{}' to '{}'", old_name, new_name));
+    super::print_success(&format!("Renamed remote '{old_name}' to '{new_name}'"));
     Ok(())
 }
 
 /// Detect remote type from URL
+#[allow(clippy::case_sensitive_file_extension_comparisons)]
 fn detect_remote_type(url: &str) -> RemoteType {
     if url.starts_with("s3://") || url.contains("amazonaws.com") {
         RemoteType::S3

@@ -5,6 +5,13 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 
 /// List all branches
+/// List all branches
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - Failed to read branch information
 pub fn list(ctx: &DotmanContext) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -21,18 +28,25 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
         let is_current = current.as_ref().is_some_and(|c| c == &branch);
         let prefix = if is_current { "* " } else { "  " };
 
-        let tracking_info = if let Some(tracking) = ctx.config.branches.tracking.get(&branch) {
-            format!(" -> {}/{}", tracking.remote, tracking.branch)
-                .dimmed()
-                .to_string()
-        } else {
-            "".to_string()
-        };
+        let tracking_info =
+            ctx.config
+                .branches
+                .tracking
+                .get(&branch)
+                .map_or_else(String::new, |tracking| {
+                    format!(" -> {}/{}", tracking.remote, tracking.branch)
+                        .dimmed()
+                        .to_string()
+                });
 
         if is_current {
-            println!("{}{}{}", prefix.green(), branch.green(), tracking_info);
+            println!(
+                "{}{branch}{tracking_info}",
+                prefix.green(),
+                branch = branch.green()
+            );
         } else {
-            println!("{}{}{}", prefix, branch, tracking_info);
+            println!("{prefix}{branch}{tracking_info}");
         }
     }
 
@@ -40,13 +54,21 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
 }
 
 /// Create a new branch
+/// Create a new branch
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - Branch already exists
+/// - Failed to create branch
 pub fn create(ctx: &DotmanContext, name: &str, start_point: Option<&str>) -> Result<()> {
     ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
     if ref_manager.branch_exists(name) {
-        return Err(anyhow::anyhow!("Branch '{}' already exists", name));
+        return Err(anyhow::anyhow!("Branch '{name}' already exists"));
     }
 
     // If start_point is provided, resolve it to a commit
@@ -65,12 +87,19 @@ pub fn create(ctx: &DotmanContext, name: &str, start_point: Option<&str>) -> Res
     };
 
     ref_manager.create_branch(name, commit_id)?;
-    super::print_success(&format!("Created branch '{}'", name));
+    super::print_success(&format!("Created branch '{name}'"));
 
     Ok(())
 }
 
 /// Delete a branch
+/// Delete a branch
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - Failed to delete branch
 pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -82,23 +111,31 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
     }
 
     ref_manager.delete_branch(name)?;
-    super::print_success(&format!("Deleted branch '{}'", name));
+    super::print_success(&format!("Deleted branch '{name}'"));
 
     Ok(())
 }
 
 /// Switch to a branch
+/// Switch to a branch
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - Branch does not exist
+/// - Failed to switch branch
 pub fn checkout(ctx: &DotmanContext, name: &str) -> Result<()> {
     ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
     if !ref_manager.branch_exists(name) {
-        return Err(anyhow::anyhow!("Branch '{}' does not exist", name));
+        return Err(anyhow::anyhow!("Branch '{name}' does not exist"));
     }
 
     ref_manager.set_head_to_branch(name)?;
-    super::print_success(&format!("Switched to branch '{}'", name));
+    super::print_success(&format!("Switched to branch '{name}'"));
 
     // TODO: Update working directory to match branch state
 
@@ -106,6 +143,14 @@ pub fn checkout(ctx: &DotmanContext, name: &str) -> Result<()> {
 }
 
 /// Rename a branch
+/// Rename a branch
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - Not on any branch (when renaming current)
+/// - Failed to rename branch
 pub fn rename(ctx: &DotmanContext, old_name: Option<&str>, new_name: &str) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -121,12 +166,19 @@ pub fn rename(ctx: &DotmanContext, old_name: Option<&str>, new_name: &str) -> Re
     };
 
     ref_manager.rename_branch(&old, new_name)?;
-    super::print_success(&format!("Renamed branch '{}' to '{}'", old, new_name));
+    super::print_success(&format!("Renamed branch '{old}' to '{new_name}'"));
 
     Ok(())
 }
 
 /// Set upstream tracking for a branch
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The branch does not exist
+/// - Failed to update branch configuration
 pub fn set_upstream(
     ctx: &mut DotmanContext,
     branch: Option<&str>,
@@ -170,14 +222,20 @@ pub fn set_upstream(
     ctx.config.save(&ctx.config_path)?;
 
     super::print_success(&format!(
-        "Branch '{}' set up to track '{}/{}'",
-        branch_name, remote, remote_branch_name
+        "Branch '{branch_name}' set up to track '{remote}/{remote_branch_name}'"
     ));
 
     Ok(())
 }
 
 /// Remove upstream tracking for a branch
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The branch does not exist
+/// - Failed to update branch configuration
 pub fn unset_upstream(ctx: &mut DotmanContext, branch: Option<&str>) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -192,15 +250,11 @@ pub fn unset_upstream(ctx: &mut DotmanContext, branch: Option<&str>) -> Result<(
     };
 
     if ctx.config.branches.tracking.remove(&branch_name).is_none() {
-        super::print_info(&format!(
-            "Branch '{}' has no upstream tracking",
-            branch_name
-        ));
+        super::print_info(&format!("Branch '{branch_name}' has no upstream tracking"));
     } else {
         ctx.config.save(&ctx.config_path)?;
         super::print_success(&format!(
-            "Removed upstream tracking for branch '{}'",
-            branch_name
+            "Removed upstream tracking for branch '{branch_name}'"
         ));
     }
 
@@ -231,7 +285,7 @@ mod tests {
 
         create(&ctx, "feature", None)?;
 
-        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        let ref_manager = RefManager::new(ctx.repo_path);
         assert!(ref_manager.branch_exists("feature"));
 
         Ok(())
@@ -256,7 +310,7 @@ mod tests {
         create(&ctx, "temp", None)?;
         delete(&ctx, "temp", false)?;
 
-        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        let ref_manager = RefManager::new(ctx.repo_path);
         assert!(!ref_manager.branch_exists("temp"));
 
         Ok(())
@@ -269,7 +323,7 @@ mod tests {
         create(&ctx, "feature", None)?;
         checkout(&ctx, "feature")?;
 
-        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        let ref_manager = RefManager::new(ctx.repo_path);
         assert_eq!(ref_manager.current_branch()?, Some("feature".to_string()));
 
         Ok(())
@@ -282,7 +336,7 @@ mod tests {
         create(&ctx, "old", None)?;
         rename(&ctx, Some("old"), "new")?;
 
-        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        let ref_manager = RefManager::new(ctx.repo_path);
         assert!(!ref_manager.branch_exists("old"));
         assert!(ref_manager.branch_exists("new"));
 

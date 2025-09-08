@@ -56,19 +56,24 @@ fmt-check:
     cargo fmt --all -- --check
 
 lint:
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --all-targets --all-features -- \
+        -D warnings \
+        -W clippy::nursery \
+        -W clippy::pedantic
 
 lint-strict:
     #!/usr/bin/env bash
     cargo clippy --all-targets --all-features -- \
         -D warnings \
-        -W clippy::integer_arithmetic \
+        -W clippy::expect_used \
         -W clippy::float_arithmetic \
         -W clippy::indexing_slicing \
-        -W clippy::unwrap_used \
-        -W clippy::expect_used \
+        -W clippy::integer_arithmetic \
+        -W clippy::mem_forget \
+        -W clippy::nursery \
         -W clippy::panic \
-        -W clippy::mem_forget
+        -W clippy::pedantic \
+        -W clippy::unwrap_used
 
 fix:
     cargo fix --allow-dirty --allow-staged --all-features

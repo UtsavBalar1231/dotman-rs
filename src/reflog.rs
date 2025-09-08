@@ -22,11 +22,15 @@ pub struct ReflogEntry {
 
 impl ReflogEntry {
     /// Create a new reflog entry with current timestamp
+    #[must_use]
     pub fn new(old_value: String, new_value: String, operation: String, message: String) -> Self {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64;
+        let timestamp = i64::try_from(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+        )
+        .unwrap_or(i64::MAX);
 
         Self {
             timestamp,
@@ -38,6 +42,7 @@ impl ReflogEntry {
     }
 
     /// Format entry as a single line for storage
+    #[must_use]
     pub fn to_line(&self) -> String {
         format!(
             "{} {} {} {}: {}",
@@ -45,7 +50,11 @@ impl ReflogEntry {
         )
     }
 
-    /// Parse a line from storage back into a ReflogEntry
+    /// Parse a line from storage back into a `ReflogEntry`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the line format is invalid or cannot be parsed
     pub fn from_line(line: &str) -> Result<Self> {
         let parts: Vec<&str> = line.splitn(5, ' ').collect();
         if parts.len() < 5 {
@@ -71,6 +80,7 @@ impl ReflogEntry {
 
     /// Get short commit hash (first 8 characters) for display
     /// Only truncates actual commit hashes, not symbolic references
+    #[must_use]
     pub fn short_hash(&self) -> &str {
         // Don't truncate symbolic references (e.g., "ref: refs/heads/main")
         if self.new_value.starts_with("ref:") {
@@ -93,7 +103,8 @@ pub struct ReflogManager {
 }
 
 impl ReflogManager {
-    /// Create a new ReflogManager for the given repository
+    /// Create a new `ReflogManager` for the given repository
+    #[must_use]
     pub fn new(repo_path: PathBuf) -> Self {
         let logs_dir = repo_path.join("logs");
         let head_log_path = logs_dir.join("HEAD");
@@ -106,12 +117,20 @@ impl ReflogManager {
     }
 
     /// Initialize the logs directory structure
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if directory creation fails
     pub fn init(&self) -> Result<()> {
         fs::create_dir_all(&self.logs_dir)?;
         Ok(())
     }
 
     /// Add a new entry to the HEAD reflog
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the reflog file cannot be written
     pub fn log_head_update(
         &self,
         old_value: &str,
@@ -142,6 +161,10 @@ impl ReflogManager {
     }
 
     /// Read all entries from the HEAD reflog
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the reflog file cannot be read
     pub fn read_head_log(&self) -> Result<Vec<ReflogEntry>> {
         if !self.head_log_path.exists() {
             return Ok(Vec::new());
@@ -158,7 +181,7 @@ impl ReflogManager {
                     Ok(entry) => entries.push(entry),
                     Err(_) => {
                         // Skip malformed lines but continue processing
-                        eprintln!("Warning: skipping malformed reflog entry: {}", line);
+                        eprintln!("Warning: skipping malformed reflog entry: {line}");
                     }
                 }
             }
@@ -168,6 +191,10 @@ impl ReflogManager {
     }
 
     /// Get the current HEAD value for reflog operations
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if HEAD file cannot be read or resolved
     pub fn get_current_head(&self) -> Result<String> {
         let head_path = self.repo_path.join("HEAD");
         if !head_path.exists() {
@@ -178,7 +205,7 @@ impl ReflogManager {
 
         // If HEAD points to a branch, resolve to the actual commit
         if let Some(branch_name) = head_content.strip_prefix("ref: refs/heads/") {
-            let branch_path = self.repo_path.join(format!("refs/heads/{}", branch_name));
+            let branch_path = self.repo_path.join(format!("refs/heads/{branch_name}"));
             if branch_path.exists() {
                 return Ok(fs::read_to_string(&branch_path)?.trim().to_string());
             }
@@ -223,7 +250,7 @@ mod tests {
     #[test]
     fn test_reflog_entry_serialization() -> Result<()> {
         let entry = ReflogEntry {
-            timestamp: 1640995200,
+            timestamp: 1_640_995_200,
             old_value: "abc123".to_string(),
             new_value: "def456".to_string(),
             operation: "commit".to_string(),

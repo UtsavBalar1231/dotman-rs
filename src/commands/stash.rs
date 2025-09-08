@@ -35,6 +35,14 @@ pub enum StashCommand {
 }
 
 /// Main stash command entry point
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - Stash operations fail (push, pop, apply, drop)
+/// - The specified stash does not exist
+/// - Conflicts occur when applying stashed changes
 pub fn execute(ctx: &DotmanContext, command: StashCommand) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -48,7 +56,7 @@ pub fn execute(ctx: &DotmanContext, command: StashCommand) -> Result<()> {
         StashCommand::Apply { stash_id } => apply_stash(ctx, stash_id, false),
         StashCommand::List => list_stashes(ctx),
         StashCommand::Show { stash_id } => show_stash(ctx, stash_id),
-        StashCommand::Drop { stash_id } => drop_stash(ctx, stash_id),
+        StashCommand::Drop { stash_id } => drop_stash(ctx, &stash_id),
         StashCommand::Clear => clear_stashes(ctx),
     }
 }
@@ -147,7 +155,7 @@ fn push_stash(
 
     // Create stash entry
     let stash_entry = StashEntry {
-        id: stash_id.clone(),
+        id: stash_id,
         message: message.clone(),
         timestamp: crate::utils::get_current_timestamp(),
         parent_commit: head_commit,
@@ -304,11 +312,10 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
 
     if conflicts > 0 {
         super::print_warning(&format!(
-            "Applied stash with {} conflicts. Please resolve them manually.",
-            conflicts
+            "Applied stash with {conflicts} conflicts. Please resolve them manually."
         ));
     } else {
-        super::print_success(&format!("Applied {} changes from stash", applied));
+        super::print_success(&format!("Applied {applied} changes from stash"));
     }
 
     Ok(())
@@ -327,9 +334,10 @@ fn list_stashes(ctx: &DotmanContext) -> Result<()> {
     println!("{}", "Stash entries:".bold());
     for (i, stash_id) in stashes.iter().enumerate() {
         let stash = stash_manager.load_stash(stash_id)?;
-        let timestamp = chrono::DateTime::from_timestamp(stash.timestamp, 0)
-            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-            .unwrap_or_else(|| "Unknown time".to_string());
+        let timestamp = chrono::DateTime::from_timestamp(stash.timestamp, 0).map_or_else(
+            || "Unknown time".to_string(),
+            |dt| dt.format("%Y-%m-%d %H:%M:%S").to_string(),
+        );
 
         println!(
             "  stash@{{{}}}: {} - {} ({})",
@@ -365,9 +373,10 @@ fn show_stash(ctx: &DotmanContext, stash_id: Option<String>) -> Result<()> {
     output.appendln(&format!("  Parent: {}", stash.parent_commit.dimmed()));
     output.appendln(&format!(
         "  Created: {}",
-        chrono::DateTime::from_timestamp(stash.timestamp, 0)
-            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-            .unwrap_or_else(|| "Unknown".to_string())
+        chrono::DateTime::from_timestamp(stash.timestamp, 0).map_or_else(
+            || "Unknown".to_string(),
+            |dt| dt.format("%Y-%m-%d %H:%M:%S").to_string()
+        )
     ));
     output.appendln("");
 
@@ -420,11 +429,11 @@ fn show_stash(ctx: &DotmanContext, stash_id: Option<String>) -> Result<()> {
 }
 
 /// Drop a specific stash
-fn drop_stash(ctx: &DotmanContext, stash_id: String) -> Result<()> {
+fn drop_stash(ctx: &DotmanContext, stash_id: &str) -> Result<()> {
     let stash_manager = StashManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    stash_manager.delete_stash(&stash_id)?;
-    super::print_success(&format!("Dropped stash {}", stash_id));
+    stash_manager.delete_stash(stash_id)?;
+    super::print_success(&format!("Dropped stash {stash_id}"));
 
     Ok(())
 }

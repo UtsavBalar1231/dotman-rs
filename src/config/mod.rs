@@ -57,7 +57,7 @@ pub struct RemoteConfig {
     pub url: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RemoteType {
     Git,
@@ -92,7 +92,7 @@ pub struct BranchConfig {
     #[serde(default = "default_current_branch")]
     pub current: String,
 
-    /// Branch tracking information: branch_name -> (remote_name, remote_branch)
+    /// Branch tracking information: `branch_name` -> (`remote_name`, `remote_branch`)
     #[serde(default)]
     pub tracking: HashMap<String, BranchTracking>,
 }
@@ -160,10 +160,18 @@ impl Default for TrackingConfig {
 }
 
 impl Config {
+    /// Load configuration from a file
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot create parent directories
+    /// - Cannot read or parse the configuration file
+    /// - Configuration file contains invalid TOML
     pub fn load(path: &Path) -> Result<Self> {
         if !path.exists() {
             // Create default config if it doesn't exist
-            let config = Config::default();
+            let config = Self::default();
             config.save(path)?;
             return Ok(config);
         }
@@ -172,6 +180,14 @@ impl Config {
         parser::parse_config_file(path)
     }
 
+    /// Save configuration to a file
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot create parent directories
+    /// - Cannot write to the file
+    /// - TOML serialization fails
     pub fn save(&self, path: &Path) -> Result<()> {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -184,6 +200,7 @@ impl Config {
     }
 
     /// Get a remote by name
+    #[must_use]
     pub fn get_remote(&self, name: &str) -> Option<&RemoteConfig> {
         self.remotes.get(name)
     }
@@ -199,6 +216,7 @@ impl Config {
     }
 
     /// Get a configuration value by key
+    #[must_use]
     pub fn get(&self, key: &str) -> Option<String> {
         let parts: Vec<&str> = key.split('.').collect();
         if parts.len() != 2 {
@@ -227,10 +245,17 @@ impl Config {
     }
 
     /// Set a configuration value by key
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The key format is invalid (must be section.key)
+    /// - The key is unknown
+    /// - The value is invalid for the key (e.g., invalid email)
     pub fn set(&mut self, key: &str, value: String) -> Result<()> {
         let parts: Vec<&str> = key.split('.').collect();
         if parts.len() != 2 {
-            return Err(anyhow::anyhow!("Invalid configuration key: {}", key));
+            return Err(anyhow::anyhow!("Invalid configuration key: {key}"));
         }
 
         match (parts[0], parts[1]) {
@@ -238,14 +263,14 @@ impl Config {
             ("user", "email") => {
                 // Basic email validation
                 if !value.contains('@') {
-                    return Err(anyhow::anyhow!("Invalid email address: {}", value));
+                    return Err(anyhow::anyhow!("Invalid email address: {value}"));
                 }
                 self.user.email = Some(value);
             }
             ("core", "compression_level") => {
                 let level: i32 = value
                     .parse()
-                    .with_context(|| format!("Invalid compression level: {}", value))?;
+                    .with_context(|| format!("Invalid compression level: {value}"))?;
                 if !(1..=22).contains(&level) {
                     return Err(anyhow::anyhow!(
                         "Compression level must be between 1 and 22"
@@ -258,61 +283,65 @@ impl Config {
             ("performance", "parallel_threads") => {
                 self.performance.parallel_threads = value
                     .parse()
-                    .with_context(|| format!("Invalid number: {}", value))?;
+                    .with_context(|| format!("Invalid number: {value}"))?;
             }
             ("performance", "mmap_threshold") => {
                 self.performance.mmap_threshold = value
                     .parse()
-                    .with_context(|| format!("Invalid number: {}", value))?;
+                    .with_context(|| format!("Invalid number: {value}"))?;
             }
             ("performance", "cache_size") => {
                 self.performance.cache_size = value
                     .parse()
-                    .with_context(|| format!("Invalid number: {}", value))?;
+                    .with_context(|| format!("Invalid number: {value}"))?;
             }
             ("performance", "use_hard_links") => {
                 self.performance.use_hard_links = value
                     .parse()
-                    .with_context(|| format!("Invalid boolean: {}", value))?;
+                    .with_context(|| format!("Invalid boolean: {value}"))?;
             }
             ("tracking", "follow_symlinks") => {
                 self.tracking.follow_symlinks = value
                     .parse()
-                    .with_context(|| format!("Invalid boolean: {}", value))?;
+                    .with_context(|| format!("Invalid boolean: {value}"))?;
             }
             ("tracking", "preserve_permissions") => {
                 self.tracking.preserve_permissions = value
                     .parse()
-                    .with_context(|| format!("Invalid boolean: {}", value))?;
+                    .with_context(|| format!("Invalid boolean: {value}"))?;
             }
-            _ => return Err(anyhow::anyhow!("Unknown configuration key: {}", key)),
+            _ => return Err(anyhow::anyhow!("Unknown configuration key: {key}")),
         }
         Ok(())
     }
 
     /// Unset a configuration value by key
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The key format is invalid (must be section.key)
+    /// - The key is unknown or cannot be unset
     pub fn unset(&mut self, key: &str) -> Result<()> {
         let parts: Vec<&str> = key.split('.').collect();
         if parts.len() != 2 {
-            return Err(anyhow::anyhow!("Invalid configuration key: {}", key));
+            return Err(anyhow::anyhow!("Invalid configuration key: {key}"));
         }
 
         match (parts[0], parts[1]) {
             ("user", "name") => self.user.name = None,
             ("user", "email") => self.user.email = None,
             ("core", "pager") => self.core.pager = None,
-            _ => return Err(anyhow::anyhow!("Cannot unset configuration key: {}", key)),
+            _ => return Err(anyhow::anyhow!("Cannot unset configuration key: {key}")),
         }
         Ok(())
     }
 }
 
 // Add dependency for num_cpus
-use once_cell::sync::Lazy;
-
-static NUM_CPUS: Lazy<usize> = Lazy::new(|| {
+static NUM_CPUS: std::sync::LazyLock<usize> = std::sync::LazyLock::new(|| {
     std::thread::available_parallelism()
-        .map(|n| n.get())
+        .map(std::num::NonZeroUsize::get)
         .unwrap_or(1)
 });
 
@@ -334,11 +363,11 @@ fn default_branch() -> String {
     "main".to_string()
 }
 
-fn default_compression() -> CompressionType {
+const fn default_compression() -> CompressionType {
     CompressionType::Zstd
 }
 
-fn default_compression_level() -> i32 {
+const fn default_compression_level() -> i32 {
     3
 }
 
@@ -346,15 +375,15 @@ fn default_parallel_threads() -> usize {
     num_cpus::get().min(8)
 }
 
-fn default_mmap_threshold() -> usize {
+const fn default_mmap_threshold() -> usize {
     1_048_576 // 1MB
 }
 
-fn default_cache_size() -> usize {
+const fn default_cache_size() -> usize {
     100 // MB
 }
 
-fn default_use_hard_links() -> bool {
+const fn default_use_hard_links() -> bool {
     true
 }
 
@@ -428,7 +457,7 @@ mod tests {
     }
 
     #[test]
-    fn test_config_get_various_keys() -> Result<()> {
+    fn test_config_get_various_keys() {
         let mut config = Config::default();
         config.core.compression_level = 5;
         config.performance.parallel_threads = 8;
@@ -448,8 +477,6 @@ mod tests {
         // Test getting non-existent keys
         assert_eq!(config.get("invalid.key"), None);
         assert_eq!(config.get("user.name"), None);
-
-        Ok(())
     }
 
     #[test]
@@ -495,7 +522,7 @@ mod tests {
                 );
                 remotes
             },
-            branches: Default::default(),
+            branches: BranchConfig::default(),
             performance: PerformanceConfig {
                 parallel_threads: 1024, // Very high thread count
                 mmap_threshold: 1,      // Everything uses mmap
@@ -503,11 +530,11 @@ mod tests {
                 use_hard_links: true,
             },
             tracking: TrackingConfig {
-                ignore_patterns: (0..10000).map(|i| format!("pattern_{}", i)).collect(), // Many patterns
+                ignore_patterns: (0..10000).map(|i| format!("pattern_{i}")).collect(), // Many patterns
                 follow_symlinks: true,
                 preserve_permissions: true,
             },
-            user: Default::default(),
+            user: UserConfig::default(),
         };
 
         // Should be able to save extreme config
@@ -547,10 +574,10 @@ mod tests {
                 );
                 remotes
             },
-            branches: Default::default(),
+            branches: BranchConfig::default(),
             performance: PerformanceConfig {
                 parallel_threads: 8,
-                mmap_threshold: 1048576,
+                mmap_threshold: 1_048_576,
                 cache_size: 100,
                 use_hard_links: true,
             },
@@ -564,7 +591,7 @@ mod tests {
                 follow_symlinks: false,
                 preserve_permissions: true,
             },
-            user: Default::default(),
+            user: UserConfig::default(),
         };
 
         // Should handle Unicode in config
@@ -591,7 +618,7 @@ mod tests {
                 "cache_size_too_large",
                 Config {
                     performance: PerformanceConfig {
-                        cache_size: 100000, // Over 10GB limit
+                        cache_size: 100_000, // Over 10GB limit
                         ..Default::default()
                     },
                     ..Default::default()
@@ -620,7 +647,7 @@ mod tests {
         ];
 
         for (test_name, invalid_config) in invalid_configs {
-            let config_path = dir.path().join(format!("{}.toml", test_name));
+            let config_path = dir.path().join(format!("{test_name}.toml"));
 
             // These should fail validation when loading
             let result = invalid_config.save(&config_path);
@@ -707,21 +734,18 @@ mod tests {
         ];
 
         for (branch_name, compression_level, parallel_threads, cache_size) in test_cases {
-            let config_path = dir
-                .path()
-                .join(format!("config_{}.toml", compression_level));
+            let config_path = dir.path().join(format!("config_{compression_level}.toml"));
 
             let config_content = format!(
                 r#"
                 [core]
-                default_branch = "{}"
-                compression_level = {}
-                
+                default_branch = "{branch_name}"
+                compression_level = {compression_level}
+
                 [performance]
-                parallel_threads = {}
-                cache_size = {}
-                "#,
-                branch_name, compression_level, parallel_threads, cache_size
+                parallel_threads = {parallel_threads}
+                cache_size = {cache_size}
+                "#
             );
 
             std::fs::write(&config_path, config_content)?;
@@ -741,10 +765,10 @@ mod tests {
         }
 
         // Test invalid compression levels
-        let invalid_config = r#"
+        let invalid_config = r"
             [core]
             compression_level = 100
-            "#
+            "
         .to_string();
 
         let invalid_path = dir.path().join("invalid.toml");

@@ -25,6 +25,7 @@ pub struct BranchMapping {
 
 impl CommitMapping {
     /// Create a new empty mapping
+    #[must_use]
     pub fn new() -> Self {
         Self {
             dotman_to_git: HashMap::new(),
@@ -34,6 +35,12 @@ impl CommitMapping {
     }
 
     /// Load mapping from file
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - File exists but cannot be read
+    /// - File contains invalid TOML
     pub fn load(path: &Path) -> Result<Self> {
         if !path.exists() {
             return Ok(Self::new());
@@ -47,6 +54,13 @@ impl CommitMapping {
     }
 
     /// Save mapping to file
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to serialize mapping to TOML
+    /// - Failed to create parent directory
+    /// - Failed to write file
     pub fn save(&self, path: &Path) -> Result<()> {
         let content = toml::to_string_pretty(self).context("Failed to serialize mapping")?;
 
@@ -73,6 +87,7 @@ impl CommitMapping {
     }
 
     /// Get git commit ID for a dotman commit
+    #[must_use]
     pub fn get_git_commit(&self, remote: &str, dotman_commit: &str) -> Option<String> {
         self.dotman_to_git
             .get(remote)
@@ -81,6 +96,7 @@ impl CommitMapping {
     }
 
     /// Get dotman commit ID for a git commit
+    #[must_use]
     pub fn get_dotman_commit(&self, remote: &str, git_commit: &str) -> Option<String> {
         self.git_to_dotman
             .get(remote)
@@ -108,6 +124,7 @@ impl CommitMapping {
     }
 
     /// Get branch mapping
+    #[must_use]
     pub fn get_branch(&self, branch: &str) -> Option<&BranchMapping> {
         self.branch_mappings.get(branch)
     }
@@ -123,6 +140,7 @@ impl CommitMapping {
     }
 
     /// Check if a dotman commit has been pushed to a remote
+    #[must_use]
     pub fn is_pushed(&self, remote: &str, dotman_commit: &str) -> bool {
         self.dotman_to_git
             .get(remote)
@@ -130,6 +148,7 @@ impl CommitMapping {
     }
 
     /// Get all mapped dotman commits for a remote
+    #[must_use]
     pub fn get_mapped_commits(&self, remote: &str) -> Vec<String> {
         self.dotman_to_git
             .get(remote)
@@ -152,6 +171,10 @@ pub struct MappingManager {
 
 impl MappingManager {
     /// Create a new mapping manager
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the mapping file exists but cannot be loaded
     pub fn new(repo_path: &Path) -> Result<Self> {
         let mapping_path = repo_path.join("remote-mappings.json");
         let mapping = CommitMapping::load(&mapping_path)?;
@@ -163,21 +186,30 @@ impl MappingManager {
     }
 
     /// Get a reference to the mapping
-    pub fn mapping(&self) -> &CommitMapping {
+    #[must_use]
+    pub const fn mapping(&self) -> &CommitMapping {
         &self.mapping
     }
 
     /// Get a mutable reference to the mapping
-    pub fn mapping_mut(&mut self) -> &mut CommitMapping {
+    pub const fn mapping_mut(&mut self) -> &mut CommitMapping {
         &mut self.mapping
     }
 
     /// Save the mapping to disk
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the mapping cannot be saved
     pub fn save(&self) -> Result<()> {
         self.mapping.save(&self.mapping_path)
     }
 
     /// Add a mapping and save
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the mapping cannot be saved to disk
     pub fn add_and_save(
         &mut self,
         remote: &str,
@@ -189,6 +221,10 @@ impl MappingManager {
     }
 
     /// Update branch and save
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the mapping cannot be saved to disk
     pub fn update_branch_and_save(
         &mut self,
         branch: &str,

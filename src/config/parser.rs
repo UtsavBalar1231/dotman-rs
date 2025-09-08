@@ -5,6 +5,14 @@ use std::fs::File;
 use std::path::Path;
 
 // Fast TOML parser optimized for our config structure
+/// Parse a configuration file from disk
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - File cannot be read
+/// - File contains invalid UTF-8
+/// - TOML parsing fails
 pub fn parse_config_file(path: &Path) -> Result<Config> {
     // For small files, use regular reading
     let metadata = std::fs::metadata(path)?;
@@ -12,7 +20,7 @@ pub fn parse_config_file(path: &Path) -> Result<Config> {
     if metadata.len() < 4096 {
         // Small file - read normally
         let content = std::fs::read_to_string(path)
-            .with_context(|| format!("Failed to read config file: {:?}", path))?;
+            .with_context(|| format!("Failed to read config file: {}", path.display()))?;
         parse_config_str(&content)
     } else {
         // Large file - use memory mapping
@@ -63,15 +71,27 @@ pub struct FastConfigUpdater {
 }
 
 impl FastConfigUpdater {
+    /// Create a new `FastConfigUpdater` from a config file
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be read
     pub fn new(path: &Path) -> Result<Self> {
         let content = std::fs::read(path)?;
         Ok(Self { content })
     }
 
+    /// Update a configuration value
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Section cannot be found
+    /// - Key cannot be found within section
     pub fn update_value(&mut self, section: &str, key: &str, value: &str) -> Result<()> {
         // Use SIMD to find the section and key quickly
-        let section_pattern = format!("[{}]", section);
-        let key_pattern = format!("{} =", key);
+        let section_pattern = format!("[{section}]");
+        let key_pattern = format!("{key} =");
 
         // Find section start
         let section_pos = self.find_pattern(section_pattern.as_bytes())?;
@@ -84,7 +104,7 @@ impl FastConfigUpdater {
         let value_end = self.find_line_end(value_start);
 
         // Replace value
-        let new_value = format!(" {}", value);
+        let new_value = format!(" {value}");
         self.content
             .splice(value_start..value_end, new_value.bytes());
 
@@ -110,10 +130,14 @@ impl FastConfigUpdater {
         self.content[start..]
             .iter()
             .position(|&b| b == b'\n')
-            .map(|pos| start + pos)
-            .unwrap_or(self.content.len())
+            .map_or(self.content.len(), |pos| start + pos)
     }
 
+    /// Save the configuration back to disk
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be written
     pub fn save(&self, path: &Path) -> Result<()> {
         std::fs::write(path, &self.content)?;
         Ok(())
@@ -172,8 +196,8 @@ parallel_threads = 4"#;
         updater.update_value("core", "compression_level", "5")?;
         updater.save(&config_path)?;
 
-        let updated = std::fs::read_to_string(&config_path)?;
-        assert!(updated.contains("compression_level = 5"));
+        let updated_content = std::fs::read_to_string(&config_path)?;
+        assert!(updated_content.contains("compression_level = 5"));
 
         Ok(())
     }
@@ -204,10 +228,10 @@ repo_path = "~/.dotman"
 
     #[test]
     fn test_parse_invalid_compression_level() {
-        let invalid = r#"
+        let invalid = r"
 [core]
 compression_level = 50
-"#;
+";
         let result = parse_config_str(invalid);
         // Should fail for invalid compression level value
         assert!(result.is_err());
@@ -215,10 +239,10 @@ compression_level = 50
 
     #[test]
     fn test_parse_zero_parallel_threads() {
-        let invalid = r#"
+        let invalid = r"
 [performance]
 parallel_threads = 0
-"#;
+";
         let result = parse_config_str(invalid);
         // Should fail for zero parallel threads value
         assert!(result.is_err());
@@ -226,10 +250,10 @@ parallel_threads = 0
 
     #[test]
     fn test_parse_excessive_cache_size() {
-        let invalid = r#"
+        let invalid = r"
 [performance]
 cache_size = 20000
-"#;
+";
         let result = parse_config_str(invalid);
         // Should fail for excessive cache size value
         assert!(result.is_err());
@@ -244,6 +268,7 @@ cache_size = 20000
 
     #[test]
     fn test_parse_large_config_mmap() -> Result<()> {
+        use std::fmt::Write;
         let dir = tempdir()?;
         let config_path = dir.path().join("large.toml");
 
@@ -251,7 +276,8 @@ cache_size = 20000
             "[core]\nrepo_path = \"~/.dotman\"\ndefault_branch = \"main\"\ncompression = \"zstd\"\ncompression_level = 3\n\n[tracking]\nignore_patterns = [\n",
         );
         for i in 0..999 {
-            large_config.push_str(&format!("  \"pattern_{}\",\n", i));
+            writeln!(&mut large_config, "  \"pattern_{i}\",")
+                .expect("String write should never fail");
         }
         // Last one without comma
         large_config.push_str("  \"pattern_999\"\n");

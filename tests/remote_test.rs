@@ -62,8 +62,7 @@ fn test_push_workflow() -> Result<()> {
         // Accept failures related to git operations (commit or push)
         assert!(
             err_msg.contains("push") || err_msg.contains("commit") || err_msg.contains("Git"),
-            "Unexpected error: {}",
-            err_msg
+            "Unexpected error: {err_msg}"
         );
     }
 
@@ -167,6 +166,8 @@ fn test_mapping_persistence() -> Result<()> {
 
 #[test]
 fn test_remote_management() -> Result<()> {
+    use dotman::config::RemoteType;
+
     let temp = tempdir()?;
     let home = temp.path().join("home");
     let repo_path = home.join(".dotman");
@@ -183,7 +184,7 @@ fn test_remote_management() -> Result<()> {
     let config_path = home.join(".config/dotman/config");
     let config = Config::load(&config_path)?;
     let mut ctx = DotmanContext {
-        repo_path: repo_path.clone(),
+        repo_path,
         config_path: config_path.clone(),
         config,
         no_pager: true,
@@ -200,7 +201,6 @@ fn test_remote_management() -> Result<()> {
     assert!(config.remotes.contains_key("backup"));
 
     // Verify remote types
-    use dotman::config::RemoteType;
     assert_eq!(config.remotes["origin"].remote_type, RemoteType::Git);
     assert_eq!(config.remotes["backup"].remote_type, RemoteType::S3);
 

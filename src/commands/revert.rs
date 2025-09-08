@@ -9,9 +9,20 @@ use crate::utils::{
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
+use std::fmt::Write as FmtWrite;
 use std::fs;
 use std::path::PathBuf;
 
+/// Execute revert command - revert changes from a specific commit
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The working directory has uncommitted changes (unless --force is used)
+/// - The specified commit cannot be resolved
+/// - The revert operation creates conflicts
+/// - Commit creation fails
 pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -28,14 +39,14 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let target_commit_id = resolver
         .resolve(commit_ref)
-        .with_context(|| format!("Failed to resolve commit reference: {}", commit_ref))?;
+        .with_context(|| format!("Failed to resolve commit reference: {commit_ref}"))?;
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     let target_snapshot = snapshot_manager
         .load_snapshot(&target_commit_id)
-        .with_context(|| format!("Failed to load commit: {}", target_commit_id))?;
+        .with_context(|| format!("Failed to load commit: {target_commit_id}"))?;
 
     let display_target = if target_commit_id.len() >= 8 {
         &target_commit_id[..8]
@@ -63,13 +74,10 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool
     // Apply the inverse changes to the working directory and index
     apply_revert_changes(ctx, &changes_to_revert, &snapshot_manager)?;
 
-    let revert_message = if no_edit {
-        format!("Revert \"{}\"", target_snapshot.commit.message)
-    } else {
-        // In a real implementation, you might want to open an editor here
-        // For now, we'll just use the default message
-        format!("Revert \"{}\"", target_snapshot.commit.message)
-    };
+    let revert_message = format!("Revert \"{}\"", target_snapshot.commit.message);
+    // Note: In a real implementation with no_edit = false,
+    // you might want to open an editor here
+    let _ = no_edit; // Suppress unused variable warning
 
     create_revert_commit(ctx, &revert_message)?;
 
@@ -117,7 +125,7 @@ fn calculate_revert_changes(
         // Commit has a parent - compare with parent to see what the original commit did
         let parent_snapshot = snapshot_manager
             .load_snapshot(parent_id)
-            .with_context(|| format!("Failed to load parent commit: {}", parent_id))?;
+            .with_context(|| format!("Failed to load parent commit: {parent_id}"))?;
 
         let mut parent_index = Index::new();
         for (path, file) in &parent_snapshot.files {
@@ -277,10 +285,13 @@ fn apply_revert_changes(
                     path: path.clone(),
                     hash: new_hash,
                     size: metadata.len(),
-                    modified: metadata
-                        .modified()?
-                        .duration_since(std::time::UNIX_EPOCH)?
-                        .as_secs() as i64,
+                    modified: i64::try_from(
+                        metadata
+                            .modified()?
+                            .duration_since(std::time::UNIX_EPOCH)?
+                            .as_secs(),
+                    )
+                    .unwrap_or(i64::MAX),
                     mode: *mode,
                 });
             }
@@ -307,7 +318,8 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     // Create tree hash from all file hashes
     let mut tree_content = String::new();
     for (path, entry) in &index.entries {
-        tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
+        writeln!(&mut tree_content, "{} {}", entry.hash, path.display())
+            .expect("String write should never fail");
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
@@ -329,7 +341,7 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     let files: Vec<FileEntry> = index.entries.values().cloned().collect();
-    snapshot_manager.create_snapshot(commit.clone(), &files)?;
+    snapshot_manager.create_snapshot(commit, &files)?;
 
     // Update HEAD
     update_head(ctx, &commit_id)?;
@@ -341,7 +353,7 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     use crate::refs::RefManager;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
-    let message = format!("revert: {}", commit_id);
+    let message = format!("revert: {commit_id}");
     ref_manager.set_head_to_commit_with_reflog(commit_id, "revert", &message)
 }
 
@@ -356,6 +368,7 @@ enum RevertChange {
 }
 
 #[cfg(test)]
+#[allow(clippy::used_underscore_binding)]
 mod tests {
     use super::*;
     use crate::config::Config;
@@ -420,12 +433,12 @@ mod tests {
 
         match delete_change {
             RevertChange::Delete(_) => (),
-            _ => panic!("Wrong variant"),
+            RevertChange::Restore { .. } => panic!("Wrong variant"),
         }
 
         match restore_change {
             RevertChange::Restore { .. } => (),
-            _ => panic!("Wrong variant"),
+            RevertChange::Delete(_) => panic!("Wrong variant"),
         }
     }
 }

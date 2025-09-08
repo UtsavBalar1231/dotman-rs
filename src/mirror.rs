@@ -18,7 +18,8 @@ pub struct GitMirror {
 }
 
 impl GitMirror {
-    /// Create a new GitMirror instance
+    /// Create a new `GitMirror` instance
+    #[must_use]
     pub fn new(repo_path: &Path, remote_name: &str, remote_url: &str, config: Config) -> Self {
         let mirror_path = repo_path.join("mirrors").join(remote_name);
         Self {
@@ -30,8 +31,19 @@ impl GitMirror {
     }
 
     /// Initialize the mirror repository if it doesn't exist
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to create mirror directory
+    /// - Git init command fails
+    /// - Failed to configure git user
+    /// - Failed to add remote
     pub fn init_mirror(&self) -> Result<()> {
-        if !self.mirror_path.exists() {
+        if self.mirror_path.exists() {
+            // Ensure remote is configured correctly
+            self.update_remote()?;
+        } else {
             fs::create_dir_all(&self.mirror_path).context("Failed to create mirror directory")?;
 
             let output = Command::new("git")
@@ -42,7 +54,7 @@ impl GitMirror {
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                return Err(anyhow::anyhow!("Git init failed: {}", stderr));
+                return Err(anyhow::anyhow!("Git init failed: {stderr}"));
             }
 
             // Configure git user for the repository (required for commits)
@@ -69,9 +81,6 @@ impl GitMirror {
 
             // Add remote
             self.add_remote()?;
-        } else {
-            // Ensure remote is configured correctly
-            self.update_remote()?;
         }
 
         Ok(())
@@ -89,7 +98,7 @@ impl GitMirror {
             let stderr = String::from_utf8_lossy(&output.stderr);
             // Ignore if remote already exists
             if !stderr.contains("already exists") {
-                return Err(anyhow::anyhow!("Git remote add failed: {}", stderr));
+                return Err(anyhow::anyhow!("Git remote add failed: {stderr}"));
             }
         }
 
@@ -106,13 +115,19 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git remote set-url failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git remote set-url failed: {stderr}"));
         }
 
         Ok(())
     }
 
     /// Sync files from dotman storage to the mirror repository
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to create parent directories
+    /// - Failed to copy files
     pub fn sync_from_dotman(&self, files: &[(PathBuf, PathBuf)]) -> Result<()> {
         // files is a list of (source_path, relative_path) tuples
         for (source_path, relative_path) in files {
@@ -143,6 +158,13 @@ impl GitMirror {
     }
 
     /// Add all changes and commit in the mirror repository
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Git add command fails
+    /// - Git commit command fails
+    /// - Failed to get HEAD commit
     pub fn commit(&self, message: &str, author: &str) -> Result<String> {
         // Add all changes
         let output = Command::new("git")
@@ -153,7 +175,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git add failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git add failed: {stderr}"));
         }
 
         let output = Command::new("git")
@@ -187,19 +209,29 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git commit failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git commit failed: {stderr}"));
         }
 
         self.get_head_commit()
     }
 
     /// Add all changes and commit with a specific timestamp
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Git add command fails
+    /// - Invalid timestamp provided
+    /// - Git commit command fails
+    /// - Failed to get HEAD commit
     pub fn commit_with_timestamp(
         &self,
         message: &str,
         author: &str,
         timestamp: i64,
     ) -> Result<String> {
+        use chrono::{TimeZone, Utc};
+
         // Add all changes
         let output = Command::new("git")
             .args(["add", "-A"])
@@ -209,7 +241,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git add failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git add failed: {stderr}"));
         }
 
         let output = Command::new("git")
@@ -235,7 +267,6 @@ impl GitMirror {
         };
 
         // Format timestamp for git (ISO 8601 format)
-        use chrono::{TimeZone, Utc};
         let dt = Utc
             .timestamp_opt(timestamp, 0)
             .single()
@@ -253,13 +284,19 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git commit failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git commit failed: {stderr}"));
         }
 
         self.get_head_commit()
     }
 
     /// Clear all files from the working directory (but keep .git)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to remove tracked files
+    /// - Failed to read or delete directory entries
     pub fn clear_working_directory(&self) -> Result<()> {
         let _output = Command::new("git")
             .args(["rm", "-rf", "--cached", "."])
@@ -287,11 +324,19 @@ impl GitMirror {
     }
 
     /// Push changes to the remote repository
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the push fails
     pub fn push(&self, branch: &str) -> Result<()> {
         self.push_with_options(branch, false, false)
     }
 
     /// Push changes with force options
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the git push command fails
     pub fn push_with_options(
         &self,
         branch: &str,
@@ -336,10 +381,10 @@ impl GitMirror {
 
                 if !output.status.success() {
                     let stderr = String::from_utf8_lossy(&output.stderr);
-                    return Err(anyhow::anyhow!("Git push failed: {}", stderr));
+                    return Err(anyhow::anyhow!("Git push failed: {stderr}"));
                 }
             } else {
-                return Err(anyhow::anyhow!("Git push failed: {}", stderr));
+                return Err(anyhow::anyhow!("Git push failed: {stderr}"));
             }
         }
 
@@ -347,6 +392,10 @@ impl GitMirror {
     }
 
     /// Fetch changes from remote without merging
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the git fetch command fails
     pub fn fetch(&self, branch: Option<&str>) -> Result<()> {
         let mut args = vec!["fetch", "origin"];
 
@@ -362,13 +411,17 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git fetch failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git fetch failed: {stderr}"));
         }
 
         Ok(())
     }
 
     /// Merge a branch into the current branch
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the git merge command fails
     pub fn merge(&self, branch: &str, no_ff: bool) -> Result<()> {
         let mut args = vec!["merge", branch];
 
@@ -384,13 +437,17 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git merge failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git merge failed: {stderr}"));
         }
 
         Ok(())
     }
 
     /// Push tags to remote
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git push fails or tags cannot be pushed
     pub fn push_tags(&self) -> Result<()> {
         let output = Command::new("git")
             .args(["push", "origin", "--tags"])
@@ -400,13 +457,17 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git push tags failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git push tags failed: {stderr}"));
         }
 
         Ok(())
     }
 
     /// Pull changes from the remote repository
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git fetch or merge fails
     pub fn pull(&self, branch: &str) -> Result<()> {
         // Fetch from remote
         let output = Command::new("git")
@@ -417,7 +478,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git fetch failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git fetch failed: {stderr}"));
         }
 
         let output = Command::new("git")
@@ -425,19 +486,7 @@ impl GitMirror {
             .current_dir(&self.mirror_path)
             .output()?;
 
-        if !output.status.success() {
-            // Branch doesn't exist locally, create it from remote
-            let output = Command::new("git")
-                .args(["checkout", "-b", branch, &format!("origin/{}", branch)])
-                .current_dir(&self.mirror_path)
-                .output()
-                .context("Failed to create local branch")?;
-
-            if !output.status.success() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                return Err(anyhow::anyhow!("Git checkout failed: {}", stderr));
-            }
-        } else {
+        if output.status.success() {
             // Branch exists, checkout and pull
             let output = Command::new("git")
                 .args(["checkout", branch])
@@ -447,7 +496,7 @@ impl GitMirror {
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                return Err(anyhow::anyhow!("Git checkout failed: {}", stderr));
+                return Err(anyhow::anyhow!("Git checkout failed: {stderr}"));
             }
 
             // Pull changes
@@ -459,7 +508,19 @@ impl GitMirror {
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                return Err(anyhow::anyhow!("Git pull failed: {}", stderr));
+                return Err(anyhow::anyhow!("Git pull failed: {stderr}"));
+            }
+        } else {
+            // Branch doesn't exist locally, create it from remote
+            let output = Command::new("git")
+                .args(["checkout", "-b", branch, &format!("origin/{branch}")])
+                .current_dir(&self.mirror_path)
+                .output()
+                .context("Failed to create local branch")?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(anyhow::anyhow!("Git checkout failed: {stderr}"));
             }
         }
 
@@ -467,6 +528,10 @@ impl GitMirror {
     }
 
     /// Get the current HEAD commit ID
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git rev-parse fails or HEAD is not found
     pub fn get_head_commit(&self) -> Result<String> {
         let output = Command::new("git")
             .args(["rev-parse", "HEAD"])
@@ -476,18 +541,23 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git rev-parse failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git rev-parse failed: {stderr}"));
         }
 
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     }
 
     /// Get the path to the mirror repository
+    #[must_use]
     pub fn get_mirror_path(&self) -> &Path {
         &self.mirror_path
     }
 
     /// List all files in the mirror repository
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git ls-files fails
     pub fn list_files(&self) -> Result<Vec<PathBuf>> {
         let output = Command::new("git")
             .args(["ls-files"])
@@ -497,7 +567,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git ls-files failed: {}", stderr));
+            return Err(anyhow::anyhow!("Git ls-files failed: {stderr}"));
         }
 
         let files = String::from_utf8_lossy(&output.stdout)
@@ -509,6 +579,10 @@ impl GitMirror {
     }
 
     /// Checkout a specific branch in the mirror
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git checkout fails or branch cannot be created
     pub fn checkout_branch(&self, branch: &str) -> Result<()> {
         let output = Command::new("git")
             .args(["checkout", branch])
@@ -529,10 +603,10 @@ impl GitMirror {
 
                 if !output.status.success() {
                     let stderr = String::from_utf8_lossy(&output.stderr);
-                    return Err(anyhow::anyhow!("Git checkout -b failed: {}", stderr));
+                    return Err(anyhow::anyhow!("Git checkout -b failed: {stderr}"));
                 }
             } else {
-                return Err(anyhow::anyhow!("Git checkout failed: {}", stderr));
+                return Err(anyhow::anyhow!("Git checkout failed: {stderr}"));
             }
         }
 
@@ -540,6 +614,10 @@ impl GitMirror {
     }
 
     /// Remove files from the mirror that are not in the provided list
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if file listing or removal fails
     pub fn clean_removed_files(&self, current_files: &[PathBuf]) -> Result<()> {
         let mirror_files = self.list_files()?;
 
@@ -601,7 +679,7 @@ mod tests {
         );
         mirror.init_mirror()?;
 
-        let files = vec![(source_file.clone(), PathBuf::from("dest.txt"))];
+        let files = vec![(source_file, PathBuf::from("dest.txt"))];
         mirror.sync_from_dotman(&files)?;
 
         let dest_file = mirror.get_mirror_path().join("dest.txt");
@@ -752,10 +830,10 @@ mod tests {
             .output()?;
 
         // List files
-        let files = mirror.list_files()?;
-        assert_eq!(files.len(), 2);
-        assert!(files.contains(&PathBuf::from("file1.txt")));
-        assert!(files.contains(&PathBuf::from("dir/file2.txt")));
+        let listed_files = mirror.list_files()?;
+        assert_eq!(listed_files.len(), 2);
+        assert!(listed_files.contains(&PathBuf::from("file1.txt")));
+        assert!(listed_files.contains(&PathBuf::from("dir/file2.txt")));
 
         Ok(())
     }

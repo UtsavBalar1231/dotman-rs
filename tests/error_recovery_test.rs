@@ -28,7 +28,7 @@ fn setup_corrupted_repo() -> Result<(tempfile::TempDir, DotmanContext)> {
     fs::write(repo_path.join("HEAD"), "")?;
 
     let mut config = Config::default();
-    config.core.repo_path = repo_path.clone();
+    config.core.repo_path.clone_from(&repo_path);
     config.save(&config_path)?;
 
     let context = DotmanContext {
@@ -88,7 +88,7 @@ fn test_recover_from_missing_objects() -> Result<()> {
         path: test_file.clone(),
         hash: "test_hash".to_string(),
         size: 12,
-        modified: 1234567890,
+        modified: 1_234_567_890,
         mode: 0o644,
     }];
 
@@ -97,7 +97,7 @@ fn test_recover_from_missing_objects() -> Result<()> {
         parent: None,
         message: "Test commit".to_string(),
         author: "Test".to_string(),
-        timestamp: 1234567890,
+        timestamp: 1_234_567_890,
         tree_hash: "tree1".to_string(),
     };
 
@@ -118,10 +118,10 @@ fn test_recover_from_missing_objects() -> Result<()> {
 
     // Recovery: recreate objects from existing files
     let recovered_files = vec![FileEntry {
-        path: test_file.clone(),
+        path: test_file,
         hash: "recovered_hash".to_string(),
         size: 12,
-        modified: 1234567890,
+        modified: 1_234_567_890,
         mode: 0o644,
     }];
 
@@ -130,7 +130,7 @@ fn test_recover_from_missing_objects() -> Result<()> {
         parent: Some("commit1".to_string()),
         message: "Recovery commit".to_string(),
         author: "Recovery".to_string(),
-        timestamp: 1234567891,
+        timestamp: 1_234_567_891,
         tree_hash: "recovery_tree".to_string(),
     };
 
@@ -157,7 +157,7 @@ fn test_recover_from_interrupted_operations() -> Result<()> {
         path: PathBuf::from("partial.txt"),
         hash: "partial".to_string(),
         size: 50,
-        modified: 1234567890,
+        modified: 1_234_567_890,
         mode: 0o644,
     });
     temp_index.save(&temp_index_path)?;
@@ -238,7 +238,7 @@ fn test_garbage_collection_recovery() -> Result<()> {
     fs::write(objects_dir.join("orphan3.zst"), "orphaned data 3")?;
 
     // Run garbage collection
-    let gc = dotman::storage::snapshots::GarbageCollector::new(ctx.repo_path.clone());
+    let gc = dotman::storage::snapshots::GarbageCollector::new(ctx.repo_path);
     let deleted = gc.collect()?;
 
     // Should have deleted all orphaned objects

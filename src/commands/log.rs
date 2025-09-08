@@ -7,6 +7,15 @@ use chrono::{Local, TimeZone};
 use colored::Colorize;
 use std::collections::HashSet;
 
+/// Display commit history
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The specified target reference cannot be resolved
+/// - Failed to load snapshots
+#[allow(clippy::too_many_lines)] // Detailed log formatting requires multiple sections
 pub fn execute(
     ctx: &DotmanContext,
     target: Option<&str>,
@@ -50,9 +59,8 @@ pub fn execute(
             }
             visited.insert(commit_id.clone());
 
-            let snapshot = match snapshot_manager.load_snapshot(&commit_id) {
-                Ok(s) => s,
-                Err(_) => break, // Stop if we can't load a commit
+            let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) else {
+                break; // Stop if we can't find the commit
             };
 
             let commit = &snapshot.commit;
@@ -95,7 +103,10 @@ pub fn execute(
             commits_displayed += 1;
 
             // Move to parent commit
-            current_commit_id = commit.parent.clone();
+            #[allow(clippy::assigning_clones)]
+            {
+                current_commit_id = commit.parent.clone();
+            }
         }
     } else {
         // Original behavior: show all commits in reverse chronological order
@@ -179,14 +190,20 @@ mod tests {
         message: &str,
         parent: Option<String>,
     ) -> Result<()> {
+        use crate::utils::compress::compress_bytes;
+        use crate::utils::serialization::serialize;
+
         let valid_commit_id = test_commit_id(commit_id);
         let snapshot = Snapshot {
             commit: Commit {
                 id: valid_commit_id.clone(),
                 message: message.to_string(),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)?
-                    .as_secs() as i64,
+                timestamp: i64::try_from(
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)?
+                        .as_secs(),
+                )
+                .unwrap_or(i64::MAX),
                 parent,
                 author: "Test Author".to_string(),
                 tree_hash: "test_tree_hash".to_string(),
@@ -195,8 +212,6 @@ mod tests {
         };
 
         // Save snapshot directly using bincode and zstd
-        use crate::utils::compress::compress_bytes;
-        use crate::utils::serialization::serialize;
         let serialized = serialize(&snapshot)?;
         let compressed = compress_bytes(&serialized, ctx.config.core.compression_level)?;
         let snapshot_path = ctx
@@ -256,8 +271,8 @@ mod tests {
 
         // Create multiple commits with valid IDs
         for i in 1..=5 {
-            let commit_id = format!("{:02}", i); // Will be padded to 32 chars by test_commit_id
-            let message = format!("Commit #{}", i);
+            let commit_id = format!("{i:02}"); // Will be padded to 32 chars by test_commit_id
+            let message = format!("Commit #{i}");
             let parent = if i > 1 {
                 Some(test_commit_id(&format!("{:02}", i - 1)))
             } else {
@@ -346,7 +361,7 @@ mod tests {
         // Create multiple commits for oneline display
         for i in 1..=3 {
             let commit_id = format!("{:02}", i + 10); // Use 11, 12, 13 to avoid conflicts
-            let message = format!("Message {}", i);
+            let message = format!("Message {i}");
             create_test_snapshot(&ctx, &commit_id, &message, None)?;
         }
 

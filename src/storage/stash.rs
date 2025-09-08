@@ -44,7 +44,8 @@ pub struct StashManager {
 }
 
 impl StashManager {
-    pub fn new(repo_path: PathBuf, compression_level: i32) -> Self {
+    #[must_use]
+    pub const fn new(repo_path: PathBuf, compression_level: i32) -> Self {
         Self {
             repo_path,
             compression_level,
@@ -72,6 +73,11 @@ impl StashManager {
     }
 
     /// Initialize stash directories if they don't exist
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to create stash directories
     pub fn init_stash_dirs(&self) -> Result<()> {
         fs::create_dir_all(self.entries_dir())?;
         fs::create_dir_all(self.refs_dir())?;
@@ -79,22 +85,35 @@ impl StashManager {
     }
 
     /// Generate a unique stash ID based on timestamp and random suffix
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - System time is before UNIX epoch
     pub fn generate_stash_id(&self) -> Result<String> {
         use rand::Rng;
         use std::time::{SystemTime, UNIX_EPOCH};
 
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|e| anyhow::anyhow!("System time error: {}", e))?
+            .map_err(|e| anyhow::anyhow!("System time error: {e}"))?
             .as_secs();
 
         // Add some randomness to ensure uniqueness
         let mut rng = rand::rng();
         let random: u32 = rng.random();
-        Ok(format!("stash_{:x}_{:08x}", timestamp, random))
+        Ok(format!("stash_{timestamp:x}_{random:08x}"))
     }
 
     /// Save a stash entry to disk
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to create stash directories
+    /// - Failed to serialize or compress the stash
+    /// - Failed to write stash to disk
+    /// - Failed to update the stash stack
     pub fn save_stash(&self, entry: &StashEntry) -> Result<()> {
         self.init_stash_dirs()?;
 
@@ -114,11 +133,18 @@ impl StashManager {
     }
 
     /// Load a stash entry from disk
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The stash entry does not exist
+    /// - Failed to read or decompress the stash file
+    /// - Failed to deserialize the stash data
     pub fn load_stash(&self, stash_id: &str) -> Result<StashEntry> {
-        let entry_path = self.entries_dir().join(format!("{}.zst", stash_id));
+        let entry_path = self.entries_dir().join(format!("{stash_id}.zst"));
 
         if !entry_path.exists() {
-            return Err(anyhow::anyhow!("Stash entry not found: {}", stash_id));
+            return Err(anyhow::anyhow!("Stash entry not found: {stash_id}"));
         }
 
         // Read and decompress
@@ -127,12 +153,17 @@ impl StashManager {
 
         // Deserialize
         let entry: StashEntry = serialization::deserialize(&decompressed)
-            .with_context(|| format!("Failed to deserialize stash: {}", stash_id))?;
+            .with_context(|| format!("Failed to deserialize stash: {stash_id}"))?;
 
         Ok(entry)
     }
 
     /// Get the latest stash ID from the stack
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to read the stash stack file
     pub fn get_latest_stash_id(&self) -> Result<Option<String>> {
         let stack_file = self.stack_file();
 
@@ -151,6 +182,11 @@ impl StashManager {
     }
 
     /// Get all stash IDs from the stack
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to read the stash stack file
     pub fn list_stashes(&self) -> Result<Vec<String>> {
         let stack_file = self.stack_file();
 
@@ -159,7 +195,10 @@ impl StashManager {
         }
 
         let stack = fs::read_to_string(&stack_file)?;
-        let stashes: Vec<String> = stack.lines().map(|s| s.to_string()).collect();
+        let stashes: Vec<String> = stack
+            .lines()
+            .map(std::string::ToString::to_string)
+            .collect();
 
         Ok(stashes)
     }
@@ -179,7 +218,7 @@ impl StashManager {
         let new_stack = if stack.is_empty() {
             stash_id.to_string()
         } else {
-            format!("{}\n{}", stash_id, stack)
+            format!("{stash_id}\n{stack}")
         };
 
         // Write back
@@ -189,6 +228,11 @@ impl StashManager {
     }
 
     /// Pop the latest stash ID from the stack
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to read or write the stash stack file
     pub fn pop_from_stack(&self) -> Result<Option<String>> {
         let stack_file = self.stack_file();
 
@@ -219,6 +263,11 @@ impl StashManager {
     }
 
     /// Remove a specific stash from the stack
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to read or write the stash stack file
     pub fn remove_from_stack(&self, stash_id: &str) -> Result<bool> {
         let stack_file = self.stack_file();
 
@@ -227,10 +276,9 @@ impl StashManager {
         }
 
         let stack = fs::read_to_string(&stack_file)?;
-        let lines: Vec<&str> = stack.lines().collect();
 
         // Filter out the stash ID
-        let new_lines: Vec<&str> = lines.into_iter().filter(|&line| line != stash_id).collect();
+        let new_lines: Vec<&str> = stack.lines().filter(|&line| line != stash_id).collect();
 
         if new_lines.is_empty() {
             // Remove file if stack is empty
@@ -244,8 +292,14 @@ impl StashManager {
     }
 
     /// Delete a stash entry from disk
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to delete the stash file
+    /// - Failed to update the stash stack
     pub fn delete_stash(&self, stash_id: &str) -> Result<()> {
-        let entry_path = self.entries_dir().join(format!("{}.zst", stash_id));
+        let entry_path = self.entries_dir().join(format!("{stash_id}.zst"));
 
         if entry_path.exists() {
             fs::remove_file(&entry_path)?;
@@ -258,6 +312,11 @@ impl StashManager {
     }
 
     /// Clear all stashes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to remove stash directories
     pub fn clear_all_stashes(&self) -> Result<()> {
         if self.entries_dir().exists() {
             for entry in fs::read_dir(self.entries_dir())? {
@@ -278,6 +337,7 @@ impl StashManager {
     }
 
     /// Check if there are any stashes
+    #[must_use]
     pub fn has_stashes(&self) -> bool {
         self.stack_file().exists()
     }
@@ -293,7 +353,7 @@ mod tests {
         let temp = tempdir()?;
         let repo_path = temp.path().to_path_buf();
 
-        let manager = StashManager::new(repo_path.clone(), 3);
+        let manager = StashManager::new(repo_path, 3);
         manager.init_stash_dirs()?;
 
         assert!(manager.entries_dir().exists());
@@ -367,7 +427,7 @@ mod tests {
         let entry = StashEntry {
             id: "test_stash".to_string(),
             message: "Test stash".to_string(),
-            timestamp: 1234567890,
+            timestamp: 1_234_567_890,
             parent_commit: "abc123".to_string(),
             files: HashMap::new(),
             index_state: Vec::new(),

@@ -7,6 +7,14 @@ use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
 
+/// Execute diff command to show differences between commits or working directory
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Repository is not initialized
+/// - Failed to resolve commit references
+/// - Failed to load snapshots or index
 pub fn execute(ctx: &DotmanContext, from: Option<&str>, to: Option<&str>) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -27,6 +35,11 @@ pub fn execute(ctx: &DotmanContext, from: Option<&str>, to: Option<&str>) -> Res
     }
 }
 
+/// Compare working directory against the index
+///
+/// # Errors
+///
+/// Returns an error if failed to load index or get file status
 fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
     use crate::commands::status::get_current_files;
 
@@ -54,12 +67,19 @@ fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
     Ok(())
 }
 
+/// Compare a commit against the working directory
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Failed to resolve commit reference
+/// - Failed to load snapshot or index
 fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
     // Resolve the commit reference
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let commit_id = resolver
         .resolve(commit)
-        .with_context(|| format!("Failed to resolve reference: {}", commit))?;
+        .with_context(|| format!("Failed to resolve reference: {commit}"))?;
 
     let mut output = PagerOutput::new(ctx, ctx.no_pager);
     output.appendln(&format!(
@@ -76,7 +96,7 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
 
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
-        .with_context(|| format!("Failed to load commit: {}", commit_id))?;
+        .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
     // Convert snapshot to index format for comparison
     let mut commit_index = Index::new();
@@ -107,15 +127,22 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
     Ok(())
 }
 
+/// Compare two commits
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Failed to resolve commit references
+/// - Failed to load snapshots
 fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
     // Resolve the commit references
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let from_id = resolver
         .resolve(from)
-        .with_context(|| format!("Failed to resolve reference: {}", from))?;
+        .with_context(|| format!("Failed to resolve reference: {from}"))?;
     let to_id = resolver
         .resolve(to)
-        .with_context(|| format!("Failed to resolve reference: {}", to))?;
+        .with_context(|| format!("Failed to resolve reference: {to}"))?;
 
     let mut output = PagerOutput::new(ctx, ctx.no_pager);
     output.appendln(&format!(
@@ -133,10 +160,10 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
 
     let from_snapshot = snapshot_manager
         .load_snapshot(&from_id)
-        .with_context(|| format!("Failed to load commit: {}", from_id))?;
+        .with_context(|| format!("Failed to load commit: {from_id}"))?;
     let to_snapshot = snapshot_manager
         .load_snapshot(&to_id)
-        .with_context(|| format!("Failed to load commit: {}", to_id))?;
+        .with_context(|| format!("Failed to load commit: {to_id}"))?;
 
     // Convert snapshots to index format
     let mut from_index = Index::new();
@@ -182,10 +209,9 @@ fn format_file_statuses(output: &mut PagerOutput, statuses: &[FileStatus]) {
 
     for status in statuses {
         match status {
-            FileStatus::Added(p) => added.push(p),
+            FileStatus::Added(p) | FileStatus::Untracked(p) => added.push(p),
             FileStatus::Modified(p) => modified.push(p),
             FileStatus::Deleted(p) => deleted.push(p),
-            FileStatus::Untracked(p) => added.push(p), // Treat untracked as added in diff
         }
     }
 
@@ -232,6 +258,7 @@ fn display_file_statuses(statuses: &[FileStatus]) {
 }
 
 #[cfg(test)]
+#[allow(clippy::used_underscore_binding)]
 mod tests {
     use super::*;
     use crate::config::Config;
@@ -357,7 +384,7 @@ mod tests {
         let repo_path = temp.path().join(".dotman");
 
         let ctx = DotmanContext {
-            repo_path: repo_path.clone(),
+            repo_path,
             config_path: temp.path().join("config"),
             config: Config::default(),
             no_pager: true,

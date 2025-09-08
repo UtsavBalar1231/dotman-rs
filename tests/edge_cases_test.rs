@@ -26,7 +26,7 @@ fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
     fs::write(repo_path.join("HEAD"), "")?;
 
     let mut config = Config::default();
-    config.core.repo_path = repo_path.clone();
+    config.core.repo_path.clone_from(&repo_path);
     config.save(&config_path)?;
 
     let context = DotmanContext {
@@ -59,12 +59,12 @@ fn test_unicode_filenames() -> Result<()> {
 
     for filename in &test_files {
         let file_path = dir.path().join(filename);
-        fs::write(&file_path, format!("content of {}", filename))?;
+        fs::write(&file_path, format!("content of {filename}"))?;
 
         // Test add with Unicode filenames
         let paths = vec![file_path.to_string_lossy().to_string()];
         let result = commands::add::execute(&ctx, &paths, false);
-        assert!(result.is_ok(), "Failed to add Unicode file: {}", filename);
+        assert!(result.is_ok(), "Failed to add Unicode file: {filename}");
     }
 
     // Verify status works with Unicode
@@ -85,7 +85,7 @@ fn test_extremely_long_paths() -> Result<()> {
     // Create nested directory structure that's very deep
     let mut deep_path = dir.path().to_path_buf();
     for i in 0..50 {
-        deep_path = deep_path.join(format!("very_long_directory_name_{}", i));
+        deep_path = deep_path.join(format!("very_long_directory_name_{i}"));
     }
 
     fs::create_dir_all(&deep_path)?;
@@ -100,7 +100,7 @@ fn test_extremely_long_paths() -> Result<()> {
     // This might fail on some filesystems due to path length limits
     // We test both success and graceful failure
     match result {
-        Ok(_) => {
+        Ok(()) => {
             // If successful, commit should also work
             let commit_result = commands::commit::execute(&ctx, "Deep path test", false);
             assert!(commit_result.is_ok());
@@ -141,8 +141,7 @@ fn test_special_characters_in_content() -> Result<()> {
         let result = commands::add::execute(&ctx, &paths, false);
         assert!(
             result.is_ok(),
-            "Failed to handle special content in: {}",
-            filename
+            "Failed to handle special content in: {filename}"
         );
     }
 
@@ -184,7 +183,7 @@ fn test_symlink_handling() -> Result<()> {
         // Should handle dangling symlinks gracefully
         // Either succeed (track the link) or fail gracefully
         match result {
-            Ok(_) => {}
+            Ok(()) => {}
             Err(e) => {
                 assert!(!e.to_string().is_empty());
             }
@@ -213,15 +212,15 @@ fn test_disk_space_edge_cases() -> Result<()> {
 
     // Create many small files
     for i in 0..1000 {
-        let small_file = dir.path().join(format!("small_{}.txt", i));
-        fs::write(&small_file, format!("content {}", i))?;
+        let small_file = dir.path().join(format!("small_{i}.txt"));
+        fs::write(&small_file, format!("content {i}"))?;
     }
 
     // Add them all at once
     let many_paths: Vec<String> = (0..1000)
         .map(|i| {
             dir.path()
-                .join(format!("small_{}.txt", i))
+                .join(format!("small_{i}.txt"))
                 .to_string_lossy()
                 .to_string()
         })
@@ -295,20 +294,19 @@ fn test_comprehensive_permissions() -> Result<()> {
         }
 
         // Test 3: Config file permission issues
-        let config_path = ctx.config_path.clone();
-        if config_path.exists() && !is_root && !in_docker {
-            let mut perms = fs::metadata(&config_path)?.permissions();
+        if ctx.config_path.exists() && !is_root && !in_docker {
+            let mut perms = fs::metadata(&ctx.config_path)?.permissions();
             let original_mode = perms.mode();
             perms.set_mode(0o444);
-            fs::set_permissions(&config_path, perms.clone())?;
+            fs::set_permissions(&ctx.config_path, perms.clone())?;
 
             // Should still be able to read
-            let result = Config::load(&config_path);
+            let result = Config::load(&ctx.config_path);
             assert!(result.is_ok(), "Should be able to read read-only config");
 
             // Should not be able to write
             let config = Config::default();
-            let write_result = config.save(&config_path);
+            let write_result = config.save(&ctx.config_path);
             assert!(
                 write_result.is_err(),
                 "Should not be able to write to read-only config"
@@ -316,7 +314,7 @@ fn test_comprehensive_permissions() -> Result<()> {
 
             // Restore permissions
             perms.set_mode(original_mode);
-            fs::set_permissions(&config_path, perms)?;
+            fs::set_permissions(&ctx.config_path, perms)?;
         }
     }
 
@@ -409,11 +407,11 @@ fn test_rapid_file_changes() -> Result<()> {
 
     // Rapidly modify and re-add file
     for i in 0..100 {
-        fs::write(&test_file, format!("content version {}", i))?;
+        fs::write(&test_file, format!("content version {i}"))?;
 
         let paths = vec![test_file.to_string_lossy().to_string()];
         let result = commands::add::execute(&ctx, &paths, false);
-        assert!(result.is_ok(), "Failed at iteration {}", i);
+        assert!(result.is_ok(), "Failed at iteration {i}");
 
         // Sometimes check status
         if i % 10 == 0 {

@@ -6,6 +6,17 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 use std::path::PathBuf;
 
+/// Execute reset command - reset current HEAD to the specified state
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - The specified commit cannot be resolved
+/// - Multiple reset modes are specified
+/// - File operations fail during hard reset
+/// - Index update fails
+#[allow(clippy::fn_params_excessive_bools)]
 pub fn execute(
     ctx: &DotmanContext,
     commit: &str,
@@ -39,7 +50,7 @@ pub fn execute(
 
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
-        .with_context(|| format!("Failed to load commit: {}", commit_id))?;
+        .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
     if hard {
         // Hard reset: update index and working directory
@@ -170,7 +181,7 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
-        .with_context(|| format!("Failed to load commit: {}", commit_id))?;
+        .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
     // Load current index
     let index_path = ctx.repo_path.join(INDEX_FILE);
@@ -218,14 +229,11 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
     // Save updated index
     if reset_count > 0 {
         index.save(&index_path)?;
-        super::print_success(&format!("Reset {} file(s)", reset_count));
+        super::print_success(&format!("Reset {reset_count} file(s)"));
     }
 
     if not_found_count > 0 {
-        super::print_info(&format!(
-            "{} file(s) were not in the index",
-            not_found_count
-        ));
+        super::print_info(&format!("{not_found_count} file(s) were not in the index"));
     }
 
     Ok(())
@@ -265,6 +273,7 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
 }
 
 #[cfg(test)]
+#[allow(clippy::used_underscore_binding)]
 mod tests {
     use super::*;
     use crate::storage::Commit;
@@ -278,14 +287,19 @@ mod tests {
     }
 
     fn create_test_snapshot(ctx: &DotmanContext, commit_id: &str, message: &str) -> Result<()> {
+        use crate::utils::compress::compress_bytes;
+        use crate::utils::serialization::serialize;
         let valid_commit_id = test_commit_id(commit_id);
         let snapshot = Snapshot {
             commit: Commit {
                 id: valid_commit_id.clone(),
                 message: message.to_string(),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)?
-                    .as_secs() as i64,
+                timestamp: i64::try_from(
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)?
+                        .as_secs(),
+                )
+                .unwrap_or(i64::MAX),
                 parent: None,
                 author: "Test Author".to_string(),
                 tree_hash: "test_tree_hash".to_string(),
@@ -294,8 +308,6 @@ mod tests {
         };
 
         // Save snapshot directly using bincode and zstd
-        use crate::utils::compress::compress_bytes;
-        use crate::utils::serialization::serialize;
         let serialized = serialize(&snapshot)?;
         let compressed = compress_bytes(&serialized, ctx.config.core.compression_level)?;
         let snapshot_path = ctx
@@ -388,18 +400,18 @@ mod tests {
 
     #[test]
     fn test_ref_resolver_integration() -> Result<()> {
+        use crate::refs::RefManager;
         let (_temp, ctx) = setup_test_context()?;
 
         let commit_id = test_commit_id("abc123");
         create_test_snapshot(&ctx, "abc123", "Test commit")?;
 
         // Create refs structure
-        use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
         ref_manager.init()?;
         ref_manager.update_branch("main", &commit_id)?;
 
-        let resolver = RefResolver::new(ctx.repo_path.clone());
+        let resolver = RefResolver::new(ctx.repo_path);
         let resolved_commit_id = resolver.resolve("HEAD")?;
         assert_eq!(resolved_commit_id, commit_id);
 
@@ -408,9 +420,9 @@ mod tests {
 
     #[test]
     fn test_update_head() -> Result<()> {
+        use crate::refs::RefManager;
         let (_temp, ctx) = setup_test_context()?;
 
-        use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
         ref_manager.init()?;
 
@@ -439,9 +451,9 @@ mod tests {
 
     #[test]
     fn test_update_head_overwrites() -> Result<()> {
+        use crate::refs::RefManager;
         let (_temp, ctx) = setup_test_context()?;
 
-        use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
         ref_manager.init()?;
 
@@ -460,12 +472,12 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn test_reset_beyond_initial_commit() -> Result<()> {
+        use crate::refs::RefManager;
         let (_temp, ctx) = setup_test_context()?;
 
         let commit_id = test_commit_id("initial");
         create_test_snapshot(&ctx, "initial", "Initial commit")?;
 
-        use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
         ref_manager.init()?;
         ref_manager.update_branch("main", &commit_id)?;
