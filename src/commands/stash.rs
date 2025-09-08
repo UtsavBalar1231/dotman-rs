@@ -284,13 +284,11 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
                     // Write file
                     fs::write(&abs_path, content)?;
 
-                    // Set permissions
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        let permissions = std::fs::Permissions::from_mode(stash_file.mode);
-                        fs::set_permissions(&abs_path, permissions)?;
-                    }
+                    // Set permissions using cross-platform module
+                    let permissions =
+                        crate::utils::permissions::FilePermissions::from_mode(stash_file.mode);
+                    permissions
+                        .apply_to_path(&abs_path, ctx.config.tracking.preserve_permissions)?;
 
                     applied += 1;
                 }
@@ -464,8 +462,11 @@ fn get_current_commit_info(ctx: &DotmanContext) -> Result<String> {
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let commit_id = ref_manager.get_head_commit()?.context("No commits yet")?;
 
-    let snapshot_manager =
-        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let snapshot_manager = SnapshotManager::with_permissions(
+        ctx.repo_path.clone(),
+        ctx.config.core.compression_level,
+        ctx.config.tracking.preserve_permissions,
+    );
     let snapshot = snapshot_manager.load_snapshot(&commit_id)?;
 
     Ok(format!(

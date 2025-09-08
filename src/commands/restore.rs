@@ -31,8 +31,11 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
         .resolve(source_ref)
         .with_context(|| format!("Failed to resolve reference: {source_ref}"))?;
 
-    let snapshot_manager =
-        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let snapshot_manager = SnapshotManager::with_permissions(
+        ctx.repo_path.clone(),
+        ctx.config.core.compression_level,
+        ctx.config.tracking.preserve_permissions,
+    );
 
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
@@ -81,13 +84,10 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
             // Restore the file content
             snapshot_manager.restore_file_content(&snapshot_file.content_hash, &target_path)?;
 
-            // Restore file permissions on Unix
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let permissions = std::fs::Permissions::from_mode(snapshot_file.mode);
-                std::fs::set_permissions(&target_path, permissions)?;
-            }
+            // Restore file permissions using cross-platform module
+            let permissions =
+                crate::utils::permissions::FilePermissions::from_mode(snapshot_file.mode);
+            permissions.apply_to_path(&target_path, ctx.config.tracking.preserve_permissions)?;
 
             println!("  {} {}", "✓".green(), target_path.display());
             restored_count += 1;

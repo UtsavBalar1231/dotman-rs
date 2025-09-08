@@ -65,8 +65,11 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
         tree_hash,
     };
 
-    let snapshot_manager =
-        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let snapshot_manager = SnapshotManager::with_permissions(
+        ctx.repo_path.clone(),
+        ctx.config.core.compression_level,
+        ctx.config.tracking.preserve_permissions,
+    );
 
     let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit.clone(), &files)?;
@@ -106,8 +109,11 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let last_commit_id = resolver.resolve("HEAD").context("No commits to amend")?;
 
-    let snapshot_manager =
-        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let snapshot_manager = SnapshotManager::with_permissions(
+        ctx.repo_path.clone(),
+        ctx.config.core.compression_level,
+        ctx.config.tracking.preserve_permissions,
+    );
     let last_snapshot = snapshot_manager
         .load_snapshot(&last_commit_id)
         .with_context(|| format!("Failed to load commit: {last_commit_id}"))?;

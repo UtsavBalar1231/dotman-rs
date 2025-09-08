@@ -24,14 +24,25 @@ pub struct SnapshotFile {
 pub struct SnapshotManager {
     repo_path: PathBuf,
     compression_level: i32,
+    preserve_permissions: bool,
 }
 
 impl SnapshotManager {
     #[must_use]
     pub const fn new(repo_path: PathBuf, compression_level: i32) -> Self {
+        Self::with_permissions(repo_path, compression_level, true)
+    }
+
+    #[must_use]
+    pub const fn with_permissions(
+        repo_path: PathBuf,
+        compression_level: i32,
+        preserve_permissions: bool,
+    ) -> Self {
         Self {
             repo_path,
             compression_level,
+            preserve_permissions,
         }
     }
 
@@ -195,15 +206,10 @@ impl SnapshotManager {
                         format!("Failed to restore file: {}", target_path.display())
                     })?;
 
-                // Restore file permissions
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-                    let permissions = fs::Permissions::from_mode(snapshot_file.mode);
-                    fs::set_permissions(&target_path, permissions).with_context(|| {
-                        format!("Failed to set permissions for: {}", target_path.display())
-                    })?;
-                }
+                // Restore file permissions using cross-platform module
+                let permissions =
+                    crate::utils::permissions::FilePermissions::from_mode(snapshot_file.mode);
+                permissions.apply_to_path(&target_path, self.preserve_permissions)?;
 
                 Ok(())
             })?;

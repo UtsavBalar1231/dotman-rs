@@ -8,14 +8,25 @@ use std::path::{Path, PathBuf};
 pub struct Exporter<'a> {
     snapshot_manager: &'a SnapshotManager,
     index: &'a Index,
+    preserve_permissions: bool,
 }
 
 impl<'a> Exporter<'a> {
     #[must_use]
     pub const fn new(snapshot_manager: &'a SnapshotManager, index: &'a Index) -> Self {
+        Self::with_permissions(snapshot_manager, index, true)
+    }
+
+    #[must_use]
+    pub const fn with_permissions(
+        snapshot_manager: &'a SnapshotManager,
+        index: &'a Index,
+        preserve_permissions: bool,
+    ) -> Self {
         Self {
             snapshot_manager,
             index,
+            preserve_permissions,
         }
     }
 
@@ -70,15 +81,9 @@ impl<'a> Exporter<'a> {
             fs::write(&target_path, content)
                 .with_context(|| format!("Failed to write {}", target_path.display()))?;
 
-            // Set file permissions
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let permissions = std::fs::Permissions::from_mode(file.mode);
-                fs::set_permissions(&target_path, permissions).with_context(|| {
-                    format!("Failed to set permissions for {}", target_path.display())
-                })?;
-            }
+            // Set file permissions using cross-platform module
+            let permissions = crate::utils::permissions::FilePermissions::from_mode(file.mode);
+            permissions.apply_to_path(&target_path, self.preserve_permissions)?;
 
             exported_files.push((path.clone(), relative_path.to_path_buf()));
         }
@@ -140,13 +145,23 @@ impl<'a> Exporter<'a> {
 pub struct Importer<'a> {
     _snapshot_manager: &'a mut SnapshotManager,
     index: &'a mut Index,
+    preserve_permissions: bool,
 }
 
 impl<'a> Importer<'a> {
     pub const fn new(snapshot_manager: &'a mut SnapshotManager, index: &'a mut Index) -> Self {
+        Self::with_permissions(snapshot_manager, index, true)
+    }
+
+    pub const fn with_permissions(
+        snapshot_manager: &'a mut SnapshotManager,
+        index: &'a mut Index,
+        preserve_permissions: bool,
+    ) -> Self {
         Self {
             _snapshot_manager: snapshot_manager,
             index,
+            preserve_permissions,
         }
     }
 
@@ -204,12 +219,10 @@ impl<'a> Importer<'a> {
                 )
             })?;
 
-            // Copy permissions
-            #[cfg(unix)]
-            {
-                let metadata = fs::metadata(path)?;
-                let permissions = metadata.permissions();
-                fs::set_permissions(&target_path, permissions)?;
+            // Copy permissions using cross-platform module
+            if self.preserve_permissions {
+                let permissions = crate::utils::permissions::FilePermissions::from_path(path)?;
+                permissions.apply_to_path(&target_path, true)?;
             }
 
             let metadata = fs::metadata(&target_path)?;
@@ -228,15 +241,9 @@ impl<'a> Importer<'a> {
                 )
                 .unwrap_or(i64::MAX),
                 mode: {
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        metadata.permissions().mode()
-                    }
-                    #[cfg(not(unix))]
-                    {
-                        0o644
-                    }
+                    let permissions =
+                        crate::utils::permissions::FilePermissions::from_path(&target_path)?;
+                    permissions.mode()
                 },
                 cached_hash: None,
             };

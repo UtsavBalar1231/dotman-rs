@@ -303,14 +303,11 @@ fn import_file(source: &Path, target: &Path) -> Result<()> {
         )
     })?;
 
-    // Preserve permissions on Unix systems
-    #[cfg(unix)]
-    {
-        let metadata = fs::metadata(source)?;
-        let permissions = metadata.permissions();
-        fs::set_permissions(target, permissions)
-            .with_context(|| format!("Failed to set permissions on {}", target.display()))?;
-    }
+    // Preserve permissions using cross-platform module
+    // Note: We use a local config check since we don't have ctx here
+    // In the future, this function should accept preserve_permissions as a parameter
+    let permissions = crate::utils::permissions::FilePermissions::from_path(source)?;
+    permissions.apply_to_path(target, true)?;
 
     Ok(())
 }

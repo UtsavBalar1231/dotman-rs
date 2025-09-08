@@ -144,12 +144,11 @@ impl GitMirror {
                     format!("Failed to copy {} to mirror", source_path.display())
                 })?;
 
-                // Preserve file permissions
-                #[cfg(unix)]
-                {
-                    let metadata = fs::metadata(source_path)?;
-                    let permissions = metadata.permissions();
-                    fs::set_permissions(&dest_path, permissions)?;
+                // Preserve file permissions using cross-platform module
+                if self.config.tracking.preserve_permissions {
+                    let permissions =
+                        crate::utils::permissions::FilePermissions::from_path(source_path)?;
+                    permissions.apply_to_path(&dest_path, true)?;
                 }
             }
         }

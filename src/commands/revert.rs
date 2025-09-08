@@ -41,8 +41,11 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool
         .resolve(commit_ref)
         .with_context(|| format!("Failed to resolve commit reference: {commit_ref}"))?;
 
-    let snapshot_manager =
-        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let snapshot_manager = SnapshotManager::with_permissions(
+        ctx.repo_path.clone(),
+        ctx.config.core.compression_level,
+        ctx.config.tracking.preserve_permissions,
+    );
 
     let target_snapshot = snapshot_manager
         .load_snapshot(&target_commit_id)
@@ -270,13 +273,9 @@ fn apply_revert_changes(
                         format!("Failed to restore file content: {}", abs_path.display())
                     })?;
 
-                // Set file permissions on Unix systems
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-                    let permissions = fs::Permissions::from_mode(*mode);
-                    fs::set_permissions(&abs_path, permissions)?;
-                }
+                // Set file permissions using cross-platform module
+                let permissions = crate::utils::permissions::FilePermissions::from_mode(*mode);
+                permissions.apply_to_path(&abs_path, ctx.config.tracking.preserve_permissions)?;
 
                 // Calculate new hash for index
                 let (new_hash, _cache) = crate::storage::file_ops::hash_file(&abs_path, None)?;
@@ -340,8 +339,11 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     };
 
     // Create snapshot
-    let snapshot_manager =
-        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let snapshot_manager = SnapshotManager::with_permissions(
+        ctx.repo_path.clone(),
+        ctx.config.core.compression_level,
+        ctx.config.tracking.preserve_permissions,
+    );
 
     let files: Vec<FileEntry> = index.entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit, &files)?;

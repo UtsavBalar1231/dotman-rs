@@ -1,6 +1,7 @@
 pub mod commit;
 pub mod compress;
 pub mod pager;
+pub mod permissions;
 pub mod serialization;
 
 use anyhow::Result;

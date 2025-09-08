@@ -240,14 +240,9 @@ pub fn create_file_entry_with_cache(
     )
     .context("File modification time too large")?;
 
-    #[cfg(unix)]
-    let mode = {
-        use std::os::unix::fs::MetadataExt;
-        metadata.mode()
-    };
-
-    #[cfg(not(unix))]
-    let mode = 0o644;
+    // Use the cross-platform permissions module
+    let permissions = crate::utils::permissions::FilePermissions::from_path(path)?;
+    let mode = permissions.mode();
 
     let relative_path = make_relative(path, home)
         .with_context(|| format!("Failed to make path relative: {}", path.display()))?;

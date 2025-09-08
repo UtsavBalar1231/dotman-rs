@@ -32,8 +32,11 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
         .resolve(target)
         .with_context(|| format!("Failed to resolve reference: {target}"))?;
 
-    let snapshot_manager =
-        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let snapshot_manager = SnapshotManager::with_permissions(
+        ctx.repo_path.clone(),
+        ctx.config.core.compression_level,
+        ctx.config.tracking.preserve_permissions,
+    );
 
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
