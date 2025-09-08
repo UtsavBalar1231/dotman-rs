@@ -1,8 +1,10 @@
 use crate::DotmanContext;
 use crate::config::BranchTracking;
 use crate::refs::RefManager;
+use crate::storage::snapshots::SnapshotManager;
 use anyhow::{Context, Result};
 use colored::Colorize;
+use std::collections::HashSet;
 
 /// List all branches
 /// List all branches
@@ -92,6 +94,83 @@ pub fn create(ctx: &DotmanContext, name: &str, start_point: Option<&str>) -> Res
     Ok(())
 }
 
+/// Check if a branch is fully merged into another branch
+///
+/// A branch is considered fully merged if all its commits are reachable from the target branch.
+/// This is done by following the parent chain from both branches and checking if the branch's
+/// tip commit appears in the target's history.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Failed to get branch commits
+/// - Failed to load snapshots
+fn is_branch_fully_merged(
+    ctx: &DotmanContext,
+    branch_name: &str,
+    target_branch: &str,
+) -> Result<bool> {
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let snapshot_manager =
+        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+
+    // Get the commit at the tip of the branch to check
+    let branch_commit = ref_manager.get_branch_commit(branch_name)?;
+
+    // If the branch points to the same commit as target, it's merged
+    let target_commit = ref_manager.get_branch_commit(target_branch)?;
+    if branch_commit == target_commit {
+        return Ok(true);
+    }
+
+    // Build the set of all commits reachable from the target branch
+    let mut reachable_commits = HashSet::new();
+    let mut current = Some(target_commit);
+    let mut visited = HashSet::new();
+
+    while let Some(commit_id) = current {
+        // Prevent infinite loops in case of cycles (shouldn't happen but safety first)
+        if visited.contains(&commit_id) {
+            break;
+        }
+        visited.insert(commit_id.clone());
+        reachable_commits.insert(commit_id.clone());
+
+        // Load the snapshot to get the parent
+        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+            current = snapshot.commit.parent;
+        } else {
+            // If we can't load a snapshot, stop traversing
+            break;
+        }
+    }
+
+    // Check if the branch's tip commit is in the reachable set
+    Ok(reachable_commits.contains(&branch_commit))
+}
+
+/// Get the default branch to check merge status against
+///
+/// Returns "main" if it exists, "master" if it exists, or the current branch.
+/// If no branches exist, returns None.
+fn get_default_merge_target(ref_manager: &RefManager) -> Result<Option<String>> {
+    // First try to get current branch
+    let current = ref_manager.current_branch()?;
+
+    // Check if main exists
+    if ref_manager.branch_exists("main") {
+        return Ok(Some("main".to_string()));
+    }
+
+    // Check if master exists
+    if ref_manager.branch_exists("master") {
+        return Ok(Some("master".to_string()));
+    }
+
+    // Return current branch if it exists
+    Ok(current)
+}
+
 /// Delete a branch
 /// Delete a branch
 ///
@@ -99,17 +178,65 @@ pub fn create(ctx: &DotmanContext, name: &str, start_point: Option<&str>) -> Res
 ///
 /// Returns an error if:
 /// - Repository is not initialized
+/// - Branch does not exist
+/// - Trying to delete the current branch
+/// - Branch is not fully merged (unless force is used)
 /// - Failed to delete branch
 pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
-    // TODO: Check if branch is fully merged unless force is true
-    if !force {
-        super::print_info("Warning: deleting branch without checking if it's fully merged");
+    // Check if branch exists
+    if !ref_manager.branch_exists(name) {
+        return Err(anyhow::anyhow!("Branch '{}' does not exist", name));
     }
 
+    // Check if it's the current branch
+    if ref_manager
+        .current_branch()?
+        .as_ref()
+        .is_some_and(|c| c == name)
+    {
+        return Err(anyhow::anyhow!(
+            "Cannot delete the currently checked out branch '{}'",
+            name
+        ));
+    }
+
+    // Don't allow deletion of main/master branches without force
+    if !force && (name == "main" || name == "master") {
+        return Err(anyhow::anyhow!(
+            "Cannot delete the '{}' branch without --force\n\
+             This is typically the default branch and should not be deleted",
+            name
+        ));
+    }
+
+    // Check if branch is fully merged unless force is true
+    if !force {
+        // Determine which branch to check against
+        let merge_target = get_default_merge_target(&ref_manager)?
+            .ok_or_else(|| anyhow::anyhow!("No branches available to check merge status"))?;
+
+        // Don't check against itself
+        if merge_target != name {
+            let is_merged = is_branch_fully_merged(ctx, name, &merge_target)?;
+
+            if !is_merged {
+                super::print_warning(&format!(
+                    "Branch '{name}' is not fully merged into '{merge_target}'"
+                ));
+                super::print_info("If you are sure you want to delete it, use --force");
+                return Err(anyhow::anyhow!(
+                    "Branch '{}' is not fully merged. Use --force to delete anyway",
+                    name
+                ));
+            }
+        }
+    }
+
+    // Perform the deletion
     ref_manager.delete_branch(name)?;
     super::print_success(&format!("Deleted branch '{name}'"));
 
@@ -304,11 +431,12 @@ mod tests {
     }
 
     #[test]
-    fn test_delete_branch() -> Result<()> {
+    fn test_delete_branch_force() -> Result<()> {
         let (_temp, ctx) = create_test_context()?;
 
         create(&ctx, "temp", None)?;
-        delete(&ctx, "temp", false)?;
+        // Use force to bypass merge check
+        delete(&ctx, "temp", true)?;
 
         let ref_manager = RefManager::new(ctx.repo_path);
         assert!(!ref_manager.branch_exists("temp"));
@@ -339,6 +467,124 @@ mod tests {
         let ref_manager = RefManager::new(ctx.repo_path);
         assert!(!ref_manager.branch_exists("old"));
         assert!(ref_manager.branch_exists("new"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_delete_nonexistent_branch() -> Result<()> {
+        let (_temp, ctx) = create_test_context()?;
+
+        let result = delete(&ctx, "nonexistent", false);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("does not exist"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_delete_current_branch() -> Result<()> {
+        let (_temp, ctx) = create_test_context()?;
+
+        // Try to delete the current branch (main)
+        let result = delete(&ctx, "main", false);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("currently checked out")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_delete_main_without_force() -> Result<()> {
+        let (_temp, ctx) = create_test_context()?;
+
+        // Create and switch to another branch
+        create(&ctx, "feature", None)?;
+        checkout(&ctx, "feature")?;
+
+        // Try to delete main without force
+        let result = delete(&ctx, "main", false);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Cannot delete the 'main' branch without --force")
+        );
+
+        // Should work with force
+        let result = delete(&ctx, "main", true);
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_is_branch_fully_merged() -> Result<()> {
+        // Create a simple commit history
+        // We need to create actual commits for this test
+        use crate::storage::Commit;
+        use crate::storage::snapshots::SnapshotManager;
+
+        let (_temp, ctx) = create_test_context()?;
+        let snapshot_manager =
+            SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+
+        // Create initial commit on main
+        let commit1 = Commit {
+            id: "commit1".to_string(),
+            parent: None,
+            message: "Initial commit".to_string(),
+            author: "Test".to_string(),
+            timestamp: 1,
+            tree_hash: "tree1".to_string(),
+        };
+        snapshot_manager.create_snapshot(commit1, &[])?;
+
+        // Update main branch to point to commit1
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        ref_manager.update_branch("main", "commit1")?;
+
+        // Create a feature branch at the same commit
+        create(&ctx, "feature", Some("commit1"))?;
+
+        // Feature branch should be considered merged (same commit)
+        assert!(is_branch_fully_merged(&ctx, "feature", "main")?);
+
+        // Create a new commit on feature branch
+        let commit2 = Commit {
+            id: "commit2".to_string(),
+            parent: Some("commit1".to_string()),
+            message: "Feature commit".to_string(),
+            author: "Test".to_string(),
+            timestamp: 2,
+            tree_hash: "tree2".to_string(),
+        };
+        snapshot_manager.create_snapshot(commit2, &[])?;
+        ref_manager.update_branch("feature", "commit2")?;
+
+        // Now feature branch should NOT be merged
+        assert!(!is_branch_fully_merged(&ctx, "feature", "main")?);
+
+        // Create a new commit on main that includes the feature
+        let commit3 = Commit {
+            id: "commit3".to_string(),
+            parent: Some("commit2".to_string()),
+            message: "Merge feature".to_string(),
+            author: "Test".to_string(),
+            timestamp: 3,
+            tree_hash: "tree3".to_string(),
+        };
+        snapshot_manager.create_snapshot(commit3, &[])?;
+        ref_manager.update_branch("main", "commit3")?;
+
+        // Now feature branch should be merged again
+        assert!(is_branch_fully_merged(&ctx, "feature", "main")?);
 
         Ok(())
     }
