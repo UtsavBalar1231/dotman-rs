@@ -10,30 +10,24 @@ use std::path::PathBuf;
 pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    // Display current branch information
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     if let Some(branch) = ref_manager.current_branch()? {
         println!("On branch {}", branch.bold());
-    } else {
-        // Detached HEAD state
-        if let Some(commit) = ref_manager.get_head_commit()? {
-            println!(
-                "HEAD detached at {}",
-                &commit[..8.min(commit.len())].yellow()
-            );
-        }
+    } else if let Some(commit) = ref_manager.get_head_commit()? {
+        println!(
+            "HEAD detached at {}",
+            &commit[..8.min(commit.len())].yellow()
+        );
     }
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
 
-    // Check if repository has any commits (placeholder is 40 zeros)
     let placeholder_commit = "0".repeat(40);
     let has_commits = ref_manager
         .get_head_commit()?
         .is_some_and(|c| c != placeholder_commit);
 
-    // Check if index is empty (no tracked files and no staged files)
     if index.entries.is_empty() && index.staged_entries.is_empty() {
         if !has_commits {
             println!("\nNo commits yet");
@@ -42,32 +36,28 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
         return Ok(());
     }
 
-    // Collect all file statuses
     let mut statuses = Vec::new();
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    // Check staged vs committed (changes to be committed)
     for (path, staged_entry) in &index.staged_entries {
         match index.entries.get(path) {
             Some(committed_entry) => {
                 if staged_entry.hash != committed_entry.hash {
-                    statuses.push(FileStatus::Added(path.clone())); // Staged modification
+                    statuses.push(FileStatus::Added(path.clone()));
                 }
             }
             None => {
-                statuses.push(FileStatus::Added(path.clone())); // New file staged
+                statuses.push(FileStatus::Added(path.clone()));
             }
         }
     }
 
-    // Check for deleted files (in committed but not in staged)
     for path in index.entries.keys() {
         if !index.staged_entries.contains_key(path) {
-            statuses.push(FileStatus::Deleted(path.clone())); // Staged deletion
+            statuses.push(FileStatus::Deleted(path.clone()));
         }
     }
 
-    // Check working directory vs staged (changes not staged)
     for (path, staged_entry) in &index.staged_entries {
         let abs_path = if path.is_relative() {
             home.join(path)
@@ -75,17 +65,14 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
             path.clone()
         };
 
-        if abs_path.exists() {
-            // Check if file has been modified since staging
-            if let Ok(current_hash) = crate::utils::hash::hash_file(&abs_path)
-                && current_hash != staged_entry.hash
-            {
-                statuses.push(FileStatus::Modified(path.clone()));
-            }
+        if abs_path.exists()
+            && let Ok(current_hash) = crate::utils::hash::hash_file(&abs_path)
+            && current_hash != staged_entry.hash
+        {
+            statuses.push(FileStatus::Modified(path.clone()));
         }
     }
 
-    // If --untracked flag is set, scan for untracked files
     if show_untracked {
         let untracked = find_untracked_files(ctx, &index)?;
         for file in untracked {
@@ -94,22 +81,17 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
     }
 
     if statuses.is_empty() {
-        // Only show clean working directory message if we have tracked files
-        // (we already handled the empty index case above)
         println!("\nnothing to commit, working tree clean");
         return Ok(());
     }
 
-    // Sort statuses for consistent output
     statuses.sort_by_key(|s| (s.status_char(), s.path().to_path_buf()));
 
     if short {
-        // Short format: just status char and path
         for status in statuses {
             println!("{} {}", status.status_char(), status.path().display());
         }
     } else {
-        // Long format: grouped by status type
         print_status_group(
             &statuses,
             FileStatus::Added(PathBuf::new()),
@@ -145,13 +127,9 @@ pub fn get_current_files(ctx: &DotmanContext) -> Result<Vec<PathBuf>> {
 
     let mut files = Vec::new();
 
-    // Get home directory to convert relative paths to absolute
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    // Only return tracked files to check for modifications/deletions
-    // We don't scan for untracked files - only explicitly added files are tracked
     for path in index.entries.keys() {
-        // Convert relative path to absolute for file operations
         let abs_path = if path.is_relative() {
             home.join(path)
         } else {
@@ -169,10 +147,8 @@ pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<Pa
     let mut untracked = Vec::new();
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    // Get set of tracked and staged paths for quick lookup
     let mut tracked_paths: HashSet<PathBuf> = HashSet::new();
 
-    // Include both committed and staged files as tracked
     for path in index.entries.keys().chain(index.staged_entries.keys()) {
         if path.is_relative() {
             tracked_paths.insert(home.join(path));
@@ -181,13 +157,11 @@ pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<Pa
         }
     }
 
-    // Walk home directory but skip .dotman and other ignored directories
     for entry in WalkDir::new(&home)
         .follow_links(false)
         .into_iter()
         .filter_entry(|e| {
             let path = e.path();
-            // Skip hidden directories (except tracked ones)
             if path != home
                 && path
                     .file_name()

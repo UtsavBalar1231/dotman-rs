@@ -244,7 +244,6 @@ mod tests {
 
     #[test]
     fn test_short_hash() {
-        // Test with long hexadecimal commit hash
         let entry = ReflogEntry::new(
             "old".to_string(),
             "0123456789abcdef".to_string(),
@@ -253,7 +252,6 @@ mod tests {
         );
         assert_eq!(entry.short_hash(), "01234567");
 
-        // Test with short commit hash
         let short_entry = ReflogEntry::new(
             "old".to_string(),
             "abc".to_string(),
@@ -262,7 +260,6 @@ mod tests {
         );
         assert_eq!(short_entry.short_hash(), "abc");
 
-        // Test with symbolic reference - should not be truncated
         let ref_entry = ReflogEntry::new(
             "old".to_string(),
             "ref: refs/heads/main".to_string(),
@@ -271,7 +268,6 @@ mod tests {
         );
         assert_eq!(ref_entry.short_hash(), "ref: refs/heads/main");
 
-        // Test with non-hex string - should not be truncated
         let non_hex_entry = ReflogEntry::new(
             "old".to_string(),
             "not_a_hexstring".to_string(),

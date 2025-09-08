@@ -21,7 +21,6 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
         let is_current = current.as_ref().is_some_and(|c| c == &branch);
         let prefix = if is_current { "* " } else { "  " };
 
-        // Check if branch has upstream tracking
         let tracking_info = if let Some(tracking) = ctx.config.branches.tracking.get(&branch) {
             format!(" -> {}/{}", tracking.remote, tracking.branch)
                 .dimmed()
@@ -147,12 +146,10 @@ pub fn set_upstream(
             .ok_or_else(|| anyhow::anyhow!("Not on any branch (detached HEAD)"))?
     };
 
-    // Check if branch exists
     if !ref_manager.branch_exists(&branch_name) {
         anyhow::bail!("Branch '{}' does not exist", branch_name);
     }
 
-    // Check if remote exists
     if !ctx.config.remotes.contains_key(remote) {
         anyhow::bail!("Remote '{}' does not exist", remote);
     }
@@ -296,7 +293,6 @@ mod tests {
     fn test_set_upstream() -> Result<()> {
         let (_temp, mut ctx) = create_test_context()?;
 
-        // Add a remote first
         crate::commands::remote::add(&mut ctx, "origin", "https://github.com/user/repo.git")?;
 
         // Set upstream for main branch

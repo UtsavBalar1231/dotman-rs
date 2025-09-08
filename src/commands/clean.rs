@@ -84,7 +84,6 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
 fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    // Create a set of tracked paths for quick lookup
     let tracked_paths: HashSet<PathBuf> = index.entries.keys().map(|p| home.join(p)).collect();
 
     let mut untracked = Vec::new();
@@ -139,7 +138,6 @@ mod tests {
         let repo_path = dir.path().join(".dotman");
         std::fs::create_dir_all(&repo_path)?;
 
-        // Create a mock index with one tracked file
         let _index = Index {
             version: 1,
             entries: HashMap::new(),

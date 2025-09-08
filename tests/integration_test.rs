@@ -14,7 +14,6 @@ fn setup_test_env() -> Result<(tempfile::TempDir, DotmanContext)> {
         std::env::set_var("HOME", dir.path());
     }
 
-    // Initialize repository
     commands::init::execute(false)?;
 
     let repo_path = dir.path().join(".dotman");
@@ -56,7 +55,6 @@ fn test_empty_repository_status() -> Result<()> {
     // The index should be empty
     assert!(index.entries.is_empty(), "Index should be empty after init");
 
-    // Get current files that status would check
     let current_files = commands::status::get_current_files(&ctx)?;
 
     // After our fix, get_current_files should return empty vec for empty index
@@ -301,7 +299,6 @@ fn test_diff_workflow() -> Result<()> {
     fs::write(&file1, "line 1\nline 2 modified\nline 3\nline 4")?;
     fs::remove_file(&file2)?;
 
-    // Create new file
     let file3 = dir.path().join("file3.txt");
     fs::write(&file3, "new file")?;
 
@@ -401,7 +398,6 @@ fn test_ignore_patterns_workflow() -> Result<()> {
 
     // Should have added good_file and other non-ignored files
     // But not log, tmp, or cache files
-    // Check for specific files we created (in staged_entries since they haven't been committed)
     let has_important = index
         .staged_entries
         .keys()

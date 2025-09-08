@@ -24,7 +24,6 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    // Load the source snapshot
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
         .with_context(|| format!("Failed to load commit: {}", commit_id))?;
@@ -56,7 +55,6 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
             path.clone()
         };
 
-        // Check if the file exists in the snapshot
         if let Some(snapshot_file) = snapshot.files.get(&relative_path) {
             // Determine the target path for restoration
             let target_path = if path.is_absolute() {
@@ -216,7 +214,6 @@ mod tests {
             std::env::set_var("HOME", _temp.path());
         }
 
-        // Create a test snapshot with some files
         // Use a valid 32-character hex commit ID
         let commit_id = "00000000000000000000000000001234";
         create_test_snapshot(

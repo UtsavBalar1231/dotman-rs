@@ -98,7 +98,6 @@ impl StashManager {
     pub fn save_stash(&self, entry: &StashEntry) -> Result<()> {
         self.init_stash_dirs()?;
 
-        // Save the stash entry
         let entry_path = self.entries_dir().join(format!("{}.zst", &entry.id));
 
         // Serialize and compress
@@ -109,7 +108,6 @@ impl StashManager {
         fs::write(&entry_path, compressed)
             .with_context(|| format!("Failed to write stash entry: {}", entry.id))?;
 
-        // Update the stack
         self.push_to_stack(&entry.id)?;
 
         Ok(())
@@ -261,7 +259,6 @@ impl StashManager {
 
     /// Clear all stashes
     pub fn clear_all_stashes(&self) -> Result<()> {
-        // Remove all entry files
         if self.entries_dir().exists() {
             for entry in fs::read_dir(self.entries_dir())? {
                 let entry = entry?;

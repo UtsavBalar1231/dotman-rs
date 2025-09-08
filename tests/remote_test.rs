@@ -18,7 +18,6 @@ fn test_push_workflow() -> Result<()> {
         std::env::set_var("HOME", &home);
     }
 
-    // Initialize dotman
     dotman::commands::init::execute(false)?;
 
     // Create and add a test file
@@ -40,11 +39,9 @@ fn test_push_workflow() -> Result<()> {
     // Commit
     dotman::commands::commit::execute(&ctx, "Test commit", false)?;
 
-    // Add a remote
     let remote_path = temp.path().join("remote.git");
     fs::create_dir_all(&remote_path)?;
 
-    // Initialize the remote as a bare git repo
     std::process::Command::new("git")
         .args(["init", "--bare"])
         .current_dir(&remote_path)
@@ -93,7 +90,6 @@ fn test_pull_workflow() -> Result<()> {
         std::env::set_var("HOME", &home);
     }
 
-    // Initialize dotman
     dotman::commands::init::execute(false)?;
 
     let config_path = home.join(".config/dotman/config");
@@ -105,11 +101,9 @@ fn test_pull_workflow() -> Result<()> {
         no_pager: true,
     };
 
-    // Create a "remote" repository with content
     let remote_path = temp.path().join("remote");
     fs::create_dir_all(&remote_path)?;
 
-    // Initialize git repo and add content
     std::process::Command::new("git")
         .args(["init"])
         .current_dir(&remote_path)
@@ -158,7 +152,6 @@ fn test_mapping_persistence() -> Result<()> {
     manager.add_and_save("origin", "dotman123", "git456")?;
     manager.add_and_save("origin", "dotman789", "git012")?;
 
-    // Load and verify
     let manager2 = MappingManager::new(&repo_path)?;
     assert_eq!(
         manager2.mapping().get_git_commit("origin", "dotman123"),
@@ -185,7 +178,6 @@ fn test_remote_management() -> Result<()> {
         std::env::set_var("HOME", &home);
     }
 
-    // Initialize
     dotman::commands::init::execute(false)?;
 
     let config_path = home.join(".config/dotman/config");

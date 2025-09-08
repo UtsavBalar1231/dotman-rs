@@ -18,7 +18,6 @@ fn test_user_config_workflow() -> Result<()> {
         std::env::set_var("HOME", &home);
     }
 
-    // Initialize dotman
     dotman::commands::init::execute(false)?;
 
     // Load config and create context
@@ -30,7 +29,6 @@ fn test_user_config_workflow() -> Result<()> {
     config.user.email = Some("test@example.com".to_string());
     config.save(&config_path)?;
 
-    // Create a test file
     let test_file = home.join("test.txt");
     fs::write(&test_file, "test content")?;
 
@@ -60,7 +58,6 @@ fn test_user_config_workflow() -> Result<()> {
     );
     let snapshot = snapshot_manager.load_snapshot(&head_commit)?;
 
-    // Check that author is formatted correctly
     assert_eq!(snapshot.commit.author, "Test User <test@example.com>");
 
     Ok(())
@@ -80,7 +77,6 @@ fn test_config_command_integration() -> Result<()> {
         std::env::set_var("HOME", &home);
     }
 
-    // Initialize dotman
     dotman::commands::init::execute(false)?;
 
     // Load config and create context
@@ -141,7 +137,6 @@ fn test_mirror_uses_dotman_config() -> Result<()> {
         std::env::set_var("HOME", &home);
     }
 
-    // Initialize dotman
     dotman::commands::init::execute(false)?;
 
     // Load config and set user info
@@ -151,7 +146,6 @@ fn test_mirror_uses_dotman_config() -> Result<()> {
     config.user.email = Some("mirror@test.com".to_string());
     config.save(&config_path)?;
 
-    // Create a mirror
     let mirror = dotman::mirror::GitMirror::new(
         &repo_path,
         "test-remote",
@@ -159,10 +153,8 @@ fn test_mirror_uses_dotman_config() -> Result<()> {
         config.clone(),
     );
 
-    // Initialize mirror
     mirror.init_mirror()?;
 
-    // Check that git config in mirror has our dotman user settings
     let mirror_path = repo_path.join("mirrors/test-remote");
 
     let output = Command::new("git")

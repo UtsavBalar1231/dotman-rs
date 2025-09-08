@@ -188,7 +188,6 @@ mod tests {
         let dir = tempdir()?;
         let file_path = dir.path().join("large.txt");
 
-        // Create a file larger than 1MB to trigger memory mapping
         let large_content = "x".repeat(2_000_000);
         std::fs::write(&file_path, &large_content)?;
 

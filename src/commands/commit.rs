@@ -21,13 +21,11 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
         return Ok(());
     }
 
-    // If --all flag is set, stage all modified tracked files first
     if all {
         super::print_info("Staging all tracked files...");
         stage_all_tracked_files(ctx, &mut index)?;
     }
 
-    // Check if there are any staged changes
     if !index.has_staged_changes() {
         super::print_warning(
             "No changes staged for commit. Use 'dot add' to stage changes or 'dot commit --all' to commit all changes.",
@@ -35,24 +33,19 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
         return Ok(());
     }
 
-    // Get timestamp and author for commit
     let timestamp = get_current_timestamp();
     let author = get_current_user_with_config(&ctx.config);
 
-    // Get parent commit (if any)
     let parent = get_last_commit_id(ctx)?;
 
-    // Create tree hash from all staged file hashes
     let mut tree_content = String::new();
     for (path, entry) in &index.staged_entries {
         tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
-    // Generate content-addressed commit ID
     let commit_id = generate_commit_id(&tree_hash, parent.as_deref(), message, &author, timestamp);
 
-    // Create commit object
     let commit = Commit {
         id: commit_id.clone(),
         parent,
@@ -62,21 +55,17 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
         tree_hash,
     };
 
-    // Create snapshot
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit.clone(), &files)?;
 
-    // After successful commit, move staged entries to committed entries
     index.commit_staged();
     index.save(&index_path)?;
 
-    // Update HEAD
     update_head(ctx, &commit_id)?;
 
-    // Show first 8 chars of commit ID (Git-style)
     let display_id = if commit_id.len() >= 8 {
         &commit_id[..8]
     } else {
@@ -96,22 +85,18 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
 pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    // Get the last commit
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let last_commit_id = resolver.resolve("HEAD").context("No commits to amend")?;
 
-    // Load the last commit
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
     let last_snapshot = snapshot_manager
         .load_snapshot(&last_commit_id)
         .with_context(|| format!("Failed to load commit: {}", last_commit_id))?;
 
-    // Load current index
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let mut index = Index::load(&index_path)?;
 
-    // If --all flag is set, stage all tracked files first
     if all {
         super::print_info("Staging all tracked files...");
         stage_all_tracked_files(ctx, &mut index)?;
@@ -122,21 +107,17 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
         return Ok(());
     }
 
-    // Use provided message or keep the original
     let commit_message = message.unwrap_or(&last_snapshot.commit.message);
 
-    // Create tree hash from all staged file hashes
     let mut tree_content = String::new();
     for (path, entry) in &index.staged_entries {
         tree_content.push_str(&format!("{} {}\n", entry.hash, path.display()));
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
-    // Get commit details
     let timestamp = get_current_timestamp();
     let author = get_current_user_with_config(&ctx.config);
 
-    // Generate new content-addressed commit ID for the amended commit
     let commit_id = generate_commit_id(
         &tree_hash,
         last_snapshot.commit.parent.as_deref(),
@@ -145,7 +126,6 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
         timestamp,
     );
 
-    // Create amended commit object with same parent as the original
     let commit = Commit {
         id: commit_id.clone(),
         parent: last_snapshot.commit.parent.clone(),
@@ -158,11 +138,9 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     // Delete the old snapshot
     snapshot_manager.delete_snapshot(&last_commit_id)?;
 
-    // Create new snapshot with amended content
     let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit.clone(), &files)?;
 
-    // After successful commit, move staged entries to committed entries
     index.commit_staged();
     index.save(&index_path)?;
 
@@ -226,14 +204,11 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let reflog_manager = ReflogManager::new(ctx.repo_path.clone());
 
-    // Check if we're on a branch or detached HEAD
     if let Some(current_branch) = ref_manager.current_branch()? {
-        // Get current HEAD value before updating
         let old_value = reflog_manager
             .get_current_head()
             .unwrap_or_else(|_| "0".repeat(40));
 
-        // Update the current branch to point to the new commit
         ref_manager.update_branch(&current_branch, commit_id)?;
 
         // Log the reflog entry - for branch commits, we log the commit hash as new value
@@ -298,7 +273,6 @@ mod tests {
         fs::create_dir_all(repo_path.join("objects"))?;
         fs::create_dir_all(repo_path.join("refs/heads"))?;
 
-        // Initialize refs
         let ref_manager = RefManager::new(repo_path.clone());
         ref_manager.init()?;
 
@@ -314,7 +288,6 @@ mod tests {
             no_pager: true,
         };
 
-        // Create an index with a file
         let mut index = Index::new();
         let test_file = PathBuf::from(".bashrc");
         // Stage the entry for commit
@@ -333,13 +306,11 @@ mod tests {
             std::env::set_var("HOME", dir.path());
         }
 
-        // Create the actual test file on disk
         fs::write(dir.path().join(".bashrc"), "test content")?;
 
         // Create first commit
         execute(&ctx, "Initial commit", false)?;
 
-        // Load the index (it was modified by execute), update and stage the file
         let mut index = Index::load(&index_path)?;
         index.stage_entry(FileEntry {
             path: test_file,
@@ -350,7 +321,6 @@ mod tests {
         });
         index.save(&index_path)?;
 
-        // Update the actual file on disk as well
         fs::write(dir.path().join(".bashrc"), "updated test content")?;
 
         // Amend the commit

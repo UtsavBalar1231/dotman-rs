@@ -27,13 +27,10 @@ pub fn execute(
         ctx.config.set(key, val.clone())?;
         ctx.config.save(&ctx.config_path)?;
         super::print_success(&format!("Set {} = {}", key, val));
+    } else if let Some(val) = ctx.config.get(key) {
+        println!("{}", val);
     } else {
-        // Get a configuration value
-        if let Some(val) = ctx.config.get(key) {
-            println!("{}", val);
-        } else {
-            super::print_warning(&format!("Configuration key '{}' is not set", key));
-        }
+        super::print_warning(&format!("Configuration key '{}' is not set", key));
     }
 
     Ok(())

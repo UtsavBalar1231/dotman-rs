@@ -93,7 +93,6 @@ pub mod fixtures {
             remote_type: crate::config::RemoteType,
             url: Option<String>,
         ) -> Result<()> {
-            // Add a remote named "origin" with the specified type and url
             let remote_config = crate::config::RemoteConfig { remote_type, url };
             self.context
                 .config
@@ -119,7 +118,6 @@ pub mod fixtures {
         let index = crate::storage::index::Index::new();
         index.save(&repo_path.join("index.bin"))?;
 
-        // Initialize refs system (branches and HEAD)
         let ref_manager = crate::refs::RefManager::new(repo_path.clone());
         ref_manager.init()?;
 

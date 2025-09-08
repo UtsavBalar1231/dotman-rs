@@ -43,7 +43,6 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
 
     println!("{}", "Tags:".bold());
     for tag in tags {
-        // Get the commit for each tag
         match ref_manager.get_tag_commit(&tag) {
             Ok(commit_id) => {
                 let short_commit = &commit_id[..8.min(commit_id.len())];
@@ -113,7 +112,6 @@ mod tests {
 
         let (dir, ctx) = create_test_context()?;
 
-        // Create a dummy commit for HEAD
         let head_path = ctx.repo_path.join("refs/heads/main");
         fs::write(&head_path, "abc123def456")?;
 
@@ -124,7 +122,6 @@ mod tests {
     fn test_create_tag() -> Result<()> {
         let (_dir, ctx) = setup_test_context()?;
 
-        // Create a tag
         create(&ctx, "v1.0.0", None)?;
 
         // Verify tag was created
@@ -138,7 +135,6 @@ mod tests {
     fn test_create_tag_with_commit() -> Result<()> {
         let (_dir, ctx) = setup_test_context()?;
 
-        // Create a tag pointing to a specific commit
         create(&ctx, "v1.0.0", Some("fedcba987654"))?;
 
         // Verify tag points to correct commit
@@ -206,7 +202,6 @@ mod tests {
     fn test_show_tag() -> Result<()> {
         let (_dir, ctx) = setup_test_context()?;
 
-        // Create a tag and show it
         let ref_manager = RefManager::new(ctx.repo_path.clone());
         ref_manager.create_tag("v1.0.0", Some("abc123def456"))?;
 
@@ -231,7 +226,6 @@ mod tests {
     fn test_duplicate_tag() -> Result<()> {
         let (_dir, ctx) = setup_test_context()?;
 
-        // Create a tag
         create(&ctx, "v1.0.0", None)?;
 
         // Try to create the same tag again

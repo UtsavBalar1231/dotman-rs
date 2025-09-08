@@ -165,7 +165,6 @@ mod tests {
 
     #[test]
     fn test_dictionary_compressor() -> Result<()> {
-        // Test with empty dictionary (should fall back to regular compression)
         let compressor = DictionaryCompressor::new(&[], 3)?;
 
         let data = b"Test data for compression with dictionary compressor";
@@ -174,7 +173,6 @@ mod tests {
 
         assert_eq!(data.to_vec(), decompressed);
 
-        // Test with samples for dictionary
         let samples = vec![
             b"test sample data test sample".as_ref(),
             b"sample data for testing".as_ref(),

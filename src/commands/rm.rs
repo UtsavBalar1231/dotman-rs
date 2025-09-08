@@ -34,7 +34,6 @@ pub fn execute(
     let mut expanded_paths = Vec::new();
 
     for path_str in paths {
-        // Check if it's a glob pattern
         if path_str.contains('*') || path_str.contains('?') || path_str.contains('[') {
             // Handle glob pattern
             if let Ok(pattern) = Pattern::new(path_str) {
@@ -51,7 +50,6 @@ pub fn execute(
         } else {
             let path = PathBuf::from(path_str);
 
-            // Check if it's a directory and recursive flag is set
             if recursive && path.is_dir() {
                 // Add all files in directory recursively
                 expand_directory_recursive(&path, &mut expanded_paths)?;
@@ -66,14 +64,12 @@ pub fn execute(
     expanded_paths.dedup();
 
     for path in expanded_paths {
-        // Convert to relative path from home if it's absolute
         let index_path = if path.is_absolute() {
             path.strip_prefix(&home).unwrap_or(&path).to_path_buf()
         } else {
             path.clone()
         };
 
-        // Check if file is in index
         let in_index = index.get_entry(&index_path).is_some();
 
         if !in_index && !force {
@@ -92,13 +88,11 @@ pub fn execute(
             continue;
         }
 
-        // Remove from index
         if index.remove_entry(&index_path).is_some() {
             println!("  {} {}", "removed:".red(), path.display());
             removed_count += 1;
         }
 
-        // Remove from filesystem if not --cached
         if !cached && path.exists() {
             // Handle directory removal if recursive
             if path.is_dir() && recursive {

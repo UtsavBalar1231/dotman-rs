@@ -50,14 +50,12 @@ impl DotmanContext {
         })
     }
 
-    /// Check if repository is properly initialized
     pub fn is_repo_initialized(&self) -> bool {
         self.repo_path.exists()
             && self.repo_path.join(INDEX_FILE).exists()
             && self.repo_path.join("HEAD").exists()
     }
 
-    /// Check and return error if not initialized
     pub fn check_repo_initialized(&self) -> Result<()> {
         if !self.is_repo_initialized() {
             anyhow::bail!(
@@ -88,10 +86,8 @@ mod tests {
         let temp = tempdir()?;
         let config_path = temp.path().join(DEFAULT_CONFIG_PATH);
 
-        // Create config directory and file
         fs::create_dir_all(config_path.parent().unwrap())?;
 
-        // Create a minimal config
         let config_content = r#"
 [core]
 repo_path = "~/.dotman"
@@ -112,7 +108,6 @@ preserve_permissions = true
 "#;
         fs::write(&config_path, config_content)?;
 
-        // Set HOME to temp dir
         unsafe {
             std::env::set_var("HOME", temp.path());
         }
@@ -129,12 +124,10 @@ preserve_permissions = true
     fn test_dotman_context_new_with_default_config() {
         let temp = tempdir().unwrap();
 
-        // Set HOME to temp dir without creating config
         unsafe {
             std::env::set_var("HOME", temp.path());
         }
 
-        // Create context - it should create default config
         let result = DotmanContext::new();
         if let Err(e) = &result {
             eprintln!("Error creating context: {}", e);
@@ -144,7 +137,6 @@ preserve_permissions = true
             "Failed to create context with default config"
         );
 
-        // Verify default config was created
         let config_path = temp.path().join(DEFAULT_CONFIG_PATH);
         assert!(config_path.exists());
     }
@@ -155,13 +147,10 @@ preserve_permissions = true
         let temp = tempdir()?;
         let config_path = temp.path().join(DEFAULT_CONFIG_PATH);
 
-        // Create config directory
         fs::create_dir_all(config_path.parent().unwrap())?;
 
-        // Create invalid config
         fs::write(&config_path, "invalid toml content {")?;
 
-        // Set HOME to temp dir
         unsafe {
             std::env::set_var("HOME", temp.path());
         }
@@ -187,7 +176,6 @@ preserve_permissions = true
         // Ensure directories don't exist initially
         assert!(!repo_path.exists());
 
-        // Create repo structure
         ctx.ensure_repo_exists()?;
 
         // Verify all directories were created

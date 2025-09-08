@@ -27,7 +27,6 @@ pub fn execute(
 
     let mut output = PagerOutput::new(ctx, ctx.no_pager);
 
-    // Load and display commits
     let mut commits_displayed = 0;
 
     // If a target is specified, start from that commit and follow parent chain
@@ -51,7 +50,6 @@ pub fn execute(
             }
             visited.insert(commit_id.clone());
 
-            // Load the snapshot
             let snapshot = match snapshot_manager.load_snapshot(&commit_id) {
                 Ok(s) => s,
                 Err(_) => break, // Stop if we can't load a commit
@@ -268,7 +266,6 @@ mod tests {
             create_test_snapshot(&ctx, &commit_id, &message, parent)?;
         }
 
-        // Test with limit of 2
         let result = execute(&ctx, None, 2, false);
         assert!(result.is_ok());
 

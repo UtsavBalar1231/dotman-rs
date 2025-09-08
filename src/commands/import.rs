@@ -299,7 +299,6 @@ mod tests {
 
     #[test]
     fn test_scan_repository() {
-        // Create a temporary repository structure
         let temp_dir = TempDir::new().unwrap();
         let repo_path = temp_dir.path();
 
@@ -318,7 +317,6 @@ mod tests {
         // Should find 2 files (excluding .git)
         assert_eq!(files.len(), 2);
 
-        // Check that paths are correct
         let home_dir = dirs::home_dir().unwrap();
         assert!(
             files
@@ -344,12 +342,10 @@ mod tests {
         // Import the file
         import_file(&source, &target).unwrap();
 
-        // Check that file was copied
         assert!(target.exists());
         let content = fs::read_to_string(&target).unwrap();
         assert_eq!(content, "test content");
 
-        // Check that parent directory was created
         assert!(target.parent().unwrap().exists());
     }
 }

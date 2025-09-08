@@ -24,7 +24,6 @@ impl<'a> Exporter<'a> {
         commit_id: &str,
         target_dir: &Path,
     ) -> Result<Vec<(PathBuf, PathBuf)>> {
-        // Load the snapshot for this commit
         let snapshot = self
             .snapshot_manager
             .load_snapshot(commit_id)
@@ -190,8 +189,6 @@ impl<'a> Importer<'a> {
                 fs::set_permissions(&target_path, permissions)?;
             }
 
-            // Add to index
-            // Add to index
             let metadata = fs::metadata(&target_path)?;
             let file_entry = crate::storage::FileEntry {
                 path: target_path.clone(),
@@ -248,7 +245,6 @@ impl<'a> Importer<'a> {
 
             seen_files.insert(target_path.clone());
 
-            // Check if file exists in index
             if let Some(index_entry) = self.index.get_entry(&target_path) {
                 // File exists, check if modified
                 let content = fs::read(path)?;
@@ -258,7 +254,6 @@ impl<'a> Importer<'a> {
                     // File modified
                     modified.push(target_path.clone());
 
-                    // Update the file
                     if let Some(parent) = target_path.parent() {
                         fs::create_dir_all(parent)?;
                     }
@@ -299,7 +294,6 @@ impl<'a> Importer<'a> {
                 // New file
                 added.push(target_path.clone());
 
-                // Add the file
                 if let Some(parent) = target_path.parent() {
                     fs::create_dir_all(parent)?;
                 }
@@ -312,7 +306,6 @@ impl<'a> Importer<'a> {
                     fs::set_permissions(&target_path, permissions)?;
                 }
 
-                // Add new file to index
                 let metadata = fs::metadata(&target_path)?;
                 let file_entry = crate::storage::FileEntry {
                     path: target_path.clone(),
@@ -338,7 +331,6 @@ impl<'a> Importer<'a> {
             }
         }
 
-        // Check for deleted files
         // Need to clone the keys to avoid borrowing issues
         let indexed_paths: Vec<PathBuf> = self.index.entries.keys().cloned().collect();
         for indexed_path in &indexed_paths {
@@ -463,11 +455,9 @@ mod tests {
         fs::create_dir_all(storage_path.join("objects"))?;
         fs::create_dir_all(storage_path.join("commits"))?;
 
-        // Create a test commit with snapshot
         let snapshot_manager = SnapshotManager::new(storage_path.clone(), 3);
         let index = Index::new();
 
-        // Create a test snapshot
         use crate::storage::{
             Commit,
             snapshots::{Snapshot, SnapshotFile},

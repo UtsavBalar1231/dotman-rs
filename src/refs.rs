@@ -17,15 +17,12 @@ impl RefManager {
 
     /// Initialize refs structure for a new repository
     pub fn init(&self) -> Result<()> {
-        // Create refs directories
         fs::create_dir_all(self.repo_path.join("refs/heads"))?;
         fs::create_dir_all(self.repo_path.join("refs/remotes"))?;
         fs::create_dir_all(self.repo_path.join("refs/tags"))?;
 
-        // Create default main branch
         self.create_branch("main", None)?;
 
-        // Set HEAD to point to main
         self.set_head_to_branch("main")?;
 
         Ok(())
@@ -40,7 +37,6 @@ impl RefManager {
 
         let head_content = fs::read_to_string(&head_path)?;
 
-        // Check if HEAD points to a branch
         if let Some(branch_ref) = head_content.strip_prefix("ref: refs/heads/") {
             return Ok(Some(branch_ref.trim().to_string()));
         }
@@ -65,7 +61,6 @@ impl RefManager {
         operation: &str,
         message: &str,
     ) -> Result<()> {
-        // Get current HEAD value before changing it
         let old_value = self
             .get_current_head_value()
             .unwrap_or_else(|| "0".repeat(40));
@@ -112,7 +107,6 @@ impl RefManager {
         operation: &str,
         message: &str,
     ) -> Result<()> {
-        // Get current HEAD value before changing it
         let old_value = self
             .get_current_head_value()
             .unwrap_or_else(|| "0".repeat(40));
@@ -209,7 +203,6 @@ impl RefManager {
 
         let head_content = fs::read_to_string(&head_path)?.trim().to_string();
 
-        // Check if HEAD points to a branch
         if let Some(branch_name) = head_content.strip_prefix("ref: refs/heads/") {
             // Read the branch file to get the commit
             let branch_path = self.repo_path.join(format!("refs/heads/{}", branch_name));

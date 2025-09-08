@@ -41,20 +41,16 @@ impl SnapshotManager {
             .join("commits")
             .join(format!("{}.zst", &snapshot_id));
 
-        // Create snapshot directory if it doesn't exist
         if let Some(parent) = snapshot_path.parent() {
             fs::create_dir_all(parent)?;
         }
 
-        // Get home directory to resolve relative paths
         let home =
             dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-        // Store file contents in parallel
         let stored_files: Result<Vec<(PathBuf, SnapshotFile)>> = files
             .par_iter()
             .map(|entry| {
-                // Convert relative path to absolute for reading file content
                 let abs_path = if entry.path.is_relative() {
                     home.join(&entry.path)
                 } else {
@@ -79,18 +75,15 @@ impl SnapshotManager {
             files: files_map,
         };
 
-        // Serialize and compress snapshot
         let serialized = serialization::serialize(&snapshot)?;
         let compressed = encode_all(&serialized[..], self.compression_level)?;
 
-        // Write compressed snapshot
         fs::write(&snapshot_path, compressed)?;
 
         Ok(snapshot_id)
     }
 
     pub fn load_snapshot(&self, snapshot_id: &str) -> Result<Snapshot> {
-        // First try exact match
         let exact_path = self
             .repo_path
             .join("commits")
@@ -108,11 +101,10 @@ impl SnapshotManager {
                     let entry = entry?;
                     let path = entry.path();
 
-                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                        // Check if this commit ID ends with the provided partial ID
-                        if stem.ends_with(snapshot_id) || stem.starts_with(snapshot_id) {
-                            matches.push(path);
-                        }
+                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str())
+                        && (stem.ends_with(snapshot_id) || stem.starts_with(snapshot_id))
+                    {
+                        matches.push(path);
                     }
                 }
             }
@@ -148,12 +140,10 @@ impl SnapshotManager {
             .try_for_each(|(rel_path, snapshot_file)| -> Result<()> {
                 let target_path = target_dir.join(rel_path);
 
-                // Create parent directory if needed
                 if let Some(parent) = target_path.parent() {
                     fs::create_dir_all(parent)?;
                 }
 
-                // Restore file content
                 self.restore_file_content(&snapshot_file.content_hash, &target_path)?;
 
                 // Restore file permissions
@@ -178,13 +168,11 @@ impl SnapshotManager {
     ) -> Result<()> {
         let snapshot = self.load_snapshot(snapshot_id)?;
 
-        // Get list of files in target snapshot
         let snapshot_files: std::collections::HashSet<PathBuf> =
             snapshot.files.keys().cloned().collect();
 
         // Remove files that are in current but not in snapshot
         for current_file in current_files {
-            // Convert to relative path if needed
             let rel_path = if current_file.is_absolute() {
                 current_file
                     .strip_prefix(target_dir)
@@ -217,7 +205,6 @@ impl SnapshotManager {
         let objects_dir = self.repo_path.join("objects");
         let object_path = objects_dir.join(format!("{}.zst", hash));
 
-        // Check if object already exists (deduplication)
         if object_path.exists() {
             return Ok(hash.to_string());
         }
@@ -355,7 +342,6 @@ impl GarbageCollector {
             }
         }
 
-        // Delete unreferenced objects
         let mut deleted = 0;
 
         for entry in fs::read_dir(objects_dir)? {
@@ -437,7 +423,6 @@ mod tests {
         fs::write(objects_dir.join("used.zst"), "used content")?;
         fs::write(objects_dir.join("unused.zst"), "unused content")?;
 
-        // Create a snapshot that references only one object
         let commits_dir = repo_path.join("commits");
         fs::create_dir_all(&commits_dir)?;
 
@@ -592,7 +577,6 @@ mod tests {
 
         let manager = SnapshotManager::new(repo_path.clone(), 3);
 
-        // Create a test file
         let test_file = dir.path().join("test.txt");
         fs::write(&test_file, "content")?;
 
@@ -663,7 +647,6 @@ mod tests {
         // Create large snapshot
         let snapshot_id = manager.create_snapshot(commit, &files)?;
 
-        // Load and verify
         let loaded = manager.load_snapshot(&snapshot_id)?;
         assert_eq!(loaded.files.len(), 1000);
 
@@ -711,7 +694,6 @@ mod tests {
 
         manager.create_snapshot(commit, &files)?;
 
-        // Check that only one object file was created (deduplication)
         let objects_dir = repo_path.join("objects");
         let object_count = fs::read_dir(objects_dir)?.count();
         assert_eq!(object_count, 1); // Only one object for both files
@@ -730,7 +712,6 @@ mod tests {
 
         let manager = SnapshotManager::new(repo_path.clone(), 3);
 
-        // Create a valid snapshot first
         let test_file = dir.path().join("test.txt");
         fs::write(&test_file, "snapshot content")?;
 

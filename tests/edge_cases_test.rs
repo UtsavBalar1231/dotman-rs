@@ -198,7 +198,6 @@ fn test_symlink_handling() -> Result<()> {
 fn test_disk_space_edge_cases() -> Result<()> {
     let (dir, ctx) = setup_test_context()?;
 
-    // Create a very large file (but not too large for CI)
     let large_file = dir.path().join("large.dat");
     let large_content = vec![0u8; 10_000_000]; // 10MB
     fs::write(&large_file, &large_content)?;
@@ -242,7 +241,6 @@ fn test_comprehensive_permissions() -> Result<()> {
     {
         use std::os::unix::fs::PermissionsExt;
 
-        // Check if we're in a privileged environment where permission tests may not work
         let is_root = unsafe { libc::geteuid() } == 0;
         let in_docker = std::path::Path::new("/.dockerenv").exists()
             || fs::read_to_string("/proc/1/cgroup")

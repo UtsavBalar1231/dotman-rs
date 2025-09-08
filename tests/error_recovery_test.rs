@@ -65,7 +65,6 @@ fn test_recover_from_incomplete_commit() -> Result<()> {
     // Should detect the file but loading it will fail
     assert!(valid_snapshots.contains(&"incomplete".to_string()));
 
-    // Clean up corrupted commit
     snapshot_manager.delete_snapshot("incomplete")?;
 
     // Verify it's gone
@@ -82,7 +81,6 @@ fn test_recover_from_missing_objects() -> Result<()> {
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    // Create a file and commit
     let test_file = dir.path().join("test.txt");
     fs::write(&test_file, "test content")?;
 
@@ -196,7 +194,6 @@ fn test_recover_from_disk_full() -> Result<()> {
 
     let (dir, ctx) = setup_corrupted_repo()?;
 
-    // Create a large file that might fail to write completely
     let large_file = dir.path().join("large.dat");
     let large_content = vec![0u8; 1_000_000]; // 1MB
 

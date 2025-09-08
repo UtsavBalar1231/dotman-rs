@@ -35,7 +35,6 @@ pub fn execute(
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    // Load the target snapshot
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
         .with_context(|| format!("Failed to load commit: {}", commit_id))?;
@@ -166,7 +165,6 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let commit_id = resolver.resolve(commit)?;
 
-    // Load the target snapshot
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
     let snapshot = snapshot_manager
@@ -186,14 +184,12 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
     for path_str in paths {
         let path = PathBuf::from(path_str);
 
-        // Convert to relative path from home if absolute
         let index_path = if path.is_absolute() {
             path.strip_prefix(&home).unwrap_or(&path).to_path_buf()
         } else {
             path.clone()
         };
 
-        // Check if file exists in target commit
         if let Some(file) = snapshot.files.get(&index_path) {
             // Update index with file from target commit
             index.add_entry(crate::storage::FileEntry {
@@ -241,14 +237,11 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let reflog_manager = ReflogManager::new(ctx.repo_path.clone());
 
-    // Check if we're on a branch
     if let Some(branch) = ref_manager.current_branch()? {
-        // Get current HEAD value before updating
         let old_value = reflog_manager
             .get_current_head()
             .unwrap_or_else(|_| "0".repeat(40));
 
-        // Update the branch to point to the new commit
         ref_manager.update_branch(&branch, commit_id)?;
 
         // Log the reflog entry
@@ -338,7 +331,6 @@ mod tests {
     fn test_execute_with_commit_id() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create a test commit
         let commit_id = test_commit_id("abc123");
         create_test_snapshot(&ctx, "abc123", "Test commit")?;
 
@@ -360,7 +352,6 @@ mod tests {
     fn test_execute_soft_reset() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create a test commit
         let commit_id = test_commit_id("def456");
         create_test_snapshot(&ctx, "def456", "Another commit")?;
 
@@ -380,7 +371,6 @@ mod tests {
     fn test_execute_hard_reset() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create a test commit
         let commit_id = test_commit_id("ghi789");
         create_test_snapshot(&ctx, "ghi789", "Hard reset commit")?;
 
@@ -399,7 +389,6 @@ mod tests {
     fn test_ref_resolver_integration() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create a test commit
         let commit_id = test_commit_id("abc123");
         create_test_snapshot(&ctx, "abc123", "Test commit")?;
 
@@ -420,14 +409,12 @@ mod tests {
     fn test_update_head() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Initialize refs
         use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
         ref_manager.init()?;
 
         update_head(&ctx, "new_commit_id")?;
 
-        // Check that the branch was updated
         let commit = ref_manager.get_branch_commit("main")?;
         assert_eq!(commit, "new_commit_id");
 
@@ -453,7 +440,6 @@ mod tests {
     fn test_update_head_overwrites() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Initialize refs
         use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
         ref_manager.init()?;
@@ -464,7 +450,6 @@ mod tests {
         // Update to new commit
         update_head(&ctx, "new_commit")?;
 
-        // Check that the branch was updated
         let commit = ref_manager.get_branch_commit("main")?;
         assert_eq!(commit, "new_commit");
 
@@ -476,11 +461,9 @@ mod tests {
     fn test_reset_beyond_initial_commit() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create a single initial commit
         let commit_id = test_commit_id("initial");
         create_test_snapshot(&ctx, "initial", "Initial commit")?;
 
-        // Initialize refs and set HEAD
         use crate::refs::RefManager;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
         ref_manager.init()?;

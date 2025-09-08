@@ -8,7 +8,6 @@ use colored::Colorize;
 pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    // Check for uncommitted changes if not forcing
     if !force {
         let status_output = check_working_directory_clean(ctx)?;
         if !status_output {
@@ -27,7 +26,6 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    // Load the target snapshot
     let snapshot = snapshot_manager
         .load_snapshot(&commit_id)
         .with_context(|| format!("Failed to load commit: {}", commit_id))?;
@@ -179,7 +177,6 @@ mod tests {
     fn test_execute_with_head() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create a commit and set HEAD
         create_test_snapshot(
             &ctx,
             "abc123",
@@ -205,7 +202,6 @@ mod tests {
     fn test_execute_with_commit_id() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create a commit
         create_test_snapshot(
             &ctx,
             "def456",
@@ -267,7 +263,6 @@ mod tests {
     fn test_check_working_directory_clean_with_tracked_files() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Add a file to the index
         let mut index = Index::new();
         let entry = crate::storage::FileEntry {
             path: PathBuf::from("/home/user/file.txt"),
@@ -285,7 +280,6 @@ mod tests {
             std::env::set_var("HOME", _temp.path());
         }
 
-        // Create the actual file
         let file_path = _temp.path().join("file.txt");
         fs::write(&file_path, "content")?;
 
@@ -330,7 +324,6 @@ mod tests {
     fn test_execute_force_with_uncommitted_changes() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        // Create a commit
         create_test_snapshot(&ctx, "commit1", "Test", vec![("file.txt", "original")])?;
         fs::write(ctx.repo_path.join("HEAD"), "commit1")?;
 
@@ -366,7 +359,6 @@ mod tests {
         index.add_entry(entry);
         index.save(&ctx.repo_path.join("index.bin"))?;
 
-        // Create the file with different content (uncommitted change)
         fs::write(_temp.path().join("tracked.txt"), "modified content")?;
 
         // Set HOME

@@ -33,7 +33,6 @@ pub fn execute(
         anyhow::bail!("Cannot use both --force and --force-with-lease");
     }
 
-    // Get the specified remote
     let remote_config = ctx.config.get_remote(remote).ok_or_else(|| {
         anyhow::anyhow!(
             "Remote '{}' does not exist. Use 'dot remote add' to add it.",
@@ -86,7 +85,6 @@ fn build_commit_chain(
 
         commits.push(commit_id.clone());
 
-        // Load snapshot to get parent
         match snapshot_manager.load_snapshot(&commit_id) {
             Ok(snapshot) => {
                 current_commit = snapshot.commit.parent.clone();
@@ -98,7 +96,6 @@ fn build_commit_chain(
         }
     }
 
-    // Load snapshots to get timestamps and sort chronologically
     let mut commits_with_timestamps = Vec::new();
     for commit_id in commits {
         if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
@@ -125,13 +122,11 @@ fn get_unpushed_commits(
     remote: &str,
     target_commit: &str,
 ) -> Result<Vec<String>> {
-    // Build full chain
     let full_chain = build_commit_chain(snapshot_manager, target_commit)?;
 
     // Find the last pushed commit
     let mut unpushed = Vec::new();
     for commit_id in full_chain {
-        // Check if this commit has been pushed
         if mapping_manager
             .mapping()
             .get_git_commit(remote, &commit_id)
@@ -162,25 +157,20 @@ fn push_to_git(
         super::print_info("Using --force-with-lease for safer force push");
     }
 
-    // Create and initialize mirror
     let mirror = GitMirror::new(&ctx.repo_path, opts.remote, url, ctx.config.clone());
     mirror.init_mirror()?;
 
-    // Checkout the branch in mirror
     mirror.checkout_branch(opts.branch)?;
 
-    // Load current state
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let current_commit = ref_manager
         .get_head_commit()?
         .ok_or_else(|| anyhow::anyhow!("No commits to push"))?;
 
-    // Initialize managers
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
     let mut mapping_manager = MappingManager::new(&ctx.repo_path)?;
 
-    // Get commits that need to be pushed
     let commits_to_push = get_unpushed_commits(
         &snapshot_manager,
         &mapping_manager,
@@ -211,7 +201,6 @@ fn push_to_git(
             &commit_id[..8.min(commit_id.len())]
         ));
 
-        // Load the snapshot for this commit
         let snapshot = snapshot_manager.load_snapshot(commit_id)?;
 
         // Clear the working directory to ensure we have exact state
@@ -221,7 +210,6 @@ fn push_to_git(
         // Export this commit's exact state to mirror
         let _exported_files = exporter.export_commit(commit_id, mirror.get_mirror_path())?;
 
-        // Create git commit with original metadata
         let author = &snapshot.commit.author;
         let message = &snapshot.commit.message;
         let timestamp = snapshot.commit.timestamp;
@@ -229,11 +217,9 @@ fn push_to_git(
         // Commit in mirror with original timestamp
         let git_commit = mirror.commit_with_timestamp(message, author, timestamp)?;
 
-        // Update mapping for this commit
         mapping_manager.add_and_save(opts.remote, commit_id, &git_commit)?;
     }
 
-    // Update branch mapping with the latest commit
     let last_dotman_commit = commits_to_push.last().unwrap();
     let last_git_commit = mapping_manager
         .mapping()
@@ -268,7 +254,6 @@ fn push_to_git(
         push_tags(&mirror)?;
     }
 
-    // Update branch mapping
     mapping_manager.update_branch_and_save(
         opts.branch,
         last_dotman_commit,
@@ -423,7 +408,6 @@ mod tests {
         let mut config = Config::default();
         config.core.repo_path = repo_path.clone();
 
-        // Add a remote named "origin" with the specified type and url
         let remote_config = crate::config::RemoteConfig { remote_type, url };
         config.remotes.insert("origin".to_string(), remote_config);
         config.save(&config_path)?;
@@ -552,7 +536,6 @@ mod tests {
         let temp = tempdir()?;
         let repo_path = temp.path().join("nonexistent").join("deep").join("path");
 
-        // Create a file where directory should be, causing conflict
         let conflict_path = temp.path().join("nonexistent");
         fs::write(&conflict_path, "blocking file")?;
 
@@ -571,7 +554,6 @@ mod tests {
 
     #[test]
     fn test_remote_urls_with_special_chars() -> Result<()> {
-        // Test with URLs containing special characters
         let special_urls = vec![
             "git@github.com:user/repo.git",
             "https://user:pass@github.com/repo.git",

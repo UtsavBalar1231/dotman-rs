@@ -78,13 +78,11 @@ fn push_stash(
         }
     }
 
-    // Check if there are any changes to stash
     if statuses.is_empty() {
         super::print_info("No local changes to save");
         return Ok(());
     }
 
-    // Get current HEAD commit
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let head_commit = ref_manager
         .get_head_commit()?
@@ -205,7 +203,6 @@ fn pop_stash(ctx: &DotmanContext) -> Result<()> {
     // Apply the stash
     apply_stash(ctx, Some(stash_id.clone()), true)?;
 
-    // Remove from stack
     stash_manager.pop_from_stack()?;
 
     // Delete stash file
@@ -231,7 +228,6 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
     // Load stash entry
     let stash = stash_manager.load_stash(&stash_id)?;
 
-    // Check if we're on a compatible commit
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let current_commit = ref_manager.get_head_commit()?.unwrap_or_default();
 
@@ -259,7 +255,6 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
         match &stash_file.status {
             FileStatus::Added(_) | FileStatus::Modified(_) | FileStatus::Untracked(_) => {
                 if let Some(content) = &stash_file.content {
-                    // Check for conflicts only if not on the same commit
                     // If we're on the parent commit, the file was just reset by the stash push
                     // so we can safely overwrite it
                     if abs_path.exists() && current_commit != stash.parent_commit {
@@ -506,7 +501,6 @@ mod tests {
 
     #[test]
     fn test_stash_command_variants() {
-        // Test that all command variants can be created
         let _ = StashCommand::Push {
             message: Some("test".to_string()),
             include_untracked: true,

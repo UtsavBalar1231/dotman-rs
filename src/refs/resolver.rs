@@ -29,12 +29,10 @@ impl RefResolver {
     /// - Short commit IDs (prefix matching)
     /// - ref: refs/heads/branch format
     pub fn resolve(&self, reference: &str) -> Result<String> {
-        // Handle ref: format (e.g., "ref: refs/heads/main")
         if let Some(branch) = reference.strip_prefix("ref: refs/heads/") {
             return self.resolve_branch(branch);
         }
 
-        // Handle HEAD and HEAD~n
         if reference == "HEAD" {
             return self.resolve_head();
         } else if let Some(parent_spec) = reference.strip_prefix("HEAD~") {
@@ -42,9 +40,7 @@ impl RefResolver {
                 .parse::<usize>()
                 .with_context(|| format!("Invalid parent specification: {}", reference))?;
             return self.resolve_head_parent(parent_count);
-        }
-        // Handle HEAD^, HEAD^^, HEAD^^^, HEAD^n
-        else if let Some(caret_spec) = reference.strip_prefix("HEAD^") {
+        } else if let Some(caret_spec) = reference.strip_prefix("HEAD^") {
             let parent_count = self.parse_caret_notation(caret_spec, reference)?;
             return self.resolve_head_parent(parent_count);
         }
@@ -101,7 +97,6 @@ impl RefResolver {
             };
 
             if let Some(parent) = snapshot.commit.parent {
-                // Check if parent is all zeros (represents no parent)
                 if parent == "0".repeat(40)
                     || parent == "0".repeat(32)
                     || parent.chars().all(|c| c == '0')
@@ -156,14 +151,12 @@ impl RefResolver {
             return Ok(1);
         }
 
-        // Check if it's all carets (HEAD^^, HEAD^^^, etc.)
         if caret_spec.chars().all(|c| c == '^') {
             // Each additional caret adds one to the parent count
             // HEAD^^ = 2, HEAD^^^ = 3, etc.
             return Ok(caret_spec.len() + 1);
         }
 
-        // Check if it's a number (HEAD^2, HEAD^3, etc.)
         if let Ok(num) = caret_spec.parse::<usize>() {
             return Ok(num);
         }
@@ -190,7 +183,6 @@ impl RefResolver {
             let name = entry.file_name();
             let name_str = name.to_string_lossy();
 
-            // Remove .zst extension
             if let Some(commit_id) = name_str.strip_suffix(".zst")
                 && commit_id.starts_with(prefix)
             {
@@ -230,7 +222,6 @@ mod tests {
 
         let resolver = RefResolver::new(repo_path.clone());
 
-        // Initialize with main branch
         resolver.ref_manager.init()?;
 
         Ok((temp, resolver))
@@ -264,7 +255,6 @@ mod tests {
     fn test_resolve_head() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
 
-        // Create a commit and set HEAD
         let commit_id = "a".repeat(32);
         create_test_commit(&resolver.repo_path, &commit_id, None)?;
         resolver.ref_manager.update_branch("main", &commit_id)?;
@@ -338,7 +328,6 @@ mod tests {
     fn test_resolve_head_parent() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
 
-        // Create a chain of commits
         let commit1 = format!("f1{}", "0".repeat(30));
         let commit2 = format!("f2{}", "0".repeat(30));
         let commit3 = format!("f3{}", "0".repeat(30));
@@ -389,7 +378,6 @@ mod tests {
     fn test_resolve_head_caret() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
 
-        // Create a chain of commits
         let commit1 = format!("h1{}", "0".repeat(30));
         let commit2 = format!("h2{}", "0".repeat(30));
         let commit3 = format!("h3{}", "0".repeat(30));
@@ -419,7 +407,6 @@ mod tests {
     fn test_resolve_head_caret_multiple() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
 
-        // Create a longer chain of commits
         let commit1 = format!("i1{}", "0".repeat(30));
         let commit2 = format!("i2{}", "0".repeat(30));
         let commit3 = format!("i3{}", "0".repeat(30));
@@ -509,7 +496,6 @@ mod tests {
     fn test_resolve_initial_commit_parent() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
 
-        // Create a single commit (initial commit)
         let commit1 = format!("l1{}", "0".repeat(30));
         create_test_commit(&resolver.repo_path, &commit1, None)?;
         resolver.ref_manager.update_branch("main", &commit1)?;
@@ -530,16 +516,12 @@ mod tests {
     fn test_resolve_commit_with_zero_parent() -> Result<()> {
         let (_temp, resolver) = setup_test_repo()?;
 
-        // Create a commit with all-zeros parent (simulating initial commit)
         let commit1 = format!("m1{}", "0".repeat(30));
         let commit2 = format!("m2{}", "0".repeat(30));
 
-        // First commit has no parent
         create_test_commit(&resolver.repo_path, &commit1, None)?;
-        // Second commit has first as parent, but let's also test with zeros
         create_test_commit(&resolver.repo_path, &commit2, Some(commit1.clone()))?;
 
-        // Now create a third commit that has the second as parent
         let commit3 = format!("m3{}", "0".repeat(30));
         create_test_commit(&resolver.repo_path, &commit3, Some(commit2.clone()))?;
 

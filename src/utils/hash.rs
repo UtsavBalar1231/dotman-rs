@@ -19,11 +19,9 @@ pub fn hash_file(path: &Path) -> Result<String> {
     }
 
     if metadata.len() < 1_048_576 {
-        // Small file - read directly
         let content = std::fs::read(path)?;
         Ok(hash_bytes(&content))
     } else {
-        // Large file - use memory mapping
         let mmap = unsafe { MmapOptions::new().map(&file)? };
         Ok(hash_bytes(&mmap))
     }
@@ -34,7 +32,7 @@ pub fn hash_file_streaming(path: &Path) -> Result<String> {
 
     let mut file = File::open(path)?;
     let mut hasher = Xxh3::new();
-    let mut buffer = vec![0u8; 65536]; // 64KB buffer
+    let mut buffer = vec![0u8; 65536];
 
     loop {
         let bytes_read = file.read(&mut buffer)?;
@@ -63,7 +61,6 @@ pub fn verify_hash(path: &Path, expected_hash: &str) -> Result<bool> {
     Ok(actual_hash == expected_hash)
 }
 
-// Fast content-based deduplication
 pub struct Deduplicator {
     seen_hashes: dashmap::DashSet<String>,
 }
@@ -131,7 +128,6 @@ mod tests {
         let hash = hash_file(&file_path)?;
         assert_eq!(hash.len(), 32);
 
-        // Verify same content produces same hash
         let hash2 = hash_file(&file_path)?;
         assert_eq!(hash, hash2);
 
@@ -169,7 +165,6 @@ mod tests {
     fn test_deduplicator() -> Result<()> {
         let dir = tempdir()?;
 
-        // Create files with duplicate content
         let file1 = dir.path().join("file1.txt");
         let file2 = dir.path().join("file2.txt");
         let file3 = dir.path().join("file3.txt");

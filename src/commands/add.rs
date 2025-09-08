@@ -12,7 +12,6 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let mut index = Index::load(&index_path)?;
 
-    // Expand paths and collect files to add
     let mut files_to_add = Vec::new();
 
     for path_str in paths {
@@ -28,11 +27,9 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
         }
 
         if path.is_file() {
-            // Check for special file types and warn
             check_special_file_type(&path);
             files_to_add.push(path);
         } else if path.is_dir() {
-            // Recursively add all files in directory
             collect_files_from_dir(
                 &path,
                 &mut files_to_add,
@@ -46,10 +43,8 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
         return Ok(());
     }
 
-    // Get home directory for making paths relative
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    // Process files in parallel
     let entries: Result<Vec<FileEntry>> = files_to_add
         .par_iter()
         .map(|path| create_file_entry(path, &home))
@@ -57,17 +52,13 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
 
     let entries = entries?;
 
-    // Add entries to staging area
     let mut added_count = 0;
     let mut updated_count = 0;
 
     for entry in entries {
-        // Check if file is already tracked (in committed entries)
         let is_tracked = index.get_entry(&entry.path).is_some();
-        // Check if file is already staged
         let is_staged = index.get_staged_entry(&entry.path).is_some();
 
-        // Stage the entry
         index.stage_entry(entry.clone());
 
         if is_tracked {
@@ -82,7 +73,6 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
         }
     }
 
-    // Save index - use save_merge to handle concurrent adds properly
     index.save_merge(&index_path)?;
 
     if added_count > 0 || updated_count > 0 {
@@ -136,9 +126,7 @@ fn check_special_file_type(path: &Path) {
             }
         }
 
-        // Check for large files
         if metadata.len() > 100_000_000 {
-            // 100MB
             super::print_warning(&format!(
                 "⚠️  {} is very large ({:.2} MB)",
                 path.display(),
@@ -146,7 +134,6 @@ fn check_special_file_type(path: &Path) {
             ));
         }
 
-        // Check for sensitive file patterns
         if let Some(name) = path.file_name().and_then(|n| n.to_str())
             && (name.contains("password")
                 || name.contains("secret")
@@ -183,7 +170,6 @@ pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
     #[cfg(not(unix))]
     let mode = 0o644;
 
-    // Store paths relative to home directory for portability
     let relative_path = make_relative(path, home)?;
 
     Ok(FileEntry {
@@ -206,10 +192,8 @@ mod tests {
         let file_path = dir.path().join("test.txt");
         std::fs::write(&file_path, "test content")?;
 
-        // Use temp dir as home for testing
         let entry = create_file_entry(&file_path, dir.path())?;
 
-        // Path should be relative to "home" (temp dir in this case)
         assert_eq!(entry.path, PathBuf::from("test.txt"));
         assert!(!entry.hash.is_empty());
         assert_eq!(entry.size, 12);

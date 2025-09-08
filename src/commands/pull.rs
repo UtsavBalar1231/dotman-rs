@@ -23,7 +23,6 @@ pub fn execute(
         anyhow::bail!("Cannot use --rebase with --no-ff or --squash");
     }
 
-    // Get the specified remote
     let remote_config = ctx.config.get_remote(remote).ok_or_else(|| {
         anyhow::anyhow!(
             "Remote '{}' does not exist. Use 'dot remote add' to add it.",
@@ -67,10 +66,8 @@ fn pull_from_git(
     super::print_info(&format!("Fetching branch '{}' from remote...", branch));
     mirror.pull(branch)?;
 
-    // Get the current git commit after pull
     let git_commit = mirror.get_head_commit()?;
 
-    // Check if we already have this commit mapped
     let mapping_manager = MappingManager::new(&ctx.repo_path)?;
     if let Some(dotman_commit) = mapping_manager
         .mapping()
@@ -113,10 +110,8 @@ fn pull_from_git(
         return Ok(());
     }
 
-    // Save the updated index
     index.save(&ctx.repo_path.join(crate::INDEX_FILE))?;
 
-    // Create a new dotman commit with the imported changes
     super::print_info(&format!(
         "Creating commit for imported changes: {}",
         changes.summary()
@@ -310,7 +305,6 @@ mod tests {
         let mut config = Config::default();
         config.core.repo_path = repo_path.clone();
 
-        // Add a remote named "origin" with the specified type and url
         let remote_config = crate::config::RemoteConfig { remote_type, url };
         config.remotes.insert("origin".to_string(), remote_config);
         config.save(&config_path)?;
@@ -434,7 +428,6 @@ mod tests {
         let temp = tempdir()?;
         let repo_path = temp.path().join("nonexistent").join("deep").join("path");
 
-        // Create a file where directory should be, causing conflict
         let conflict_path = temp.path().join("nonexistent");
         fs::write(&conflict_path, "blocking file")?;
 

@@ -50,7 +50,6 @@ pub fn should_ignore(path: &Path, patterns: &[String]) -> bool {
         // Handle directory patterns (ending with /)
         if pattern.ends_with('/') {
             let dir_name = &pattern[..pattern.len() - 1];
-            // Check if any component matches the directory name
             // or if the path contains this directory
             if path.components().any(|c| c.as_os_str() == dir_name) {
                 return true;
@@ -123,7 +122,6 @@ pub fn get_current_user() -> String {
 }
 
 pub fn get_current_user_with_config(config: &crate::config::Config) -> String {
-    // Check if both name and email are configured
     match (&config.user.name, &config.user.email) {
         (Some(name), Some(email)) => {
             // Format as "Name <email>" like git does

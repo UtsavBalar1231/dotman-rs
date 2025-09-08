@@ -92,7 +92,6 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
         });
     }
 
-    // Get current working directory state
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let working_index = Index::load(&index_path)?;
 

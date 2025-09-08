@@ -461,7 +461,6 @@ mod tests {
         config.user.email = Some("john@example.com".to_string());
         config.save(&config_path)?;
 
-        // Load and verify
         let loaded = Config::load(&config_path)?;
         assert_eq!(loaded.user.name, Some("John Doe".to_string()));
         assert_eq!(loaded.user.email, Some("john@example.com".to_string()));
@@ -585,7 +584,6 @@ mod tests {
     fn test_config_validation_limits() -> Result<()> {
         let dir = tempdir()?;
 
-        // Test that config validation properly rejects values outside allowed ranges
         let invalid_configs = vec![
             (
                 "cache_size_too_large",
@@ -673,12 +671,10 @@ mod tests {
         let config = Config::default();
         config.save(&config_path)?;
 
-        // Test with pure binary data (non-UTF8)
         std::fs::write(&config_path, vec![0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA])?;
         let result = Config::load(&config_path);
         assert!(result.is_err(), "Binary data should fail UTF-8 validation");
 
-        // Test with invalid UTF-8 sequences
         let invalid_utf8 = vec![
             0xC0, 0x80, // Overlong encoding of NUL
             0xF5, 0x80, 0x80, 0x80, // Out of range

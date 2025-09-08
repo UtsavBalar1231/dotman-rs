@@ -63,7 +63,6 @@ pub fn generate_commit_id(
     author: &str,
     timestamp: i64,
 ) -> String {
-    // Build the commit content string
     let mut commit_content = String::new();
 
     // Add tree hash
@@ -120,7 +119,6 @@ mod tests {
         let commits_dir = temp.path().join("commits");
         fs::create_dir_all(&commits_dir)?;
 
-        // Create test commit files
         fs::write(commits_dir.join("abc123def456.zst"), "")?;
         fs::write(commits_dir.join("def789ghi012.zst"), "")?;
 
@@ -163,7 +161,6 @@ mod tests {
 
     #[test]
     fn test_generate_commit_id_deterministic() -> Result<()> {
-        // Test that the same inputs produce the same commit ID
         let tree_hash = "abcd1234";
         let parent = Some("parent123");
         let message = "Test commit";

@@ -515,7 +515,6 @@ fn main() {
 fn run() -> Result<()> {
     let cli = Cli::parse();
 
-    // Initialize context
     let context = match &cli.command {
         Commands::Init { .. } | Commands::Completion { .. } => None,
         Commands::Remote { .. } | Commands::Branch { .. } | Commands::Config { .. } => {
@@ -529,7 +528,6 @@ fn run() -> Result<()> {
         _ => Some(DotmanContext::new_with_pager(cli.no_pager)?),
     };
 
-    // Execute command
     match cli.command {
         Commands::Add { paths, force } => {
             let ctx = context.unwrap();

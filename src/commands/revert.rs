@@ -15,7 +15,6 @@ use std::path::PathBuf;
 pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    // Check for uncommitted changes if not forcing
     if !force {
         let status_output = check_working_directory_clean(ctx)?;
         if !status_output {
@@ -34,7 +33,6 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    // Load the target commit to revert
     let target_snapshot = snapshot_manager
         .load_snapshot(&target_commit_id)
         .with_context(|| format!("Failed to load commit: {}", target_commit_id))?;
@@ -65,7 +63,6 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool
     // Apply the inverse changes to the working directory and index
     apply_revert_changes(ctx, &changes_to_revert, &snapshot_manager)?;
 
-    // Create the revert commit
     let revert_message = if no_edit {
         format!("Revert \"{}\"", target_snapshot.commit.message)
     } else {
@@ -239,7 +236,6 @@ fn apply_revert_changes(
                     })?;
                 }
 
-                // Remove from index
                 index.remove_entry(path);
             }
             RevertChange::Restore {
@@ -307,7 +303,6 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     let timestamp = get_current_timestamp();
     let author = get_current_user_with_config(&ctx.config);
 
-    // Get current HEAD as parent
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let parent = resolver.resolve("HEAD").ok();
 

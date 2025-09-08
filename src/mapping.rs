@@ -61,13 +61,11 @@ impl CommitMapping {
 
     /// Add a mapping between dotman and git commits
     pub fn add_mapping(&mut self, remote: &str, dotman_commit: &str, git_commit: &str) {
-        // Add to dotman_to_git
         self.dotman_to_git
             .entry(remote.to_string())
             .or_default()
             .insert(dotman_commit.to_string(), git_commit.to_string());
 
-        // Add to git_to_dotman
         self.git_to_dotman
             .entry(remote.to_string())
             .or_default()
@@ -119,7 +117,6 @@ impl CommitMapping {
         self.dotman_to_git.remove(remote);
         self.git_to_dotman.remove(remote);
 
-        // Remove from branch mappings
         for branch_mapping in self.branch_mappings.values_mut() {
             branch_mapping.git_heads.remove(remote);
         }
@@ -212,7 +209,6 @@ mod tests {
     fn test_commit_mapping() {
         let mut mapping = CommitMapping::new();
 
-        // Add a mapping
         mapping.add_mapping("origin", "dotman123", "git456");
 
         // Test retrieval
@@ -257,7 +253,6 @@ mod tests {
 
         mapping.save(&mapping_file)?;
 
-        // Load and verify
         let loaded = CommitMapping::load(&mapping_file)?;
         assert_eq!(
             loaded.get_git_commit("origin", "d1"),

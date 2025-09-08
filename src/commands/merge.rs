@@ -36,7 +36,6 @@ pub fn execute(
             .with_context(|| format!("Failed to resolve reference: {}", branch))?
     };
 
-    // Get current HEAD
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let current_commit = ref_manager
         .get_head_commit()?
@@ -47,7 +46,6 @@ pub fn execute(
         return Ok(());
     }
 
-    // Check if fast-forward is possible
     let can_fast_forward = is_ancestor(ctx, &current_commit, &target_commit)?;
 
     if can_fast_forward && !no_ff && !squash {
@@ -129,10 +127,8 @@ fn handle_remote_branch_merge(
         anyhow::bail!("Failed to checkout remote branch: {}", stderr);
     }
 
-    // Get the commit ID from mirror
     let git_commit = mirror.get_head_commit()?;
 
-    // Check if we have this commit mapped to a dotman commit
     let mapping_manager = MappingManager::new(&ctx.repo_path)?;
     if let Some(dotman_commit) = mapping_manager
         .mapping()
@@ -153,7 +149,6 @@ fn handle_remote_branch_merge(
         dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
     let _changes = importer.import_changes(mirror.get_mirror_path(), &home_dir)?;
 
-    // Create a temporary commit for the imported state
     let timestamp = get_current_timestamp();
     let author = get_current_user_with_config(&ctx.config);
     let message = format!("Import from {}", branch_ref);

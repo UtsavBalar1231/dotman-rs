@@ -9,7 +9,6 @@ pub fn execute(bare: bool) -> Result<()> {
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
     let repo_path = home.join(DEFAULT_REPO_DIR);
 
-    // Check if already initialized
     if repo_path.exists() && repo_path.join(INDEX_FILE).exists() {
         anyhow::bail!(
             "Dotman repository already initialized at {}",
@@ -27,7 +26,6 @@ pub fn execute(bare: bool) -> Result<()> {
     let index_path = repo_path.join(INDEX_FILE);
     index.save(&index_path)?;
 
-    // Initialize refs system (branches and HEAD)
     let ref_manager = RefManager::new(repo_path.clone());
     ref_manager.init()?;
 

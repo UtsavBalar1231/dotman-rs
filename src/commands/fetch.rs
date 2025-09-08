@@ -15,7 +15,6 @@ pub fn execute(
 ) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    // Get the specified remote
     let remote_config = ctx.config.get_remote(remote).ok_or_else(|| {
         anyhow::anyhow!(
             "Remote '{}' does not exist. Use 'dot remote add' to add it.",
@@ -84,7 +83,6 @@ fn fetch_from_git(
         anyhow::bail!("Git fetch failed: {}", stderr);
     }
 
-    // Parse the output to show what was fetched
     let _stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -229,7 +227,6 @@ mod tests {
         let mut config = Config::default();
         config.core.repo_path = repo_path.clone();
 
-        // Add a remote
         let remote_config = crate::config::RemoteConfig { remote_type, url };
         config.remotes.insert("origin".to_string(), remote_config);
         config.save(&config_path)?;
@@ -247,7 +244,6 @@ mod tests {
         let mut ctx = create_test_context(RemoteType::None, None)?;
 
         // The test tries to execute with a remote that doesn't exist
-        // Remove the "origin" remote that was added in create_test_context
         ctx.config.remotes.clear();
 
         let result = execute(&ctx, "nonexistent", None, false, false);

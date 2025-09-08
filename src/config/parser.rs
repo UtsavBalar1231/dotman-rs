@@ -245,7 +245,6 @@ cache_size = 20000
         let dir = tempdir()?;
         let config_path = dir.path().join("large.toml");
 
-        // Create a config larger than 4KB to trigger mmap
         let mut large_config = String::from(
             "[core]\nrepo_path = \"~/.dotman\"\ndefault_branch = \"main\"\ncompression = \"zstd\"\ncompression_level = 3\n\n[tracking]\nignore_patterns = [\n",
         );

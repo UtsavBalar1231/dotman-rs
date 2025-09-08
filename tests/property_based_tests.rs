@@ -295,7 +295,6 @@ proptest! {
     ) {
         let (dir, ctx) = setup_test_context().unwrap();
 
-        // Create a file to commit
         let test_file = dir.path().join("test.txt");
         fs::write(&test_file, "test content").unwrap();
         let paths = vec![test_file.to_string_lossy().to_string()];
@@ -391,7 +390,6 @@ proptest! {
             return Ok(());
         }
 
-        // Create a legitimate file first to ensure we have something to reference
         let legitimate_file = dir.path().join(&safe_filename);
         match fs::write(&legitimate_file, "test content") {
             Ok(_) => {},

@@ -434,7 +434,6 @@ fn test_system_file_access_prevention() -> Result<()> {
     // This test focuses on preventing access to system files (safer testing)
     #[cfg(unix)]
     {
-        // Test that we can't add non-existent system files (safer than real system files)
         let fake_system_paths = vec![
             "/tmp/fake_etc_passwd",
             "/tmp/fake_etc_shadow",

@@ -129,7 +129,6 @@ mod tests {
         // Test oneline format
         execute(&ctx, 10, true, false)?;
 
-        // Test with limit
         execute(&ctx, 1, false, false)?;
 
         // Test show all
@@ -157,7 +156,6 @@ mod tests {
             )?;
         }
 
-        // Test with different limits
         execute(&ctx, 2, false, false)?;
         execute(&ctx, 10, false, false)?; // Should show all 5
 

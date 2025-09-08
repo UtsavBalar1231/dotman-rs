@@ -15,7 +15,6 @@ fn test_stash_push_and_pop() -> Result<()> {
         std::env::set_var("HOME", home);
     }
 
-    // Initialize repo
     Command::cargo_bin("dot")?.arg("init").assert().success();
 
     // Create and add a file
@@ -69,7 +68,6 @@ fn test_stash_list() -> Result<()> {
         std::env::set_var("HOME", home);
     }
 
-    // Initialize repo
     Command::cargo_bin("dot")?.arg("init").assert().success();
 
     // Create and commit a file
@@ -120,7 +118,6 @@ fn test_stash_with_untracked_files() -> Result<()> {
         std::env::set_var("HOME", home);
     }
 
-    // Initialize repo
     Command::cargo_bin("dot")?.arg("init").assert().success();
 
     // Create and commit a file
@@ -178,7 +175,6 @@ fn test_stash_clear() -> Result<()> {
         std::env::set_var("HOME", home);
     }
 
-    // Initialize repo
     Command::cargo_bin("dot")?.arg("init").assert().success();
 
     // Create and commit a file

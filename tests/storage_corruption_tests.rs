@@ -108,7 +108,6 @@ fn test_partial_write_corruption() -> Result<()> {
     let paths = vec![test_file.to_string_lossy().to_string()];
     commands::add::execute(&ctx, &paths, false)?;
 
-    // Get the valid index data
     let index_path = ctx.repo_path.join("index.bin");
     let valid_data = fs::read(&index_path)?;
 
@@ -375,7 +374,6 @@ fn test_index_consistency_validation() -> Result<()> {
 fn test_memory_mapped_file_corruption() -> Result<()> {
     let (dir, ctx) = setup_test_context()?;
 
-    // Create a large file that will use memory mapping (>1MB threshold)
     let large_file = dir.path().join("large.dat");
     let large_content = vec![0x42u8; 2_000_000]; // 2MB
     fs::write(&large_file, &large_content)?;

@@ -34,7 +34,6 @@ impl GitMirror {
         if !self.mirror_path.exists() {
             fs::create_dir_all(&self.mirror_path).context("Failed to create mirror directory")?;
 
-            // Initialize git repository
             let output = Command::new("git")
                 .args(["init"])
                 .current_dir(&self.mirror_path)
@@ -157,7 +156,6 @@ impl GitMirror {
             anyhow::bail!("Git add failed: {}", stderr);
         }
 
-        // Check if there are changes to commit
         let output = Command::new("git")
             .args(["status", "--porcelain"])
             .current_dir(&self.mirror_path)
@@ -192,7 +190,6 @@ impl GitMirror {
             anyhow::bail!("Git commit failed: {}", stderr);
         }
 
-        // Get the commit ID
         self.get_head_commit()
     }
 
@@ -215,7 +212,6 @@ impl GitMirror {
             anyhow::bail!("Git add failed: {}", stderr);
         }
 
-        // Check if there are changes to commit
         let output = Command::new("git")
             .args(["status", "--porcelain"])
             .current_dir(&self.mirror_path)
@@ -260,13 +256,11 @@ impl GitMirror {
             anyhow::bail!("Git commit failed: {}", stderr);
         }
 
-        // Get the commit ID
         self.get_head_commit()
     }
 
     /// Clear all files from the working directory (but keep .git)
     pub fn clear_working_directory(&self) -> Result<()> {
-        // Remove all tracked files
         let _output = Command::new("git")
             .args(["rm", "-rf", "--cached", "."])
             .current_dir(&self.mirror_path)
@@ -426,7 +420,6 @@ impl GitMirror {
             anyhow::bail!("Git fetch failed: {}", stderr);
         }
 
-        // Check if branch exists locally
         let output = Command::new("git")
             .args(["rev-parse", "--verify", branch])
             .current_dir(&self.mirror_path)
@@ -633,7 +626,6 @@ mod tests {
         );
         mirror.init_mirror()?;
 
-        // Add a file to commit
         let test_file = mirror.get_mirror_path().join("test.txt");
         fs::write(&test_file, "test content")?;
 

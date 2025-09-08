@@ -71,7 +71,6 @@ mod tests {
 
     #[test]
     fn test_print_functions_with_special_chars() {
-        // Test with special characters and Unicode
         print_success("Success with émojis 🎉");
         print_error("Error with special chars: <>&\"'");
         print_info("Info with newline\nand tabs\t\there");
@@ -80,7 +79,6 @@ mod tests {
 
     #[test]
     fn test_print_functions_with_empty_strings() {
-        // Test with empty strings
         print_success("");
         print_error("");
         print_info("");
