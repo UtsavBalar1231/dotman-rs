@@ -89,8 +89,8 @@ impl StashManager {
             .as_secs();
 
         // Add some randomness to ensure uniqueness
-        let mut rng = rand::thread_rng();
-        let random: u32 = rng.r#gen();
+        let mut rng = rand::rng();
+        let random: u32 = rng.random();
         Ok(format!("stash_{:x}_{:08x}", timestamp, random))
     }
 
