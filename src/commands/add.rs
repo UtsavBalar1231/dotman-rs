@@ -42,6 +42,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
                 &path,
                 &mut files_to_add,
                 &ctx.config.tracking.ignore_patterns,
+                ctx.config.tracking.follow_symlinks,
             )?;
         }
     }
@@ -111,9 +112,10 @@ fn collect_files_from_dir(
     dir: &Path,
     files: &mut Vec<PathBuf>,
     ignore_patterns: &[String],
+    follow_symlinks: bool,
 ) -> Result<()> {
     for entry in walkdir::WalkDir::new(dir)
-        .follow_links(false)
+        .follow_links(follow_symlinks)
         .into_iter()
         .filter_entry(|e| !should_ignore(e.path(), ignore_patterns))
     {

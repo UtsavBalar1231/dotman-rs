@@ -61,7 +61,7 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
     };
 
     // Step 2: Scan all files in repository
-    let files_to_import = scan_repository(&repo_path)?;
+    let files_to_import = scan_repository(&repo_path, ctx.config.tracking.follow_symlinks)?;
 
     if files_to_import.is_empty() {
         super::print_warning("No files found to import");
@@ -226,14 +226,14 @@ fn clone_repository(url: &str, target_dir: &Path) -> Result<()> {
 }
 
 /// Scan repository for all files to import
-fn scan_repository(repo_path: &Path) -> Result<Vec<(PathBuf, PathBuf)>> {
+fn scan_repository(repo_path: &Path, follow_symlinks: bool) -> Result<Vec<(PathBuf, PathBuf)>> {
     let home_dir = dirs::home_dir().context("Could not determine home directory")?;
 
     let mut files_to_import = Vec::new();
 
     // Walk through all files in the repository
     for entry in WalkDir::new(repo_path)
-        .follow_links(false)
+        .follow_links(follow_symlinks)
         .into_iter()
         .filter_entry(|e| {
             // Skip .git directory and other hidden directories we don't want
@@ -336,7 +336,7 @@ mod tests {
         fs::write(repo_path.join(".git/config"), "git config")?;
 
         // Scan the repository
-        let files = scan_repository(repo_path)?;
+        let files = scan_repository(repo_path, false)?;
 
         // Should find 2 files (excluding .git)
         assert_eq!(files.len(), 2);

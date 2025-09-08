@@ -155,12 +155,17 @@ impl<'a> Importer<'a> {
     /// # Errors
     ///
     /// Returns an error if failed to walk directory or add files to index
-    pub fn import_directory(&mut self, source_dir: &Path, home_dir: &Path) -> Result<Vec<PathBuf>> {
+    pub fn import_directory(
+        &mut self,
+        source_dir: &Path,
+        home_dir: &Path,
+        follow_symlinks: bool,
+    ) -> Result<Vec<PathBuf>> {
         let mut imported_files = Vec::new();
 
         // Walk the source directory
         for entry in walkdir::WalkDir::new(source_dir)
-            .follow_links(false)
+            .follow_links(follow_symlinks)
             .into_iter()
             .filter_map(std::result::Result::ok)
         {
@@ -249,7 +254,12 @@ impl<'a> Importer<'a> {
     ///
     /// Returns an error if failed to walk directory or compare files
     #[allow(clippy::too_many_lines)]
-    pub fn import_changes(&mut self, source_dir: &Path, home_dir: &Path) -> Result<ImportChanges> {
+    pub fn import_changes(
+        &mut self,
+        source_dir: &Path,
+        home_dir: &Path,
+        follow_symlinks: bool,
+    ) -> Result<ImportChanges> {
         let mut added = Vec::new();
         let mut modified = Vec::new();
         let mut deleted = Vec::new();
@@ -259,7 +269,7 @@ impl<'a> Importer<'a> {
 
         // Walk the source directory
         for entry in walkdir::WalkDir::new(source_dir)
-            .follow_links(false)
+            .follow_links(follow_symlinks)
             .into_iter()
             .filter_map(std::result::Result::ok)
         {
@@ -593,7 +603,7 @@ mod tests {
         let mut index = Index::new();
         let mut importer = Importer::new(&mut snapshot_manager, &mut index);
 
-        let imported = importer.import_directory(&source_dir, &home)?;
+        let imported = importer.import_directory(&source_dir, &home, false)?;
 
         // Should have imported 2 files (skipping .git)
         assert_eq!(imported.len(), 2);
@@ -651,7 +661,7 @@ mod tests {
         let mut snapshot_manager = SnapshotManager::new(storage_path, 3);
         let mut importer = Importer::new(&mut snapshot_manager, &mut index);
 
-        let changes = importer.import_changes(&source_dir, &home)?;
+        let changes = importer.import_changes(&source_dir, &home, false)?;
 
         assert_eq!(changes.added.len(), 1);
         assert_eq!(changes.modified.len(), 1);

@@ -230,7 +230,7 @@ pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<Pa
     }
 
     for entry in WalkDir::new(&home)
-        .follow_links(false)
+        .follow_links(ctx.config.tracking.follow_symlinks)
         .into_iter()
         .filter_entry(|e| {
             let path = e.path();

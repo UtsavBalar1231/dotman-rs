@@ -161,7 +161,11 @@ fn handle_remote_branch_merge(
     let mut importer = Importer::new(&mut snapshot_manager, &mut index);
 
     let home_dir = dirs::home_dir().context("Could not find home directory")?;
-    let _changes = importer.import_changes(mirror.get_mirror_path(), &home_dir)?;
+    let _changes = importer.import_changes(
+        mirror.get_mirror_path(),
+        &home_dir,
+        ctx.config.tracking.follow_symlinks,
+    )?;
 
     let timestamp = get_current_timestamp();
     let author = get_current_user_with_config(&ctx.config);

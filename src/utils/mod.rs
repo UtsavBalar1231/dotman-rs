@@ -32,14 +32,14 @@ pub fn make_relative(path: &Path, base: &Path) -> Result<PathBuf> {
 ///
 /// # Errors
 /// Returns an error if any entry cannot be accessed.
-pub fn walk_dir_filtered<F>(dir: &Path, filter: F) -> Result<Vec<PathBuf>>
+pub fn walk_dir_filtered<F>(dir: &Path, filter: F, follow_symlinks: bool) -> Result<Vec<PathBuf>>
 where
     F: Fn(&Path) -> bool,
 {
     let mut paths = Vec::new();
 
     for entry in WalkDir::new(dir)
-        .follow_links(false)
+        .follow_links(follow_symlinks)
         .into_iter()
         .filter_entry(|e| filter(e.path()))
     {
@@ -219,7 +219,7 @@ mod tests {
         // Walk and filter for .txt files
         let filter = |p: &Path| p.extension().is_none_or(|ext| ext == "txt") || p.is_dir();
 
-        let files = walk_dir_filtered(dir.path(), filter)?;
+        let files = walk_dir_filtered(dir.path(), filter, false)?;
         assert_eq!(files.len(), 2);
         assert!(files.iter().all(|p| p.extension().unwrap() == "txt"));
 

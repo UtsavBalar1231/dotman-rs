@@ -113,7 +113,11 @@ fn pull_from_git(
     let mut importer = Importer::new(&mut snapshot_manager, &mut index);
 
     let home_dir = dirs::home_dir().context("Could not find home directory")?;
-    let changes = importer.import_changes(mirror.get_mirror_path(), &home_dir)?;
+    let changes = importer.import_changes(
+        mirror.get_mirror_path(),
+        &home_dir,
+        ctx.config.tracking.follow_symlinks,
+    )?;
 
     if changes.is_empty() {
         super::print_info("No changes to import");
