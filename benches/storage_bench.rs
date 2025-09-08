@@ -32,14 +32,16 @@ fn benchmark_hashing(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("file_hashing");
 
-    group.bench_function("hash_1kb", |b| b.iter(|| hash_file(black_box(&small_file))));
+    group.bench_function("hash_1kb", |b| {
+        b.iter(|| hash_file(black_box(&small_file), None));
+    });
 
     group.bench_function("hash_100kb", |b| {
-        b.iter(|| hash_file(black_box(&medium_file)));
+        b.iter(|| hash_file(black_box(&medium_file), None));
     });
 
     group.bench_function("hash_10mb", |b| {
-        b.iter(|| hash_file(black_box(&large_file)));
+        b.iter(|| hash_file(black_box(&large_file), None));
     });
 
     group.finish();
@@ -54,7 +56,8 @@ fn benchmark_parallel_hashing(c: &mut Criterion) {
         let files = create_test_files(dir.path(), *count);
 
         group.bench_with_input(BenchmarkId::from_parameter(count), &files, |b, files| {
-            b.iter(|| hash_files_parallel(black_box(files)));
+            let files_with_cache: Vec<_> = files.iter().map(|p| (p.clone(), None)).collect();
+            b.iter(|| hash_files_parallel(black_box(&files_with_cache)));
         });
     }
 
@@ -73,6 +76,7 @@ fn benchmark_index_operations(c: &mut Criterion) {
             size: u64::try_from(i).unwrap_or(0) * 100,
             modified: 1_234_567_890 + i64::from(i),
             mode: 0o644,
+            cached_hash: None,
         })
         .collect();
 

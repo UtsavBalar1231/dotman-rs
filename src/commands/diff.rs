@@ -107,6 +107,7 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
             size: 0,
             modified: snapshot.commit.timestamp,
             mode: file.mode,
+            cached_hash: None,
         });
     }
 
@@ -174,6 +175,7 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
             size: 0,
             modified: from_snapshot.commit.timestamp,
             mode: file.mode,
+            cached_hash: None,
         });
     }
 
@@ -185,6 +187,7 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
             size: 0,
             modified: to_snapshot.commit.timestamp,
             mode: file.mode,
+            cached_hash: None,
         });
     }
 

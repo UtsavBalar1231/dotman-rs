@@ -1,10 +1,10 @@
 use crate::refs::resolver::RefResolver;
+use crate::storage::file_ops::hash_bytes;
 use crate::storage::index::{Index, IndexDiffer};
 use crate::storage::snapshots::SnapshotManager;
 use crate::storage::{Commit, FileEntry, FileStatus};
 use crate::utils::{
     commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
-    hash::hash_bytes,
 };
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
@@ -118,6 +118,7 @@ fn calculate_revert_changes(
             size: 0, // Size not needed for comparison
             modified: target_snapshot.commit.timestamp,
             mode: file.mode,
+            cached_hash: None,
         });
     }
 
@@ -135,6 +136,7 @@ fn calculate_revert_changes(
                 size: 0,
                 modified: parent_snapshot.commit.timestamp,
                 mode: file.mode,
+                cached_hash: None,
             });
         }
 
@@ -277,7 +279,7 @@ fn apply_revert_changes(
                 }
 
                 // Calculate new hash for index
-                let new_hash = crate::storage::file_ops::hash_file(&abs_path)?;
+                let (new_hash, _cache) = crate::storage::file_ops::hash_file(&abs_path, None)?;
                 let metadata = fs::metadata(&abs_path)?;
 
                 // Update index with restored file
@@ -293,6 +295,7 @@ fn apply_revert_changes(
                     )
                     .unwrap_or(i64::MAX),
                     mode: *mode,
+                    cached_hash: None,
                 });
             }
         }

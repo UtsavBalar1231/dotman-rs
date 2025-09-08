@@ -536,7 +536,7 @@ fn run() -> Result<()> {
         }
         Commands::Status { short, untracked } => {
             let ctx = context.context("Context not initialized for status command")?;
-            commands::status::execute(&ctx, short, untracked)?;
+            commands::status::execute_with_verbose(&ctx, short, untracked, cli.verbose)?;
         }
         Commands::Commit {
             message,

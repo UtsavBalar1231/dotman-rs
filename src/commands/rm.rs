@@ -238,6 +238,7 @@ mod tests {
             size: 12,
             modified: 0,
             mode: 0o644,
+            cached_hash: None,
         });
         index.save(&index_path)?;
 
@@ -319,6 +320,7 @@ mod tests {
             size: 8,
             modified: 0,
             mode: 0o644,
+            cached_hash: None,
         });
 
         index.add_entry(FileEntry {
@@ -327,6 +329,7 @@ mod tests {
             size: 8,
             modified: 0,
             mode: 0o644,
+            cached_hash: None,
         });
 
         index.save(&index_path)?;
@@ -375,6 +378,7 @@ mod tests {
             size: 15,
             modified: 0,
             mode: 0o644,
+            cached_hash: None,
         });
         index.save(&index_path)?;
 
@@ -441,6 +445,7 @@ mod tests {
             size: 8,
             modified: 0,
             mode: 0o644,
+            cached_hash: None,
         });
 
         index.add_entry(FileEntry {
@@ -449,6 +454,7 @@ mod tests {
             size: 8,
             modified: 0,
             mode: 0o644,
+            cached_hash: None,
         });
 
         index.save(&index_path)?;

@@ -1,8 +1,10 @@
 use anyhow::Result;
 
-/// Get the standard bincode configuration for optimal performance
+/// Get the bincode configuration
 fn get_config() -> impl bincode::config::Config {
-    bincode::config::standard()
+    // Use legacy configuration for better compatibility with serde
+    // Limit allocation to prevent memory exhaustion on corrupt data
+    bincode::config::legacy().with_limit::<{ 100 * 1024 * 1024 }>() // 100MB limit
 }
 
 /// Serialize data using bincode v2.0 with serde
@@ -23,7 +25,7 @@ pub fn serialize<T: serde::Serialize>(data: &T) -> Result<Vec<u8>> {
 /// - Deserialization fails
 /// - Data is malformed or incompatible
 pub fn deserialize<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T> {
-    let (result, _) = bincode::serde::decode_from_slice(bytes, get_config())?;
+    let (result, _bytes_read) = bincode::serde::decode_from_slice(bytes, get_config())?;
     Ok(result)
 }
 

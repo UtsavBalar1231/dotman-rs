@@ -126,7 +126,7 @@ mod tests {
         let mut file_map = HashMap::new();
 
         for (path, content) in files {
-            let hash = crate::utils::hash::hash_bytes(content.as_bytes());
+            let hash = crate::storage::file_ops::hash_bytes(content.as_bytes());
             let path_buf = PathBuf::from(path);
             file_map.insert(
                 path_buf,
@@ -284,6 +284,7 @@ mod tests {
             size: 100,
             modified: chrono::Utc::now().timestamp(),
             mode: 0o644,
+            cached_hash: None,
         };
         index.add_entry(entry);
         let index_path = ctx.repo_path.join("index.bin");
@@ -369,6 +370,7 @@ mod tests {
             size: 10,
             modified: chrono::Utc::now().timestamp(),
             mode: 0o644,
+            cached_hash: None,
         };
         index.add_entry(entry);
         index.save(&ctx.repo_path.join("index.bin"))?;

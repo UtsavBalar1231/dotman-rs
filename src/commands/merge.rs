@@ -4,11 +4,10 @@ use crate::mirror::GitMirror;
 use crate::refs::{RefManager, resolver::RefResolver};
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
-use crate::storage::{Commit, FileEntry};
+use crate::storage::{Commit, FileEntry, file_ops::hash_bytes};
 use crate::sync::Importer;
 use crate::utils::{
     commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
-    hash::hash_bytes,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -341,6 +340,7 @@ fn perform_three_way_merge(
             size: 0, // Will be updated
             modified: timestamp,
             mode: file.mode,
+            cached_hash: None,
         })
         .collect();
 
@@ -406,6 +406,7 @@ fn perform_squash_merge(
             size: 0,
             modified: get_current_timestamp(),
             mode: file.mode,
+            cached_hash: None,
         });
     }
 

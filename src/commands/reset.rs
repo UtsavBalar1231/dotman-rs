@@ -17,6 +17,7 @@ use std::path::PathBuf;
 /// - File operations fail during hard reset
 /// - Index update fails
 #[allow(clippy::fn_params_excessive_bools)]
+#[allow(clippy::too_many_lines)]
 pub fn execute(
     ctx: &DotmanContext,
     commit: &str,
@@ -72,6 +73,7 @@ pub fn execute(
                 size: 0, // Will be updated on next status
                 modified: snapshot.commit.timestamp,
                 mode: file.mode,
+                cached_hash: None,
             });
         }
 
@@ -118,6 +120,7 @@ pub fn execute(
                 size: 0,
                 modified: snapshot.commit.timestamp,
                 mode: file.mode,
+                cached_hash: None,
             });
         }
 
@@ -144,6 +147,7 @@ pub fn execute(
                 size: 0,
                 modified: snapshot.commit.timestamp,
                 mode: file.mode,
+                cached_hash: None,
             });
         }
 
@@ -210,6 +214,7 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
                 size: 0, // Will be updated
                 modified: snapshot.commit.timestamp,
                 mode: file.mode,
+                cached_hash: None,
             });
 
             println!("  {} {}", "reset:".green(), index_path.display());

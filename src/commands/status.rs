@@ -16,6 +16,24 @@ use std::path::PathBuf;
 /// - Cannot read the index
 /// - File status checks fail
 pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result<()> {
+    execute_with_verbose(ctx, short, show_untracked, false)
+}
+
+/// Execute status command with optional verbose output
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The repository is not initialized
+/// - Cannot read the index
+/// - File status checks fail
+#[allow(clippy::too_many_lines)]
+pub fn execute_with_verbose(
+    ctx: &DotmanContext,
+    short: bool,
+    show_untracked: bool,
+    verbose: bool,
+) -> Result<()> {
     ctx.check_repo_initialized()?;
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -73,11 +91,24 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
             path.clone()
         };
 
-        if abs_path.exists()
-            && let Ok(current_hash) = crate::utils::hash::hash_file(&abs_path)
-            && current_hash != staged_entry.hash
-        {
-            statuses.push(FileStatus::Modified(path.clone()));
+        if abs_path.exists() {
+            // Use cached hash for performance
+            let (current_hash, _) =
+                crate::storage::file_ops::hash_file(&abs_path, staged_entry.cached_hash.as_ref())
+                    .unwrap_or_else(|_| {
+                        (
+                            String::new(),
+                            crate::storage::CachedHash {
+                                hash: String::new(),
+                                size_at_hash: 0,
+                                mtime_at_hash: 0,
+                            },
+                        )
+                    });
+
+            if !current_hash.is_empty() && current_hash != staged_entry.hash {
+                statuses.push(FileStatus::Modified(path.clone()));
+            }
         }
     }
 
@@ -90,6 +121,16 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
 
     if statuses.is_empty() {
         println!("\nnothing to commit, working tree clean");
+
+        // Show cache statistics in verbose mode
+        if verbose {
+            let (total, cached, hit_rate) = index.get_cache_stats();
+            println!("\n{}", "Cache Statistics:".bold());
+            println!("  Total entries: {total}");
+            println!("  Cached entries: {cached}");
+            println!("  Cache hit rate: {:.1}%", hit_rate * 100.0);
+        }
+
         return Ok(());
     }
 
@@ -124,6 +165,15 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
             "Untracked files:",
             "untracked",
         );
+    }
+
+    // Show cache statistics in verbose mode
+    if verbose {
+        let (total, cached, hit_rate) = index.get_cache_stats();
+        println!("\n{}", "Cache Statistics:".bold());
+        println!("  Total entries: {total}");
+        println!("  Cached entries: {cached}");
+        println!("  Cache hit rate: {:.1}%", hit_rate * 100.0);
     }
 
     Ok(())

@@ -1,4 +1,4 @@
-use crate::utils::hash::hash_bytes;
+use crate::storage::file_ops::hash_bytes;
 use anyhow::Result;
 use std::fs;
 use std::path::Path;

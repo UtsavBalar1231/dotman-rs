@@ -494,6 +494,7 @@ mod tests {
             size: 13,
             modified: 1_234_567_890,
             mode: 0o644,
+            cached_hash: None,
         }];
 
         let commit = Commit {
@@ -697,6 +698,7 @@ mod tests {
             size: 7,
             modified: 0,
             mode: 0o644,
+            cached_hash: None,
         }];
 
         let commit = Commit {
@@ -743,6 +745,7 @@ mod tests {
                 size: 10,
                 modified: i,
                 mode: 0o644,
+                cached_hash: None,
             });
         }
 
@@ -784,6 +787,7 @@ mod tests {
                 size: 17,
                 modified: 0,
                 mode: 0o644,
+                cached_hash: None,
             },
             crate::storage::FileEntry {
                 path: file2,
@@ -791,6 +795,7 @@ mod tests {
                 size: 17,
                 modified: 0,
                 mode: 0o644,
+                cached_hash: None,
             },
         ];
 
@@ -832,6 +837,7 @@ mod tests {
             size: 16,
             modified: 1_234_567_890,
             mode: 0o644,
+            cached_hash: None,
         }];
 
         let commit = Commit {
@@ -902,6 +908,7 @@ mod tests {
             size: 24,
             modified: 1_234_567_890,
             mode: 0o644,
+            cached_hash: None,
         }];
 
         let commit = Commit {

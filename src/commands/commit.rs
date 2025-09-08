@@ -1,14 +1,15 @@
 use crate::refs::resolver::RefResolver;
+use crate::storage::file_ops::hash_bytes;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
 use crate::storage::{Commit, FileEntry};
 use crate::utils::{
     commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
-    hash::hash_bytes,
 };
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
+use std::path::PathBuf;
 
 /// Execute commit command to create a new commit
 ///
@@ -194,13 +195,21 @@ fn stage_all_tracked_files(_ctx: &DotmanContext, index: &mut Index) -> Result<()
     let mut staged = 0;
 
     // Stage all currently tracked files with their current state
-    let entries: Vec<_> = index.entries.keys().cloned().collect();
-    for path in entries {
+    let entries: Vec<(PathBuf, FileEntry)> = index.entries.clone().into_iter().collect();
+    for (path, existing_entry) in entries {
         // Need to convert relative path back to absolute for checking existence
         let abs_path = home.join(&path);
-        if abs_path.exists()
-            && let Ok(entry) = crate::commands::add::create_file_entry(&abs_path, &home)
-        {
+        if abs_path.exists() {
+            // Use cached hash from existing entry for performance
+            let entry = crate::commands::add::create_file_entry_with_cache(
+                &abs_path,
+                &home,
+                existing_entry.cached_hash.as_ref(),
+            )
+            .unwrap_or_else(|_| {
+                // Fallback to non-cached if there's an error
+                crate::commands::add::create_file_entry(&abs_path, &home).unwrap_or(existing_entry)
+            });
             index.stage_entry(entry);
             staged += 1;
         }
@@ -332,6 +341,7 @@ mod tests {
             size: 100,
             modified: 1_234_567_890,
             mode: 0o644,
+            cached_hash: None,
         });
         let index_path = repo_path.join(INDEX_FILE);
         index.save(&index_path)?;
@@ -353,6 +363,7 @@ mod tests {
             size: 200,
             modified: 1_234_567_891,
             mode: 0o644,
+            cached_hash: None,
         });
         index.save(&index_path)?;
 

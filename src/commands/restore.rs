@@ -171,7 +171,7 @@ mod tests {
         let mut file_map = HashMap::new();
 
         for (path, content) in files {
-            let hash = crate::utils::hash::hash_bytes(content.as_bytes());
+            let hash = crate::storage::file_ops::hash_bytes(content.as_bytes());
             let path_buf = PathBuf::from(path);
             file_map.insert(
                 path_buf,

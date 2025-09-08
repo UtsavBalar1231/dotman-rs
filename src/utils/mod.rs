@@ -1,6 +1,5 @@
 pub mod commit;
 pub mod compress;
-pub mod hash;
 pub mod pager;
 pub mod serialization;
 

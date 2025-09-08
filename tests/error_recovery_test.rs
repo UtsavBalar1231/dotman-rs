@@ -90,6 +90,7 @@ fn test_recover_from_missing_objects() -> Result<()> {
         size: 12,
         modified: 1_234_567_890,
         mode: 0o644,
+        cached_hash: None,
     }];
 
     let commit = Commit {
@@ -123,6 +124,7 @@ fn test_recover_from_missing_objects() -> Result<()> {
         size: 12,
         modified: 1_234_567_890,
         mode: 0o644,
+        cached_hash: None,
     }];
 
     let recovery_commit = Commit {
@@ -159,6 +161,7 @@ fn test_recover_from_interrupted_operations() -> Result<()> {
         size: 50,
         modified: 1_234_567_890,
         mode: 0o644,
+        cached_hash: None,
     });
     temp_index.save(&temp_index_path)?;
 

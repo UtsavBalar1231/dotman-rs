@@ -1,5 +1,5 @@
-use crate::storage::{FileEntry, index::Index};
-use crate::utils::{expand_tilde, hash::hash_file, make_relative, should_ignore};
+use crate::storage::{CachedHash, FileEntry, index::Index};
+use crate::utils::{expand_tilde, make_relative, should_ignore};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -55,7 +55,15 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
 
     let entries: Result<Vec<FileEntry>> = files_to_add
         .par_iter()
-        .map(|path| create_file_entry(path, &home))
+        .map(|path| {
+            // Try to get existing cached hash from index
+            let relative_path = make_relative(path, &home).ok();
+            let cached_hash = relative_path
+                .as_ref()
+                .and_then(|rp| index.get_staged_entry(rp).or_else(|| index.get_entry(rp)))
+                .and_then(|e| e.cached_hash.clone());
+            create_file_entry_with_cache(path, &home, cached_hash.as_ref())
+        })
         .collect();
 
     let entries = entries?;
@@ -201,7 +209,7 @@ fn check_special_file_type(path: &Path) {
     }
 }
 
-/// Create a `FileEntry` from a file path
+/// Create a `FileEntry` from a file path with optional cached hash
 ///
 /// # Errors
 ///
@@ -209,12 +217,16 @@ fn check_special_file_type(path: &Path) {
 /// - Failed to get file metadata
 /// - Failed to hash the file
 /// - Failed to make path relative
-pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
+pub fn create_file_entry_with_cache(
+    path: &Path,
+    home: &Path,
+    cached_hash: Option<&CachedHash>,
+) -> Result<FileEntry> {
     let metadata = std::fs::metadata(path)
         .with_context(|| format!("Failed to get metadata for: {}", path.display()))?;
 
-    let hash =
-        hash_file(path).with_context(|| format!("Failed to hash file: {}", path.display()))?;
+    let (hash, cache) = crate::storage::file_ops::hash_file(path, cached_hash)
+        .with_context(|| format!("Failed to hash file: {}", path.display()))?;
 
     let modified = i64::try_from(
         metadata
@@ -244,7 +256,20 @@ pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
         size: metadata.len(),
         modified,
         mode,
+        cached_hash: Some(cache),
     })
+}
+
+/// Create a `FileEntry` from a file path (legacy compatibility)
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Failed to get file metadata
+/// - Failed to hash the file
+/// - Failed to make path relative
+pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
+    create_file_entry_with_cache(path, home, None)
 }
 
 #[cfg(test)]
@@ -264,6 +289,34 @@ mod tests {
         assert!(!entry.hash.is_empty());
         assert_eq!(entry.size, 12);
         assert!(entry.modified > 0);
+        assert!(entry.cached_hash.is_some());
+
+        // Test that cache is populated correctly
+        let cache = entry.cached_hash.as_ref().unwrap();
+        assert_eq!(cache.hash, entry.hash);
+        assert_eq!(cache.size_at_hash, entry.size);
+        assert_eq!(cache.mtime_at_hash, entry.modified);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_file_entry_with_cache() -> Result<()> {
+        let dir = tempdir()?;
+        let file_path = dir.path().join("cached.txt");
+        std::fs::write(&file_path, "cached content")?;
+
+        // First call without cache
+        let entry1 = create_file_entry(&file_path, dir.path())?;
+        assert!(entry1.cached_hash.is_some());
+
+        // Second call with cache from first entry
+        let entry2 =
+            create_file_entry_with_cache(&file_path, dir.path(), entry1.cached_hash.as_ref())?;
+
+        // Should have same hash (file unchanged)
+        assert_eq!(entry2.hash, entry1.hash);
+        assert_eq!(entry2.cached_hash.as_ref().unwrap().hash, entry1.hash);
 
         Ok(())
     }

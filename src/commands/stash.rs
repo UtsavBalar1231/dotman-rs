@@ -123,7 +123,7 @@ fn push_stash(
             FileStatus::Added(p) | FileStatus::Modified(p) | FileStatus::Untracked(p) => {
                 if abs_path.exists() {
                     let content = fs::read(&abs_path)?;
-                    let hash = hash_file(&abs_path)?;
+                    let (hash, _cache) = hash_file(&abs_path, None)?;
                     let metadata = fs::metadata(&abs_path)?;
                     let mode = get_file_mode(&metadata);
 
@@ -265,7 +265,7 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
                     // If we're on the parent commit, the file was just reset by the stash push
                     // so we can safely overwrite it
                     if abs_path.exists() && current_commit != stash.parent_commit {
-                        let current_hash = hash_file(&abs_path)?;
+                        let (current_hash, _cache) = hash_file(&abs_path, None)?;
                         if current_hash != stash_file.hash {
                             super::print_warning(&format!(
                                 "Conflict in {}: file has been modified since stash",

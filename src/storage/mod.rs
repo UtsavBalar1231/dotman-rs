@@ -6,6 +6,17 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+/// Cached hash information for a file
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CachedHash {
+    /// The computed hash value
+    pub hash: String,
+    /// File size when hash was computed
+    pub size_at_hash: u64,
+    /// Modification time when hash was computed
+    pub mtime_at_hash: i64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileEntry {
     pub path: PathBuf,
@@ -13,6 +24,8 @@ pub struct FileEntry {
     pub size: u64,
     pub modified: i64,
     pub mode: u32,
+    /// Cached hash information for performance optimization
+    pub cached_hash: Option<CachedHash>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,51 +71,90 @@ impl FileStatus {
 
 // Fast file operations using memory mapping and parallel processing
 pub mod file_ops {
-    use super::{Path, PathBuf, Result};
+    use super::{CachedHash, Path, PathBuf, Result};
+    use anyhow::Context;
     use memmap2::MmapOptions;
     use rayon::prelude::*;
     use std::fs::File;
     use xxhash_rust::xxh3::xxh3_128;
 
-    /// Computes the XXH3 128-bit hash of a file at the given path.
-    /// Uses memory mapping for large files for efficiency.
-    /// Returns "0" for empty files.
+    /// Computes the XXH3 128-bit hash of raw bytes.
+    #[must_use]
+    pub fn hash_bytes(data: &[u8]) -> String {
+        let hash = xxh3_128(data);
+        format!("{hash:032x}")
+    }
+
+    /// Computes the hash of a file with caching support.
+    ///
+    /// If the cached hash is valid (file hasn't changed), returns the cached value.
+    /// Otherwise, computes a new hash and returns it along with updated cache metadata.
     ///
     /// # Errors
-    /// Returns an error if the file cannot be read or mapped.
-    pub fn hash_file(path: &Path) -> Result<String> {
-        let file = File::open(path)?;
-        let metadata = file.metadata()?;
+    /// Returns an error if the file cannot be read or hashed.
+    pub fn hash_file(path: &Path, cached: Option<&CachedHash>) -> Result<(String, CachedHash)> {
+        let metadata = std::fs::metadata(path)
+            .with_context(|| format!("Failed to get metadata for: {}", path.display()))?;
 
-        if metadata.len() == 0 {
-            return Ok(String::from("0"));
+        let size = metadata.len();
+        let modified = i64::try_from(
+            metadata
+                .modified()
+                .context("Failed to get file modification time")?
+                .duration_since(std::time::UNIX_EPOCH)
+                .context("Invalid file modification time")?
+                .as_secs(),
+        )
+        .context("File modification time too large")?;
+
+        // Check if we can use the cached hash
+        if let Some(cached_hash) = cached
+            && cached_hash.size_at_hash == size
+            && cached_hash.mtime_at_hash == modified
+        {
+            // Cache hit - file hasn't changed
+            return Ok((cached_hash.hash.clone(), cached_hash.clone()));
         }
 
-        if metadata.len() < 1_048_576 {
+        // Cache miss - compute new hash
+        let hash = if size == 0 {
+            String::from("0")
+        } else if size < 1_048_576 {
             // Small file - read directly
             let content = std::fs::read(path)?;
             let hash = xxh3_128(&content);
-            Ok(format!("{hash:032x}"))
+            format!("{hash:032x}")
         } else {
             // Large file - use memory mapping
+            let file = File::open(path)?;
             let mmap = unsafe { MmapOptions::new().map(&file)? };
             let hash = xxh3_128(&mmap);
-            Ok(format!("{hash:032x}"))
-        }
+            format!("{hash:032x}")
+        };
+
+        let new_cache = CachedHash {
+            hash: hash.clone(),
+            size_at_hash: size,
+            mtime_at_hash: modified,
+        };
+
+        Ok((hash, new_cache))
     }
 
-    /// Hash multiple files in parallel
+    /// Hash multiple files in parallel with caching support
     ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - Any file cannot be read or hashed
-    pub fn hash_files_parallel(paths: &[PathBuf]) -> Result<Vec<(PathBuf, String)>> {
+    pub fn hash_files_parallel(
+        paths: &[(PathBuf, Option<CachedHash>)],
+    ) -> Result<Vec<(PathBuf, String, CachedHash)>> {
         paths
             .par_iter()
-            .map(|path| {
-                let hash = hash_file(path)?;
-                Ok((path.clone(), hash))
+            .map(|(path, cached)| {
+                let (hash, cache) = hash_file(path, cached.as_ref())?;
+                Ok((path.clone(), hash, cache))
             })
             .collect::<Result<Vec<_>>>()
     }
@@ -157,14 +209,19 @@ mod tests {
     }
 
     #[test]
-    fn test_hash_file() -> Result<()> {
+    fn test_hash_file_with_cache() -> Result<()> {
         let dir = tempdir()?;
         let file_path = dir.path().join("test.txt");
         std::fs::write(&file_path, "Hello, World!")?;
 
-        let hash = file_ops::hash_file(&file_path)?;
-        assert!(!hash.is_empty());
-        assert_eq!(hash.len(), 32); // xxh3_128 produces 128-bit hash = 32 hex chars
+        // First call - no cache
+        let (hash1, cache1) = file_ops::hash_file(&file_path, None)?;
+        assert!(!hash1.is_empty());
+        assert_eq!(hash1.len(), 32); // xxh3_128 produces 128-bit hash = 32 hex chars
+
+        // Second call - with cache
+        let (hash2, _cache2) = file_ops::hash_file(&file_path, Some(&cache1))?;
+        assert_eq!(hash2, hash1); // Should return same hash
 
         Ok(())
     }
@@ -175,7 +232,7 @@ mod tests {
         let file_path = dir.path().join("empty.txt");
         std::fs::write(&file_path, "")?;
 
-        let hash = file_ops::hash_file(&file_path)?;
+        let (hash, _cache) = file_ops::hash_file(&file_path, None)?;
         assert_eq!(hash, "0");
 
         Ok(())
@@ -187,12 +244,12 @@ mod tests {
         let file_path = dir.path().join("small.txt");
         std::fs::write(&file_path, "Small content")?;
 
-        let hash = file_ops::hash_file(&file_path)?;
+        let (hash, _cache) = file_ops::hash_file(&file_path, None)?;
         assert!(!hash.is_empty());
         assert_eq!(hash.len(), 32);
 
         // Hash should be consistent
-        let hash2 = file_ops::hash_file(&file_path)?;
+        let (hash2, _cache2) = file_ops::hash_file(&file_path, None)?;
         assert_eq!(hash, hash2);
 
         Ok(())
@@ -206,12 +263,12 @@ mod tests {
         let large_content = "x".repeat(2_000_000);
         std::fs::write(&file_path, &large_content)?;
 
-        let hash = file_ops::hash_file(&file_path)?;
+        let (hash, _cache) = file_ops::hash_file(&file_path, None)?;
         assert!(!hash.is_empty());
         assert_eq!(hash.len(), 32);
 
         // Hash should be consistent
-        let hash2 = file_ops::hash_file(&file_path)?;
+        let (hash2, _cache2) = file_ops::hash_file(&file_path, None)?;
         assert_eq!(hash, hash2);
 
         Ok(())
@@ -219,7 +276,7 @@ mod tests {
 
     #[test]
     fn test_hash_nonexistent_file() {
-        let result = file_ops::hash_file(Path::new("/nonexistent/file.txt"));
+        let result = file_ops::hash_file(Path::new("/nonexistent/file.txt"), None);
         assert!(result.is_err());
     }
 
@@ -231,14 +288,14 @@ mod tests {
         for i in 0..5 {
             let file_path = dir.path().join(format!("file{i}.txt"));
             std::fs::write(&file_path, format!("Content {i}"))?;
-            paths.push(file_path);
+            paths.push((file_path, None));
         }
 
         let results = file_ops::hash_files_parallel(&paths)?;
         assert_eq!(results.len(), 5);
 
         // All hashes should be different (different content)
-        let hashes: Vec<String> = results.iter().map(|(_, h)| h.clone()).collect();
+        let hashes: Vec<String> = results.iter().map(|(_, h, _)| h.clone()).collect();
         for i in 0..hashes.len() {
             for j in i + 1..hashes.len() {
                 assert_ne!(hashes[i], hashes[j]);
@@ -263,10 +320,10 @@ mod tests {
         let mut paths = Vec::new();
         let valid_path = dir.path().join("valid.txt");
         std::fs::write(&valid_path, "Valid content")?;
-        paths.push(valid_path);
+        paths.push((valid_path, None));
 
         // Add nonexistent file
-        paths.push(PathBuf::from("/nonexistent/file.txt"));
+        paths.push((PathBuf::from("/nonexistent/file.txt"), None));
 
         let result = file_ops::hash_files_parallel(&paths);
         assert!(result.is_err());
@@ -329,6 +386,7 @@ mod tests {
             size: 1024,
             modified: 1_234_567_890,
             mode: 0o644,
+            cached_hash: None,
         };
 
         assert_eq!(entry.path, PathBuf::from("/test/path.txt"));
@@ -336,6 +394,31 @@ mod tests {
         assert_eq!(entry.size, 1024);
         assert_eq!(entry.modified, 1_234_567_890);
         assert_eq!(entry.mode, 0o644);
+        assert!(entry.cached_hash.is_none());
+    }
+
+    #[test]
+    fn test_file_entry_with_cache() {
+        let cached = CachedHash {
+            hash: "cached_hash".to_string(),
+            size_at_hash: 2048,
+            mtime_at_hash: 1_234_567_890,
+        };
+
+        let entry = FileEntry {
+            path: PathBuf::from("/test/cached.txt"),
+            hash: "test_hash".to_string(),
+            size: 2048,
+            modified: 1_234_567_890,
+            mode: 0o644,
+            cached_hash: Some(cached),
+        };
+
+        assert!(entry.cached_hash.is_some());
+        let cache = entry.cached_hash.unwrap();
+        assert_eq!(cache.hash, "cached_hash");
+        assert_eq!(cache.size_at_hash, 2048);
+        assert_eq!(cache.mtime_at_hash, 1_234_567_890);
     }
 
     #[test]

@@ -210,7 +210,10 @@ impl<'a> Importer<'a> {
             let metadata = fs::metadata(&target_path)?;
             let file_entry = crate::storage::FileEntry {
                 path: target_path.clone(),
-                hash: crate::storage::file_ops::hash_file(&target_path)?,
+                hash: {
+                    let (hash, _cache) = crate::storage::file_ops::hash_file(&target_path, None)?;
+                    hash
+                },
                 size: metadata.len(),
                 modified: i64::try_from(
                     metadata
@@ -230,6 +233,7 @@ impl<'a> Importer<'a> {
                         0o644
                     }
                 },
+                cached_hash: None,
             };
             self.index.add_entry(file_entry);
 
@@ -274,7 +278,7 @@ impl<'a> Importer<'a> {
             if let Some(index_entry) = self.index.get_entry(&target_path) {
                 // File exists, check if modified
                 let content = fs::read(path)?;
-                let hash = crate::storage::file_ops::hash_file(path)?;
+                let (hash, _cache) = crate::storage::file_ops::hash_file(path, None)?;
 
                 if hash != index_entry.hash {
                     // File modified
@@ -296,7 +300,11 @@ impl<'a> Importer<'a> {
                     let metadata = fs::metadata(&target_path)?;
                     let file_entry = crate::storage::FileEntry {
                         path: target_path.clone(),
-                        hash: crate::storage::file_ops::hash_file(&target_path)?,
+                        hash: {
+                            let (hash, _cache) =
+                                crate::storage::file_ops::hash_file(&target_path, None)?;
+                            hash
+                        },
                         size: metadata.len(),
                         modified: i64::try_from(
                             metadata
@@ -316,6 +324,7 @@ impl<'a> Importer<'a> {
                                 0o644
                             }
                         },
+                        cached_hash: None,
                     };
                     self.index.add_entry(file_entry);
                 }
@@ -338,7 +347,11 @@ impl<'a> Importer<'a> {
                 let metadata = fs::metadata(&target_path)?;
                 let file_entry = crate::storage::FileEntry {
                     path: target_path.clone(),
-                    hash: crate::storage::file_ops::hash_file(&target_path)?,
+                    hash: {
+                        let (hash, _cache) =
+                            crate::storage::file_ops::hash_file(&target_path, None)?;
+                        hash
+                    },
                     size: metadata.len(),
                     modified: i64::try_from(
                         metadata
@@ -358,6 +371,7 @@ impl<'a> Importer<'a> {
                             0o644
                         }
                     },
+                    cached_hash: None,
                 };
                 self.index.add_entry(file_entry);
             }
@@ -441,7 +455,10 @@ mod tests {
         let metadata = fs::metadata(&file1)?;
         let file_entry = crate::storage::FileEntry {
             path: file1.clone(),
-            hash: crate::storage::file_ops::hash_file(&file1)?,
+            hash: {
+                let (hash, _cache) = crate::storage::file_ops::hash_file(&file1, None)?;
+                hash
+            },
             size: metadata.len(),
             modified: i64::try_from(
                 metadata
@@ -461,6 +478,7 @@ mod tests {
                     0o644
                 }
             },
+            cached_hash: None,
         };
         index.add_entry(file_entry);
 
@@ -600,7 +618,10 @@ mod tests {
         let metadata = fs::metadata(&existing_file)?;
         let file_entry = crate::storage::FileEntry {
             path: existing_file.clone(),
-            hash: crate::storage::file_ops::hash_file(&existing_file)?,
+            hash: {
+                let (hash, _cache) = crate::storage::file_ops::hash_file(&existing_file, None)?;
+                hash
+            },
             size: metadata.len(),
             modified: i64::try_from(
                 metadata
@@ -610,6 +631,7 @@ mod tests {
             )
             .unwrap_or(i64::MAX),
             mode: 0o644,
+            cached_hash: None,
         };
         index.add_entry(file_entry);
 

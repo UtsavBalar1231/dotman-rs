@@ -2,11 +2,9 @@ use super::{FileEntry, FileStatus};
 use crate::utils::serialization;
 use anyhow::{Context, Result};
 use fs4::fs_std::FileExt;
-use memmap2::MmapOptions;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs::File;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,7 +12,6 @@ use std::path::{Path, PathBuf};
 pub struct Index {
     pub version: u32,
     pub entries: HashMap<PathBuf, FileEntry>,
-    #[serde(default)]
     pub staged_entries: HashMap<PathBuf, FileEntry>,
 }
 
@@ -47,36 +44,44 @@ impl Index {
             return Ok(Self::new());
         }
 
-        let file = File::open(path)
-            .with_context(|| format!("Failed to open index file: {}", path.display()))?;
+        // Read the entire file first to avoid locking issues
+        let data = std::fs::read(path)
+            .with_context(|| format!("Failed to read index file: {}", path.display()))?;
 
-        file.lock_shared()
-            .context("Failed to acquire shared lock on index file")?;
-
-        let metadata = file
-            .metadata()
-            .context("Failed to get index file metadata")?;
-
-        let mut index: Self = if metadata.len() < 1024 {
-            let data = std::fs::read(path)
-                .with_context(|| format!("Failed to read index file: {}", path.display()))?;
-            serialization::deserialize(&data).context("Failed to deserialize index")?
-        } else {
-            let mmap = unsafe {
-                MmapOptions::new()
-                    .map(&file)
-                    .context("Failed to memory-map index file")?
-            };
-            serialization::deserialize(&mmap).context("Failed to deserialize index")?
-        };
-
-        file.unlock().context("Failed to unlock index file")?;
+        let mut index: Self =
+            serialization::deserialize(&data).context("Failed to deserialize index")?;
 
         if index.staged_entries.is_empty() && !index.entries.is_empty() {
             index.staged_entries = index.entries.clone();
         }
 
         Ok(index)
+    }
+
+    /// Get cache statistics for the index
+    ///
+    /// Returns a tuple of (`total_entries`, `cached_entries`, `cache_hit_rate`)
+    #[must_use]
+    pub fn get_cache_stats(&self) -> (usize, usize, f64) {
+        let total = self.entries.len() + self.staged_entries.len();
+        if total == 0 {
+            return (0, 0, 0.0);
+        }
+
+        let cached = self
+            .entries
+            .values()
+            .filter(|e| e.cached_hash.is_some())
+            .count()
+            + self
+                .staged_entries
+                .values()
+                .filter(|e| e.cached_hash.is_some())
+                .count();
+
+        #[allow(clippy::cast_precision_loss)]
+        let hit_rate = cached as f64 / total as f64;
+        (total, cached, hit_rate)
     }
 
     /// Save the index to disk
@@ -88,33 +93,28 @@ impl Index {
     /// - Failed to write to disk
     /// - Failed to acquire file lock
     pub fn save(&self, path: &Path) -> Result<()> {
-        use std::io::Write;
-        let data = serialization::serialize(self).context("Failed to serialize index")?;
+        // Create a copy of the index without cached_hash for serialization
+        // The cached_hash is only for runtime performance and shouldn't be persisted
+        let mut index_to_save = self.clone();
+
+        // Clear cached_hash from all entries before saving
+        for entry in index_to_save.entries.values_mut() {
+            entry.cached_hash = None;
+        }
+        for entry in index_to_save.staged_entries.values_mut() {
+            entry.cached_hash = None;
+        }
+
+        let data = serialization::serialize(&index_to_save).context("Failed to serialize index")?;
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("Failed to create directory: {}", parent.display()))?;
         }
 
-        let file = std::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(path)
-            .with_context(|| {
-                format!("Failed to open index file for writing: {}", path.display())
-            })?;
-
-        file.lock_exclusive()
-            .context("Failed to acquire exclusive lock on index file")?;
-
-        let mut file_writer = &file;
-        file_writer
-            .write_all(&data)
-            .context("Failed to write index data")?;
-        file_writer.flush().context("Failed to flush index data")?;
-
-        file.unlock().context("Failed to unlock index file")?;
+        // Write directly without locking to avoid potential issues
+        std::fs::write(path, &data)
+            .with_context(|| format!("Failed to write index file: {}", path.display()))?;
 
         Ok(())
     }
@@ -158,13 +158,19 @@ impl Index {
         };
 
         for (path, entry) in &self.entries {
-            final_index.entries.insert(path.clone(), entry.clone());
+            let mut entry_without_cache = entry.clone();
+            entry_without_cache.cached_hash = None;
+            final_index
+                .entries
+                .insert(path.clone(), entry_without_cache);
         }
 
         for (path, entry) in &self.staged_entries {
+            let mut entry_without_cache = entry.clone();
+            entry_without_cache.cached_hash = None;
             final_index
                 .staged_entries
-                .insert(path.clone(), entry.clone());
+                .insert(path.clone(), entry_without_cache);
         }
 
         let data =
@@ -258,7 +264,11 @@ impl Index {
                 };
 
                 if abs_path.exists() {
-                    crate::utils::hash::hash_file(&abs_path).map_or_else(
+                    crate::storage::file_ops::hash_file(
+                        &abs_path,
+                        stored_entry.cached_hash.as_ref(),
+                    )
+                    .map_or_else(
                         |_| {
                             std::fs::metadata(&abs_path).map_or_else(
                                 |_| Some(FileStatus::Deleted(stored_path.clone())),
@@ -281,7 +291,7 @@ impl Index {
                                 },
                             )
                         },
-                        |current_hash| {
+                        |(current_hash, _cache)| {
                             if current_hash == stored_entry.hash {
                                 None
                             } else {
@@ -343,19 +353,25 @@ mod tests {
         let index_path = dir.path().join("index.bin");
 
         let mut index = Index::new();
-        index.add_entry(FileEntry {
+        let entry = FileEntry {
             path: PathBuf::from("test.txt"),
             hash: "abc123".to_string(),
             size: 100,
             modified: 1_234_567_890,
             mode: 0o644,
-        });
+            cached_hash: None,
+        };
+        // Add to both entries and staged_entries as would happen in real usage
+        index.add_entry(entry.clone());
+        index.stage_entry(entry);
 
         index.save(&index_path)?;
 
         let loaded = Index::load(&index_path)?;
+        // stage_entry adds to staged_entries, and on load it gets copied to entries
         assert_eq!(loaded.entries.len(), 1);
         assert!(loaded.entries.contains_key(&PathBuf::from("test.txt")));
+        assert_eq!(loaded.staged_entries.len(), 1);
 
         Ok(())
     }
@@ -371,6 +387,7 @@ mod tests {
                 size: 100,
                 modified: 1000,
                 mode: 0o644,
+                cached_hash: None,
             },
             FileEntry {
                 path: PathBuf::from("file2.txt"),
@@ -378,6 +395,7 @@ mod tests {
                 size: 200,
                 modified: 2000,
                 mode: 0o644,
+                cached_hash: None,
             },
         ];
 
@@ -395,6 +413,7 @@ mod tests {
             size: 100,
             modified: 1000,
             mode: 0o644,
+            cached_hash: None,
         });
         old.add_entry(FileEntry {
             path: PathBuf::from("deleted.txt"),
@@ -402,6 +421,7 @@ mod tests {
             size: 50,
             modified: 500,
             mode: 0o644,
+            cached_hash: None,
         });
 
         let mut new = Index::new();
@@ -411,6 +431,7 @@ mod tests {
             size: 150,
             modified: 2000,
             mode: 0o644,
+            cached_hash: None,
         });
         new.add_entry(FileEntry {
             path: PathBuf::from("added.txt"),
@@ -418,6 +439,7 @@ mod tests {
             size: 75,
             modified: 1500,
             mode: 0o644,
+            cached_hash: None,
         });
 
         let diff = IndexDiffer::diff(&old, &new);
@@ -454,6 +476,7 @@ mod tests {
             size: 100,
             modified: 1000,
             mode: 0o644,
+            cached_hash: None,
         };
         let entry2 = FileEntry {
             path: PathBuf::from("duplicate.txt"),
@@ -461,6 +484,7 @@ mod tests {
             size: 200,
             modified: 2000,
             mode: 0o644,
+            cached_hash: None,
         };
 
         index.add_entry(entry1);
@@ -487,13 +511,15 @@ mod tests {
         let mut index = Index::new();
 
         for i in 0..10_000 {
-            index.add_entry(FileEntry {
+            let entry = FileEntry {
                 path: PathBuf::from(format!("file_{i}.txt")),
                 hash: format!("{i:032x}"),
                 size: u64::try_from(i).unwrap_or(0) * 100,
                 modified: i64::from(i),
                 mode: 0o644,
-            });
+                cached_hash: None,
+            };
+            index.add_entry(entry);
         }
 
         index.save(&index_path)?;
@@ -524,6 +550,7 @@ mod tests {
                     size: 100,
                     modified: 1000,
                     mode: 0o644,
+                    cached_hash: None,
                 }
             })
             .collect();
@@ -584,6 +611,7 @@ mod tests {
             size: 100,
             modified: 1_234_567_890,
             mode: 0o644,
+            cached_hash: None,
         });
 
         let index_path = dir.path().join("index.bin");
@@ -612,13 +640,15 @@ mod tests {
         let dir = tempdir()?;
 
         let mut index = Index::new();
-        index.add_entry(FileEntry {
+        let entry = FileEntry {
             path: PathBuf::from("test.txt"),
             hash: "test_hash".to_string(),
             size: 1234,
             modified: 1_234_567_890,
             mode: 0o644,
-        });
+            cached_hash: None,
+        };
+        index.add_entry(entry);
 
         let index_path = dir.path().join("index.bin");
         index.save(&index_path)?;
@@ -658,21 +688,25 @@ mod tests {
         std::fs::write(&file1, "content1")?;
         std::fs::write(&file2, "content2")?;
 
-        index.add_entry(FileEntry {
+        let entry1 = FileEntry {
             path: file1,
             hash: "hash1".to_string(),
             size: 8,
             modified: 1_234_567_890,
             mode: 0o644,
-        });
+            cached_hash: None,
+        };
+        index.add_entry(entry1);
 
-        index.add_entry(FileEntry {
+        let entry2 = FileEntry {
             path: file2,
             hash: "hash2".to_string(),
             size: 8,
             modified: 1_234_567_891,
             mode: 0o644,
-        });
+            cached_hash: None,
+        };
+        index.add_entry(entry2);
 
         let index_path = dir.path().join("index.bin");
         index.save(&index_path)?;

@@ -62,10 +62,9 @@ fn pull_from_git(
     no_ff: bool,
     squash: bool,
 ) -> Result<()> {
-    use crate::storage::{Commit, FileEntry};
+    use crate::storage::{Commit, FileEntry, file_ops::hash_bytes};
     use crate::utils::{
         commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
-        hash::hash_bytes,
     };
 
     let url = remote_config
