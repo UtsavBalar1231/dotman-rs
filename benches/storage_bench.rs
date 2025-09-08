@@ -1,7 +1,7 @@
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use dotman::storage::FileEntry;
 use dotman::storage::file_ops::{hash_file, hash_files_parallel};
-use dotman::storage::index::{ConcurrentIndex, Index};
+use dotman::storage::index::Index;
 use std::fs;
 use std::hint::black_box;
 use std::path::PathBuf;
@@ -88,10 +88,10 @@ fn benchmark_index_operations(c: &mut Criterion) {
         })
     });
 
-    // Benchmark concurrent index
-    group.bench_function("concurrent_index_add_1000", |b| {
+    // Benchmark parallel index operations
+    group.bench_function("index_add_parallel_1000", |b| {
         b.iter(|| {
-            let index = ConcurrentIndex::new();
+            let mut index = Index::new();
             index.add_entries_parallel(entries.clone());
         })
     });

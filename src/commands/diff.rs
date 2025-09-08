@@ -29,7 +29,6 @@ pub fn execute(ctx: &DotmanContext, from: Option<&str>, to: Option<&str>) -> Res
 
 fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
     use crate::commands::status::get_current_files;
-    use crate::storage::index::ConcurrentIndex;
 
     let mut output = PagerOutput::new(ctx, ctx.no_pager);
     output.appendln(&format!(
@@ -39,10 +38,9 @@ fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
-    let concurrent_index = ConcurrentIndex::from_index(index);
 
     let current_files = get_current_files(ctx)?;
-    let statuses = concurrent_index.get_status_parallel(&current_files);
+    let statuses = index.get_status_parallel(&current_files);
 
     if statuses.is_empty() {
         output.appendln("No differences found");

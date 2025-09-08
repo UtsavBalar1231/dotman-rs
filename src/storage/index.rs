@@ -1,16 +1,13 @@
 use super::{FileEntry, FileStatus};
 use crate::utils::serialization;
 use anyhow::{Context, Result};
-use dashmap::DashMap;
 use fs4::fs_std::FileExt;
 use memmap2::MmapOptions;
-use parking_lot::RwLock;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Index {
@@ -163,6 +160,16 @@ impl Index {
         self.entries.insert(entry.path.clone(), entry);
     }
 
+    /// Add multiple entries in parallel for better performance
+    pub fn add_entries_parallel(&mut self, entries: Vec<FileEntry>) {
+        let new_entries: HashMap<PathBuf, FileEntry> = entries
+            .into_par_iter()
+            .map(|entry| (entry.path.clone(), entry))
+            .collect();
+
+        self.entries.extend(new_entries);
+    }
+
     pub fn remove_entry(&mut self, path: &Path) -> Option<FileEntry> {
         self.entries.remove(path)
     }
@@ -203,88 +210,17 @@ impl Index {
     pub fn commit_staged(&mut self) {
         self.entries = self.staged_entries.clone();
     }
-}
 
-pub struct ConcurrentIndex {
-    entries: Arc<DashMap<PathBuf, FileEntry>>,
-    staged_entries: Arc<DashMap<PathBuf, FileEntry>>,
-    version: Arc<RwLock<u32>>,
-}
-
-impl Default for ConcurrentIndex {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ConcurrentIndex {
-    pub fn new() -> Self {
-        Self {
-            entries: Arc::new(DashMap::new()),
-            staged_entries: Arc::new(DashMap::new()),
-            version: Arc::new(RwLock::new(1)),
-        }
-    }
-
-    pub fn from_index(index: Index) -> Self {
-        let entries = Arc::new(DashMap::new());
-        for (path, entry) in index.entries {
-            entries.insert(path, entry);
-        }
-
-        let staged_entries = Arc::new(DashMap::new());
-        for (path, entry) in index.staged_entries {
-            staged_entries.insert(path, entry);
-        }
-
-        Self {
-            entries,
-            staged_entries,
-            version: Arc::new(RwLock::new(index.version)),
-        }
-    }
-
-    pub fn to_index(&self) -> Index {
-        let mut entries = HashMap::new();
-        for entry in self.entries.iter() {
-            entries.insert(entry.key().clone(), entry.value().clone());
-        }
-
-        let mut staged_entries = HashMap::new();
-        for entry in self.staged_entries.iter() {
-            staged_entries.insert(entry.key().clone(), entry.value().clone());
-        }
-
-        Index {
-            version: *self.version.read(),
-            entries,
-            staged_entries,
-        }
-    }
-
-    pub fn add_entry(&self, entry: FileEntry) {
-        self.entries.insert(entry.path.clone(), entry);
-    }
-
-    pub fn add_entries_parallel(&self, entries: Vec<FileEntry>) {
-        entries.into_par_iter().for_each(|entry| {
-            self.entries.insert(entry.path.clone(), entry);
-        });
-    }
-
+    /// Get file statuses by comparing index entries with current filesystem state
+    /// Uses parallel processing for performance
     pub fn get_status_parallel(&self, _current_files: &[PathBuf]) -> Vec<FileStatus> {
         let mut statuses = Vec::new();
-
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
 
         let index_statuses: Vec<FileStatus> = self
             .entries
-            .iter()
-            .par_bridge()
-            .filter_map(|entry| {
-                let stored_path = entry.key();
-                let stored_entry = entry.value();
-
+            .par_iter()
+            .filter_map(|(stored_path, stored_entry)| {
                 let abs_path = if stored_path.is_relative() {
                     home.join(stored_path)
                 } else {
@@ -327,7 +263,6 @@ impl ConcurrentIndex {
             .collect();
 
         statuses.extend(index_statuses);
-
         statuses
     }
 }
@@ -390,8 +325,8 @@ mod tests {
     }
 
     #[test]
-    fn test_concurrent_index() {
-        let index = ConcurrentIndex::new();
+    fn test_index_add_parallel() {
+        let mut index = Index::new();
 
         let entries = vec![
             FileEntry {
@@ -412,8 +347,7 @@ mod tests {
 
         index.add_entries_parallel(entries);
 
-        let serialized = index.to_index();
-        assert_eq!(serialized.entries.len(), 2);
+        assert_eq!(index.entries.len(), 2);
     }
 
     #[test]
@@ -537,11 +471,11 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn test_concurrent_index_parallel_status() -> Result<()> {
+    fn test_index_parallel_status() -> Result<()> {
         use tempfile::tempdir;
 
         let dir = tempdir()?;
-        let index = ConcurrentIndex::new();
+        let mut index = Index::new();
 
         let entries: Vec<FileEntry> = (0..10)
             .map(|i| {
@@ -599,41 +533,6 @@ mod tests {
 
         let result = Index::load(&index_path);
         assert!(result.is_err());
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_index_concurrent_modifications() -> Result<()> {
-        use std::sync::Arc;
-        use std::thread;
-
-        let index = Arc::new(ConcurrentIndex::new());
-
-        let handles: Vec<_> = (0..10)
-            .map(|i| {
-                let index_clone = index.clone();
-                thread::spawn(move || {
-                    for j in 0..100 {
-                        let entry = FileEntry {
-                            path: PathBuf::from(format!("thread_{}_file_{}.txt", i, j)),
-                            hash: format!("hash_{}_{}", i, j),
-                            size: 100,
-                            modified: 1000,
-                            mode: 0o644,
-                        };
-                        index_clone.add_entry(entry);
-                    }
-                })
-            })
-            .collect();
-
-        for handle in handles {
-            handle.join().unwrap();
-        }
-
-        let final_index = index.to_index();
-        assert_eq!(final_index.entries.len(), 1000); // 10 threads * 100 files
 
         Ok(())
     }

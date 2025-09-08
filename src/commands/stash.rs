@@ -2,7 +2,7 @@ use crate::commands::status::get_current_files;
 use crate::refs::RefManager;
 use crate::storage::FileStatus;
 use crate::storage::file_ops::hash_file;
-use crate::storage::index::{ConcurrentIndex, Index};
+use crate::storage::index::Index;
 use crate::storage::stash::{StashEntry, StashFile, StashManager};
 use crate::utils::pager::PagerOutput;
 use crate::{DotmanContext, INDEX_FILE};
@@ -62,13 +62,12 @@ fn push_stash(
 ) -> Result<()> {
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
-    let concurrent_index = ConcurrentIndex::from_index(index.clone());
 
     // Get all current files
     let current_files = get_current_files(ctx)?;
 
     // Get file statuses
-    let mut statuses = concurrent_index.get_status_parallel(&current_files);
+    let mut statuses = index.get_status_parallel(&current_files);
 
     // Add untracked files if requested
     if include_untracked {

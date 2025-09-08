@@ -129,13 +129,13 @@ fn get_terminal_height() -> usize {
 }
 
 /// Builder for pager output with configurable options
-pub struct PagerOutput {
+pub struct PagerOutput<'a> {
     content: String,
     use_pager: bool,
-    ctx: Option<*const crate::DotmanContext>,
+    ctx: Option<&'a crate::DotmanContext>,
 }
 
-impl Default for PagerOutput {
+impl<'a> Default for PagerOutput<'a> {
     fn default() -> Self {
         Self {
             content: String::new(),
@@ -145,12 +145,12 @@ impl Default for PagerOutput {
     }
 }
 
-impl PagerOutput {
-    pub fn new(ctx: &crate::DotmanContext, no_pager: bool) -> Self {
+impl<'a> PagerOutput<'a> {
+    pub fn new(ctx: &'a crate::DotmanContext, no_pager: bool) -> Self {
         Self {
             content: String::new(),
             use_pager: !no_pager,
-            ctx: Some(ctx as *const crate::DotmanContext),
+            ctx: Some(ctx),
         }
     }
 
@@ -174,8 +174,7 @@ impl PagerOutput {
     }
 
     pub fn show(self) -> Result<()> {
-        let ctx = self.ctx.map(|ctx_ptr| unsafe { &*ctx_ptr });
-        output_through_pager(&self.content, self.use_pager, ctx)
+        output_through_pager(&self.content, self.use_pager, self.ctx)
     }
 }
 

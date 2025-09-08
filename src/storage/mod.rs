@@ -25,14 +25,7 @@ pub struct Commit {
     pub tree_hash: String,
 }
 
-pub trait Storage {
-    fn init(&self, path: &Path) -> Result<()>;
-    fn add_file(&mut self, path: &Path) -> Result<()>;
-    fn remove_file(&mut self, path: &Path) -> Result<()>;
-    fn get_status(&self) -> Result<Vec<FileStatus>>;
-    fn commit(&mut self, message: &str) -> Result<String>;
-    fn checkout(&mut self, commit_id: &str) -> Result<()>;
-}
+// Storage trait removed - was unused abstraction
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FileStatus {

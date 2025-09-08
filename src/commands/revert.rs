@@ -84,14 +84,12 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool
 
 fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     use crate::commands::status::get_current_files;
-    use crate::storage::index::ConcurrentIndex;
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
-    let concurrent_index = ConcurrentIndex::from_index(index);
 
     let current_files = get_current_files(ctx)?;
-    let statuses = concurrent_index.get_status_parallel(&current_files);
+    let statuses = index.get_status_parallel(&current_files);
 
     Ok(statuses.is_empty())
 }
