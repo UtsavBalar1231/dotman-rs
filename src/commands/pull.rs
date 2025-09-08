@@ -5,7 +5,7 @@ use crate::refs::RefManager;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
 use crate::sync::Importer;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
 use std::process::Command;
 
@@ -20,11 +20,13 @@ pub fn execute(
     ctx.check_repo_initialized()?;
 
     if rebase && (no_ff || squash) {
-        anyhow::bail!("Cannot use --rebase with --no-ff or --squash");
+        return Err(anyhow::anyhow!(
+            "Cannot use --rebase with --no-ff or --squash"
+        ));
     }
 
-    let remote_config = ctx.config.get_remote(remote).ok_or_else(|| {
-        anyhow::anyhow!(
+    let remote_config = ctx.config.get_remote(remote).with_context(|| {
+        format!(
             "Remote '{}' does not exist. Use 'dot remote add' to add it.",
             remote
         )
@@ -36,9 +38,10 @@ pub fn execute(
         }
         crate::config::RemoteType::S3 => pull_from_s3(ctx, remote_config, remote, branch),
         crate::config::RemoteType::Rsync => pull_from_rsync(ctx, remote_config, remote, branch),
-        crate::config::RemoteType::None => {
-            anyhow::bail!("Remote '{}' has no type configured.", remote);
-        }
+        crate::config::RemoteType::None => Err(anyhow::anyhow!(
+            "Remote '{}' has no type configured.",
+            remote
+        )),
     }
 }
 
@@ -54,7 +57,7 @@ fn pull_from_git(
     let url = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no URL configured", remote))?;
+        .with_context(|| format!("Remote '{}' has no URL configured", remote))?;
 
     super::print_info(&format!("Pulling from git remote {} ({})", remote, url));
 
@@ -97,8 +100,7 @@ fn pull_from_git(
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
     let mut importer = Importer::new(&mut snapshot_manager, &mut index);
 
-    let home_dir =
-        dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home_dir = dirs::home_dir().context("Could not find home directory")?;
     let changes = importer.import_changes(mirror.get_mirror_path(), &home_dir)?;
 
     if changes.is_empty() {
@@ -232,7 +234,7 @@ fn pull_from_s3(
     let bucket = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no S3 bucket configured", remote))?;
+        .with_context(|| format!("Remote '{}' has no S3 bucket configured", remote))?;
 
     super::print_info(&format!("Pulling from S3 bucket {}", bucket));
 
@@ -241,14 +243,14 @@ fn pull_from_s3(
             "s3",
             "sync",
             &format!("s3://{}/", bucket),
-            ctx.repo_path.to_str().unwrap(),
+            ctx.repo_path.to_str().context("Invalid repository path")?,
             "--delete",
         ])
         .output()?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("S3 sync failed: {}", stderr);
+        return Err(anyhow::anyhow!("S3 sync failed: {}", stderr));
     }
 
     super::print_success(&format!("Successfully pulled from S3 bucket {}", bucket));
@@ -264,7 +266,7 @@ fn pull_from_rsync(
     let source = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no rsync source configured", remote))?;
+        .with_context(|| format!("Remote '{}' has no rsync source configured", remote))?;
 
     super::print_info(&format!("Pulling via rsync from {}", source));
 
@@ -279,7 +281,7 @@ fn pull_from_rsync(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("Rsync failed: {}", stderr);
+        return Err(anyhow::anyhow!("Rsync failed: {}", stderr));
     }
 
     super::print_success(&format!("Successfully pulled via rsync from {}", source));

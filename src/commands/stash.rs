@@ -92,7 +92,7 @@ fn push_stash(
     let stash_manager = StashManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     // Build stash entry
-    let stash_id = stash_manager.generate_stash_id();
+    let stash_id = stash_manager.generate_stash_id()?;
     let message = message.unwrap_or_else(|| {
         format!(
             "WIP on {}",

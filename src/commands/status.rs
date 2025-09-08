@@ -2,7 +2,7 @@ use crate::refs::RefManager;
 use crate::storage::FileStatus;
 use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -37,7 +37,7 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
     }
 
     let mut statuses = Vec::new();
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     for (path, staged_entry) in &index.staged_entries {
         match index.entries.get(path) {
@@ -127,7 +127,7 @@ pub fn get_current_files(ctx: &DotmanContext) -> Result<Vec<PathBuf>> {
 
     let mut files = Vec::new();
 
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     for path in index.entries.keys() {
         let abs_path = if path.is_relative() {
@@ -145,7 +145,7 @@ pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<Pa
     use walkdir::WalkDir;
 
     let mut untracked = Vec::new();
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     let mut tracked_paths: HashSet<PathBuf> = HashSet::new();
 

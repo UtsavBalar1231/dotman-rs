@@ -11,7 +11,7 @@ pub mod utils;
 #[cfg(test)]
 pub mod test_utils;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::path::PathBuf;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -36,8 +36,7 @@ impl DotmanContext {
     }
 
     pub fn new_with_pager(no_pager: bool) -> Result<Self> {
-        let home =
-            dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+        let home = dirs::home_dir().context("Could not find home directory")?;
         let config_path = home.join(DEFAULT_CONFIG_PATH);
         let config = config::Config::load(&config_path)?;
         let repo_path = config.core.repo_path.clone();
@@ -58,18 +57,25 @@ impl DotmanContext {
 
     pub fn check_repo_initialized(&self) -> Result<()> {
         if !self.is_repo_initialized() {
-            anyhow::bail!(
+            return Err(anyhow::anyhow!(
                 "Dotman repository not found in {}. Did you run 'dot init'?",
                 self.repo_path.display()
-            );
+            ));
         }
         Ok(())
     }
 
     pub fn ensure_repo_exists(&self) -> Result<()> {
-        std::fs::create_dir_all(&self.repo_path)?;
-        std::fs::create_dir_all(self.repo_path.join(COMMITS_DIR))?;
-        std::fs::create_dir_all(self.repo_path.join(OBJECTS_DIR))?;
+        std::fs::create_dir_all(&self.repo_path).with_context(|| {
+            format!(
+                "Failed to create repository directory: {}",
+                self.repo_path.display()
+            )
+        })?;
+        std::fs::create_dir_all(self.repo_path.join(COMMITS_DIR))
+            .context("Failed to create commits directory")?;
+        std::fs::create_dir_all(self.repo_path.join(OBJECTS_DIR))
+            .context("Failed to create objects directory")?;
         Ok(())
     }
 }
@@ -86,7 +92,11 @@ mod tests {
         let temp = tempdir()?;
         let config_path = temp.path().join(DEFAULT_CONFIG_PATH);
 
-        fs::create_dir_all(config_path.parent().unwrap())?;
+        fs::create_dir_all(
+            config_path
+                .parent()
+                .context("Config path must have a parent directory")?,
+        )?;
 
         let config_content = r#"
 [core]
@@ -147,7 +157,11 @@ preserve_permissions = true
         let temp = tempdir()?;
         let config_path = temp.path().join(DEFAULT_CONFIG_PATH);
 
-        fs::create_dir_all(config_path.parent().unwrap())?;
+        fs::create_dir_all(
+            config_path
+                .parent()
+                .context("Config path must have a parent directory")?,
+        )?;
 
         fs::write(&config_path, "invalid toml content {")?;
 

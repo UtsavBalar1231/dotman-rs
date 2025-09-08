@@ -1,6 +1,6 @@
 use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -82,7 +82,7 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
 }
 
 fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     let tracked_paths: HashSet<PathBuf> = index.entries.keys().map(|p| home.join(p)).collect();
 

@@ -9,7 +9,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
     ctx.check_repo_initialized()?;
 
     if paths.is_empty() {
-        anyhow::bail!("No files specified to restore");
+        return Err(anyhow::anyhow!("No files specified to restore"));
     }
 
     // Default to HEAD if no source is provided
@@ -40,7 +40,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
     ));
 
     // Get home directory as base for relative paths
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     let mut restored_count = 0;
     let mut not_found = Vec::new();
@@ -105,7 +105,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
     }
 
     if restored_count == 0 && !not_found.is_empty() {
-        anyhow::bail!("No files were restored");
+        return Err(anyhow::anyhow!("No files were restored"));
     }
 
     Ok(())

@@ -5,7 +5,7 @@ use crate::refs::RefManager;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
 use crate::sync::Exporter;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::process::Command;
 
 /// Options for push operations
@@ -30,11 +30,13 @@ pub fn execute(
     ctx.check_repo_initialized()?;
 
     if force && force_with_lease {
-        anyhow::bail!("Cannot use both --force and --force-with-lease");
+        return Err(anyhow::anyhow!(
+            "Cannot use both --force and --force-with-lease"
+        ));
     }
 
-    let remote_config = ctx.config.get_remote(remote).ok_or_else(|| {
-        anyhow::anyhow!(
+    let remote_config = ctx.config.get_remote(remote).with_context(|| {
+        format!(
             "Remote '{}' does not exist. Use 'dot remote add' to add it.",
             remote
         )
@@ -62,9 +64,10 @@ pub fn execute(
         crate::config::RemoteType::Rsync => {
             push_to_rsync(ctx, remote_config, remote, branch, dry_run)
         }
-        crate::config::RemoteType::None => {
-            anyhow::bail!("Remote '{}' has no type configured.", remote);
-        }
+        crate::config::RemoteType::None => Err(anyhow::anyhow!(
+            "Remote '{}' has no type configured.",
+            remote
+        )),
     }
 }
 
@@ -147,7 +150,7 @@ fn push_to_git(
     let url = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no URL configured", opts.remote))?;
+        .with_context(|| format!("Remote '{}' has no URL configured", opts.remote))?;
 
     super::print_info(&format!("Pushing to git remote {} ({})", opts.remote, url));
 
@@ -165,7 +168,7 @@ fn push_to_git(
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let current_commit = ref_manager
         .get_head_commit()?
-        .ok_or_else(|| anyhow::anyhow!("No commits to push"))?;
+        .context("No commits to push")?;
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
@@ -220,11 +223,11 @@ fn push_to_git(
         mapping_manager.add_and_save(opts.remote, commit_id, &git_commit)?;
     }
 
-    let last_dotman_commit = commits_to_push.last().unwrap();
+    let last_dotman_commit = commits_to_push.last().context("No commits to push")?;
     let last_git_commit = mapping_manager
         .mapping()
         .get_git_commit(opts.remote, last_dotman_commit)
-        .ok_or_else(|| anyhow::anyhow!("Failed to get git commit mapping"))?;
+        .context("Failed to get git commit mapping")?;
 
     if opts.dry_run {
         super::print_info("Dry run - not pushing to remote");
@@ -290,7 +293,7 @@ fn push_with_force(mirror: &GitMirror, branch: &str, force_with_lease: bool) -> 
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("Git force push failed: {}", stderr);
+        return Err(anyhow::anyhow!("Git force push failed: {}", stderr));
     }
 
     Ok(())
@@ -324,7 +327,7 @@ fn push_to_s3(
     let bucket = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no S3 bucket configured", remote))?;
+        .with_context(|| format!("Remote '{}' has no S3 bucket configured", remote))?;
 
     super::print_info(&format!("Pushing to S3 bucket {}", bucket));
 
@@ -338,7 +341,7 @@ fn push_to_s3(
         .args([
             "s3",
             "sync",
-            ctx.repo_path.to_str().unwrap(),
+            ctx.repo_path.to_str().context("Invalid repository path")?,
             &format!("s3://{}/", bucket),
             "--delete",
         ])
@@ -346,7 +349,7 @@ fn push_to_s3(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("S3 sync failed: {}", stderr);
+        return Err(anyhow::anyhow!("S3 sync failed: {}", stderr));
     }
 
     super::print_success(&format!("Successfully pushed to S3 bucket {}", bucket));
@@ -360,9 +363,10 @@ fn push_to_rsync(
     _branch: &str,
     dry_run: bool,
 ) -> Result<()> {
-    let destination = remote_config.url.as_ref().ok_or_else(|| {
-        anyhow::anyhow!("Remote '{}' has no rsync destination configured", remote)
-    })?;
+    let destination = remote_config
+        .url
+        .as_ref()
+        .with_context(|| format!("Remote '{}' has no rsync destination configured", remote))?;
 
     super::print_info(&format!("Pushing via rsync to {}", destination));
 
@@ -382,7 +386,7 @@ fn push_to_rsync(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("Rsync failed: {}", stderr);
+        return Err(anyhow::anyhow!("Rsync failed: {}", stderr));
     }
 
     super::print_success(&format!("Successfully pushed via rsync to {}", destination));

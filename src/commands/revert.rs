@@ -18,9 +18,9 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool
     if !force {
         let status_output = check_working_directory_clean(ctx)?;
         if !status_output {
-            anyhow::bail!(
+            return Err(anyhow::anyhow!(
                 "You have uncommitted changes. Use --force to override or commit your changes first."
-            );
+            ));
         }
     }
 
@@ -214,7 +214,7 @@ fn apply_revert_changes(
     changes: &[RevertChange],
     snapshot_manager: &SnapshotManager,
 ) -> Result<()> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     // Load current index
     let index_path = ctx.repo_path.join(INDEX_FILE);

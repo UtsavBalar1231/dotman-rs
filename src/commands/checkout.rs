@@ -11,9 +11,9 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     if !force {
         let status_output = check_working_directory_clean(ctx)?;
         if !status_output {
-            anyhow::bail!(
+            return Err(anyhow::anyhow!(
                 "You have uncommitted changes. Use --force to override or commit your changes first."
-            );
+            ));
         }
     }
 
@@ -38,7 +38,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     super::print_info(&format!("Checking out commit {}", display_target.yellow()));
 
     // Get home directory as target
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     // Get list of currently tracked files for cleanup
     let current_files = crate::commands::status::get_current_files(ctx)?;

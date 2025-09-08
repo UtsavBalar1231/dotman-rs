@@ -14,7 +14,7 @@ pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<S
     let commits_dir = repo_path.join("commits");
 
     if !commits_dir.exists() {
-        anyhow::bail!("No commits found");
+        return Err(anyhow::anyhow!("No commits found"));
     }
 
     let mut matches = Vec::new();
@@ -31,7 +31,7 @@ pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<S
     }
 
     match matches.len() {
-        0 => anyhow::bail!("No commit found matching: {}", partial_id),
+        0 => Err(anyhow::anyhow!("No commit found matching: {}", partial_id)),
         1 => Ok(matches[0].clone()),
         _ => {
             // Show the ambiguous matches
@@ -45,11 +45,11 @@ pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<S
                     }
                 })
                 .collect();
-            anyhow::bail!(
+            Err(anyhow::anyhow!(
                 "Ambiguous commit ID '{}' matches multiple commits:\n{}",
                 partial_id,
                 display_matches.join("\n")
-            )
+            ))
         }
     }
 }

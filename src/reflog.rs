@@ -49,7 +49,7 @@ impl ReflogEntry {
     pub fn from_line(line: &str) -> Result<Self> {
         let parts: Vec<&str> = line.splitn(5, ' ').collect();
         if parts.len() < 5 {
-            anyhow::bail!("Invalid reflog entry format");
+            return Err(anyhow::anyhow!("Invalid reflog entry format"));
         }
 
         let timestamp = parts[0].parse::<i64>()?;

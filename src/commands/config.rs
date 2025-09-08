@@ -15,7 +15,8 @@ pub fn execute(
         return Ok(());
     }
 
-    let key = key.unwrap();
+    let key =
+        key.ok_or_else(|| anyhow::anyhow!("Key must be provided when not using --list flag"))?;
 
     if unset {
         // Unset a configuration value

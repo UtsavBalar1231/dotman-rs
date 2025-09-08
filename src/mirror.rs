@@ -42,7 +42,7 @@ impl GitMirror {
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                anyhow::bail!("Git init failed: {}", stderr);
+                return Err(anyhow::anyhow!("Git init failed: {}", stderr));
             }
 
             // Configure git user for the repository (required for commits)
@@ -89,7 +89,7 @@ impl GitMirror {
             let stderr = String::from_utf8_lossy(&output.stderr);
             // Ignore if remote already exists
             if !stderr.contains("already exists") {
-                anyhow::bail!("Git remote add failed: {}", stderr);
+                return Err(anyhow::anyhow!("Git remote add failed: {}", stderr));
             }
         }
 
@@ -106,7 +106,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git remote set-url failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git remote set-url failed: {}", stderr));
         }
 
         Ok(())
@@ -153,7 +153,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git add failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git add failed: {}", stderr));
         }
 
         let output = Command::new("git")
@@ -187,7 +187,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git commit failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git commit failed: {}", stderr));
         }
 
         self.get_head_commit()
@@ -209,7 +209,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git add failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git add failed: {}", stderr));
         }
 
         let output = Command::new("git")
@@ -239,7 +239,7 @@ impl GitMirror {
         let dt = Utc
             .timestamp_opt(timestamp, 0)
             .single()
-            .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?;
+            .context("Invalid timestamp")?;
         let date_str = dt.format("%Y-%m-%d %H:%M:%S %z").to_string();
 
         // Commit changes with specific date
@@ -253,7 +253,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git commit failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git commit failed: {}", stderr));
         }
 
         self.get_head_commit()
@@ -336,10 +336,10 @@ impl GitMirror {
 
                 if !output.status.success() {
                     let stderr = String::from_utf8_lossy(&output.stderr);
-                    anyhow::bail!("Git push failed: {}", stderr);
+                    return Err(anyhow::anyhow!("Git push failed: {}", stderr));
                 }
             } else {
-                anyhow::bail!("Git push failed: {}", stderr);
+                return Err(anyhow::anyhow!("Git push failed: {}", stderr));
             }
         }
 
@@ -362,7 +362,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git fetch failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git fetch failed: {}", stderr));
         }
 
         Ok(())
@@ -384,7 +384,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git merge failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git merge failed: {}", stderr));
         }
 
         Ok(())
@@ -400,7 +400,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git push tags failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git push tags failed: {}", stderr));
         }
 
         Ok(())
@@ -417,7 +417,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git fetch failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git fetch failed: {}", stderr));
         }
 
         let output = Command::new("git")
@@ -435,7 +435,7 @@ impl GitMirror {
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                anyhow::bail!("Git checkout failed: {}", stderr);
+                return Err(anyhow::anyhow!("Git checkout failed: {}", stderr));
             }
         } else {
             // Branch exists, checkout and pull
@@ -447,7 +447,7 @@ impl GitMirror {
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                anyhow::bail!("Git checkout failed: {}", stderr);
+                return Err(anyhow::anyhow!("Git checkout failed: {}", stderr));
             }
 
             // Pull changes
@@ -459,7 +459,7 @@ impl GitMirror {
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                anyhow::bail!("Git pull failed: {}", stderr);
+                return Err(anyhow::anyhow!("Git pull failed: {}", stderr));
             }
         }
 
@@ -476,7 +476,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git rev-parse failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git rev-parse failed: {}", stderr));
         }
 
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
@@ -497,7 +497,7 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Git ls-files failed: {}", stderr);
+            return Err(anyhow::anyhow!("Git ls-files failed: {}", stderr));
         }
 
         let files = String::from_utf8_lossy(&output.stdout)
@@ -529,10 +529,10 @@ impl GitMirror {
 
                 if !output.status.success() {
                     let stderr = String::from_utf8_lossy(&output.stderr);
-                    anyhow::bail!("Git checkout -b failed: {}", stderr);
+                    return Err(anyhow::anyhow!("Git checkout -b failed: {}", stderr));
                 }
             } else {
-                anyhow::bail!("Git checkout failed: {}", stderr);
+                return Err(anyhow::anyhow!("Git checkout failed: {}", stderr));
             }
         }
 

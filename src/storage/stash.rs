@@ -79,19 +79,19 @@ impl StashManager {
     }
 
     /// Generate a unique stash ID based on timestamp and random suffix
-    pub fn generate_stash_id(&self) -> String {
+    pub fn generate_stash_id(&self) -> Result<String> {
         use rand::Rng;
         use std::time::{SystemTime, UNIX_EPOCH};
 
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .map_err(|e| anyhow::anyhow!("System time error: {}", e))?
             .as_secs();
 
         // Add some randomness to ensure uniqueness
         let mut rng = rand::thread_rng();
         let random: u32 = rng.r#gen();
-        format!("stash_{:x}_{:08x}", timestamp, random)
+        Ok(format!("stash_{:x}_{:08x}", timestamp, random))
     }
 
     /// Save a stash entry to disk
@@ -118,7 +118,7 @@ impl StashManager {
         let entry_path = self.entries_dir().join(format!("{}.zst", stash_id));
 
         if !entry_path.exists() {
-            anyhow::bail!("Stash entry not found: {}", stash_id);
+            return Err(anyhow::anyhow!("Stash entry not found: {}", stash_id));
         }
 
         // Read and decompress
@@ -303,12 +303,12 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_stash_id() {
-        let temp = tempdir().unwrap();
+    fn test_generate_stash_id() -> Result<()> {
+        let temp = tempdir()?;
         let manager = StashManager::new(temp.path().to_path_buf(), 3);
 
-        let id1 = manager.generate_stash_id();
-        let id2 = manager.generate_stash_id();
+        let id1 = manager.generate_stash_id()?;
+        let id2 = manager.generate_stash_id()?;
 
         // IDs should be unique
         assert_ne!(id1, id2);
@@ -316,6 +316,8 @@ mod tests {
         // IDs should have expected format
         assert!(id1.starts_with("stash_"));
         assert!(id2.starts_with("stash_"));
+
+        Ok(())
     }
 
     #[test]

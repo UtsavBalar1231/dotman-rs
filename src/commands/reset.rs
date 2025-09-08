@@ -20,7 +20,9 @@ pub fn execute(
     // Count how many modes are specified
     let mode_count = [hard, soft, mixed, keep].iter().filter(|&&x| x).count();
     if mode_count > 1 {
-        anyhow::bail!("Cannot use multiple reset modes simultaneously");
+        return Err(anyhow::anyhow!(
+            "Cannot use multiple reset modes simultaneously"
+        ));
     }
 
     // If paths are specified, this is a file-specific reset
@@ -47,8 +49,7 @@ pub fn execute(
         ));
 
         // Restore files to working directory
-        let home =
-            dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+        let home = dirs::home_dir().context("Could not find home directory")?;
         snapshot_manager.restore_snapshot(&commit_id, &home)?;
 
         // Update index to match commit
@@ -176,7 +177,7 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
     let mut index = Index::load(&index_path)?;
 
     // Get home directory for path resolution
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     let mut reset_count = 0;
     let mut not_found_count = 0;

@@ -1,7 +1,7 @@
 use crate::DotmanContext;
 use crate::config::BranchTracking;
 use crate::refs::RefManager;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
 
 /// List all branches
@@ -46,7 +46,7 @@ pub fn create(ctx: &DotmanContext, name: &str, start_point: Option<&str>) -> Res
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
     if ref_manager.branch_exists(name) {
-        anyhow::bail!("Branch '{}' already exists", name);
+        return Err(anyhow::anyhow!("Branch '{}' already exists", name));
     }
 
     // If start_point is provided, resolve it to a commit
@@ -94,7 +94,7 @@ pub fn checkout(ctx: &DotmanContext, name: &str) -> Result<()> {
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
     if !ref_manager.branch_exists(name) {
-        anyhow::bail!("Branch '{}' does not exist", name);
+        return Err(anyhow::anyhow!("Branch '{}' does not exist", name));
     }
 
     ref_manager.set_head_to_branch(name)?;
@@ -117,7 +117,7 @@ pub fn rename(ctx: &DotmanContext, old_name: Option<&str>, new_name: &str) -> Re
         // Rename current branch
         ref_manager
             .current_branch()?
-            .ok_or_else(|| anyhow::anyhow!("Not on any branch (detached HEAD)"))?
+            .context("Not on any branch (detached HEAD)")?
     };
 
     ref_manager.rename_branch(&old, new_name)?;
@@ -143,15 +143,15 @@ pub fn set_upstream(
     } else {
         ref_manager
             .current_branch()?
-            .ok_or_else(|| anyhow::anyhow!("Not on any branch (detached HEAD)"))?
+            .context("Not on any branch (detached HEAD)")?
     };
 
     if !ref_manager.branch_exists(&branch_name) {
-        anyhow::bail!("Branch '{}' does not exist", branch_name);
+        return Err(anyhow::anyhow!("Branch '{}' does not exist", branch_name));
     }
 
     if !ctx.config.remotes.contains_key(remote) {
-        anyhow::bail!("Remote '{}' does not exist", remote);
+        return Err(anyhow::anyhow!("Remote '{}' does not exist", remote));
     }
 
     // Use same branch name on remote if not specified
@@ -188,7 +188,7 @@ pub fn unset_upstream(ctx: &mut DotmanContext, branch: Option<&str>) -> Result<(
     } else {
         ref_manager
             .current_branch()?
-            .ok_or_else(|| anyhow::anyhow!("Not on any branch (detached HEAD)"))?
+            .context("Not on any branch (detached HEAD)")?
     };
 
     if ctx.config.branches.tracking.remove(&branch_name).is_none() {

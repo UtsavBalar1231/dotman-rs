@@ -19,7 +19,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
 
         if !path.exists() {
             if !force {
-                anyhow::bail!("Path does not exist: {}", path.display());
+                return Err(anyhow::anyhow!("Path does not exist: {}", path.display()));
             } else {
                 super::print_warning(&format!("Skipping non-existent path: {}", path.display()));
                 continue;
@@ -43,7 +43,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
         return Ok(());
     }
 
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     let entries: Result<Vec<FileEntry>> = files_to_add
         .par_iter()
@@ -97,7 +97,8 @@ fn collect_files_from_dir(
         .into_iter()
         .filter_entry(|e| !should_ignore(e.path(), ignore_patterns))
     {
-        let entry = entry?;
+        let entry =
+            entry.with_context(|| format!("Failed to read directory: {}", dir.display()))?;
         if entry.file_type().is_file() {
             let file_path = entry.path().to_path_buf();
             check_special_file_type(&file_path);
@@ -154,11 +155,14 @@ pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
     let metadata = std::fs::metadata(path)
         .with_context(|| format!("Failed to get metadata for: {}", path.display()))?;
 
-    let hash = hash_file(path)?;
+    let hash =
+        hash_file(path).with_context(|| format!("Failed to hash file: {}", path.display()))?;
 
     let modified = metadata
-        .modified()?
-        .duration_since(std::time::UNIX_EPOCH)?
+        .modified()
+        .context("Failed to get file modification time")?
+        .duration_since(std::time::UNIX_EPOCH)
+        .context("Invalid file modification time")?
         .as_secs() as i64;
 
     #[cfg(unix)]
@@ -170,7 +174,8 @@ pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
     #[cfg(not(unix))]
     let mode = 0o644;
 
-    let relative_path = make_relative(path, home)?;
+    let relative_path = make_relative(path, home)
+        .with_context(|| format!("Failed to make path relative: {}", path.display()))?;
 
     Ok(FileEntry {
         path: relative_path,

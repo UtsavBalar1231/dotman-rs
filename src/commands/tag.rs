@@ -11,7 +11,7 @@ pub fn create(ctx: &DotmanContext, name: &str, commit: Option<&str>) -> Result<(
 
     // Validate tag name (basic validation)
     if name.is_empty() {
-        anyhow::bail!("Tag name cannot be empty");
+        return Err(anyhow::anyhow!("Tag name cannot be empty"));
     }
 
     // If commit is provided, validate it exists
@@ -65,7 +65,7 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
     if !ref_manager.tag_exists(name) {
-        anyhow::bail!("Tag '{}' does not exist", name);
+        return Err(anyhow::anyhow!("Tag '{}' does not exist", name));
     }
 
     // In a real implementation, we might want to check if the tag
@@ -88,7 +88,7 @@ pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
     if !ref_manager.tag_exists(name) {
-        anyhow::bail!("Tag '{}' does not exist", name);
+        return Err(anyhow::anyhow!("Tag '{}' does not exist", name));
     }
 
     let commit_id = ref_manager.get_tag_commit(name)?;

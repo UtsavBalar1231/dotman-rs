@@ -40,21 +40,30 @@ impl Index {
             return Ok(Self::new());
         }
 
-        let file = File::open(path)?;
+        let file = File::open(path)
+            .with_context(|| format!("Failed to open index file: {}", path.display()))?;
 
-        file.lock_shared()?;
+        file.lock_shared()
+            .context("Failed to acquire shared lock on index file")?;
 
-        let metadata = file.metadata()?;
+        let metadata = file
+            .metadata()
+            .context("Failed to get index file metadata")?;
 
         let mut index: Index = if metadata.len() < 1024 {
-            let data = std::fs::read(path)?;
+            let data = std::fs::read(path)
+                .with_context(|| format!("Failed to read index file: {}", path.display()))?;
             serialization::deserialize(&data).context("Failed to deserialize index")?
         } else {
-            let mmap = unsafe { MmapOptions::new().map(&file)? };
+            let mmap = unsafe {
+                MmapOptions::new()
+                    .map(&file)
+                    .context("Failed to memory-map index file")?
+            };
             serialization::deserialize(&mmap).context("Failed to deserialize index")?
         };
 
-        file.unlock()?;
+        file.unlock().context("Failed to unlock index file")?;
 
         if index.staged_entries.is_empty() && !index.entries.is_empty() {
             index.staged_entries = index.entries.clone();
@@ -64,44 +73,61 @@ impl Index {
     }
 
     pub fn save(&self, path: &Path) -> Result<()> {
-        let data = serialization::serialize(self)?;
+        let data = serialization::serialize(self).context("Failed to serialize index")?;
 
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("Failed to create directory: {}", parent.display()))?;
         }
 
         let file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
-            .open(path)?;
+            .open(path)
+            .with_context(|| {
+                format!("Failed to open index file for writing: {}", path.display())
+            })?;
 
-        file.lock_exclusive()?;
+        file.lock_exclusive()
+            .context("Failed to acquire exclusive lock on index file")?;
 
         use std::io::Write;
         let mut file_writer = &file;
-        file_writer.write_all(&data)?;
-        file_writer.flush()?;
+        file_writer
+            .write_all(&data)
+            .context("Failed to write index data")?;
+        file_writer.flush().context("Failed to flush index data")?;
 
-        file.unlock()?;
+        file.unlock().context("Failed to unlock index file")?;
 
         Ok(())
     }
 
     pub fn save_merge(&self, path: &Path) -> Result<()> {
         if !path.exists() {
-            std::fs::write(path, [])?;
+            std::fs::write(path, [])
+                .with_context(|| format!("Failed to create index file: {}", path.display()))?;
         }
 
         let file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
-            .open(path)?;
+            .open(path)
+            .with_context(|| format!("Failed to open index file for merge: {}", path.display()))?;
 
-        file.lock_exclusive()?;
+        file.lock_exclusive()
+            .context("Failed to acquire exclusive lock on index file")?;
 
-        let mut final_index = if path.exists() && file.metadata()?.len() > 0 {
-            let existing_data = std::fs::read(path)?;
+        let mut final_index = if path.exists()
+            && file
+                .metadata()
+                .context("Failed to get file metadata")?
+                .len()
+                > 0
+        {
+            let existing_data = std::fs::read(path)
+                .with_context(|| format!("Failed to read existing index: {}", path.display()))?;
             serialization::deserialize::<Index>(&existing_data).unwrap_or_else(|_| Index::new())
         } else {
             Index::new()
@@ -117,15 +143,18 @@ impl Index {
                 .insert(path.clone(), entry.clone());
         }
 
-        let data = serialization::serialize(&final_index)?;
+        let data =
+            serialization::serialize(&final_index).context("Failed to serialize merged index")?;
 
-        file.set_len(0)?;
+        file.set_len(0).context("Failed to truncate index file")?;
         use std::io::Write;
         let mut file_writer = &file;
-        file_writer.write_all(&data)?;
-        file_writer.flush()?;
+        file_writer
+            .write_all(&data)
+            .context("Failed to write index data")?;
+        file_writer.flush().context("Failed to flush index data")?;
 
-        file.unlock()?;
+        file.unlock().context("Failed to unlock index file")?;
 
         Ok(())
     }

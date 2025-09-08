@@ -39,7 +39,7 @@ pub fn execute(
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let current_commit = ref_manager
         .get_head_commit()?
-        .ok_or_else(|| anyhow::anyhow!("No commits in current branch"))?;
+        .context("No commits in current branch")?;
 
     if current_commit == target_commit {
         super::print_info("Already up to date.");
@@ -95,7 +95,10 @@ fn handle_remote_branch_merge(
     // Parse remote/branch format
     let parts: Vec<&str> = branch_ref.split('/').collect();
     if parts.len() != 2 {
-        anyhow::bail!("Invalid remote branch reference: {}", branch_ref);
+        return Err(anyhow::anyhow!(
+            "Invalid remote branch reference: {}",
+            branch_ref
+        ));
     }
 
     let remote = parts[0];
@@ -105,12 +108,12 @@ fn handle_remote_branch_merge(
     let remote_config = ctx
         .config
         .get_remote(remote)
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' does not exist", remote))?;
+        .with_context(|| format!("Remote '{}' does not exist", remote))?;
 
     let url = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no URL configured", remote))?;
+        .with_context(|| format!("Remote '{}' has no URL configured", remote))?;
 
     // Use GitMirror to get the latest commit from remote branch
     let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
@@ -124,7 +127,10 @@ fn handle_remote_branch_merge(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("Failed to checkout remote branch: {}", stderr);
+        return Err(anyhow::anyhow!(
+            "Failed to checkout remote branch: {}",
+            stderr
+        ));
     }
 
     let git_commit = mirror.get_head_commit()?;
@@ -145,8 +151,7 @@ fn handle_remote_branch_merge(
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
     let mut importer = Importer::new(&mut snapshot_manager, &mut index);
 
-    let home_dir =
-        dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home_dir = dirs::home_dir().context("Could not find home directory")?;
     let _changes = importer.import_changes(mirror.get_mirror_path(), &home_dir)?;
 
     let timestamp = get_current_timestamp();

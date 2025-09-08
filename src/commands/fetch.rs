@@ -1,7 +1,7 @@
 use crate::DotmanContext;
 use crate::mapping::MappingManager;
 use crate::mirror::GitMirror;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
 use std::process::Command;
 
@@ -15,8 +15,8 @@ pub fn execute(
 ) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    let remote_config = ctx.config.get_remote(remote).ok_or_else(|| {
-        anyhow::anyhow!(
+    let remote_config = ctx.config.get_remote(remote).with_context(|| {
+        format!(
             "Remote '{}' does not exist. Use 'dot remote add' to add it.",
             remote
         )
@@ -28,9 +28,10 @@ pub fn execute(
         }
         crate::config::RemoteType::S3 => fetch_from_s3(ctx, remote_config, remote),
         crate::config::RemoteType::Rsync => fetch_from_rsync(ctx, remote_config, remote),
-        crate::config::RemoteType::None => {
-            anyhow::bail!("Remote '{}' has no type configured.", remote);
-        }
+        crate::config::RemoteType::None => Err(anyhow::anyhow!(
+            "Remote '{}' has no type configured.",
+            remote
+        )),
     }
 }
 
@@ -45,7 +46,7 @@ fn fetch_from_git(
     let url = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no URL configured", remote))?;
+        .with_context(|| format!("Remote '{}' has no URL configured", remote))?;
 
     super::print_info(&format!("Fetching from git remote {} ({})", remote, url));
 
@@ -80,7 +81,7 @@ fn fetch_from_git(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("Git fetch failed: {}", stderr);
+        return Err(anyhow::anyhow!("Git fetch failed: {}", stderr));
     }
 
     let _stdout = String::from_utf8_lossy(&output.stdout);
@@ -141,7 +142,7 @@ fn fetch_from_s3(
     let bucket = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no S3 bucket configured", remote))?;
+        .with_context(|| format!("Remote '{}' has no S3 bucket configured", remote))?;
 
     super::print_info(&format!("Fetching from S3 bucket {}", bucket));
 
@@ -152,14 +153,17 @@ fn fetch_from_s3(
             "s3",
             "sync",
             &format!("s3://{}/", bucket),
-            temp_dir.path().to_str().unwrap(),
+            temp_dir
+                .path()
+                .to_str()
+                .context("Invalid temporary directory path")?,
             "--delete",
         ])
         .output()?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("S3 sync failed: {}", stderr);
+        return Err(anyhow::anyhow!("S3 sync failed: {}", stderr));
     }
 
     // Compare with local repository
@@ -179,7 +183,7 @@ fn fetch_from_rsync(
     let source = remote_config
         .url
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' has no rsync source configured", remote))?;
+        .with_context(|| format!("Remote '{}' has no rsync source configured", remote))?;
 
     super::print_info(&format!("Fetching via rsync from {}", source));
 
@@ -196,7 +200,7 @@ fn fetch_from_rsync(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("Rsync failed: {}", stderr);
+        return Err(anyhow::anyhow!("Rsync failed: {}", stderr));
     }
 
     super::print_info("Comparing fetched data with local repository...");

@@ -1,6 +1,6 @@
 use crate::DotmanContext;
 use crate::config::{RemoteConfig, RemoteType};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
 
 /// List all configured remotes
@@ -26,7 +26,7 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
 /// Add a new remote
 pub fn add(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
     if ctx.config.remotes.contains_key(name) {
-        anyhow::bail!("Remote '{}' already exists", name);
+        return Err(anyhow::anyhow!("Remote '{}' already exists", name));
     }
 
     // Determine remote type from URL
@@ -47,7 +47,7 @@ pub fn add(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
 /// Remove a remote
 pub fn remove(ctx: &mut DotmanContext, name: &str) -> Result<()> {
     if ctx.config.remove_remote(name).is_none() {
-        anyhow::bail!("Remote '{}' does not exist", name);
+        return Err(anyhow::anyhow!("Remote '{}' does not exist", name));
     }
 
     ctx.config.save(&ctx.config_path)?;
@@ -61,7 +61,7 @@ pub fn set_url(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
         .config
         .remotes
         .get_mut(name)
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' does not exist", name))?;
+        .with_context(|| format!("Remote '{}' does not exist", name))?;
 
     remote.url = Some(url.to_string());
     remote.remote_type = detect_remote_type(url);
@@ -76,7 +76,7 @@ pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
     let remote = ctx
         .config
         .get_remote(name)
-        .ok_or_else(|| anyhow::anyhow!("Remote '{}' does not exist", name))?;
+        .with_context(|| format!("Remote '{}' does not exist", name))?;
 
     println!("* remote {}", name.yellow());
     println!("  URL: {}", remote.url.as_deref().unwrap_or("<no url>"));
@@ -104,18 +104,18 @@ pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
 /// Rename a remote
 pub fn rename(ctx: &mut DotmanContext, old_name: &str, new_name: &str) -> Result<()> {
     if !ctx.config.remotes.contains_key(old_name) {
-        anyhow::bail!("Remote '{}' does not exist", old_name);
+        return Err(anyhow::anyhow!("Remote '{}' does not exist", old_name));
     }
 
     if ctx.config.remotes.contains_key(new_name) {
-        anyhow::bail!("Remote '{}' already exists", new_name);
+        return Err(anyhow::anyhow!("Remote '{}' already exists", new_name));
     }
 
     // Move the remote config
     let remote = ctx
         .config
         .remove_remote(old_name)
-        .expect("Remote should exist");
+        .with_context(|| format!("Failed to remove remote '{}' during rename", old_name))?;
     ctx.config.set_remote(new_name.to_string(), remote);
 
     // Update branch tracking references

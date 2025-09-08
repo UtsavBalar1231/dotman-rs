@@ -42,11 +42,12 @@ impl SnapshotManager {
             .join(format!("{}.zst", &snapshot_id));
 
         if let Some(parent) = snapshot_path.parent() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent).with_context(|| {
+                format!("Failed to create snapshot directory: {}", parent.display())
+            })?;
         }
 
-        let home =
-            dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+        let home = dirs::home_dir().context("Could not find home directory")?;
 
         let stored_files: Result<Vec<(PathBuf, SnapshotFile)>> = files
             .par_iter()
@@ -56,7 +57,11 @@ impl SnapshotManager {
                 } else {
                     entry.path.clone()
                 };
-                let content_hash = self.store_file_content(&abs_path, &entry.hash)?;
+                let content_hash = self
+                    .store_file_content(&abs_path, &entry.hash)
+                    .with_context(|| {
+                        format!("Failed to store content for: {}", abs_path.display())
+                    })?;
                 Ok((
                     entry.path.clone(),
                     SnapshotFile {
@@ -75,10 +80,14 @@ impl SnapshotManager {
             files: files_map,
         };
 
-        let serialized = serialization::serialize(&snapshot)?;
-        let compressed = encode_all(&serialized[..], self.compression_level)?;
+        let serialized =
+            serialization::serialize(&snapshot).context("Failed to serialize snapshot")?;
+        let compressed = encode_all(&serialized[..], self.compression_level)
+            .context("Failed to compress snapshot")?;
 
-        fs::write(&snapshot_path, compressed)?;
+        fs::write(&snapshot_path, compressed).with_context(|| {
+            format!("Failed to write snapshot file: {}", snapshot_path.display())
+        })?;
 
         Ok(snapshot_id)
     }
@@ -97,8 +106,10 @@ impl SnapshotManager {
             let mut matches = Vec::new();
 
             if commits_dir.exists() {
-                for entry in fs::read_dir(&commits_dir)? {
-                    let entry = entry?;
+                for entry in
+                    fs::read_dir(&commits_dir).context("Failed to read commits directory")?
+                {
+                    let entry = entry.context("Failed to read directory entry")?;
                     let path = entry.path();
 
                     if let Some(stem) = path.file_stem().and_then(|s| s.to_str())
@@ -110,23 +121,29 @@ impl SnapshotManager {
             }
 
             match matches.len() {
-                0 => anyhow::bail!("No commit found matching: {}", snapshot_id),
-                1 => matches.into_iter().next().unwrap(),
-                _ => anyhow::bail!(
-                    "Ambiguous commit ID '{}' matches {} commits",
-                    snapshot_id,
-                    matches.len()
-                ),
+                0 => return Err(anyhow::anyhow!("No commit found matching: {}", snapshot_id)),
+                1 => matches
+                    .into_iter()
+                    .next()
+                    .context("Failed to get matching commit")?,
+                _ => {
+                    return Err(anyhow::anyhow!(
+                        "Ambiguous commit ID '{}' matches {} commits",
+                        snapshot_id,
+                        matches.len()
+                    ));
+                }
             }
         };
 
         // Read and decompress snapshot
         let compressed = fs::read(&snapshot_path)
             .with_context(|| format!("Failed to read snapshot: {}", snapshot_id))?;
-        let decompressed = decode_all(&compressed[..])?;
+        let decompressed = decode_all(&compressed[..]).context("Failed to decompress snapshot")?;
 
         // Deserialize snapshot
-        let snapshot: Snapshot = serialization::deserialize(&decompressed)?;
+        let snapshot: Snapshot =
+            serialization::deserialize(&decompressed).context("Failed to deserialize snapshot")?;
         Ok(snapshot)
     }
 
@@ -141,17 +158,24 @@ impl SnapshotManager {
                 let target_path = target_dir.join(rel_path);
 
                 if let Some(parent) = target_path.parent() {
-                    fs::create_dir_all(parent)?;
+                    fs::create_dir_all(parent).with_context(|| {
+                        format!("Failed to create directory: {}", parent.display())
+                    })?;
                 }
 
-                self.restore_file_content(&snapshot_file.content_hash, &target_path)?;
+                self.restore_file_content(&snapshot_file.content_hash, &target_path)
+                    .with_context(|| {
+                        format!("Failed to restore file: {}", target_path.display())
+                    })?;
 
                 // Restore file permissions
                 #[cfg(unix)]
                 {
                     use std::os::unix::fs::PermissionsExt;
                     let permissions = fs::Permissions::from_mode(snapshot_file.mode);
-                    fs::set_permissions(&target_path, permissions)?;
+                    fs::set_permissions(&target_path, permissions).with_context(|| {
+                        format!("Failed to set permissions for: {}", target_path.display())
+                    })?;
                 }
 
                 Ok(())
@@ -190,7 +214,9 @@ impl SnapshotManager {
                 };
 
                 if abs_path.exists() {
-                    fs::remove_file(&abs_path)?;
+                    fs::remove_file(&abs_path).with_context(|| {
+                        format!("Failed to remove file: {}", abs_path.display())
+                    })?;
                 }
             }
         }
@@ -210,16 +236,19 @@ impl SnapshotManager {
         }
 
         // Create objects directory if needed
-        fs::create_dir_all(&objects_dir)?;
+        fs::create_dir_all(&objects_dir).context("Failed to create objects directory")?;
 
         // Read file content
-        let content = fs::read(file_path)?;
+        let content = fs::read(file_path)
+            .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
 
         // Compress content
-        let compressed = encode_all(&content[..], self.compression_level)?;
+        let compressed = encode_all(&content[..], self.compression_level)
+            .context("Failed to compress file content")?;
 
         // Write compressed object
-        fs::write(&object_path, compressed)?;
+        fs::write(&object_path, compressed)
+            .with_context(|| format!("Failed to write object file: {}", object_path.display()))?;
 
         Ok(hash.to_string())
     }
@@ -231,11 +260,13 @@ impl SnapshotManager {
             .join(format!("{}.zst", content_hash));
 
         // Read and decompress object
-        let compressed = fs::read(&object_path)?;
-        let content = decode_all(&compressed[..])?;
+        let compressed = fs::read(&object_path)
+            .with_context(|| format!("Failed to read object file: {}", object_path.display()))?;
+        let content = decode_all(&compressed[..]).context("Failed to decompress object content")?;
 
         // Write restored content
-        fs::write(target_path, content)?;
+        fs::write(target_path, content)
+            .with_context(|| format!("Failed to write restored file: {}", target_path.display()))?;
 
         Ok(())
     }
@@ -272,8 +303,8 @@ impl SnapshotManager {
 
         let mut snapshots = Vec::new();
 
-        for entry in fs::read_dir(commits_dir)? {
-            let entry = entry?;
+        for entry in fs::read_dir(commits_dir).context("Failed to read commits directory")? {
+            let entry = entry.context("Failed to read directory entry")?;
             let path = entry.path();
 
             if path.extension().and_then(|s| s.to_str()) == Some("zst")
@@ -293,7 +324,8 @@ impl SnapshotManager {
             .join(format!("{}.zst", snapshot_id));
 
         if snapshot_path.exists() {
-            fs::remove_file(snapshot_path)?;
+            fs::remove_file(snapshot_path)
+                .with_context(|| format!("Failed to delete snapshot: {}", snapshot_id))?;
         }
 
         // Note: We don't delete objects as they might be referenced by other snapshots
@@ -325,15 +357,18 @@ impl GarbageCollector {
         let mut referenced = std::collections::HashSet::new();
 
         if commits_dir.exists() {
-            for entry in fs::read_dir(commits_dir)? {
-                let entry = entry?;
+            for entry in fs::read_dir(commits_dir).context("Failed to read commits directory")? {
+                let entry = entry.context("Failed to read directory entry")?;
                 let path = entry.path();
 
                 if path.extension().and_then(|s| s.to_str()) == Some("zst") {
                     // Load snapshot and collect referenced objects
-                    let compressed = fs::read(&path)?;
-                    let decompressed = decode_all(&compressed[..])?;
-                    let snapshot: Snapshot = serialization::deserialize(&decompressed)?;
+                    let compressed = fs::read(&path)
+                        .with_context(|| format!("Failed to read snapshot: {}", path.display()))?;
+                    let decompressed =
+                        decode_all(&compressed[..]).context("Failed to decompress snapshot")?;
+                    let snapshot: Snapshot = serialization::deserialize(&decompressed)
+                        .context("Failed to deserialize snapshot")?;
 
                     for file in snapshot.files.values() {
                         referenced.insert(file.content_hash.clone());
@@ -344,14 +379,16 @@ impl GarbageCollector {
 
         let mut deleted = 0;
 
-        for entry in fs::read_dir(objects_dir)? {
-            let entry = entry?;
+        for entry in fs::read_dir(objects_dir).context("Failed to read objects directory")? {
+            let entry = entry.context("Failed to read directory entry")?;
             let path = entry.path();
 
             if let Some(stem) = path.file_stem().and_then(|s| s.to_str())
                 && !referenced.contains(stem)
             {
-                fs::remove_file(path)?;
+                fs::remove_file(&path).with_context(|| {
+                    format!("Failed to remove orphaned object: {}", path.display())
+                })?;
                 deleted += 1;
             }
         }
@@ -417,7 +454,7 @@ mod tests {
 
         // Create objects directory with some files
         let objects_dir = repo_path.join("objects");
-        fs::create_dir_all(&objects_dir)?;
+        fs::create_dir_all(&objects_dir).context("Failed to create objects directory")?;
 
         // Create some object files
         fs::write(objects_dir.join("used.zst"), "used content")?;
@@ -601,8 +638,8 @@ mod tests {
 
         // Delete the object file to simulate corruption
         let objects_dir = repo_path.join("objects");
-        for entry in fs::read_dir(objects_dir)? {
-            let entry = entry?;
+        for entry in fs::read_dir(objects_dir).context("Failed to read objects directory")? {
+            let entry = entry.context("Failed to read directory entry")?;
             fs::remove_file(entry.path())?;
         }
 
@@ -808,7 +845,7 @@ mod tests {
         let objects_dir = repo_path.join("objects");
         let mut object_files = Vec::new();
         for entry in fs::read_dir(&objects_dir)? {
-            let entry = entry?;
+            let entry = entry.context("Failed to read directory entry")?;
             object_files.push(entry.path());
         }
 

@@ -67,14 +67,14 @@ impl RefResolver {
             return Ok(full_id);
         }
 
-        anyhow::bail!("Cannot resolve reference: {}", reference)
+        Err(anyhow::anyhow!("Cannot resolve reference: {}", reference))
     }
 
     /// Resolve HEAD to current commit
     fn resolve_head(&self) -> Result<String> {
         self.ref_manager
             .get_head_commit()?
-            .ok_or_else(|| anyhow::anyhow!("No commits yet"))
+            .context("No commits yet")
     }
 
     /// Resolve HEAD~n to nth parent commit
@@ -89,11 +89,13 @@ impl RefResolver {
         for i in 0..parent_count {
             let snapshot = match snapshot_manager.load_snapshot(&current) {
                 Ok(s) => s,
-                Err(_) => anyhow::bail!(
-                    "Cannot go back {} commits from HEAD (only {} commits in history)",
-                    parent_count,
-                    i
-                ),
+                Err(_) => {
+                    return Err(anyhow::anyhow!(
+                        "Cannot go back {} commits from HEAD (only {} commits in history)",
+                        parent_count,
+                        i
+                    ));
+                }
             };
 
             if let Some(parent) = snapshot.commit.parent {
@@ -102,36 +104,36 @@ impl RefResolver {
                     || parent.chars().all(|c| c == '0')
                 {
                     if i == 0 {
-                        anyhow::bail!(
+                        return Err(anyhow::anyhow!(
                             "Cannot go back {} commit{} from HEAD: current commit is the initial commit",
                             parent_count,
                             if parent_count == 1 { "" } else { "s" }
-                        );
+                        ));
                     } else {
-                        anyhow::bail!(
+                        return Err(anyhow::anyhow!(
                             "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
                             parent_count,
                             i,
                             if i == 1 { "" } else { "s" }
-                        );
+                        ));
                     }
                 }
                 current = parent;
             } else {
                 // No parent means we've reached the initial commit
                 if i == 0 {
-                    anyhow::bail!(
+                    return Err(anyhow::anyhow!(
                         "Cannot go back {} commit{} from HEAD: current commit is the initial commit",
                         parent_count,
                         if parent_count == 1 { "" } else { "s" }
-                    );
+                    ));
                 } else {
-                    anyhow::bail!(
+                    return Err(anyhow::anyhow!(
                         "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
                         parent_count,
                         i,
                         if i == 1 { "" } else { "s" }
-                    );
+                    ));
                 }
             }
         }
@@ -162,7 +164,10 @@ impl RefResolver {
         }
 
         // Invalid caret notation
-        anyhow::bail!("Invalid parent specification: {}", full_reference)
+        Err(anyhow::anyhow!(
+            "Invalid parent specification: {}",
+            full_reference
+        ))
     }
 
     /// Resolve a branch name to commit ID
@@ -193,11 +198,11 @@ impl RefResolver {
         match matches.len() {
             0 => Ok(None),
             1 => Ok(Some(matches[0].clone())),
-            _ => anyhow::bail!(
+            _ => Err(anyhow::anyhow!(
                 "Ambiguous commit reference '{}' matches multiple commits: {}",
                 prefix,
                 matches.join(", ")
-            ),
+            )),
         }
     }
 }

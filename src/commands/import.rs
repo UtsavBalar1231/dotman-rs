@@ -34,10 +34,13 @@ pub fn execute(
         // Use local path
         let path = PathBuf::from(source);
         if !path.exists() {
-            anyhow::bail!("Source path does not exist: {}", source);
+            return Err(anyhow::anyhow!("Source path does not exist: {}", source));
         }
         if !path.is_dir() {
-            anyhow::bail!("Source path is not a directory: {}", source);
+            return Err(anyhow::anyhow!(
+                "Source path is not a directory: {}",
+                source
+            ));
         }
         (path, None)
     };
@@ -188,13 +191,21 @@ pub fn execute(
 /// Clone a remote repository to a local directory
 fn clone_repository(url: &str, target_dir: &Path) -> Result<()> {
     let output = Command::new("git")
-        .args(["clone", "--depth", "1", url, target_dir.to_str().unwrap()])
+        .args([
+            "clone",
+            "--depth",
+            "1",
+            url,
+            target_dir
+                .to_str()
+                .context("Invalid target directory path")?,
+        ])
         .output()
         .context("Failed to execute git clone")?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("Failed to clone repository: {}", stderr);
+        return Err(anyhow::anyhow!("Failed to clone repository: {}", stderr));
     }
 
     Ok(())
@@ -202,8 +213,7 @@ fn clone_repository(url: &str, target_dir: &Path) -> Result<()> {
 
 /// Scan repository for all files to import
 fn scan_repository(repo_path: &Path) -> Result<Vec<(PathBuf, PathBuf)>> {
-    let home_dir =
-        dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?;
+    let home_dir = dirs::home_dir().context("Could not determine home directory")?;
 
     let mut files_to_import = Vec::new();
 
@@ -298,26 +308,26 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn test_scan_repository() {
-        let temp_dir = TempDir::new().unwrap();
+    fn test_scan_repository() -> Result<()> {
+        let temp_dir = TempDir::new()?;
         let repo_path = temp_dir.path();
 
         // Create some test files
-        fs::create_dir_all(repo_path.join(".config/nvim")).unwrap();
-        fs::write(repo_path.join(".bashrc"), "test bashrc").unwrap();
-        fs::write(repo_path.join(".config/nvim/init.vim"), "test vim").unwrap();
+        fs::create_dir_all(repo_path.join(".config/nvim"))?;
+        fs::write(repo_path.join(".bashrc"), "test bashrc")?;
+        fs::write(repo_path.join(".config/nvim/init.vim"), "test vim")?;
 
         // Create .git directory that should be ignored
-        fs::create_dir_all(repo_path.join(".git")).unwrap();
-        fs::write(repo_path.join(".git/config"), "git config").unwrap();
+        fs::create_dir_all(repo_path.join(".git"))?;
+        fs::write(repo_path.join(".git/config"), "git config")?;
 
         // Scan the repository
-        let files = scan_repository(repo_path).unwrap();
+        let files = scan_repository(repo_path)?;
 
         // Should find 2 files (excluding .git)
         assert_eq!(files.len(), 2);
 
-        let home_dir = dirs::home_dir().unwrap();
+        let home_dir = dirs::home_dir().context("Could not determine home directory")?;
         assert!(
             files
                 .iter()
@@ -328,24 +338,33 @@ mod tests {
                 .iter()
                 .any(|(_, target)| *target == home_dir.join(".config/nvim/init.vim"))
         );
+
+        Ok(())
     }
 
     #[test]
-    fn test_import_file() {
-        let temp_dir = TempDir::new().unwrap();
+    fn test_import_file() -> Result<()> {
+        let temp_dir = TempDir::new()?;
         let source = temp_dir.path().join("source.txt");
         let target = temp_dir.path().join("subdir/target.txt");
 
         // Create source file
-        fs::write(&source, "test content").unwrap();
+        fs::write(&source, "test content")?;
 
         // Import the file
-        import_file(&source, &target).unwrap();
+        import_file(&source, &target)?;
 
         assert!(target.exists());
-        let content = fs::read_to_string(&target).unwrap();
+        let content = fs::read_to_string(&target)?;
         assert_eq!(content, "test content");
 
-        assert!(target.parent().unwrap().exists());
+        assert!(
+            target
+                .parent()
+                .context("Target should have parent directory")?
+                .exists()
+        );
+
+        Ok(())
     }
 }

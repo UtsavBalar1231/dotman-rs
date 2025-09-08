@@ -166,7 +166,7 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
 
 fn stage_all_tracked_files(_ctx: &DotmanContext, index: &mut Index) -> Result<()> {
     // Get home directory for making paths relative
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     let mut staged = 0;
 

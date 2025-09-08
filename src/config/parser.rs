@@ -20,8 +20,8 @@ pub fn parse_config_file(path: &Path) -> Result<Config> {
         let mmap = unsafe { MmapOptions::new().map(&file)? };
 
         // Validate UTF-8 using SIMD
-        let content = simdutf8::basic::from_utf8(&mmap)
-            .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in config file: {}", e))?;
+        let content =
+            simdutf8::basic::from_utf8(&mmap).with_context(|| "Invalid UTF-8 in config file")?;
 
         parse_config_str(content)
     }
@@ -39,17 +39,19 @@ fn parse_config_str(content: &str) -> Result<Config> {
 fn validate_config(config: &Config) -> Result<()> {
     // Validate compression level
     if config.core.compression_level < 1 || config.core.compression_level > 22 {
-        anyhow::bail!("Compression level must be between 1 and 22");
+        return Err(anyhow::anyhow!(
+            "Compression level must be between 1 and 22"
+        ));
     }
 
     // Validate thread count
     if config.performance.parallel_threads == 0 {
-        anyhow::bail!("Parallel threads must be at least 1");
+        return Err(anyhow::anyhow!("Parallel threads must be at least 1"));
     }
 
     // Validate cache size
     if config.performance.cache_size > 10_000 {
-        anyhow::bail!("Cache size cannot exceed 10GB");
+        return Err(anyhow::anyhow!("Cache size cannot exceed 10GB"));
     }
 
     Ok(())

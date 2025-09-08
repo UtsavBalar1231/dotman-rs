@@ -1,6 +1,6 @@
 pub mod parser;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Write;
@@ -230,7 +230,7 @@ impl Config {
     pub fn set(&mut self, key: &str, value: String) -> Result<()> {
         let parts: Vec<&str> = key.split('.').collect();
         if parts.len() != 2 {
-            anyhow::bail!("Invalid configuration key: {}", key);
+            return Err(anyhow::anyhow!("Invalid configuration key: {}", key));
         }
 
         match (parts[0], parts[1]) {
@@ -238,16 +238,18 @@ impl Config {
             ("user", "email") => {
                 // Basic email validation
                 if !value.contains('@') {
-                    anyhow::bail!("Invalid email address: {}", value);
+                    return Err(anyhow::anyhow!("Invalid email address: {}", value));
                 }
                 self.user.email = Some(value);
             }
             ("core", "compression_level") => {
                 let level: i32 = value
                     .parse()
-                    .map_err(|_| anyhow::anyhow!("Invalid compression level: {}", value))?;
+                    .with_context(|| format!("Invalid compression level: {}", value))?;
                 if !(1..=22).contains(&level) {
-                    anyhow::bail!("Compression level must be between 1 and 22");
+                    return Err(anyhow::anyhow!(
+                        "Compression level must be between 1 and 22"
+                    ));
                 }
                 self.core.compression_level = level;
             }
@@ -256,34 +258,34 @@ impl Config {
             ("performance", "parallel_threads") => {
                 self.performance.parallel_threads = value
                     .parse()
-                    .map_err(|_| anyhow::anyhow!("Invalid number: {}", value))?;
+                    .with_context(|| format!("Invalid number: {}", value))?;
             }
             ("performance", "mmap_threshold") => {
                 self.performance.mmap_threshold = value
                     .parse()
-                    .map_err(|_| anyhow::anyhow!("Invalid number: {}", value))?;
+                    .with_context(|| format!("Invalid number: {}", value))?;
             }
             ("performance", "cache_size") => {
                 self.performance.cache_size = value
                     .parse()
-                    .map_err(|_| anyhow::anyhow!("Invalid number: {}", value))?;
+                    .with_context(|| format!("Invalid number: {}", value))?;
             }
             ("performance", "use_hard_links") => {
                 self.performance.use_hard_links = value
                     .parse()
-                    .map_err(|_| anyhow::anyhow!("Invalid boolean: {}", value))?;
+                    .with_context(|| format!("Invalid boolean: {}", value))?;
             }
             ("tracking", "follow_symlinks") => {
                 self.tracking.follow_symlinks = value
                     .parse()
-                    .map_err(|_| anyhow::anyhow!("Invalid boolean: {}", value))?;
+                    .with_context(|| format!("Invalid boolean: {}", value))?;
             }
             ("tracking", "preserve_permissions") => {
                 self.tracking.preserve_permissions = value
                     .parse()
-                    .map_err(|_| anyhow::anyhow!("Invalid boolean: {}", value))?;
+                    .with_context(|| format!("Invalid boolean: {}", value))?;
             }
-            _ => anyhow::bail!("Unknown configuration key: {}", key),
+            _ => return Err(anyhow::anyhow!("Unknown configuration key: {}", key)),
         }
         Ok(())
     }
@@ -292,14 +294,14 @@ impl Config {
     pub fn unset(&mut self, key: &str) -> Result<()> {
         let parts: Vec<&str> = key.split('.').collect();
         if parts.len() != 2 {
-            anyhow::bail!("Invalid configuration key: {}", key);
+            return Err(anyhow::anyhow!("Invalid configuration key: {}", key));
         }
 
         match (parts[0], parts[1]) {
             ("user", "name") => self.user.name = None,
             ("user", "email") => self.user.email = None,
             ("core", "pager") => self.core.pager = None,
-            _ => anyhow::bail!("Cannot unset configuration key: {}", key),
+            _ => return Err(anyhow::anyhow!("Cannot unset configuration key: {}", key)),
         }
         Ok(())
     }

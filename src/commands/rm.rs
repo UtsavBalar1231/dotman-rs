@@ -1,6 +1,6 @@
 use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
 use glob::Pattern;
 use std::fs;
@@ -28,7 +28,7 @@ pub fn execute(
     let mut not_found_count = 0;
 
     // Get home directory for making paths relative
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
 
     // Expand paths with glob patterns and recursive directory handling
     let mut expanded_paths = Vec::new();

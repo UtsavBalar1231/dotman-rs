@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::{Generator, Shell, generate};
 use colored::Colorize;
@@ -530,11 +530,11 @@ fn run() -> Result<()> {
 
     match cli.command {
         Commands::Add { paths, force } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for add command")?;
             commands::add::execute(&ctx, &paths, force)?;
         }
         Commands::Status { short, untracked } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for status command")?;
             commands::status::execute(&ctx, short, untracked)?;
         }
         Commands::Commit {
@@ -542,7 +542,7 @@ fn run() -> Result<()> {
             all,
             amend,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for commit command")?;
             if amend {
                 commands::commit::execute_amend(&ctx, message.as_deref(), all)?;
             } else {
@@ -552,7 +552,7 @@ fn run() -> Result<()> {
             }
         }
         Commands::Checkout { target, force } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for checkout command")?;
             commands::checkout::execute(&ctx, &target, force)?;
         }
         Commands::Reset {
@@ -563,7 +563,7 @@ fn run() -> Result<()> {
             keep,
             paths,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for reset command")?;
             commands::reset::execute(&ctx, &commit, hard, soft, mixed, keep, &paths)?;
         }
         Commands::Revert {
@@ -571,11 +571,11 @@ fn run() -> Result<()> {
             no_edit,
             force,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for revert command")?;
             commands::revert::execute(&ctx, &commit, no_edit, force)?;
         }
         Commands::Restore { paths, source } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for restore command")?;
             commands::restore::execute(&ctx, &paths, Some(&source))?;
         }
         Commands::Fetch {
@@ -584,7 +584,7 @@ fn run() -> Result<()> {
             all,
             tags,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for fetch command")?;
             commands::fetch::execute(&ctx, &remote, branch.as_deref(), all, tags)?;
         }
         Commands::Merge {
@@ -593,7 +593,7 @@ fn run() -> Result<()> {
             squash,
             message,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for merge command")?;
             commands::merge::execute(&ctx, &branch, no_ff, squash, message.as_deref())?;
         }
         Commands::Push {
@@ -604,7 +604,7 @@ fn run() -> Result<()> {
             dry_run,
             tags,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for push command")?;
             commands::push::execute(
                 &ctx,
                 &remote,
@@ -622,14 +622,14 @@ fn run() -> Result<()> {
             no_ff,
             squash,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for pull command")?;
             commands::pull::execute(&ctx, &remote, &branch, rebase, no_ff, squash)?;
         }
         Commands::Init { bare } => {
             commands::init::execute(bare)?;
         }
         Commands::Show { object } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for show command")?;
             commands::show::execute(&ctx, &object)?;
         }
         Commands::Log {
@@ -637,11 +637,11 @@ fn run() -> Result<()> {
             limit,
             oneline,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for log command")?;
             commands::log::execute(&ctx, target.as_deref(), limit, oneline)?;
         }
         Commands::Diff { from, to } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for diff command")?;
             commands::diff::execute(&ctx, from.as_deref(), to.as_deref())?;
         }
         Commands::Rm {
@@ -652,15 +652,15 @@ fn run() -> Result<()> {
             dry_run,
             interactive,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for rm command")?;
             commands::rm::execute(&ctx, &paths, cached, force, recursive, dry_run, interactive)?;
         }
         Commands::Clean { dry_run, force } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for clean command")?;
             commands::clean::execute(&ctx, dry_run, force)?;
         }
         Commands::Remote { action } => {
-            let mut ctx = context.unwrap();
+            let mut ctx = context.context("Context not initialized for remote command")?;
             match action {
                 RemoteAction::List => commands::remote::list(&ctx)?,
                 RemoteAction::Add { name, url } => commands::remote::add(&mut ctx, &name, &url)?,
@@ -680,11 +680,11 @@ fn run() -> Result<()> {
             unset,
             list,
         } => {
-            let mut ctx = context.unwrap();
+            let mut ctx = context.context("Context not initialized for config command")?;
             commands::config::execute(&mut ctx, key.as_deref(), value, unset, list)?
         }
         Commands::Branch { action } => {
-            let mut ctx = context.unwrap();
+            let mut ctx = context.context("Context not initialized for branch command")?;
             match action {
                 None | Some(BranchAction::List) => commands::branch::list(&ctx)?,
                 Some(BranchAction::Create { name, from }) => {
@@ -715,7 +715,7 @@ fn run() -> Result<()> {
             print_completions(shell, &mut Cli::command());
         }
         Commands::Tag { action } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for tag command")?;
             match action {
                 None | Some(TagAction::List) => commands::tag::list(&ctx)?,
                 Some(TagAction::Create { name, commit }) => {
@@ -728,7 +728,7 @@ fn run() -> Result<()> {
             }
         }
         Commands::Stash { action } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for stash command")?;
             let stash_cmd = match action {
                 None | Some(StashAction::Push { .. }) => {
                     // Default to push when no subcommand or explicit push
@@ -772,7 +772,7 @@ fn run() -> Result<()> {
             oneline,
             all,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for reflog command")?;
             commands::reflog::execute(&ctx, limit, oneline, all)?;
         }
         Commands::Import {
@@ -782,7 +782,7 @@ fn run() -> Result<()> {
             dry_run,
             yes,
         } => {
-            let ctx = context.unwrap();
+            let ctx = context.context("Context not initialized for import command")?;
             commands::import::execute(&ctx, &source, track, force, dry_run, yes)?;
         }
     }

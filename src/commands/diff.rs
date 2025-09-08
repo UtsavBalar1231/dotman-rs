@@ -23,7 +23,7 @@ pub fn execute(ctx: &DotmanContext, from: Option<&str>, to: Option<&str>) -> Res
             // Diff between two commits
             diff_commits(ctx, from_commit, to_commit)
         }
-        _ => anyhow::bail!("Invalid diff arguments"),
+        _ => Err(anyhow::anyhow!("Invalid diff arguments")),
     }
 }
 
