@@ -1,6 +1,8 @@
 pub mod commit;
 pub mod compress;
+pub mod formatters;
 pub mod pager;
+pub mod paths;
 pub mod permissions;
 pub mod serialization;
 pub mod thread_pool;

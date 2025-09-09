@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 pub mod resolver;
+pub mod updater;
 
 /// Manages git-like references (branches, HEAD, etc.)
 pub struct RefManager {

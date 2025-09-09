@@ -1,6 +1,7 @@
-use crate::storage::{CachedHash, FileEntry, index::Index};
+use crate::DotmanContext;
+use crate::commands::context::CommandContext;
+use crate::storage::{CachedHash, FileEntry};
 use crate::utils::{expand_tilde, make_relative, should_ignore};
-use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use rayon::prelude::*;
@@ -16,10 +17,10 @@ use std::path::{Path, PathBuf};
 /// - Failed to read directory entries
 /// - Failed to save the index
 pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()> {
-    ctx.check_repo_initialized()?;
+    ctx.ensure_initialized()?;
 
-    let index_path = ctx.repo_path.join(INDEX_FILE);
-    let mut index = Index::load(&index_path)?;
+    let index_path = ctx.repo_path.join("index.bin");
+    let mut index = ctx.load_index()?;
 
     let mut files_to_add = Vec::new();
 
@@ -52,7 +53,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
         return Ok(());
     }
 
-    let home = dirs::home_dir().context("Could not find home directory")?;
+    let home = ctx.get_home_dir()?;
 
     let entries: Result<Vec<FileEntry>> = files_to_add
         .par_iter()
