@@ -1,48 +1,26 @@
 use anyhow::Result;
 use dotman::DotmanContext;
 use dotman::commands;
-use dotman::config::Config;
 use std::fs;
-use tempfile::tempdir;
+
+mod common;
+use common::TestEnvironment;
 
 // Helper to setup a test context
-fn setup_test_env() -> Result<(tempfile::TempDir, DotmanContext)> {
-    let dir = tempdir()?;
-
-    // Set HOME to temp dir for test isolation
-    unsafe {
-        std::env::set_var("HOME", dir.path());
-    }
-
-    commands::init::execute(false)?;
-
-    let repo_path = dir.path().join(".dotman");
-    let config_path = dir.path().join(".config/dotman/config");
-    let config = Config::load(&config_path)?;
-
-    let ctx = DotmanContext {
-        repo_path,
-        config_path,
-        config,
-        no_pager: true,
-    };
-
-    Ok((dir, ctx))
+fn setup_test_env() -> Result<(TestEnvironment, DotmanContext)> {
+    let env = TestEnvironment::new()?;
+    let ctx = env.init_repo()?;
+    Ok((env, ctx))
 }
 
 #[test]
-#[serial_test::serial]
 fn test_empty_repository_status() -> Result<()> {
-    let (dir, ctx) = setup_test_env()?;
+    let (env, ctx) = setup_test_env()?;
 
     // Create some files in the working directory but don't add them
-    let file1 = dir.path().join("untracked1.txt");
-    let file2 = dir.path().join("untracked2.txt");
-    let file3 = dir.path().join(".untracked3");
-
-    fs::write(&file1, "content1")?;
-    fs::write(&file2, "content2")?;
-    fs::write(&file3, "content3")?;
+    env.create_test_file("untracked1.txt", "content1")?;
+    env.create_test_file("untracked2.txt", "content2")?;
+    env.create_test_file(".untracked3", "content3")?;
 
     // Status should show no changes (empty repository)
     // The bug was that it would show all files in the directory as untracked
@@ -73,19 +51,14 @@ fn test_empty_repository_status() -> Result<()> {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_full_workflow_init_add_commit_checkout() -> Result<()> {
-    let (dir, ctx) = setup_test_env()?;
+    let (env, ctx) = setup_test_env()?;
 
     // Create test files
-    let file1 = dir.path().join("config.toml");
-    let file2 = dir.path().join("settings.json");
-    let file3 = dir.path().join(".bashrc");
-
-    fs::write(&file1, "config = true\nvalue = 42")?;
-    fs::write(&file2, r#"{"setting": "value", "number": 123}"#)?;
-    fs::write(
-        &file3,
+    let file1 = env.create_test_file("config.toml", "config = true\nvalue = 42")?;
+    let file2 = env.create_test_file("settings.json", r#"{"setting": "value", "number": 123}"#)?;
+    let file3 = env.create_test_file(
+        ".bashrc",
         "export PATH=$PATH:/usr/local/bin\nalias ll='ls -la'",
     )?;
 
@@ -159,14 +132,13 @@ fn test_full_workflow_init_add_commit_checkout() -> Result<()> {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_workflow_with_directories() -> Result<()> {
-    let (dir, ctx) = setup_test_env()?;
+    let (env, ctx) = setup_test_env()?;
 
     // Create directory structure
-    let config_dir = dir.path().join(".config");
-    let nvim_dir = config_dir.join("nvim");
-    let lua_dir = nvim_dir.join("lua");
+    let config_dir = env.file_path(".config");
+    let nvim_dir = env.file_path(".config/nvim");
+    let lua_dir = env.file_path(".config/nvim/lua");
 
     fs::create_dir_all(&lua_dir)?;
 
@@ -198,13 +170,11 @@ fn test_workflow_with_directories() -> Result<()> {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_reset_workflow() -> Result<()> {
-    let (dir, ctx) = setup_test_env()?;
+    let (env, ctx) = setup_test_env()?;
 
     // Create and add file
-    let test_file = dir.path().join("test.txt");
-    fs::write(&test_file, "version 1")?;
+    let test_file = env.create_test_file("test.txt", "version 1")?;
 
     let paths = [test_file.to_string_lossy().to_string()];
     commands::add::execute(&ctx, &paths, false)?;
@@ -267,16 +237,12 @@ fn test_reset_workflow() -> Result<()> {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_diff_workflow() -> Result<()> {
-    let (dir, ctx) = setup_test_env()?;
+    let (env, ctx) = setup_test_env()?;
 
     // Create files
-    let file1 = dir.path().join("file1.txt");
-    let file2 = dir.path().join("file2.txt");
-
-    fs::write(&file1, "line 1\nline 2\nline 3")?;
-    fs::write(&file2, "content A")?;
+    let file1 = env.create_test_file("file1.txt", "line 1\nline 2\nline 3")?;
+    let file2 = env.create_test_file("file2.txt", "content A")?;
 
     // Add and commit
     let paths = vec![
@@ -299,8 +265,7 @@ fn test_diff_workflow() -> Result<()> {
     fs::write(&file1, "line 1\nline 2 modified\nline 3\nline 4")?;
     fs::remove_file(&file2)?;
 
-    let file3 = dir.path().join("file3.txt");
-    fs::write(&file3, "new file")?;
+    let file3 = env.create_test_file("file3.txt", "new file")?;
 
     // Diff working vs index
     commands::diff::execute(&ctx, None, None)?;
@@ -326,13 +291,12 @@ fn test_diff_workflow() -> Result<()> {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_rm_workflow() -> Result<()> {
-    let (dir, ctx) = setup_test_env()?;
+    let (env, ctx) = setup_test_env()?;
 
     // Create and add files
-    let file1 = dir.path().join("keep.txt");
-    let file2 = dir.path().join("remove.txt");
+    let file1 = env.file_path("keep.txt");
+    let file2 = env.file_path("remove.txt");
 
     fs::write(&file1, "keep this")?;
     fs::write(&file2, "remove this")?;
@@ -351,21 +315,29 @@ fn test_rm_workflow() -> Result<()> {
     // File should still exist on disk
     assert!(file2.exists());
 
-    // But not in index (check relative paths from home)
+    // But not in index
     let index = dotman::storage::index::Index::load(&ctx.repo_path.join("index.bin"))?;
-    let home = dirs::home_dir().unwrap();
-    let rel_file1 = file1.strip_prefix(&home).unwrap_or(&file1);
-    let rel_file2 = file2.strip_prefix(&home).unwrap_or(&file2);
-    assert!(index.get_entry(rel_file1).is_some());
-    assert!(index.get_entry(rel_file2).is_none());
+
+    // Check that file1 is still in index and file2 is not
+    // The index stores absolute paths, so we check with the full paths
+    let file1_in_index = index.get_entry(&file1).is_some()
+        || index
+            .get_entry(file1.strip_prefix(&env.home_dir).unwrap_or(&file1))
+            .is_some();
+    let file2_in_index = index.get_entry(&file2).is_some()
+        || index
+            .get_entry(file2.strip_prefix(&env.home_dir).unwrap_or(&file2))
+            .is_some();
+
+    assert!(file1_in_index, "file1 should be in index");
+    assert!(!file2_in_index, "file2 should not be in index");
 
     Ok(())
 }
 
 #[test]
-#[serial_test::serial]
 fn test_ignore_patterns_workflow() -> Result<()> {
-    let (dir, mut ctx) = setup_test_env()?;
+    let (env, mut ctx) = setup_test_env()?;
 
     // Update config with ignore patterns
     ctx.config.tracking.ignore_patterns = vec![
@@ -377,10 +349,10 @@ fn test_ignore_patterns_workflow() -> Result<()> {
     ctx.config.save(&ctx.config_path)?;
 
     // Create files - some should be ignored
-    let good_file = dir.path().join("important.txt");
-    let log_file = dir.path().join("debug.log");
-    let tmp_file = dir.path().join("temp.tmp");
-    let cache_dir = dir.path().join("cache");
+    let good_file = env.file_path("important.txt");
+    let log_file = env.file_path("debug.log");
+    let tmp_file = env.file_path("temp.tmp");
+    let cache_dir = env.file_path("cache");
     let cache_file = cache_dir.join("cached.dat");
 
     fs::write(&good_file, "important")?;
@@ -390,7 +362,7 @@ fn test_ignore_patterns_workflow() -> Result<()> {
     fs::write(&cache_file, "cached")?;
 
     // Try to add directory (should skip ignored files)
-    let paths = [dir.path().to_string_lossy().to_string()];
+    let paths = [env.home_dir.to_string_lossy().to_string()];
     commands::add::execute(&ctx, &paths, false)?;
 
     // Check what was added to staging area
@@ -424,17 +396,16 @@ fn test_ignore_patterns_workflow() -> Result<()> {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_concurrent_operations() -> Result<()> {
     use std::sync::Arc;
     use std::thread;
 
-    let (dir, ctx) = setup_test_env()?;
+    let (env, ctx) = setup_test_env()?;
     let ctx = Arc::new(ctx);
 
     // Create many files
     for i in 0..100 {
-        let file = dir.path().join(format!("file_{i}.txt"));
+        let file = env.file_path(&format!("file_{i}.txt"));
         fs::write(&file, format!("content {i}"))?;
     }
 
@@ -442,12 +413,12 @@ fn test_concurrent_operations() -> Result<()> {
     let handles: Vec<_> = (0..10)
         .map(|thread_id| {
             let ctx_clone = ctx.clone();
-            let dir_path = dir.path().to_path_buf();
+            let env_path = env.home_dir.clone();
 
             thread::spawn(move || {
                 let mut paths = Vec::new();
                 for i in (thread_id * 10)..((thread_id + 1) * 10) {
-                    let file = dir_path.join(format!("file_{i}.txt"));
+                    let file = env_path.join(format!("file_{i}.txt"));
                     paths.push(file.to_string_lossy().to_string());
                 }
                 commands::add::execute(&ctx_clone, &paths, false).unwrap();
@@ -468,12 +439,11 @@ fn test_concurrent_operations() -> Result<()> {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_large_scale_operations() -> Result<()> {
-    let (dir, ctx) = setup_test_env()?;
+    let (env, ctx) = setup_test_env()?;
 
     // Create 500 files (reduced from 1000 for faster testing)
-    let test_dir = dir.path().join("large_test");
+    let test_dir = env.file_path("large_test");
     fs::create_dir_all(&test_dir)?;
 
     for i in 0..500 {
@@ -524,17 +494,16 @@ fn test_large_scale_operations() -> Result<()> {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_binary_file_handling() -> Result<()> {
-    let (dir, ctx) = setup_test_env()?;
+    let (env, ctx) = setup_test_env()?;
 
     // Create binary file
-    let binary_file = dir.path().join("binary.dat");
+    let binary_file = env.file_path("binary.dat");
     let binary_content: Vec<u8> = (0..=255).collect();
     fs::write(&binary_file, &binary_content)?;
 
     // Create text file with special characters
-    let text_file = dir.path().join("special.txt");
+    let text_file = env.file_path("special.txt");
     fs::write(&text_file, "Special chars: 你好 مرحبا  🚀 \n\t\r")?;
 
     // Add files

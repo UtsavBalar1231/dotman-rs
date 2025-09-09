@@ -66,6 +66,50 @@ impl DotmanContext {
         })
     }
 
+    /// Creates a new `DotmanContext` with explicit paths for testing.
+    /// This avoids the need for environment variable manipulation.
+    ///
+    /// # Errors
+    /// Returns an error if the configuration cannot be loaded or created.
+    pub fn new_with_explicit_paths(repo_path: PathBuf, config_path: PathBuf) -> Result<Self> {
+        let config = if config_path.exists() {
+            config::Config::load(&config_path)?
+        } else {
+            // Create a default config with the provided repo path
+            let mut config = config::Config::default();
+            config.core.repo_path.clone_from(&repo_path);
+
+            // Ensure the config directory exists
+            if let Some(parent) = config_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+
+            // Save the config
+            config.save(&config_path)?;
+            config
+        };
+
+        Ok(Self {
+            repo_path,
+            config_path,
+            config,
+            no_pager: false,
+        })
+    }
+
+    /// Creates a new `DotmanContext` with explicit paths and pager disabled.
+    ///
+    /// # Errors
+    /// Returns an error if the configuration cannot be loaded or created.
+    pub fn new_with_explicit_paths_no_pager(
+        repo_path: PathBuf,
+        config_path: PathBuf,
+    ) -> Result<Self> {
+        let mut context = Self::new_with_explicit_paths(repo_path, config_path)?;
+        context.no_pager = true;
+        Ok(context)
+    }
+
     /// Checks if the repository is initialized by verifying the existence of
     #[must_use]
     pub fn is_repo_initialized(&self) -> bool {

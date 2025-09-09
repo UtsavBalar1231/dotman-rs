@@ -341,9 +341,11 @@ fn test_resource_exhaustion_attacks() -> Result<()> {
 
 #[test]
 fn test_race_condition_attacks() -> Result<()> {
-    use std::sync::Arc;
+    use std::sync::{
+        Arc, Barrier,
+        atomic::{AtomicBool, Ordering},
+    };
     use std::thread;
-    use std::time::Duration;
 
     let (dir, ctx) = setup_test_context()?;
     let ctx = Arc::new(ctx);
@@ -354,36 +356,58 @@ fn test_race_condition_attacks() -> Result<()> {
 
     let paths = vec![race_file.to_string_lossy().to_string()];
 
+    // Use atomic flag to control thread execution
+    let stop_flag = Arc::new(AtomicBool::new(false));
+    let barrier = Arc::new(Barrier::new(3));
+
     // Thread that continuously modifies file
     let race_file_clone = race_file;
+    let stop_flag_clone = stop_flag.clone();
+    let barrier_clone = barrier.clone();
     let modifier_handle = thread::spawn(move || {
-        for i in 0..1000 {
+        barrier_clone.wait();
+        let mut i = 0;
+        while !stop_flag_clone.load(Ordering::Relaxed) && i < 1000 {
             let _ = fs::write(&race_file_clone, format!("modified content {i}"));
-            thread::sleep(Duration::from_millis(1));
+            thread::yield_now();
+            i += 1;
         }
     });
 
     // Thread that performs dotman operations
     let ctx_clone = ctx.clone();
     let paths_clone = paths;
+    let stop_flag_clone = stop_flag.clone();
+    let barrier_clone = barrier.clone();
     let dotman_handle = thread::spawn(move || {
-        for _ in 0..100 {
+        barrier_clone.wait();
+        let mut i = 0;
+        while !stop_flag_clone.load(Ordering::Relaxed) && i < 100 {
             let _ = commands::add::execute(&ctx_clone, &paths_clone, false);
             let _ = commands::status::execute(&ctx_clone, false, false);
-            thread::sleep(Duration::from_millis(5));
+            thread::yield_now();
+            i += 1;
         }
     });
 
     // Thread that tries to corrupt the index during operations
     let ctx_clone2 = ctx.clone();
+    let stop_flag_clone = stop_flag.clone();
     let corruptor_handle = thread::spawn(move || {
-        for _ in 0..50 {
-            thread::sleep(Duration::from_millis(10));
+        barrier.wait();
+        let mut i = 0;
+        while !stop_flag_clone.load(Ordering::Relaxed) && i < 50 {
             // Try to corrupt index file
             let index_path = ctx_clone2.repo_path.join("index.bin");
             let _ = fs::write(&index_path, b"corrupted data");
+            thread::yield_now();
+            i += 1;
         }
     });
+
+    // Let threads run for a bit, then signal stop
+    thread::yield_now();
+    stop_flag.store(true, Ordering::Relaxed);
 
     modifier_handle.join().unwrap();
     dotman_handle.join().unwrap();

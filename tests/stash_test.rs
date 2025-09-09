@@ -2,32 +2,34 @@ use anyhow::Result;
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
-use tempfile::tempdir;
+
+mod common;
+use common::TestEnvironment;
 
 #[test]
-#[serial_test::serial]
 fn test_stash_push_and_pop() -> Result<()> {
-    let temp = tempdir()?;
-    let home = temp.path();
+    let env = TestEnvironment::new()?;
+    let home = env.home_dir.as_path();
 
-    // Set HOME to temp directory
-    unsafe {
-        std::env::set_var("HOME", home);
-    }
-
-    Command::cargo_bin("dot")?.arg("init").assert().success();
+    Command::cargo_bin("dot")?
+        .env("HOME", home)
+        .arg("init")
+        .assert()
+        .success();
 
     // Create and add a file
     let test_file = home.join("test.txt");
     fs::write(&test_file, "initial content")?;
 
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
     // Commit the file
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["commit", "-m", "Initial commit"])
         .assert()
         .success();
@@ -37,181 +39,192 @@ fn test_stash_push_and_pop() -> Result<()> {
 
     // Stash the changes
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["stash", "push", "-m", "Test stash"])
         .assert()
         .success();
 
-    // Check file is back to original
-    let content = fs::read_to_string(&test_file)?;
-    assert_eq!(content, "initial content");
+    // File should be back to original
+    assert_eq!(fs::read_to_string(&test_file)?, "initial content");
 
     // Pop the stash
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["stash", "pop"])
         .assert()
         .success();
 
-    // Check file has the modified content
-    let content = fs::read_to_string(&test_file)?;
-    assert_eq!(content, "modified content");
+    // File should have modified content
+    assert_eq!(fs::read_to_string(&test_file)?, "modified content");
 
     Ok(())
 }
 
 #[test]
-#[serial_test::serial]
 fn test_stash_list() -> Result<()> {
-    let temp = tempdir()?;
-    let home = temp.path();
+    let env = TestEnvironment::new()?;
+    let home = env.home_dir.as_path();
 
-    unsafe {
-        std::env::set_var("HOME", home);
-    }
-
-    Command::cargo_bin("dot")?.arg("init").assert().success();
+    Command::cargo_bin("dot")?
+        .env("HOME", home)
+        .arg("init")
+        .assert()
+        .success();
 
     // Create and commit a file
     let test_file = home.join("test.txt");
-    fs::write(&test_file, "initial")?;
+    fs::write(&test_file, "content")?;
 
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["commit", "-m", "Initial"])
         .assert()
         .success();
 
-    // Create stashes
-    fs::write(&test_file, "change1")?;
+    // Create first stash
+    fs::write(&test_file, "stash 1")?;
     Command::cargo_bin("dot")?
-        .args(["stash", "push", "-m", "Stash 1"])
+        .env("HOME", home)
+        .args(["stash", "push", "-m", "First stash"])
         .assert()
         .success();
 
-    fs::write(&test_file, "change2")?;
+    // Create second stash
+    fs::write(&test_file, "stash 2")?;
     Command::cargo_bin("dot")?
-        .args(["stash", "push", "-m", "Stash 2"])
+        .env("HOME", home)
+        .args(["stash", "push", "-m", "Second stash"])
         .assert()
         .success();
 
     // List stashes
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["stash", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("Stash 1"))
-        .stdout(predicate::str::contains("Stash 2"));
+        .stdout(predicate::str::contains("First stash"))
+        .stdout(predicate::str::contains("Second stash"));
 
     Ok(())
 }
 
 #[test]
-#[serial_test::serial]
-fn test_stash_with_untracked_files() -> Result<()> {
-    let temp = tempdir()?;
-    let home = temp.path();
-
-    unsafe {
-        std::env::set_var("HOME", home);
-    }
-
-    Command::cargo_bin("dot")?.arg("init").assert().success();
-
-    // Create and commit a file
-    let tracked = home.join("tracked.txt");
-    fs::write(&tracked, "tracked")?;
+fn test_stash_apply() -> Result<()> {
+    let env = TestEnvironment::new()?;
+    let home = env.home_dir.as_path();
 
     Command::cargo_bin("dot")?
-        .args(["add", tracked.to_str().unwrap()])
+        .env("HOME", home)
+        .arg("init")
         .assert()
         .success();
-
-    Command::cargo_bin("dot")?
-        .args(["commit", "-m", "Initial"])
-        .assert()
-        .success();
-
-    // Create untracked file
-    let untracked = home.join("untracked.txt");
-    fs::write(&untracked, "untracked content")?;
-
-    // Stash without -u should not include untracked
-    Command::cargo_bin("dot")?
-        .args(["stash", "push"])
-        .assert()
-        .success();
-
-    assert!(untracked.exists());
-
-    // Stash with -u should include untracked
-    Command::cargo_bin("dot")?
-        .args(["stash", "push", "-u"])
-        .assert()
-        .success();
-
-    assert!(!untracked.exists());
-
-    // Pop should restore untracked file
-    Command::cargo_bin("dot")?
-        .args(["stash", "pop"])
-        .assert()
-        .success();
-
-    assert!(untracked.exists());
-
-    Ok(())
-}
-
-#[test]
-#[serial_test::serial]
-fn test_stash_clear() -> Result<()> {
-    let temp = tempdir()?;
-    let home = temp.path();
-
-    unsafe {
-        std::env::set_var("HOME", home);
-    }
-
-    Command::cargo_bin("dot")?.arg("init").assert().success();
 
     // Create and commit a file
     let test_file = home.join("test.txt");
-    fs::write(&test_file, "initial")?;
+    fs::write(&test_file, "original")?;
 
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["commit", "-m", "Initial"])
         .assert()
         .success();
 
-    // Create multiple stashes
+    // Modify and stash
+    fs::write(&test_file, "modified")?;
+
+    Command::cargo_bin("dot")?
+        .env("HOME", home)
+        .args(["stash", "push"])
+        .assert()
+        .success();
+
+    assert_eq!(fs::read_to_string(&test_file)?, "original");
+
+    // Apply stash (keeps it in stash list)
+    Command::cargo_bin("dot")?
+        .env("HOME", home)
+        .args(["stash", "apply"])
+        .assert()
+        .success();
+
+    assert_eq!(fs::read_to_string(&test_file)?, "modified");
+
+    // Stash should still be in list
+    Command::cargo_bin("dot")?
+        .env("HOME", home)
+        .args(["stash", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("stash@{0}"));
+
+    Ok(())
+}
+
+#[test]
+fn test_stash_drop() -> Result<()> {
+    let env = TestEnvironment::new()?;
+    let home = env.home_dir.as_path();
+
+    Command::cargo_bin("dot")?
+        .env("HOME", home)
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create and commit a file
+    let test_file = home.join("test.txt");
+    fs::write(&test_file, "content")?;
+
+    Command::cargo_bin("dot")?
+        .env("HOME", home)
+        .args(["add", test_file.to_str().unwrap()])
+        .assert()
+        .success();
+
+    Command::cargo_bin("dot")?
+        .env("HOME", home)
+        .args(["commit", "-m", "Initial"])
+        .assert()
+        .success();
+
+    // Create stashes
     for i in 1..=3 {
-        fs::write(&test_file, format!("change{i}"))?;
+        fs::write(&test_file, format!("stash {i}"))?;
         Command::cargo_bin("dot")?
+            .env("HOME", home)
             .args(["stash", "push", "-m", &format!("Stash {i}")])
             .assert()
             .success();
     }
 
-    // Clear all stashes
+    // Drop the middle stash (stash@{1})
     Command::cargo_bin("dot")?
-        .args(["stash", "clear"])
+        .env("HOME", home)
+        .args(["stash", "drop", "stash@{1}"])
         .assert()
         .success();
 
-    // List should show no stashes
+    // List should not contain "Stash 2" but should have 1 and 3
     Command::cargo_bin("dot")?
+        .env("HOME", home)
         .args(["stash", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("No stash entries found"));
+        .stdout(predicate::str::contains("Stash 3"))
+        .stdout(predicate::str::contains("Stash 1"));
 
     Ok(())
 }

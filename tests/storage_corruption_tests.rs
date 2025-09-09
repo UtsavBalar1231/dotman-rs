@@ -129,9 +129,8 @@ fn test_partial_write_corruption() -> Result<()> {
 
 #[test]
 fn test_concurrent_corruption() -> Result<()> {
-    use std::sync::Arc;
+    use std::sync::{Arc, Barrier};
     use std::thread;
-    use std::time::Duration;
 
     let (dir, ctx) = setup_test_context()?;
     let ctx = Arc::new(ctx);
@@ -141,9 +140,14 @@ fn test_concurrent_corruption() -> Result<()> {
     fs::write(&test_file, "test content")?;
     let paths = vec![test_file.to_string_lossy().to_string()];
 
+    // Use a barrier to synchronize thread starts
+    let barrier = Arc::new(Barrier::new(2));
+
     // Thread that continuously corrupts the index
     let ctx_clone = ctx.clone();
+    let barrier_clone = barrier.clone();
     let corruptor = thread::spawn(move || {
+        barrier_clone.wait();
         for i in 0..100 {
             let index_path = ctx_clone.repo_path.join("index.bin");
             // Corrupt with different patterns
@@ -154,18 +158,21 @@ fn test_concurrent_corruption() -> Result<()> {
                 _ => (0..100u8).collect(),
             };
             let _ = fs::write(&index_path, corrupt_data);
-            thread::sleep(Duration::from_millis(5));
+            // Use yield to allow other threads to run
+            thread::yield_now();
         }
     });
 
     // Thread that tries to perform operations
     let ctx_clone2 = ctx.clone();
     let operator = thread::spawn(move || {
+        barrier.wait();
         for _ in 0..50 {
             // All these operations should either succeed or fail gracefully
             let _ = commands::add::execute(&ctx_clone2, &paths, false);
             let _ = commands::status::execute(&ctx_clone2, false, false);
-            thread::sleep(Duration::from_millis(10));
+            // Use yield to allow other threads to run
+            thread::yield_now();
         }
     });
 

@@ -1,37 +1,17 @@
 use anyhow::Result;
 use dotman::{DotmanContext, config::Config};
 use std::fs;
-use tempfile::tempdir;
+
+mod common;
+use common::TestEnvironment;
 
 #[test]
-#[serial_test::serial]
 fn test_push_workflow() -> Result<()> {
-    let temp = tempdir()?;
-    let home = temp.path().join("home");
-    let repo_path = home.join(".dotman");
-
-    fs::create_dir_all(&home)?;
-    fs::create_dir_all(&repo_path)?;
-
-    // Set HOME for the test
-    unsafe {
-        std::env::set_var("HOME", &home);
-    }
-
-    dotman::commands::init::execute(false)?;
+    let env = TestEnvironment::new()?;
+    let ctx = env.init_repo()?;
 
     // Create and add a test file
-    let test_file = home.join("test.txt");
-    fs::write(&test_file, "test content")?;
-
-    let config_path = home.join(".config/dotman/config");
-    let config = Config::load(&config_path)?;
-    let ctx = DotmanContext {
-        repo_path: repo_path.clone(),
-        config_path,
-        config,
-        no_pager: true,
-    };
+    let test_file = env.create_test_file("test.txt", "test content")?;
 
     // Add file
     dotman::commands::add::execute(&ctx, &[test_file.to_str().unwrap().to_string()], false)?;
@@ -39,7 +19,7 @@ fn test_push_workflow() -> Result<()> {
     // Commit
     dotman::commands::commit::execute(&ctx, "Test commit", false)?;
 
-    let remote_path = temp.path().join("remote.git");
+    let remote_path = env.temp_path().join("remote.git");
     fs::create_dir_all(&remote_path)?;
 
     std::process::Command::new("git")
@@ -75,7 +55,7 @@ fn test_push_workflow() -> Result<()> {
     }
 
     // Verify mirror was created
-    let mirror_path = repo_path.join("mirrors/origin");
+    let mirror_path = ctx.repo_path.join("mirrors/origin");
     assert!(mirror_path.exists());
     assert!(mirror_path.join(".git").exists());
 
@@ -83,32 +63,11 @@ fn test_push_workflow() -> Result<()> {
 }
 
 #[test]
-#[serial_test::serial]
 fn test_pull_workflow() -> Result<()> {
-    let temp = tempdir()?;
-    let home = temp.path().join("home");
-    let repo_path = home.join(".dotman");
+    let env = TestEnvironment::new()?;
+    let ctx = env.init_repo()?;
 
-    fs::create_dir_all(&home)?;
-    fs::create_dir_all(&repo_path)?;
-
-    // Set HOME for the test
-    unsafe {
-        std::env::set_var("HOME", &home);
-    }
-
-    dotman::commands::init::execute(false)?;
-
-    let config_path = home.join(".config/dotman/config");
-    let config = Config::load(&config_path)?;
-    let ctx = DotmanContext {
-        repo_path: repo_path.clone(),
-        config_path,
-        config,
-        no_pager: true,
-    };
-
-    let remote_path = temp.path().join("remote");
+    let remote_path = env.temp_path().join("remote");
     fs::create_dir_all(&remote_path)?;
 
     std::process::Command::new("git")
@@ -139,7 +98,7 @@ fn test_pull_workflow() -> Result<()> {
     // We expect this to work or fail gracefully
     if result.is_ok() {
         // Verify mirror was created
-        let mirror_path = repo_path.join("mirrors/origin");
+        let mirror_path = ctx.repo_path.join("mirrors/origin");
         assert!(mirror_path.exists());
         assert!(mirror_path.join(".git").exists());
     }
@@ -151,16 +110,16 @@ fn test_pull_workflow() -> Result<()> {
 fn test_mapping_persistence() -> Result<()> {
     use dotman::mapping::MappingManager;
 
-    let temp = tempdir()?;
-    let repo_path = temp.path().join(".dotman");
-    fs::create_dir_all(&repo_path)?;
+    let env = TestEnvironment::new()?;
+    let repo_path = &env.repo_dir;
+    fs::create_dir_all(repo_path)?;
 
     // Create and save mapping
-    let mut manager = MappingManager::new(&repo_path)?;
+    let mut manager = MappingManager::new(repo_path)?;
     manager.add_and_save("origin", "dotman123", "git456")?;
     manager.add_and_save("origin", "dotman789", "git012")?;
 
-    let manager2 = MappingManager::new(&repo_path)?;
+    let manager2 = MappingManager::new(repo_path)?;
     assert_eq!(
         manager2.mapping().get_git_commit("origin", "dotman123"),
         Some("git456".to_string())
@@ -177,12 +136,12 @@ fn test_mapping_persistence() -> Result<()> {
 fn test_remote_management() -> Result<()> {
     use dotman::config::RemoteType;
 
-    let temp = tempdir()?;
-    let home = temp.path().join("home");
-    let repo_path = home.join(".dotman");
+    let env = TestEnvironment::new()?;
+    let home = env.home_dir.clone();
+    let repo_path = &env.repo_dir;
 
     fs::create_dir_all(&home)?;
-    fs::create_dir_all(&repo_path)?;
+    fs::create_dir_all(repo_path)?;
 
     unsafe {
         std::env::set_var("HOME", &home);
@@ -193,7 +152,7 @@ fn test_remote_management() -> Result<()> {
     let config_path = home.join(".config/dotman/config");
     let config = Config::load(&config_path)?;
     let mut ctx = DotmanContext {
-        repo_path,
+        repo_path: repo_path.clone(),
         config_path: config_path.clone(),
         config,
         no_pager: true,

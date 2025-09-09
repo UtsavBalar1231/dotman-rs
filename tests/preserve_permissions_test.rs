@@ -2,14 +2,15 @@ use anyhow::Result;
 use dotman::DotmanContext;
 use dotman::config::Config;
 use std::fs;
-use tempfile::tempdir;
+
+mod common;
+use common::TestEnvironment;
 
 #[test]
-#[serial_test::serial]
 fn test_preserve_permissions_config() -> Result<()> {
-    let temp = tempdir()?;
-    let repo_path = temp.path().join(".dotman");
-    let config_path = temp.path().join("config.toml");
+    let env = TestEnvironment::new()?;
+    let repo_path = env.repo_dir.clone();
+    let config_path = env.home_dir.join("config.toml");
 
     // Create a config with preserve_permissions = false
     let mut config = Config::default();
@@ -44,24 +45,18 @@ fn test_preserve_permissions_config() -> Result<()> {
 
 #[test]
 #[cfg(unix)]
-#[serial_test::serial]
 fn test_permissions_preserved_on_unix() -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
 
-    let temp = tempdir()?;
-    let home = temp.path();
-
-    // Set HOME to temp directory
-    unsafe {
-        std::env::set_var("HOME", home);
-    }
-
-    let repo_path = home.join(".dotman");
-    let config_path = home.join("config.toml");
+    let env = TestEnvironment::new()?;
+    let home = &env.home_dir;
+    let repo_path = env.repo_dir.clone();
+    let config_path = env.home_dir.join("config.toml");
 
     // Create config with preserve_permissions = true
     let mut config = Config::default();
     config.tracking.preserve_permissions = true;
+    config.core.repo_path = repo_path.clone();
     config.save(&config_path)?;
 
     let ctx = DotmanContext {
@@ -71,10 +66,12 @@ fn test_permissions_preserved_on_unix() -> Result<()> {
         no_pager: true,
     };
 
+    // Initialize the repository (don't use the global init command)
     ctx.ensure_repo_exists()?;
-
-    // Initialize the repository using the init command
-    dotman::commands::init::execute(false)?;
+    let index = dotman::storage::index::Index::new();
+    index.save(&ctx.repo_path.join(dotman::INDEX_FILE))?;
+    let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
+    ref_manager.init()?;
 
     // Create a test file with specific permissions
     let test_file = home.join("test_perms.sh");
@@ -118,24 +115,18 @@ fn test_permissions_preserved_on_unix() -> Result<()> {
 
 #[test]
 #[cfg(unix)]
-#[serial_test::serial]
 fn test_permissions_not_preserved_when_disabled() -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
 
-    let temp = tempdir()?;
-    let home = temp.path();
-
-    // Set HOME to temp directory
-    unsafe {
-        std::env::set_var("HOME", home);
-    }
-
-    let repo_path = home.join(".dotman");
-    let config_path = home.join("config.toml");
+    let env = TestEnvironment::new()?;
+    let home = &env.home_dir;
+    let repo_path = env.repo_dir.clone();
+    let config_path = env.home_dir.join("config.toml");
 
     // Create config with preserve_permissions = false
     let mut config = Config::default();
     config.tracking.preserve_permissions = false;
+    config.core.repo_path = repo_path.clone();
     config.save(&config_path)?;
 
     let ctx = DotmanContext {
@@ -145,10 +136,12 @@ fn test_permissions_not_preserved_when_disabled() -> Result<()> {
         no_pager: true,
     };
 
+    // Initialize the repository (don't use the global init command)
     ctx.ensure_repo_exists()?;
-
-    // Initialize the repository using the init command
-    dotman::commands::init::execute(false)?;
+    let index = dotman::storage::index::Index::new();
+    index.save(&ctx.repo_path.join(dotman::INDEX_FILE))?;
+    let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
+    ref_manager.init()?;
 
     // Create a test file with specific permissions
     let test_file = home.join("test_no_perms.sh");
@@ -183,16 +176,10 @@ fn test_permissions_not_preserved_when_disabled() -> Result<()> {
 #[test]
 #[cfg(windows)]
 fn test_windows_readonly_preservation() -> Result<()> {
-    let temp = tempdir()?;
-    let home = temp.path();
-
-    // Set HOME to temp directory
-    unsafe {
-        std::env::set_var("HOME", home);
-    }
-
-    let repo_path = home.join(".dotman");
-    let config_path = home.join("config.toml");
+    let env = TestEnvironment::new()?;
+    let home = &env.home_dir;
+    let repo_path = env.repo_dir.clone();
+    let config_path = env.home_dir.join("config.toml");
 
     // Create config with preserve_permissions = true
     let mut config = Config::default();

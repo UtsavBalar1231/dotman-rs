@@ -1,9 +1,10 @@
 use anyhow::Result;
 use dotman::storage::{CachedHash, FileEntry, file_ops};
 use std::path::PathBuf;
-use std::thread;
-use std::time::Duration;
 use tempfile::tempdir;
+
+mod common;
+use common::set_file_mtime;
 
 #[test]
 fn test_cached_hash_basic() -> Result<()> {
@@ -39,11 +40,11 @@ fn test_cached_hash_invalidation_on_content_change() -> Result<()> {
     // Initial hash
     let (hash1, cache1) = file_ops::hash_file(&file_path, None)?;
 
-    // Wait to ensure different mtime (file systems may have coarse timestamp resolution)
-    thread::sleep(Duration::from_secs(1));
-
     // Modify file content
     std::fs::write(&file_path, "modified content with different size")?;
+
+    // Ensure different mtime by explicitly setting it
+    set_file_mtime(&file_path, 1)?;
 
     // Hash with stale cache - should recompute
     let (hash2, cache2) = file_ops::hash_file(&file_path, Some(&cache1))?;
@@ -69,11 +70,11 @@ fn test_cached_hash_invalidation_same_size() -> Result<()> {
     // Initial hash
     let (hash1, cache1) = file_ops::hash_file(&file_path, None)?;
 
-    // Wait to ensure different mtime (file systems may have coarse timestamp resolution)
-    thread::sleep(Duration::from_secs(1));
-
     // Modify file with same size but different content
     std::fs::write(&file_path, "abcde")?;
+
+    // Ensure different mtime by explicitly setting it
+    set_file_mtime(&file_path, 1)?;
 
     // Hash with stale cache - should recompute based on mtime
     let (hash2, cache2) = file_ops::hash_file(&file_path, Some(&cache1))?;
