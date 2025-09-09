@@ -93,6 +93,18 @@ pub mod file_ops {
     /// # Errors
     /// Returns an error if the file cannot be read or hashed.
     pub fn hash_file(path: &Path, cached: Option<&CachedHash>) -> Result<(String, CachedHash)> {
+        hash_file_with_threshold(path, cached, 1_048_576) // Default 1MB
+    }
+
+    /// Computes the hash of a file with configurable mmap threshold.
+    ///
+    /// # Errors
+    /// Returns an error if the file cannot be read or hashed.
+    pub fn hash_file_with_threshold(
+        path: &Path,
+        cached: Option<&CachedHash>,
+        mmap_threshold: usize,
+    ) -> Result<(String, CachedHash)> {
         let metadata = std::fs::metadata(path)
             .with_context(|| format!("Failed to get metadata for: {}", path.display()))?;
 
@@ -119,7 +131,7 @@ pub mod file_ops {
         // Cache miss - compute new hash
         let hash = if size == 0 {
             String::from("0")
-        } else if size < 1_048_576 {
+        } else if size < mmap_threshold as u64 {
             // Small file - read directly
             let content = std::fs::read(path)?;
             let hash = xxh3_128(&content);
@@ -166,8 +178,18 @@ pub mod file_ops {
     /// Returns an error if:
     /// - The file cannot be copied
     pub fn copy_file_fast(src: &Path, dst: &Path) -> Result<()> {
-        // Try to create hard link first (fastest)
-        if std::fs::hard_link(src, dst).is_ok() {
+        copy_file_with_options(src, dst, true)
+    }
+
+    /// Copy file with configurable hard link usage
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The file cannot be copied
+    pub fn copy_file_with_options(src: &Path, dst: &Path, use_hard_links: bool) -> Result<()> {
+        // Try to create hard link first if enabled (fastest)
+        if use_hard_links && std::fs::hard_link(src, dst).is_ok() {
             return Ok(());
         }
 

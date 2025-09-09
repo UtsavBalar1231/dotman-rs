@@ -1,4 +1,5 @@
 pub mod parser;
+pub mod validator;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};

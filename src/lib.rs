@@ -58,6 +58,18 @@ impl DotmanContext {
         let config = config::Config::load(&config_path)?;
         let repo_path = config.core.repo_path.clone();
 
+        // Validate configuration and warn about issues
+        let validator = config::validator::ConfigValidator::new();
+        if let Err(e) = validator.validate_config_file(&config_path) {
+            eprintln!("Warning: Configuration validation failed: {e}");
+        }
+        config::validator::ConfigValidator::warn_unused_options(&config);
+
+        // Configure thread pool based on config
+        if let Err(e) = utils::thread_pool::configure_from_config(&config) {
+            eprintln!("Warning: Failed to configure thread pool: {e}");
+        }
+
         Ok(Self {
             repo_path,
             config_path,

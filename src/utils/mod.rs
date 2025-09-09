@@ -3,6 +3,7 @@ pub mod compress;
 pub mod pager;
 pub mod permissions;
 pub mod serialization;
+pub mod thread_pool;
 
 use anyhow::Result;
 use std::path::{Path, PathBuf};
