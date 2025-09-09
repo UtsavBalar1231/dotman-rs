@@ -25,10 +25,11 @@ impl RefResolver {
     /// - HEAD~n (nth parent)
     /// - HEAD^ (first parent), HEAD^^ (second ancestor), HEAD^n (nth ancestor)
     /// - Branch names
-    /// - Tag names (future)
+    /// - Tag names
     /// - Full commit IDs
     /// - Short commit IDs (prefix matching)
     /// - ref: refs/heads/branch format
+    /// - ref: refs/tags/tag format
     ///
     /// # Errors
     ///
@@ -39,6 +40,10 @@ impl RefResolver {
     pub fn resolve(&self, reference: &str) -> Result<String> {
         if let Some(branch) = reference.strip_prefix("ref: refs/heads/") {
             return self.resolve_branch(branch);
+        }
+
+        if let Some(tag) = reference.strip_prefix("ref: refs/tags/") {
+            return self.resolve_tag(tag);
         }
 
         if reference == "HEAD" {
@@ -60,6 +65,11 @@ impl RefResolver {
         // Try as branch name
         if self.ref_manager.branch_exists(reference) {
             return self.resolve_branch(reference);
+        }
+
+        // Try as tag name
+        if self.ref_manager.tag_exists(reference) {
+            return self.resolve_tag(reference);
         }
 
         // Try as full commit ID (must be 32 chars for our format)
@@ -181,6 +191,11 @@ impl RefResolver {
     /// Resolve a branch name to commit ID
     fn resolve_branch(&self, branch: &str) -> Result<String> {
         self.ref_manager.get_branch_commit(branch)
+    }
+
+    /// Resolve a tag name to commit ID
+    fn resolve_tag(&self, tag: &str) -> Result<String> {
+        self.ref_manager.get_tag_commit(tag)
     }
 
     /// Find a commit by prefix (short hash)
@@ -552,6 +567,73 @@ mod tests {
         // Should fail trying to go beyond commit1
         let result = resolver.resolve("HEAD~3");
         assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_tag() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        let commit_id = format!("t1{}", "0".repeat(30));
+        create_test_commit(&resolver.repo_path, &commit_id, None)?;
+
+        // Create a tag pointing to the commit
+        resolver
+            .ref_manager
+            .create_tag("v1.0.0", Some(&commit_id))?;
+
+        // Should resolve tag name to commit ID
+        let resolved = resolver.resolve("v1.0.0")?;
+        assert_eq!(resolved, commit_id);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_tag_ref_format() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        let commit_id = format!("t2{}", "0".repeat(30));
+        create_test_commit(&resolver.repo_path, &commit_id, None)?;
+
+        // Create a tag
+        resolver
+            .ref_manager
+            .create_tag("release", Some(&commit_id))?;
+
+        // Should resolve ref: refs/tags/tag format
+        let resolved = resolver.resolve("ref: refs/tags/release")?;
+        assert_eq!(resolved, commit_id);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_resolve_ambiguous_branch_and_tag() -> Result<()> {
+        let (_temp, resolver) = setup_test_repo()?;
+
+        let commit1 = format!("t3{}", "0".repeat(30));
+        let commit2 = format!("t4{}", "0".repeat(30));
+
+        create_test_commit(&resolver.repo_path, &commit1, None)?;
+        create_test_commit(&resolver.repo_path, &commit2, None)?;
+
+        // Create branch and tag with same name (branch takes precedence)
+        resolver
+            .ref_manager
+            .create_branch("ambiguous", Some(&commit1))?;
+        resolver
+            .ref_manager
+            .create_tag("ambiguous", Some(&commit2))?;
+
+        // Branch should take precedence
+        let resolved = resolver.resolve("ambiguous")?;
+        assert_eq!(resolved, commit1);
+
+        // Can explicitly resolve the tag
+        let resolved = resolver.resolve("ref: refs/tags/ambiguous")?;
+        assert_eq!(resolved, commit2);
 
         Ok(())
     }
