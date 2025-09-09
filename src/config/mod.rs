@@ -158,6 +158,22 @@ impl Default for TrackingConfig {
 }
 
 impl Config {
+    /// Get branch tracking information for a branch
+    #[must_use]
+    pub fn get_branch_tracking(&self, branch: &str) -> Option<&BranchTracking> {
+        self.branches.tracking.get(branch)
+    }
+
+    /// Set branch tracking information
+    pub fn set_branch_tracking(&mut self, branch: String, tracking: BranchTracking) {
+        self.branches.tracking.insert(branch, tracking);
+    }
+
+    /// Remove branch tracking information
+    pub fn remove_branch_tracking(&mut self, branch: &str) -> Option<BranchTracking> {
+        self.branches.tracking.remove(branch)
+    }
+
     /// Load configuration from a file
     ///
     /// # Errors
@@ -716,6 +732,38 @@ mod tests {
         assert!(result.is_ok(), "Empty file should parse with defaults");
 
         Ok(())
+    }
+
+    #[test]
+    fn test_branch_tracking_helpers() {
+        let mut config = Config::default();
+
+        // Test getting non-existent tracking
+        assert!(config.get_branch_tracking("main").is_none());
+
+        // Test setting branch tracking
+        let tracking = BranchTracking {
+            remote: "origin".to_string(),
+            branch: "main".to_string(),
+        };
+        config.set_branch_tracking("main".to_string(), tracking);
+
+        // Test getting existing tracking
+        let retrieved = config.get_branch_tracking("main");
+        assert!(retrieved.is_some());
+        assert_eq!(retrieved.unwrap().remote, "origin");
+        assert_eq!(retrieved.unwrap().branch, "main");
+
+        // Test removing tracking
+        let removed = config.remove_branch_tracking("main");
+        assert!(removed.is_some());
+        assert_eq!(removed.unwrap().remote, "origin");
+
+        // Verify it's gone
+        assert!(config.get_branch_tracking("main").is_none());
+
+        // Test removing non-existent tracking
+        assert!(config.remove_branch_tracking("nonexistent").is_none());
     }
 
     #[test]

@@ -115,13 +115,11 @@ enum Commands {
 
     /// Update remote refs along with associated objects
     Push {
-        /// Remote name
-        #[arg(default_value = "origin")]
-        remote: String,
+        /// Remote name (uses tracking if not specified)
+        remote: Option<String>,
 
-        /// Branch to push
-        #[arg(default_value = "main")]
-        branch: String,
+        /// Branch to push (uses current branch if not specified)
+        branch: Option<String>,
 
         #[arg(short, long)]
         force: bool,
@@ -134,6 +132,10 @@ enum Commands {
 
         #[arg(long)]
         tags: bool,
+
+        /// Set upstream tracking for the branch
+        #[arg(short = 'u', long)]
+        set_upstream: bool,
     },
 
     /// Download objects and refs from another repository
@@ -169,13 +171,11 @@ enum Commands {
 
     /// Fetch from and integrate with another repository
     Pull {
-        /// Remote name
-        #[arg(default_value = "origin")]
-        remote: String,
+        /// Remote name (uses tracking if not specified)
+        remote: Option<String>,
 
-        /// Branch to pull
-        #[arg(default_value = "main")]
-        branch: String,
+        /// Branch to pull (uses current branch if not specified)
+        branch: Option<String>,
 
         #[arg(long)]
         rebase: bool,
@@ -613,16 +613,18 @@ fn run() -> Result<()> {
             force_with_lease,
             dry_run,
             tags,
+            set_upstream,
         } => {
-            let ctx = context.context("Context not initialized for push command")?;
+            let mut ctx = context.context("Context not initialized for push command")?;
             commands::push::execute(
-                &ctx,
-                &remote,
-                &branch,
+                &mut ctx,
+                remote.as_deref(),
+                branch.as_deref(),
                 force,
                 force_with_lease,
                 dry_run,
                 tags,
+                set_upstream,
             )?;
         }
         Commands::Pull {
@@ -633,7 +635,14 @@ fn run() -> Result<()> {
             squash,
         } => {
             let ctx = context.context("Context not initialized for pull command")?;
-            commands::pull::execute(&ctx, &remote, &branch, rebase, no_ff, squash)?;
+            commands::pull::execute(
+                &ctx,
+                remote.as_deref(),
+                branch.as_deref(),
+                rebase,
+                no_ff,
+                squash,
+            )?;
         }
         Commands::Init { bare } => {
             commands::init::execute(bare)?;

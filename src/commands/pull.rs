@@ -21,8 +21,8 @@ use std::fmt::Write;
 /// - The merge or rebase operation fails
 pub fn execute(
     ctx: &DotmanContext,
-    remote: &str,
-    branch: &str,
+    remote: Option<&str>,
+    branch: Option<&str>,
     rebase: bool,
     no_ff: bool,
     squash: bool,
@@ -35,19 +35,91 @@ pub fn execute(
         ));
     }
 
-    let remote_config = ctx.config.get_remote(remote).with_context(|| {
-        format!("Remote '{remote}' does not exist. Use 'dot remote add' to add it.")
+    // Determine remote and branch to pull from
+    let (remote_name, branch_name) = determine_pull_target(ctx, remote, branch)?;
+
+    let remote_config = ctx.config.get_remote(&remote_name).with_context(|| {
+        format!("Remote '{remote_name}' does not exist. Use 'dot remote add' to add it.")
     })?;
 
     match &remote_config.remote_type {
-        crate::config::RemoteType::Git => {
-            pull_from_git(ctx, remote_config, remote, branch, rebase, no_ff, squash)
-        }
+        crate::config::RemoteType::Git => pull_from_git(
+            ctx,
+            remote_config,
+            &remote_name,
+            &branch_name,
+            rebase,
+            no_ff,
+            squash,
+        ),
         crate::config::RemoteType::None => Err(anyhow::anyhow!(
             "Remote '{}' has no type configured or is not a Git remote.",
-            remote
+            remote_name
         )),
     }
+}
+
+/// Determine the remote and branch to pull from
+///
+/// Returns (`remote_name`, `branch_name`)
+fn determine_pull_target(
+    ctx: &DotmanContext,
+    remote: Option<&str>,
+    branch: Option<&str>,
+) -> Result<(String, String)> {
+    use crate::refs::RefManager;
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+
+    // If both remote and branch are provided, use them directly
+    if let (Some(r), Some(b)) = (remote, branch) {
+        return Ok((r.to_string(), b.to_string()));
+    }
+
+    // Get current branch
+    let current_branch = ref_manager
+        .current_branch()?
+        .context("Not on any branch (detached HEAD). Please specify branch to pull.")?;
+
+    // If only remote is provided, use current branch
+    if let Some(r) = remote {
+        return Ok((r.to_string(), current_branch));
+    }
+
+    // If only branch is provided, need to find remote from tracking
+    if let Some(b) = branch {
+        if let Some(tracking) = ctx.config.get_branch_tracking(b) {
+            return Ok((tracking.remote.clone(), b.to_string()));
+        }
+        return Err(anyhow::anyhow!(
+            "Branch '{}' has no upstream tracking. Please specify remote.",
+            b
+        ));
+    }
+
+    // Neither remote nor branch provided - use tracking info for current branch
+    if let Some(tracking) = ctx.config.get_branch_tracking(&current_branch) {
+        super::print_info(&format!(
+            "Pulling from tracked upstream: {}/{}",
+            tracking.remote, tracking.branch
+        ));
+        return Ok((tracking.remote.clone(), tracking.branch.clone()));
+    }
+
+    // No tracking info - provide helpful error
+    if ctx.config.remotes.is_empty() {
+        return Err(anyhow::anyhow!(
+            "No remotes configured. Use 'dot remote add <name> <url>' to add a remote."
+        ));
+    }
+
+    let available_remotes: Vec<String> = ctx.config.remotes.keys().cloned().collect();
+    Err(anyhow::anyhow!(
+        "Branch '{}' has no upstream tracking. Available remotes: {}\n\
+         Please specify: 'dot pull <remote>' or set upstream: 'dot branch set-upstream <remote>'",
+        current_branch,
+        available_remotes.join(", ")
+    ))
 }
 
 fn pull_from_git(
@@ -263,7 +335,7 @@ mod tests {
     fn test_execute_no_remote() -> Result<()> {
         let ctx = create_test_context(RemoteType::None, None)?;
 
-        let result = execute(&ctx, "origin", "main", false, false, false);
+        let result = execute(&ctx, Some("origin"), Some("main"), false, false, false);
         assert!(result.is_err());
 
         Ok(())
@@ -321,8 +393,122 @@ mod tests {
             no_pager: true,
         };
 
-        let result = execute(&ctx, "origin", "main", false, false, false);
+        let result = execute(&ctx, Some("origin"), Some("main"), false, false, false);
         assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_determine_pull_target_with_tracking() -> Result<()> {
+        let temp = tempdir()?;
+        let repo_path = temp.path().join(".dotman");
+        let config_path = temp.path().join("config.toml");
+
+        fs::create_dir_all(&repo_path)?;
+        fs::create_dir_all(repo_path.join("commits"))?;
+        fs::create_dir_all(repo_path.join("objects"))?;
+        fs::create_dir_all(repo_path.join("refs/heads"))?;
+
+        // Create HEAD file pointing to main branch
+        fs::write(repo_path.join("HEAD"), "ref: refs/heads/main")?;
+
+        let mut config = Config::default();
+        config.core.repo_path = repo_path.clone();
+
+        // Add remote
+        let remote_config = crate::config::RemoteConfig {
+            remote_type: RemoteType::Git,
+            url: Some("https://github.com/user/repo.git".to_string()),
+        };
+        config.remotes.insert("origin".to_string(), remote_config);
+
+        // Set up branch tracking
+        let tracking = crate::config::BranchTracking {
+            remote: "origin".to_string(),
+            branch: "main".to_string(),
+        };
+        config.set_branch_tracking("main".to_string(), tracking);
+        config.save(&config_path)?;
+
+        let ctx = DotmanContext {
+            repo_path,
+            config_path,
+            config,
+            no_pager: true,
+        };
+
+        // Test with no parameters - should use tracking
+        let (remote, branch) = determine_pull_target(&ctx, None, None)?;
+        assert_eq!(remote, "origin");
+        assert_eq!(branch, "main");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_determine_pull_target_no_tracking_error() -> Result<()> {
+        let temp = tempdir()?;
+        let repo_path = temp.path().join(".dotman");
+        let config_path = temp.path().join("config.toml");
+
+        fs::create_dir_all(&repo_path)?;
+        fs::create_dir_all(repo_path.join("refs/heads"))?;
+
+        // Create HEAD file pointing to main branch
+        fs::write(repo_path.join("HEAD"), "ref: refs/heads/main")?;
+
+        let mut config = Config::default();
+        config.core.repo_path = repo_path.clone();
+
+        // Add remote but no tracking
+        let remote_config = crate::config::RemoteConfig {
+            remote_type: RemoteType::Git,
+            url: Some("https://github.com/user/repo.git".to_string()),
+        };
+        config.remotes.insert("origin".to_string(), remote_config);
+        config.save(&config_path)?;
+
+        let ctx = DotmanContext {
+            repo_path,
+            config_path,
+            config,
+            no_pager: true,
+        };
+
+        // No tracking - should error with helpful message
+        let result = determine_pull_target(&ctx, None, None);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("no upstream tracking")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_determine_pull_target_explicit_params() -> Result<()> {
+        let temp = tempdir()?;
+        let repo_path = temp.path().join(".dotman");
+        let config_path = temp.path().join("config.toml");
+
+        fs::create_dir_all(&repo_path)?;
+
+        let config = Config::default();
+        let ctx = DotmanContext {
+            repo_path,
+            config_path,
+            config,
+            no_pager: true,
+        };
+
+        // Explicit parameters should be used as-is
+        let (remote, branch) = determine_pull_target(&ctx, Some("upstream"), Some("develop"))?;
+        assert_eq!(remote, "upstream");
+        assert_eq!(branch, "develop");
 
         Ok(())
     }
