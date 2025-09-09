@@ -1,1028 +1,221 @@
-# dotman - High-Performance Dotfiles Manager
+# dotman
 
+[![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)]()
+[![Build Status](https://img.shields.io/github/actions/workflow/status/yourusername/dotman/ci.yml?branch=main)](https://github.com/yourusername/dotman/actions)
 
-A high-performance dotfiles manager with git-like semantics, built in Rust for maximum speed and reliability.
+High-performance dotfiles manager with Git-like semantics, built in Rust.
 
-## Table of Contents
+## Why dotman?
 
-- [Overview](#overview)
-- [Technical Features](#technical-features)
-- [Performance Characteristics](#performance-characteristics)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Command Reference](#command-reference)
-- [Configuration](#configuration)
-- [Architecture](#architecture)
-- [Development](#development)
-- [Testing](#testing)
-- [Benchmarking](#benchmarking)
-- [Contributing](#contributing)
-- [License](#license)
+Dotman brings the power and familiarity of Git to dotfiles management, with a focus on **performance** and **simplicity**. Unlike symlink-based managers, dotman uses content-addressed storage with deduplication, making it fast and storage-efficient. With SIMD acceleration, parallel processing, and memory-mapped I/O, it handles large dotfile collections effortlessly.
 
-## Overview
-
-dotman is a dotfiles manager designed from the ground up for performance and reliability. Unlike traditional dotfile managers that prioritize features over speed, dotman employs advanced optimization techniques including SIMD acceleration, parallel processing, and memory-mapped I/O to achieve sub-millisecond operations on typical dotfile repositories.
-
-### Key Differentiators
-
-- **Performance-First Design**: Every architectural decision prioritizes speed without sacrificing correctness
-- **Git-Like Interface**: Familiar command structure for developers already using version control
-- **Multi-Configuration Support**: Branch-based management for different machines (laptop, desktop, server)
-- **Git Remote Storage**: Full support for Git remotes (GitHub, GitLab, Bitbucket, etc.) for backup and synchronization
-- **Content Deduplication**: Intelligent storage minimization through content-based deduplication
-- **Parallel Processing**: Utilizes all available CPU cores for file operations
-- **Binary Index Format**: Fast serialization and deserialization for instant repository loading
-
-## Technical Features
-
-### Performance Optimizations
-
-- **SIMD Acceleration**: Hardware-accelerated UTF-8 validation and JSON parsing on x86_64 and ARM64
-- **Memory-Mapped I/O**: Efficient handling of large files (>1MB) through OS-level memory mapping
-- **xxHash3 Algorithm**: Ultra-fast hashing achieving >30GB/s throughput on modern CPUs
-- **Lock-Free Concurrency**: DashMap-based concurrent data structures for thread-safe operations
-- **Zstandard Compression**: Configurable compression levels with dictionary training for optimal ratios
-
-### Storage Architecture
-
-- **Content-Addressed Commits**: Deterministic commit IDs generated using xxHash3 based on commit content (tree, parent, message, author, timestamp)
-- **Binary Index**: Bincode-serialized index for O(1) file lookups
-- **Content Deduplication**: Hash-based deduplication reduces storage by 40-60% on average
-- **Atomic Operations**: File-level locking ensures data integrity during concurrent operations
-- **Incremental Snapshots**: Only changed content stored in new commits
-- **Reflog System**: Automatic tracking of HEAD movements for recovery and debugging
-
-### Reliability Features
-
-- **Transactional Commits**: Either all files commit successfully or none do
-- **Graceful Error Recovery**: Comprehensive error handling with context preservation
-- **File Permission Preservation**: Maintains original file permissions and metadata
-- **Cross-Platform Support**: Linux and macOS with architecture-specific optimizations
-- **Git Compatibility**: Support for HEAD^, HEAD~n notation and Git-style commit references
-- **Enhanced Repository Detection**: Clear error messages guiding users when repository isn't initialized
-
-## Performance Characteristics
-
-### Benchmark Results
-
-Operations tested on AMD Ryzen 7 5800X with NVMe SSD:
-
-| Operation | File Count | Time | Throughput |
-|-----------|------------|------|------------|
-| Add files | 1,000 | 45ms | 22,222 files/sec |
-| Status check | 10,000 | 8ms | 1.25M files/sec |
-| Commit creation | 5,000 | 180ms | 27,777 files/sec |
-| Checkout | 5,000 | 150ms | 33,333 files/sec |
-| File hashing | 1GB | 0.9s | 1.11 GB/s |
-
-### Memory Usage
-
-- Base overhead: ~1.5MB
-- Index in memory: 32 bytes per file entry
-- Working set: 2-8MB for typical operations
-- Peak usage: 50-200MB during large commits
+- **Git-like workflow** - If you know Git, you know dotman
+- **Content deduplication** - Same files stored only once via xxHash3
+- **Blazing fast** - SIMD optimizations, parallel operations, binary index
+- **Branch-based configs** - Different setups for different machines
+- **Git remote support** - Backup to GitHub/GitLab/Bitbucket
 
 ## Installation
 
-### Binary Installation (Recommended)
-
-#### Linux x86_64
+### From Source (Recommended)
 ```bash
-curl -LO https://github.com/UtsavBalar1231/dotman-rs/releases/latest/download/dot-x86_64-unknown-linux-gnu.tar.gz
-tar xzf dot-x86_64-unknown-linux-gnu.tar.gz
-sudo mv dot /usr/local/bin/
+# Install Rust if needed
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Clone and install
+git clone https://github.com/yourusername/dotman.git
+cd dotman
+cargo install --path .
 ```
 
-#### Linux ARM64
-```bash
-curl -LO https://github.com/UtsavBalar1231/dotman-rs/releases/latest/download/dot-aarch64-unknown-linux-gnu.tar.gz
-tar xzf dot-aarch64-unknown-linux-gnu.tar.gz
-sudo mv dot /usr/local/bin/
-```
-
-#### macOS Intel
-```bash
-curl -LO https://github.com/UtsavBalar1231/dotman-rs/releases/latest/download/dot-x86_64-apple-darwin.tar.gz
-tar xzf dot-x86_64-apple-darwin.tar.gz
-sudo mv dot /usr/local/bin/
-```
-
-#### macOS Apple Silicon
-```bash
-curl -LO https://github.com/UtsavBalar1231/dotman-rs/releases/latest/download/dot-aarch64-apple-darwin.tar.gz
-tar xzf dot-aarch64-apple-darwin.tar.gz
-sudo mv dot /usr/local/bin/
-```
+### Pre-built Binaries
+Download from [releases](https://github.com/yourusername/dotman/releases) for your platform:
+- Linux (x86_64, ARM64)
+- macOS (Intel, Apple Silicon)
+- Windows (x86_64)
 
 ### Package Managers
-
-#### Cargo (Rust Package Manager)
 ```bash
-cargo install dotman
-```
-
-#### Arch Linux (AUR)
-```bash
+# Arch Linux (AUR)
 yay -S dotman
-# or
-paru -S dotman
-```
 
-#### Debian/Ubuntu
-```bash
-curl -LO https://github.com/UtsavBalar1231/dotman-rs/releases/latest/download/dotman_0.0.1-1_amd64.deb
-sudo dpkg -i dotman_0.0.1-1_amd64.deb
-```
+# Homebrew (macOS/Linux)
+brew install dotman
 
-#### Fedora/RHEL/CentOS
-```bash
-sudo dnf install https://github.com/UtsavBalar1231/dotman-rs/releases/latest/download/dotman-0.0.1-1.x86_64.rpm
-```
-
-### Build from Source
-
-#### Prerequisites
-- Rust 1.70 or later
-- Git
-- C compiler (for native dependencies)
-
-#### Build Steps
-```bash
-git clone https://github.com/UtsavBalar1231/dotman-rs.git
-cd dotman-rs
-cargo build --release
-sudo cp target/release/dot /usr/local/bin/
-```
-
-#### Optimized Build
-```bash
-RUSTFLAGS="-C target-cpu=native" cargo build --release
+# Cargo
+cargo install dotman
 ```
 
 ## Quick Start
 
-### Initialize Repository
 ```bash
-# Initialize dotman in your home directory
-cd ~
+# Initialize repository
 dot init
 
-# This creates the ~/.dotman directory structure
+# Track dotfiles
+dot add ~/.zshrc ~/.vimrc ~/.config/nvim
+dot commit -m "Initial dotfiles"
+
+# Create machine-specific branch
+dot branch laptop
+dot checkout laptop
+dot add ~/.config/i3
+dot commit -m "Add laptop-specific configs"
+
+# Set up remote backup
+dot remote add origin git@github.com:yourusername/dotfiles.git
+dot push origin main
+
+# Restore on new machine
+dot init
+dot remote add origin git@github.com:yourusername/dotfiles.git
+dot pull origin main
+dot checkout
 ```
 
-### Track Dotfiles
-```bash
-# Add individual files
-dot add ~/.bashrc ~/.vimrc ~/.gitconfig
-
-# Add entire directories
-dot add ~/.config/nvim
-
-# Check status
-dot status
-```
-
-### Create Snapshots
-```bash
-# Commit tracked files
-dot commit -m "Initial dotfiles setup"
-
-# Commit all changes to tracked files
-dot commit --all -m "Update configurations"
-```
-
-### View History
-```bash
-# Show commit log
-dot log
-
-# Show specific commit (first 8 chars of ID)
-dot show a1b2c3d4
-
-# Show differences
-dot diff
-```
-
-### Restore Files
-```bash
-# Checkout specific commit
-dot checkout a1b2c3d4
-
-# Force checkout (overwrites local changes)
-dot checkout --force HEAD
-```
-
-### Multi-Configuration Workflow
-
-Managing different dotfiles for different machines:
-
-```bash
-# Create branches for different configurations
-dot branch create laptop-config
-dot branch create desktop-config
-dot branch create server-config
-
-# Switch to laptop configuration
-dot checkout laptop-config
-
-# Make laptop-specific changes
-dot add ~/.config/laptop-specific.conf
-dot commit -m "Add laptop-specific configurations"
-
-# Set up remote repository
-dot remote add origin git@github.com:username/dotfiles.git
-
-# Push laptop configuration
-dot push origin laptop-config
-
-# On another machine, pull specific configuration
-dot pull origin desktop-config
-dot checkout desktop-config
-
-# Set upstream tracking for automatic push/pull
-dot branch set-upstream laptop-config origin laptop-config
-dot push  # Now pushes to tracked upstream
-```
-
-## Command Reference
-
-### Repository Management
-
-#### `dot init [--bare]`
-Initialize a new dotman repository.
-
-Options:
-- `--bare`: Create a bare repository without working directory
-
-#### `dot status [--short] [--untracked]`
-Display the working tree status.
-
-Options:
-- `--short`: Show status in short format
-- `--untracked`: Show untracked files
-
-### File Operations
-
-#### `dot add <paths...> [--force]`
-Add files or directories to be tracked.
-
-Options:
-- `--force`: Force add files even if they match ignore patterns
-
-Example:
-```bash
-dot add ~/.bashrc ~/.config/nvim
-dot add ~/.ssh/config --force
-```
-
-#### `dot rm <paths...> [--cached] [--force] [--interactive]`
-Remove files from tracking.
-
-Options:
-- `--cached`: Remove from index only, keep file on disk
-- `--force`: Force removal without safety checks
-- `--interactive`: Interactive removal with confirmations
-
-### Snapshot Operations
-
-#### `dot commit [-m <message>] [--all] [--amend]`
-Create or amend a snapshot of tracked files.
-
-Options:
-- `-m, --message`: Commit message (required unless using --amend)
-- `--all`: Automatically stage all tracked file changes
-- `--amend`: Amend the previous commit instead of creating a new one
-
-Example:
-```bash
-dot commit -m "Update shell configurations"
-dot commit --all -m "Backup all dotfiles"
-dot commit --amend -m "Updated message"
-dot commit --amend  # Keep original message
-```
-
-#### `dot checkout <target> [--force]`
-Restore files from a specific commit, branch, or reference.
-
-Supported targets:
-- Commit hash (full or short): `a1b2c3d4` or `a1b2c3d4...`
-- Branch name: `main`, `feature-branch`
-- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`, `HEAD^`, `HEAD^^`, `HEAD^3`
-
-Options:
-- `--force`: Overwrite local changes without prompting
-
-Examples:
-```bash
-dot checkout HEAD^       # Go to previous commit
-dot checkout HEAD~3      # Go back 3 commits
-dot checkout a1b2c3d4    # Checkout specific commit
-```
-
-#### `dot reset <commit> [--hard] [--soft]`
-Reset HEAD to specified state.
-
-Supported targets:
-- Commit hash (full or short): `a1b2c3d4` or `a1b2c3d4...`
-- Branch name: `main`, `feature-branch`
-- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`, `HEAD^`, `HEAD^^`, `HEAD^3`
-
-Options:
-- `--hard`: Reset working directory to match commit
-- `--soft`: Move HEAD only, keep working directory unchanged
-
-#### `dot revert <commit> [--no-edit] [--force]`
-Create a new commit that undoes changes from a specified commit.
-
-Arguments:
-- `<commit>`: Commit to revert (supports same formats as checkout/reset)
-
-Options:
-- `--no-edit`: Skip the commit confirmation and immediately create the revert commit
-- `--force`: Allow reverting when there are uncommitted changes
-
-Examples:
-```bash
-dot revert HEAD          # Revert the last commit
-dot revert HEAD^         # Revert the second-to-last commit
-dot revert a1b2c3d4      # Revert specific commit
-dot revert HEAD --no-edit  # Revert without confirmation
-```
-
-#### `dot restore <paths...> [--source <commit>] [--force]`
-Restore specific files from a commit without changing HEAD.
-
-Arguments:
-- `<paths...>`: Files or directories to restore
-
-Options:
-- `--source <commit>`: Source commit to restore from (default: HEAD)
-- `--force`: Overwrite local changes without prompting
-
-Examples:
-```bash
-dot restore ~/.bashrc              # Restore from HEAD
-dot restore ~/.vimrc --source HEAD^  # Restore from previous commit
-dot restore ~/.config/nvim --source a1b2c3d4  # Restore from specific commit
-```
-
-### History Operations
-
-#### `dot log [<target>] [-n <limit>] [--oneline]`
-Display commit history.
-
-Arguments:
-- `<target>`: Commit, branch, or HEAD to start from (optional)
-
-Options:
-- `-n, --limit`: Number of commits to show (default: 10)
-- `--oneline`: Compact single-line format
-
-Examples:
-```bash
-dot log                    # Show last 10 commits from current branch
-dot log HEAD               # Show commits from HEAD
-dot log main               # Show commits from main branch
-dot log a1b2c3d4           # Show commits from specific commit
-dot log -n 20 --oneline    # Show 20 commits in oneline format
-```
-
-#### `dot reflog [-n <limit>] [--oneline] [--all]`
-Display the HEAD movement history (useful for recovery).
-
-Options:
-- `-n, --limit`: Number of entries to show (default: 10)
-- `--oneline`: Compact single-line format
-- `--all`: Show all reflog entries
-
-Examples:
-```bash
-dot reflog                 # Show last 10 HEAD movements
-dot reflog -n 20           # Show last 20 movements
-dot reflog --all           # Show complete history
-dot reflog --oneline       # Compact format
-```
-
-#### `dot show <object>`
-Display detailed information about a commit.
-
-#### `dot diff [<from>] [<to>]`
-Show differences between commits or working directory.
-
-Supported references:
-- Commit hash (full or short): `a1b2c3d4` or `a1b2c3d4...`
-- Branch name: `main`, `feature-branch`
-- HEAD references: `HEAD`, `HEAD~1`, `HEAD~2`
-
-Note: Output is automatically displayed through a pager (less/more) when running in a terminal.
-
-### Branch Management
-
-#### `dot branch [options]`
-Manage branches for different dotfile configurations.
-
-Subcommands:
-- `list`: List all branches
-- `create <name> [<start-point>]`: Create a new branch
-- `delete <name> [--force]`: Delete a branch
-- `rename <old> <new> [--force]`: Rename a branch
-- `current`: Show current branch
-- `set-upstream <branch> <remote> <remote-branch>`: Set upstream tracking
-
-Examples:
-```bash
-# List all branches
-dot branch list
-
-# Create a new branch for laptop configuration
-dot branch create laptop-config
-
-# Create branch from specific commit
-dot branch create experimental a1b2c3d4
-
-# Switch to a different branch
-dot checkout laptop-config
-
-# Set upstream tracking
-dot branch set-upstream laptop-config origin laptop-config
-
-# Delete a branch
-dot branch delete old-config --force
-```
-
-### Stash Operations
-
-#### `dot stash [subcommand]`
-Temporarily save and restore changes to your working directory.
-
-Subcommands:
-- `push [-m <message>] [-u] [-k]`: Save changes to stash (default when no subcommand)
-- `pop`: Apply and remove the latest stash
-- `apply [<stash-id>]`: Apply a stash without removing it
-- `list`: List all stash entries
-- `show [<stash-id>]`: Show the contents of a stash
-- `drop <stash-id>`: Remove a specific stash
-- `clear`: Remove all stashes
-
-Options for `stash push`:
-- `-m, --message`: Custom message for the stash
-- `-u, --include-untracked`: Include untracked files in the stash
-- `-k, --keep-index`: Keep changes in the index
-
-Examples:
-```bash
-# Save current changes with a message
-dot stash push -m "Work in progress on feature X"
-
-# Include untracked files
-dot stash push -u -m "Save everything including new files"
-
-# Apply the latest stash
-dot stash pop
-
-# Apply a specific stash without removing it
-dot stash apply stash_12345678_abcdef
-
-# List all stashes
-dot stash list
-
-# Show contents of latest stash
-dot stash show
-
-# Remove all stashes
-dot stash clear
-```
+## Core Commands
+
+### Essential Operations
+| Command | Description |
+|---------|------------|
+| `dot init` | Initialize a new repository |
+| `dot add <files>` | Track files or directories |
+| `dot status` | Show tracked/modified files |
+| `dot commit -m "msg"` | Create a snapshot |
+| `dot checkout [ref]` | Restore files from snapshot |
+| `dot reset <ref>` | Reset to a specific commit |
+
+### Branching & History
+| Command | Description |
+|---------|------------|
+| `dot branch [name]` | Create or list branches |
+| `dot checkout -b <name>` | Create and switch branch |
+| `dot log` | View commit history |
+| `dot reflog` | View HEAD movement history |
+| `dot tag <name>` | Create named reference |
 
 ### Remote Operations
+| Command | Description |
+|---------|------------|
+| `dot remote add <name> <url>` | Add remote repository |
+| `dot push [remote] [branch]` | Push changes |
+| `dot pull [remote] [branch]` | Pull and merge changes |
+| `dot fetch [remote]` | Download remote changes |
 
-#### `dot remote [options]`
-Manage remote repositories for syncing dotfiles.
-
-Subcommands:
-- `list`: List configured remotes
-- `add <name> <url>`: Add a new remote
-- `remove <name>`: Remove a remote
-- `rename <old> <new>`: Rename a remote
-- `set-url <name> <url>`: Change remote URL
-- `show <name>`: Show remote details
-
-Supported remote types:
-- **Git**: Standard git repositories (SSH/HTTPS) - GitHub, GitLab, Bitbucket, or any Git server
-
-Examples:
-```bash
-# List all remotes
-dot remote list
-
-# Add a git remote
-dot remote add origin git@github.com:username/dotfiles.git
-
-# Add a GitLab remote
-dot remote add gitlab https://gitlab.com/username/dotfiles.git
-
-# Add a Bitbucket remote  
-dot remote add bitbucket git@bitbucket.org:username/dotfiles.git
-
-# Change remote URL
-dot remote set-url origin https://github.com/username/dotfiles.git
-
-# Remove a remote
-dot remote remove old-backup
-```
-
-#### `dot push [<remote>] [<branch>]`
-Push commits to remote repository.
-
-Arguments:
-- `<remote>`: Remote name (defaults to upstream remote or 'origin')
-- `<branch>`: Branch to push (defaults to current branch)
-
-Examples:
-```bash
-dot push                    # Push current branch to its upstream
-dot push origin             # Push current branch to origin
-dot push backup main        # Push main branch to backup remote
-dot push origin laptop-config  # Push laptop-config branch to origin
-```
-
-#### `dot pull [<remote>] [<branch>]`
-Pull and merge changes from remote repository.
-
-Arguments:
-- `<remote>`: Remote name (defaults to upstream remote or 'origin')
-- `<branch>`: Branch to pull (defaults to current branch)
-
-Examples:
-```bash
-dot pull                    # Pull current branch from upstream
-dot pull origin             # Pull current branch from origin
-dot pull backup main        # Pull main branch from backup remote
-```
-
-### Utility Commands
-
-#### `dot clean [-n] [-f]`
-Remove untracked files from the working directory.
-
-Options:
-- `-n, --dry-run`: Show what would be removed without actually removing
-- `-f, --force`: Actually remove untracked files (required for safety)
-
-Examples:
-```bash
-dot clean -n            # Preview what would be removed
-dot clean -f            # Actually remove untracked files
-```
-
-#### `dot tag <name> [<commit>] [--delete] [--list] [--force]`
-Create, list, or delete tags (named references to commits).
-
-Arguments:
-- `<name>`: Tag name
-- `<commit>`: Commit to tag (default: HEAD)
-
-Options:
-- `--delete`: Delete the specified tag
-- `--list`: List all tags
-- `--force`: Overwrite existing tag
-
-Examples:
-```bash
-dot tag v1.0.0                   # Tag current HEAD as v1.0.0
-dot tag v1.0.0 a1b2c3d4          # Tag specific commit
-dot tag --list                   # List all tags
-dot tag v1.0.0 --delete          # Delete tag v1.0.0
-dot tag v2.0.0 HEAD --force      # Overwrite existing tag
-```
-
-#### `dot completion <shell>`
-Generate shell completion scripts.
-
-Supported shells:
-- `bash`
-- `zsh`
-- `fish`
-- `elvish`
-- `powershell`
-
-Example:
-```bash
-# Bash
-dot completion bash > ~/.local/share/bash-completion/completions/dot
-
-# Zsh
-dot completion zsh > ~/.local/share/zsh/site-functions/_dot
-
-# Fish
-dot completion fish > ~/.config/fish/completions/dot.fish
-```
-
-### Configuration Management
-
-#### `dot config [<key>] [<value>] [--list] [--unset]`
-Get and set repository and user configuration options.
-
-Usage:
-- `dot config` or `dot config --list`: Show all configuration values
-- `dot config <key>`: Get a specific configuration value
-- `dot config <key> <value>`: Set a configuration value
-- `dot config --unset <key>`: Remove a configuration value
-
-Supported keys:
-- `user.name`: Your name for commit authorship
-- `user.email`: Your email for commit authorship
-- `core.compression`: Compression algorithm (zstd/none)
-- `core.compression_level`: Compression level (1-22)
-- `core.default_branch`: Default branch name
-- `performance.*`: Performance tuning options
-- `tracking.*`: File tracking options
-
-Examples:
-```bash
-# Show all configuration
-dot config --list
-
-# Set user information
-dot config user.name "John Doe"
-dot config user.email "john@example.com"
-
-# Get a specific value
-dot config user.name
-
-# Unset a value
-dot config --unset user.email
-```
+### Maintenance
+| Command | Description |
+|---------|------------|
+| `dot clean` | Remove untracked files |
+| `dot gc` | Garbage collect unreferenced objects |
+| `dot config <key> <value>` | Set configuration |
 
 ## Configuration
 
-Configuration file location: `~/.config/dotman/config`
-
-### Configuration Structure
+Dotman uses TOML configuration at `~/.config/dotman/config`:
 
 ```toml
 [core]
-# Repository location (absolute or relative to home)
-repo_path = "~/.dotman"
-# Default branch name for new repositories
-default_branch = "main"
-# Compression algorithm: "zstd" or "none"
-compression = "zstd"
-# Compression level (1-22, higher = better compression but slower)
-compression_level = 3
+compression_level = 3        # 1-22, higher = better compression
+pager = "less"              # Optional pager for output
 
-# Multiple remotes configuration
-[remotes.origin]
-# Remote type: "git" or "none"
-remote_type = "git"
-# Remote URL (format depends on remote_type)
-url = "git@github.com:username/dotfiles.git"
-
-[remotes.gitlab]
-remote_type = "git"
-url = "https://gitlab.com/username/dotfiles.git"
-
-[remotes.bitbucket]
-remote_type = "git"
-url = "git@bitbucket.org:username/dotfiles.git"
-
-# Branch configuration
-[branches]
-# Current active branch
-current = "main"
-# Default branch for new repositories
-default = "main"
-
-# Branch upstream tracking (optional)
-[branches.tracking.main]
-remote = "origin"
-branch = "main"
-
-[branches.tracking.laptop-config]
-remote = "origin"
-branch = "laptop-config"
+[user]
+name = "Your Name"
+email = "you@example.com"
 
 [performance]
-# Number of parallel threads (0 = auto-detect)
-parallel_threads = 0
-# Use memory mapping for files larger than this (bytes)
-mmap_threshold = 1048576  # 1MB
-# Cache size in MB for frequently accessed data
-cache_size = 100
-# Use hard links instead of copying when possible
-use_hard_links = true
+parallel_threads = 0         # 0 = auto-detect
+mmap_threshold = 1048576    # Use mmap for files > 1MB
 
 [tracking]
-# Files and patterns to ignore (gitignore-style)
-ignore_patterns = [
-    ".git",
-    "*.swp",
-    "*.tmp",
-    "node_modules",
-    "__pycache__",
-    ".DS_Store"
-]
-# Follow symbolic links when traversing directories
+ignore_patterns = [".git", "*.swp", "node_modules"]
 follow_symlinks = false
-# Preserve file permissions in snapshots
 preserve_permissions = true
-```
-
-### Performance Tuning
-
-#### For SSDs
-```toml
-[performance]
-parallel_threads = 0      # Use all cores
-mmap_threshold = 65536    # 64KB
-cache_size = 200
-use_hard_links = true
-```
-
-#### For HDDs
-```toml
-[performance]
-parallel_threads = 4      # Limit parallelism
-mmap_threshold = 4194304  # 4MB
-cache_size = 50
-use_hard_links = false
-```
-
-#### For Network Storage
-```toml
-[core]
-compression_level = 9     # Higher compression
-
-[performance]
-parallel_threads = 2      # Reduce network congestion
-mmap_threshold = 8388608  # 8MB
-cache_size = 25
 ```
 
 ## Architecture
 
-### Project Structure
+Dotman uses a **trait-based architecture** with content-addressed storage for maximum performance and code reuse:
 
 ```
-dotman/
-├── src/
-│   ├── main.rs           # CLI entry point
-│   ├── lib.rs            # Library interface
-│   ├── commands/         # Command implementations
-│   │   ├── add.rs
-│   │   ├── commit.rs
-│   │   ├── status.rs
-│   │   ├── branch.rs     # Branch management
-│   │   ├── remote.rs     # Remote management
-│   │   └── ...
-│   ├── storage/          # Storage layer
-│   │   ├── index.rs      # Binary index management
-│   │   └── snapshots.rs  # Snapshot storage
-│   ├── refs/             # Git-like references system
-│   │   └── resolver.rs   # Reference resolution (HEAD^, HEAD~n)
-│   ├── reflog.rs         # HEAD movement history tracking
-│   ├── config/           # Configuration
-│   │   ├── mod.rs        # Config structures
-│   │   └── parser.rs     # TOML parser
-│   └── utils/            # Utilities
-│       ├── hash.rs       # xxHash3 implementation
-│       ├── commit.rs     # Content-addressed commit ID generation
-│       └── compress.rs   # Compression utilities
-├── tests/                # Integration tests
-├── benches/              # Performance benchmarks
-└── Cargo.toml           # Project manifest
+┌─────────────────────────────────────────┐
+│            CLI (clap)                   │
+├─────────────────────────────────────────┤
+│     CommandContext Trait                │  ← Shared command logic
+│     RemoteOperations Trait              │  ← Remote sync operations
+├─────────────────────────────────────────┤
+│     Binary Index (DashMap)              │  ← O(1) lookups
+│     Content Store (xxHash3)             │  ← Deduplication
+│     Snapshots (Zstd compressed)         │  ← Commit storage
+├─────────────────────────────────────────┤
+│     SIMD UTF-8 & JSON                   │  ← Hardware acceleration
+│     Memory-mapped I/O                   │  ← Large file handling
+│     Parallel Processing (rayon)         │  ← Multi-core utilization
+└─────────────────────────────────────────┘
 ```
 
-### Repository Layout
-
+### Repository Structure
 ```
 ~/.dotman/
-├── index.bin            # Binary index file
-├── commits/             # Snapshot storage
-│   └── <commit-id>      # Compressed snapshots (32-char hex)
-├── objects/             # Deduplicated objects
-├── refs/                # Reference storage
-│   ├── heads/           # Branch references
-│   │   ├── main         # Main branch
-│   │   └── laptop-config # Other branches
-│   ├── tags/            # Tag references
-│   │   └── v1.0.0       # Named version tags
-│   └── remotes/         # Remote tracking branches
-│       └── origin/
-│           └── main
-├── logs/                # Reference logs
-│   └── HEAD             # HEAD movement history
-└── HEAD                 # Current branch/commit reference
+├── index.bin          # Binary index
+├── commits/           # Snapshot storage
+├── objects/           # Deduplicated content
+├── refs/              # Branches and tags
+├── logs/HEAD          # Reflog
+└── HEAD              # Current reference
 ```
-
-### Key Dependencies
-
-- `clap`: Command-line argument parsing
-- `rayon`: Data parallelism
-- `dashmap`: Concurrent hashmap
-- `bincode`: Binary serialization
-- `zstd`: Compression
-- `xxhash-rust`: Fast hashing
-- `memmap2`: Memory-mapped files
-- `simdutf8`: SIMD UTF-8 validation
-- `parking_lot`: Synchronization primitives
 
 ## Development
 
-### Build System
-
-The project uses Just as the primary task runner:
-
 ```bash
 # Build
-just build              # Debug build
-just build-release      # Release build
-just build-optimized    # Native CPU optimizations
+cargo build --release
 
-# Testing
-just test              # Run all tests
-just test-unit         # Unit tests only
-just test-integration  # Integration tests
-just test-property     # Property-based tests
-
-# Code Quality
-just fmt               # Format code
-just lint              # Run clippy
-just audit             # Security audit
-
-# Performance
-just bench             # Run benchmarks
-just profile-flame     # Generate flamegraph
-just profile-memory    # Memory profiling
-```
-
-### Cross-Compilation
-
-```bash
-# Build for all platforms
-./scripts/cross-compile.sh --dist all
-
-# Specific platforms
-./scripts/cross-compile.sh --dist linux-x86_64
-./scripts/cross-compile.sh --dist linux-aarch64
-./scripts/cross-compile.sh --dist darwin-x86_64
-./scripts/cross-compile.sh --dist darwin-aarch64
-```
-
-### Packaging
-
-```bash
-# Debian/Ubuntu
-just package-debian
-
-# RPM (Fedora/RHEL)
-just package-rpm
-
-# Arch Linux
-just package-arch
-
-# Alpine Linux
-just package-alpine
-
-# Docker containers
-just docker-build
-just docker-build-alpine
-```
-
-## Testing
-
-### Test Categories
-
-- **Unit Tests**: Inline with modules, test individual functions
-- **Integration Tests**: End-to-end workflow testing
-- **Property Tests**: Randomized testing for edge cases
-- **Security Tests**: Vulnerability and safety testing
-
-### Running Tests
-
-```bash
-# All tests
+# Run tests
 cargo test
 
-# Specific test category
-cargo test --test integration_test
-cargo test --test property_based_tests
+# Run with verbose output
+RUST_LOG=debug dot status
 
-# With output
-cargo test -- --nocapture
-
-# Sequential execution (for isolation)
-cargo test -- --test-threads=1
-
-# Coverage report
-cargo llvm-cov --html
-```
-
-## Benchmarking
-
-### Performance Benchmarks
-
-```bash
-# Run all benchmarks
+# Benchmarks
 cargo bench
 
-# Specific benchmark
-cargo bench parser_bench
-cargo bench storage_bench
-cargo bench commands_bench
-
-# Compare with baseline
-cargo bench -- --baseline main
+# Code quality
+cargo fmt
+cargo clippy
 ```
 
-### Profiling
-
+### Using Just (Task Runner)
 ```bash
-# CPU profiling with flamegraph
-cargo flamegraph --bin dot -- status
-
-# Memory profiling
-valgrind --tool=massif target/release/dot status
-ms_print massif.out.* > memory-profile.txt
-
-# Performance profiling
-perf record --call-graph=dwarf target/release/dot status
-perf report
+just build            # Debug build
+just test            # Run all tests
+just ci              # Full CI suite
+just cross-compile all  # Build for all platforms
 ```
 
 ## Contributing
 
-### Development Setup
+Contributions welcome! Please ensure:
+- Tests pass: `cargo test`
+- Code is formatted: `cargo fmt`
+- Clippy is happy: `cargo clippy`
 
-1. Fork the repository
-2. Clone your fork:
-   ```bash
-   git clone https://github.com/your-username/dotman-rs.git
-   cd dotman-rs
-   ```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-3. Install development tools:
-   ```bash
-   just setup
-   ```
+## Performance
 
-4. Create a feature branch:
-   ```bash
-   git checkout -b feature/your-feature
-   ```
-
-### Code Standards
-
-- Follow Rust standard formatting (enforced by rustfmt)
-- Pass all clippy lints
-- Maintain or improve test coverage
-- Document public APIs
-- Benchmark performance-critical changes
-
-### Submitting Changes
-
-1. Ensure all tests pass:
-   ```bash
-   just ci
-   ```
-
-2. Commit with descriptive messages:
-   ```bash
-   git commit -m "feat: add new feature
-
-   - Detailed description
-   - Related issue #123"
-   ```
-
-3. Push and create pull request
-
-### Issue Reporting
-
-Report issues at: https://github.com/UtsavBalar1231/dotman-rs/issues
-
-Include:
-- dotman version
-- Operating system and architecture
-- Steps to reproduce
-- Expected vs actual behavior
-- Error messages or logs
+Dotman is optimized for speed at every level:
+- **SIMD acceleration** for UTF-8 validation and JSON parsing
+- **Binary index** with lock-free concurrent access via DashMap
+- **Memory-mapped I/O** for large files (>1MB)
+- **Parallel operations** via rayon with configurable thread count
+- **xxHash3** for content hashing (>30GB/s on modern CPUs)
+- **Zstandard compression** with dictionary training
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-Built with high-performance Rust crates from the ecosystem:
-- The Rust community for excellent libraries
-- Contributors and testers
-- Users providing feedback and bug reports
-
----
-
-**Project Homepage**: https://github.com/UtsavBalar1231/dotman-rs
-**Documentation**: https://docs.rs/dotman
-**Author**: Utsav Balar <utsavbalar1231@gmail.com>
+Built with excellent Rust crates including `clap`, `rayon`, `dashmap`, `zstd`, and `xxhash-rust`.
