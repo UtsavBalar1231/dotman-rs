@@ -166,14 +166,16 @@ pub fn rename(ctx: &mut DotmanContext, old_name: &str, new_name: &str) -> Result
 /// Detect remote type from URL
 #[allow(clippy::case_sensitive_file_extension_comparisons)]
 fn detect_remote_type(url: &str) -> RemoteType {
-    if url.starts_with("s3://") || url.contains("amazonaws.com") {
-        RemoteType::S3
-    } else if url.ends_with(".git") || url.contains("github.com") || url.contains("gitlab.com") {
-        RemoteType::Git
-    } else if url.starts_with("rsync://")
-        || (url.contains('@') && url.contains(':') && !url.contains("://"))
+    if url.ends_with(".git")
+        || url.contains("github.com")
+        || url.contains("gitlab.com")
+        || url.contains("bitbucket.org")
+        || url.contains("git@")
+        || url.starts_with("git://")
+        || url.starts_with("https://") && url.contains(".git")
+        || url.starts_with("http://") && url.contains(".git")
     {
-        RemoteType::Rsync
+        RemoteType::Git
     } else {
         RemoteType::None
     }
@@ -272,11 +274,14 @@ mod tests {
         let (_temp, mut ctx) = create_test_context()?;
 
         add(&mut ctx, "origin", "https://github.com/user/repo.git")?;
-        set_url(&mut ctx, "origin", "s3://my-bucket")?;
+        set_url(&mut ctx, "origin", "https://gitlab.com/user/repo.git")?;
 
         let remote = ctx.config.get_remote("origin").unwrap();
-        assert_eq!(remote.url, Some("s3://my-bucket".to_string()));
-        assert!(matches!(remote.remote_type, RemoteType::S3));
+        assert_eq!(
+            remote.url,
+            Some("https://gitlab.com/user/repo.git".to_string())
+        );
+        assert!(matches!(remote.remote_type, RemoteType::Git));
 
         Ok(())
     }
@@ -305,23 +310,23 @@ mod tests {
             RemoteType::Git
         ));
         assert!(matches!(
-            detect_remote_type("s3://my-bucket"),
-            RemoteType::S3
+            detect_remote_type("https://gitlab.com/user/repo.git"),
+            RemoteType::Git
         ));
         assert!(matches!(
-            detect_remote_type("https://s3.amazonaws.com/bucket"),
-            RemoteType::S3
+            detect_remote_type("git@bitbucket.org:user/repo.git"),
+            RemoteType::Git
         ));
         assert!(matches!(
-            detect_remote_type("rsync://server/path"),
-            RemoteType::Rsync
-        ));
-        assert!(matches!(
-            detect_remote_type("user@host:/path"),
-            RemoteType::Rsync
+            detect_remote_type("git://github.com/user/repo.git"),
+            RemoteType::Git
         ));
         assert!(matches!(
             detect_remote_type("/local/path"),
+            RemoteType::None
+        ));
+        assert!(matches!(
+            detect_remote_type("file:///path/to/repo"),
             RemoteType::None
         ));
     }

@@ -32,10 +32,8 @@ pub fn execute(
         crate::config::RemoteType::Git => {
             fetch_from_git(ctx, remote_config, remote, branch, all, tags)
         }
-        crate::config::RemoteType::S3 => fetch_from_s3(ctx, remote_config, remote),
-        crate::config::RemoteType::Rsync => fetch_from_rsync(ctx, remote_config, remote),
         crate::config::RemoteType::None => Err(anyhow::anyhow!(
-            "Remote '{}' has no type configured.",
+            "Remote '{}' has no type configured or is not a Git remote.",
             remote
         )),
     }
@@ -140,83 +138,6 @@ fn fetch_from_git(
     Ok(())
 }
 
-fn fetch_from_s3(
-    _ctx: &DotmanContext,
-    remote_config: &crate::config::RemoteConfig,
-    remote: &str,
-) -> Result<()> {
-    let bucket = remote_config
-        .url
-        .as_ref()
-        .with_context(|| format!("Remote '{remote}' has no S3 bucket configured"))?;
-
-    super::print_info(&format!("Fetching from S3 bucket {bucket}"));
-
-    // Use aws CLI to sync from S3
-    let temp_dir = tempfile::tempdir()?;
-    let output = Command::new("aws")
-        .args([
-            "s3",
-            "sync",
-            &format!("s3://{bucket}/"),
-            temp_dir
-                .path()
-                .to_str()
-                .context("Invalid temporary directory path")?,
-            "--delete",
-        ])
-        .output()?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("S3 sync failed: {stderr}"));
-    }
-
-    // Compare with local repository
-    super::print_info("Comparing fetched data with local repository...");
-
-    super::print_success(&format!("Successfully fetched from S3 bucket {bucket}"));
-    super::print_info("Use 'dot pull' to integrate the changes");
-
-    Ok(())
-}
-
-fn fetch_from_rsync(
-    _ctx: &DotmanContext,
-    remote_config: &crate::config::RemoteConfig,
-    remote: &str,
-) -> Result<()> {
-    let source = remote_config
-        .url
-        .as_ref()
-        .with_context(|| format!("Remote '{remote}' has no rsync source configured"))?;
-
-    super::print_info(&format!("Fetching via rsync from {source}"));
-
-    // Use rsync to fetch to a temporary location
-    let temp_dir = tempfile::tempdir()?;
-    let output = Command::new("rsync")
-        .args([
-            "-avz",
-            "--delete",
-            source,
-            &format!("{}/", temp_dir.path().display()),
-        ])
-        .output()?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("Rsync failed: {stderr}"));
-    }
-
-    super::print_info("Comparing fetched data with local repository...");
-
-    super::print_success(&format!("Successfully fetched via rsync from {source}"));
-    super::print_info("Use 'dot pull' to integrate the changes");
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,7 +145,10 @@ mod tests {
     use std::fs;
     use tempfile::tempdir;
 
-    fn create_test_context(remote_type: RemoteType, url: Option<String>) -> Result<DotmanContext> {
+    fn create_test_context(
+        remote_type: crate::config::RemoteType,
+        url: Option<String>,
+    ) -> Result<DotmanContext> {
         let temp = tempdir()?;
         let repo_path = temp.path().join(".dotman");
         let config_path = temp.path().join("config.toml");
@@ -270,36 +194,6 @@ mod tests {
         )?;
 
         // Would need to mock git command for full test
-        Ok(())
-    }
-
-    #[test]
-    fn test_fetch_from_s3_no_bucket() -> Result<()> {
-        let ctx = create_test_context(RemoteType::S3, None)?;
-
-        let remote_config = crate::config::RemoteConfig {
-            remote_type: RemoteType::S3,
-            url: None,
-        };
-        let result = fetch_from_s3(&ctx, &remote_config, "origin");
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("no S3 bucket"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_fetch_from_rsync_no_source() -> Result<()> {
-        let ctx = create_test_context(RemoteType::Rsync, None)?;
-
-        let remote_config = crate::config::RemoteConfig {
-            remote_type: RemoteType::Rsync,
-            url: None,
-        };
-        let result = fetch_from_rsync(&ctx, &remote_config, "origin");
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("no rsync source"));
-
         Ok(())
     }
 }

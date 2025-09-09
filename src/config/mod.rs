@@ -61,8 +61,6 @@ pub struct RemoteConfig {
 #[serde(rename_all = "lowercase")]
 pub enum RemoteType {
     Git,
-    S3,
-    Rsync,
     None,
 }
 

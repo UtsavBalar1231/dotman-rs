@@ -32,7 +32,7 @@ dotman is a dotfiles manager designed from the ground up for performance and rel
 - **Performance-First Design**: Every architectural decision prioritizes speed without sacrificing correctness
 - **Git-Like Interface**: Familiar command structure for developers already using version control
 - **Multi-Configuration Support**: Branch-based management for different machines (laptop, desktop, server)
-- **Flexible Remote Storage**: Support for Git, S3, and Rsync remotes for backup and synchronization
+- **Git Remote Storage**: Full support for Git remotes (GitHub, GitLab, Bitbucket, etc.) for backup and synchronization
 - **Content Deduplication**: Intelligent storage minimization through content-based deduplication
 - **Parallel Processing**: Utilizes all available CPU cores for file operations
 - **Binary Index Format**: Fast serialization and deserialization for instant repository loading
@@ -511,9 +511,7 @@ Subcommands:
 - `show <name>`: Show remote details
 
 Supported remote types:
-- **Git**: Standard git repositories (SSH/HTTPS)
-- **S3**: Amazon S3 buckets for cloud storage
-- **Rsync**: Any rsync-compatible destination
+- **Git**: Standard git repositories (SSH/HTTPS) - GitHub, GitLab, Bitbucket, or any Git server
 
 Examples:
 ```bash
@@ -523,11 +521,11 @@ dot remote list
 # Add a git remote
 dot remote add origin git@github.com:username/dotfiles.git
 
-# Add an S3 remote for backup
-dot remote add backup s3://my-dotfiles-bucket/
+# Add a GitLab remote
+dot remote add gitlab https://gitlab.com/username/dotfiles.git
 
-# Add an rsync remote for NAS
-dot remote add nas rsync://nas.local/backup/dotfiles/
+# Add a Bitbucket remote  
+dot remote add bitbucket git@bitbucket.org:username/dotfiles.git
 
 # Change remote URL
 dot remote set-url origin https://github.com/username/dotfiles.git
@@ -678,18 +676,18 @@ compression_level = 3
 
 # Multiple remotes configuration
 [remotes.origin]
-# Remote type: "git", "s3", or "rsync"
+# Remote type: "git" or "none"
 remote_type = "git"
 # Remote URL (format depends on remote_type)
 url = "git@github.com:username/dotfiles.git"
 
-[remotes.backup]
-remote_type = "s3"
-url = "s3://my-dotfiles-backup/"
+[remotes.gitlab]
+remote_type = "git"
+url = "https://gitlab.com/username/dotfiles.git"
 
-[remotes.nas]
-remote_type = "rsync"
-url = "rsync://nas.local/backup/dotfiles/"
+[remotes.bitbucket]
+remote_type = "git"
+url = "git@bitbucket.org:username/dotfiles.git"
 
 # Branch configuration
 [branches]

@@ -193,16 +193,16 @@ fn test_remote_management() -> Result<()> {
     // Add multiple remotes
     dotman::commands::remote::add(&mut ctx, "origin", "https://github.com/user/repo.git")?;
 
-    dotman::commands::remote::add(&mut ctx, "backup", "s3://my-backup")?;
+    dotman::commands::remote::add(&mut ctx, "gitlab", "https://gitlab.com/user/repo.git")?;
 
     // Reload config to see changes
     let config = Config::load(&config_path)?;
     assert!(config.remotes.contains_key("origin"));
-    assert!(config.remotes.contains_key("backup"));
+    assert!(config.remotes.contains_key("gitlab"));
 
     // Verify remote types
     assert_eq!(config.remotes["origin"].remote_type, RemoteType::Git);
-    assert_eq!(config.remotes["backup"].remote_type, RemoteType::S3);
+    assert_eq!(config.remotes["gitlab"].remote_type, RemoteType::Git);
 
     Ok(())
 }

@@ -126,20 +126,17 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
                 let short_commit = &commit_id[..8.min(commit_id.len())];
 
                 // Try to load the commit to get the message
-                let message_preview = snapshot_manager
-                    .load_snapshot(&commit_id)
-                    .ok()
-                    .map_or_else(
-                        || "<commit not found>".to_string(),
-                        |snapshot| {
-                            let msg = &snapshot.commit.message;
-                            if msg.len() > 50 {
-                                format!("{}...", &msg[..47])
-                            } else {
-                                msg.to_string()
-                            }
-                        },
-                    );
+                let message_preview = snapshot_manager.load_snapshot(&commit_id).ok().map_or_else(
+                    || "<commit not found>".to_string(),
+                    |snapshot| {
+                        let msg = &snapshot.commit.message;
+                        if msg.len() > 50 {
+                            format!("{}...", &msg[..47])
+                        } else {
+                            msg.to_string()
+                        }
+                    },
+                );
 
                 println!(
                     "  {} -> {} {}",
@@ -258,8 +255,8 @@ mod tests {
     use std::fs;
 
     fn setup_test_context() -> Result<(tempfile::TempDir, DotmanContext)> {
-        use crate::test_utils::fixtures::{create_test_context, test_commit_id};
         use crate::storage::{Commit, snapshots::Snapshot};
+        use crate::test_utils::fixtures::{create_test_context, test_commit_id};
         use std::collections::HashMap;
 
         let (dir, ctx) = create_test_context()?;
@@ -283,7 +280,10 @@ mod tests {
         // Save the snapshot
         let serialized = crate::utils::serialization::serialize(&snapshot)?;
         let compressed = zstd::stream::encode_all(&serialized[..], 3)?;
-        let snapshot_path = ctx.repo_path.join("commits").join(format!("{}.zst", &commit_id));
+        let snapshot_path = ctx
+            .repo_path
+            .join("commits")
+            .join(format!("{}.zst", &commit_id));
         fs::write(&snapshot_path, compressed)?;
 
         // Update HEAD to point to this commit
@@ -316,9 +316,9 @@ mod tests {
         // The error message varies based on whether it's treated as a ref or commit hash
         let err_msg = result.unwrap_err().to_string();
         assert!(
-            err_msg.contains("does not exist") || 
-            err_msg.contains("Cannot resolve") ||
-            err_msg.contains("Failed to resolve"),
+            err_msg.contains("does not exist")
+                || err_msg.contains("Cannot resolve")
+                || err_msg.contains("Failed to resolve"),
             "Unexpected error message: {err_msg}"
         );
 
