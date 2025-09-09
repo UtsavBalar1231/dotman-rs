@@ -50,7 +50,7 @@ fn test_branch_deletion_not_merged() -> Result<()> {
 
     // Create a feature branch
     branch::create(&ctx, "feature", None)?;
-    branch::checkout(&ctx, "feature")?;
+    branch::checkout(&ctx, "feature", false)?;
 
     // Make a commit on the feature branch
     let test_file2 = temp.path().join("file2.txt");
@@ -59,7 +59,7 @@ fn test_branch_deletion_not_merged() -> Result<()> {
     commit::execute(&ctx, "Feature commit", false)?;
 
     // Switch back to main
-    branch::checkout(&ctx, "main")?;
+    branch::checkout(&ctx, "main", false)?;
 
     // Try to delete the unmerged feature branch without force
     let result = branch::delete(&ctx, "feature", false);
@@ -105,7 +105,7 @@ fn test_branch_deletion_merged_after_merge() -> Result<()> {
 
     // Create and switch to feature branch
     branch::create(&ctx, "feature", None)?;
-    branch::checkout(&ctx, "feature")?;
+    branch::checkout(&ctx, "feature", false)?;
 
     // Make a commit on feature
     let test_file2 = temp.path().join("file2.txt");
@@ -114,7 +114,7 @@ fn test_branch_deletion_merged_after_merge() -> Result<()> {
     commit::execute(&ctx, "Feature commit", false)?;
 
     // Switch back to main and "merge" by making a commit with feature as parent
-    branch::checkout(&ctx, "main")?;
+    branch::checkout(&ctx, "main", false)?;
 
     // For a simple test, we'll just advance main to include the feature changes
     // In a real scenario, this would be done via merge command
@@ -176,7 +176,7 @@ fn test_protect_main_branch() -> Result<()> {
 
     // Create another branch and switch to it
     branch::create(&ctx, "develop", None)?;
-    branch::checkout(&ctx, "develop")?;
+    branch::checkout(&ctx, "develop", false)?;
 
     // Try to delete main without force
     let result = branch::delete(&ctx, "main", false);

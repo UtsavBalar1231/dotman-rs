@@ -478,6 +478,15 @@ enum BranchAction {
         force: bool,
     },
 
+    /// Checkout a branch
+    Checkout {
+        /// Branch name
+        name: String,
+        /// Force checkout even with uncommitted changes
+        #[arg(short, long)]
+        force: bool,
+    },
+
     /// Rename a branch
     Rename {
         /// Old branch name (current branch if not specified)
@@ -693,6 +702,9 @@ fn run() -> Result<()> {
                 }
                 Some(BranchAction::Delete { name, force }) => {
                     commands::branch::delete(&ctx, &name, force)?;
+                }
+                Some(BranchAction::Checkout { name, force }) => {
+                    commands::branch::checkout(&ctx, &name, force)?;
                 }
                 Some(BranchAction::Rename { old_name, new_name }) => {
                     commands::branch::rename(&ctx, old_name.as_deref(), &new_name)?;

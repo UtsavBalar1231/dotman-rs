@@ -61,7 +61,15 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     // Update HEAD with reflog entry
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let message = format!("checkout: moving to {target}");
-    ref_manager.set_head_to_commit_with_reflog(&commit_id, "checkout", &message)?;
+
+    // Check if target is a branch name
+    if ref_manager.branch_exists(target) {
+        // Checkout the branch (update HEAD to point to the branch)
+        ref_manager.set_head_to_branch_with_reflog(target, "checkout", &message)?;
+    } else {
+        // Checkout a specific commit (detached HEAD)
+        ref_manager.set_head_to_commit_with_reflog(&commit_id, "checkout", &message)?;
+    }
 
     let display_id = if commit_id.len() >= 8 {
         &commit_id[..8]
