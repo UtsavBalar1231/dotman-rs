@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use crate::DotmanContext;
 use crate::refs::resolver::RefResolver;
+use crate::storage::concurrent_index::ConcurrentIndex;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
 
@@ -21,6 +22,13 @@ pub trait CommandContext {
     ///
     /// Returns an error if the index file cannot be loaded
     fn load_index(&self) -> Result<Index>;
+
+    /// Loads the repository index as a concurrent index for thread-safe operations
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the index file cannot be loaded
+    fn load_concurrent_index(&self) -> Result<ConcurrentIndex>;
 
     /// Gets the home directory path
     ///
@@ -47,6 +55,11 @@ impl CommandContext for DotmanContext {
     fn load_index(&self) -> Result<Index> {
         let index_path = self.repo_path.join("index.bin");
         Index::load(&index_path)
+    }
+
+    fn load_concurrent_index(&self) -> Result<ConcurrentIndex> {
+        let index_path = self.repo_path.join("index.bin");
+        ConcurrentIndex::load(&index_path)
     }
 
     fn get_home_dir(&self) -> Result<PathBuf> {

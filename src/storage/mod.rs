@@ -1,3 +1,4 @@
+pub mod concurrent_index;
 pub mod index;
 pub mod snapshots;
 pub mod stash;

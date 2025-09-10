@@ -44,9 +44,22 @@ impl Index {
             return Ok(Self::new());
         }
 
-        // Read the entire file first to avoid locking issues
+        // Open file with read access for locking
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .open(path)
+            .with_context(|| format!("Failed to open index file: {}", path.display()))?;
+
+        // Acquire shared lock for reading
+        file.lock_shared()
+            .context("Failed to acquire shared lock on index file")?;
+
+        // Read the entire file while locked
         let data = std::fs::read(path)
             .with_context(|| format!("Failed to read index file: {}", path.display()))?;
+
+        // Release lock before deserialization
+        file.unlock().context("Failed to unlock index file")?;
 
         let mut index: Self =
             serialization::deserialize(&data).context("Failed to deserialize index")?;
@@ -152,7 +165,12 @@ impl Index {
         {
             let existing_data = std::fs::read(path)
                 .with_context(|| format!("Failed to read existing index: {}", path.display()))?;
-            serialization::deserialize::<Self>(&existing_data).unwrap_or_else(|_| Self::new())
+            serialization::deserialize::<Self>(&existing_data).with_context(|| {
+                format!(
+                    "Failed to deserialize existing index from: {}",
+                    path.display()
+                )
+            })?
         } else {
             Self::new()
         };

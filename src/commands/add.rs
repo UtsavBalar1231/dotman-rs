@@ -20,7 +20,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
     ctx.ensure_initialized()?;
 
     let index_path = ctx.repo_path.join("index.bin");
-    let mut index = ctx.load_index()?;
+    let index = ctx.load_concurrent_index()?;
 
     let mut files_to_add = Vec::new();
 
@@ -63,7 +63,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
             let cached_hash = relative_path
                 .as_ref()
                 .and_then(|rp| index.get_staged_entry(rp).or_else(|| index.get_entry(rp)))
-                .and_then(|e| e.cached_hash.clone());
+                .and_then(|e| e.cached_hash);
             create_file_entry_with_cache(path, &home, cached_hash.as_ref())
         })
         .collect();
