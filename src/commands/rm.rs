@@ -100,7 +100,14 @@ pub fn execute(
             continue;
         }
 
-        if index.remove_entry(&index_path).is_some() {
+        // Check if file is tracked
+        if index.entries.contains_key(&index_path) {
+            // Mark the file as deleted
+            index.mark_deleted(index_path.clone());
+            println!("  {} {}", "removed:".red(), path.display());
+            removed_count += 1;
+        } else if index.staged_entries.remove(&index_path).is_some() {
+            // File was only in staging area, not committed yet
             println!("  {} {}", "removed:".red(), path.display());
             removed_count += 1;
         }

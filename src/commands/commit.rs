@@ -26,7 +26,7 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
 
     if index.staged_entries.is_empty() && index.entries.is_empty() {
         super::print_warning("No files tracked. Use 'dot add' to track files first.");
-        return Ok(());
+        anyhow::bail!("No files tracked");
     }
 
     if all {
@@ -38,7 +38,7 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
         super::print_warning(
             "No changes staged for commit. Use 'dot add' to stage changes or 'dot commit --all' to commit all changes.",
         );
-        return Ok(());
+        anyhow::bail!("No changes staged for commit");
     }
 
     let (timestamp, nanos) = get_precise_timestamp();
@@ -50,6 +50,11 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     for (path, entry) in &index.staged_entries {
         use std::fmt::Write;
         let _ = writeln!(&mut tree_content, "{} {}", entry.hash, path.display());
+    }
+    // Include deletions in the tree hash (marked with a special hash)
+    for path in &index.deleted_entries {
+        use std::fmt::Write;
+        let _ = writeln!(&mut tree_content, "DELETED {}", path.display());
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
@@ -83,7 +88,7 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
 
     let display_id = format_commit_id(&commit_id);
     super::print_success(&format!(
-        "Created commit {} with {} files",
+        "Committed {} with {} files",
         display_id.yellow(),
         files.len()
     ));
@@ -131,6 +136,11 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     for (path, entry) in &index.staged_entries {
         use std::fmt::Write;
         let _ = writeln!(&mut tree_content, "{} {}", entry.hash, path.display());
+    }
+    // Include deletions in the tree hash (marked with a special hash)
+    for path in &index.deleted_entries {
+        use std::fmt::Write;
+        let _ = writeln!(&mut tree_content, "DELETED {}", path.display());
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 

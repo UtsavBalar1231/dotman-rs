@@ -104,10 +104,9 @@ pub fn execute_verbose(
         }
     }
 
-    for path in index.entries.keys() {
-        if !index.staged_entries.contains_key(path) {
-            statuses.push(FileStatus::Deleted(path.clone()));
-        }
+    // Check for deleted entries
+    for path in &index.deleted_entries {
+        statuses.push(FileStatus::Deleted(path.clone()));
     }
 
     for (path, staged_entry) in &index.staged_entries {

@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use fs4::fs_std::FileExt;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,6 +13,8 @@ pub struct Index {
     pub version: u32,
     pub entries: HashMap<PathBuf, FileEntry>,
     pub staged_entries: HashMap<PathBuf, FileEntry>,
+    #[serde(default)]
+    pub deleted_entries: HashSet<PathBuf>,
 }
 
 impl Default for Index {
@@ -28,6 +30,7 @@ impl Index {
             version: 1,
             entries: HashMap::new(),
             staged_entries: HashMap::new(),
+            deleted_entries: HashSet::new(),
         }
     }
 
@@ -191,6 +194,11 @@ impl Index {
                 .insert(path.clone(), entry_without_cache);
         }
 
+        // Merge deleted entries
+        for path in &self.deleted_entries {
+            final_index.deleted_entries.insert(path.clone());
+        }
+
         let data =
             serialization::serialize(&final_index).context("Failed to serialize merged index")?;
 
@@ -240,6 +248,11 @@ impl Index {
 
     #[must_use]
     pub fn has_staged_changes(&self) -> bool {
+        // Check for deletions
+        if !self.deleted_entries.is_empty() {
+            return true;
+        }
+
         for (path, staged_entry) in &self.staged_entries {
             match self.entries.get(path) {
                 Some(committed_entry) => {
@@ -252,7 +265,7 @@ impl Index {
         }
 
         for path in self.entries.keys() {
-            if !self.staged_entries.contains_key(path) {
+            if !self.staged_entries.contains_key(path) && !self.deleted_entries.contains(path) {
                 return true;
             }
         }
@@ -262,6 +275,36 @@ impl Index {
 
     pub fn commit_staged(&mut self) {
         self.entries = self.staged_entries.clone();
+        // Remove deleted entries from committed state
+        for path in &self.deleted_entries {
+            self.entries.remove(path);
+        }
+        // Clear deleted entries after commit
+        self.deleted_entries.clear();
+    }
+
+    /// Mark a file as deleted
+    pub fn mark_deleted(&mut self, path: PathBuf) {
+        self.deleted_entries.insert(path.clone());
+        // Remove from staged entries if present
+        self.staged_entries.remove(&path);
+    }
+
+    /// Unmark a file as deleted
+    pub fn unmark_deleted(&mut self, path: &Path) -> bool {
+        self.deleted_entries.remove(path)
+    }
+
+    /// Check if a file is marked for deletion
+    #[must_use]
+    pub fn is_deleted(&self, path: &Path) -> bool {
+        self.deleted_entries.contains(path)
+    }
+
+    /// Get all deleted entries
+    #[must_use]
+    pub fn get_deleted_entries(&self) -> &HashSet<PathBuf> {
+        &self.deleted_entries
     }
 
     /// Get file statuses by comparing index entries with current filesystem state
