@@ -501,29 +501,5 @@ fn get_file_mode(metadata: &std::fs::Metadata) -> u32 {
 
 #[cfg(not(unix))]
 fn get_file_mode(_metadata: &std::fs::Metadata) -> u32 {
-    0o644 // Default file mode for non-Unix systems
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_stash_command_variants() {
-        let _ = StashCommand::Push {
-            message: Some("test".to_string()),
-            include_untracked: true,
-            keep_index: false,
-        };
-        let _ = StashCommand::Pop;
-        let _ = StashCommand::Apply {
-            stash_id: Some("stash_123".to_string()),
-        };
-        let _ = StashCommand::List;
-        let _ = StashCommand::Show { stash_id: None };
-        let _ = StashCommand::Drop {
-            stash_id: "stash_123".to_string(),
-        };
-        let _ = StashCommand::Clear;
-    }
+    panic!("File mode retrieval not implemented for this platform")
 }

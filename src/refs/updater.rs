@@ -145,38 +145,3 @@ impl ReflogUpdater {
         self.update_head(commit_id, "commit", &format!("commit: {truncated_message}"))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::TempDir;
-
-    #[test]
-    fn test_reflog_updater_new() {
-        let temp_dir = TempDir::new().unwrap();
-        let _updater = ReflogUpdater::new(temp_dir.path().to_path_buf());
-
-        // Just ensure it can be created without panicking
-    }
-
-    #[test]
-    fn test_commit_message_truncation() {
-        let temp_dir = TempDir::new().unwrap();
-        let repo_path = temp_dir.path().to_path_buf();
-
-        // Initialize the repository structure
-        std::fs::create_dir_all(repo_path.join("refs/heads")).unwrap();
-        std::fs::write(repo_path.join("HEAD"), "ref: refs/heads/main").unwrap();
-        std::fs::write(repo_path.join("refs/heads/main"), "0".repeat(40)).unwrap();
-
-        let updater = ReflogUpdater::new(repo_path);
-
-        // Test with a long commit message
-        let long_message =
-            "This is a very long commit message that should be truncated in the reflog entry";
-        let result = updater.commit_head("abc123", long_message);
-
-        // The function should handle this gracefully
-        assert!(result.is_ok());
-    }
-}

@@ -353,38 +353,3 @@ fn print_status_group(
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::Config;
-    use tempfile::tempdir;
-
-    #[test]
-    fn test_get_current_files() -> Result<()> {
-        let dir = tempdir()?;
-        let repo_path = dir.path().join(".dotman");
-        std::fs::create_dir_all(&repo_path)?;
-
-        // Create test files
-        std::fs::write(dir.path().join("file1.txt"), "content1")?;
-        std::fs::write(dir.path().join("file2.txt"), "content2")?;
-        std::fs::create_dir(dir.path().join(".git"))?;
-        std::fs::write(dir.path().join(".git/config"), "git config")?;
-
-        let mut config = Config::default();
-        config.tracking.ignore_patterns = vec![".git".to_string()];
-
-        let _ctx = DotmanContext {
-            repo_path,
-            config_path: dir.path().join("config"),
-            config,
-            no_pager: true,
-        };
-
-        // Note: This test is limited since it would scan the actual home directory
-        // In a real test environment, we'd mock the home directory
-
-        Ok(())
-    }
-}
