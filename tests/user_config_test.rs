@@ -91,14 +91,12 @@ fn test_config_performance_settings() -> Result<()> {
     // Load and modify performance settings
     let mut config = dotman::config::Config::load(&ctx.config_path)?;
     config.performance.parallel_threads = 8;
-    config.performance.cache_size = 200;
     config.performance.mmap_threshold = 2_097_152; // 2MB
     config.save(&ctx.config_path)?;
 
     // Reload and verify
     let reloaded = dotman::config::Config::load(&ctx.config_path)?;
     assert_eq!(reloaded.performance.parallel_threads, 8);
-    assert_eq!(reloaded.performance.cache_size, 200);
     assert_eq!(reloaded.performance.mmap_threshold, 2_097_152);
 
     Ok(())

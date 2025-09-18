@@ -310,7 +310,7 @@ fn test_rm_workflow() -> Result<()> {
 
     // Remove file2 from tracking (--cached keeps file on disk)
     let rm_paths = [file2.to_string_lossy().to_string()];
-    commands::rm::execute(&ctx, &rm_paths, true, false, false, false, false)?;
+    commands::rm::execute(&ctx, &rm_paths, true, false, false, false)?;
 
     // File should still exist on disk
     assert!(file2.exists());

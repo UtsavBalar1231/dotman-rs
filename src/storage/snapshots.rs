@@ -178,6 +178,10 @@ impl SnapshotManager {
 
     /// Restore a snapshot to the target directory
     ///
+    /// If `cleanup_files` is provided, removes files not present in the snapshot
+    /// before restoring. This is useful when switching branches to ensure
+    /// a clean working directory.
+    ///
     /// # Errors
     ///
     /// Returns an error if:
@@ -185,8 +189,45 @@ impl SnapshotManager {
     /// - Failed to create target directories
     /// - Failed to restore file contents
     /// - Failed to set file permissions
-    pub fn restore_snapshot(&self, snapshot_id: &str, target_dir: &Path) -> Result<()> {
+    /// - Failed to remove untracked files during cleanup
+    pub fn restore_snapshot(
+        &self,
+        snapshot_id: &str,
+        target_dir: &Path,
+        cleanup_files: Option<&[PathBuf]>,
+    ) -> Result<()> {
         let snapshot = self.load_snapshot(snapshot_id)?;
+
+        // If cleanup_files is provided, remove files not in snapshot
+        if let Some(current_files) = cleanup_files {
+            let snapshot_files: std::collections::HashSet<PathBuf> =
+                snapshot.files.keys().cloned().collect();
+
+            for current_file in current_files {
+                let rel_path = if current_file.is_absolute() {
+                    current_file
+                        .strip_prefix(target_dir)
+                        .unwrap_or(current_file)
+                        .to_path_buf()
+                } else {
+                    current_file.clone()
+                };
+
+                if !snapshot_files.contains(&rel_path) {
+                    let abs_path = if current_file.is_absolute() {
+                        current_file.clone()
+                    } else {
+                        target_dir.join(current_file)
+                    };
+
+                    if abs_path.exists() {
+                        fs::remove_file(&abs_path).with_context(|| {
+                            format!("Failed to remove file: {}", abs_path.display())
+                        })?;
+                    }
+                }
+            }
+        }
 
         // Restore files in parallel
         snapshot
@@ -213,57 +254,6 @@ impl SnapshotManager {
 
                 Ok(())
             })?;
-
-        Ok(())
-    }
-
-    /// Restore a snapshot with cleanup of untracked files
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The snapshot cannot be loaded
-    /// - Failed to remove untracked files
-    /// - Failed to restore snapshot files
-    pub fn restore_snapshot_with_cleanup(
-        &self,
-        snapshot_id: &str,
-        target_dir: &Path,
-        current_files: &[PathBuf],
-    ) -> Result<()> {
-        let snapshot = self.load_snapshot(snapshot_id)?;
-
-        let snapshot_files: std::collections::HashSet<PathBuf> =
-            snapshot.files.keys().cloned().collect();
-
-        // Remove files that are in current but not in snapshot
-        for current_file in current_files {
-            let rel_path = if current_file.is_absolute() {
-                current_file
-                    .strip_prefix(target_dir)
-                    .unwrap_or(current_file)
-                    .to_path_buf()
-            } else {
-                current_file.clone()
-            };
-
-            if !snapshot_files.contains(&rel_path) {
-                let abs_path = if current_file.is_absolute() {
-                    current_file.clone()
-                } else {
-                    target_dir.join(current_file)
-                };
-
-                if abs_path.exists() {
-                    fs::remove_file(&abs_path).with_context(|| {
-                        format!("Failed to remove file: {}", abs_path.display())
-                    })?;
-                }
-            }
-        }
-
-        // Now restore files from snapshot
-        self.restore_snapshot(snapshot_id, target_dir)?;
 
         Ok(())
     }
@@ -726,7 +716,7 @@ mod tests {
         }
 
         // Restore should fail
-        let result = manager.restore_snapshot("test", &target_dir);
+        let result = manager.restore_snapshot("test", &target_dir, None);
         assert!(result.is_err());
 
         Ok(())
@@ -945,13 +935,13 @@ mod tests {
             fs::write(object_path, &original_data[..original_data.len() / 2])?;
 
             // Try to restore - should detect corruption
-            let _restore_result = manager.restore_snapshot("objtest", dir.path());
+            let _restore_result = manager.restore_snapshot("objtest", dir.path(), None);
             // Restoration might fail due to corrupted objects
 
             // Test 2: Replace with random data
             fs::write(object_path, vec![0x42; 100])?;
 
-            let restore_result = manager.restore_snapshot("objtest", dir.path());
+            let restore_result = manager.restore_snapshot("objtest", dir.path(), None);
             assert!(
                 restore_result.is_err(),
                 "Should fail to restore with corrupted objects"

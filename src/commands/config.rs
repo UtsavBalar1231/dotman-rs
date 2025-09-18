@@ -66,7 +66,6 @@ fn show_all_config(ctx: &DotmanContext) -> Result<()> {
         "  compression_level = {}",
         ctx.config.core.compression_level
     );
-    println!("  default_branch = {}", ctx.config.core.default_branch);
 
     println!("\n{}", "[performance]".bold());
     println!(
@@ -77,7 +76,6 @@ fn show_all_config(ctx: &DotmanContext) -> Result<()> {
         "  mmap_threshold = {}",
         ctx.config.performance.mmap_threshold
     );
-    println!("  cache_size = {}", ctx.config.performance.cache_size);
     println!(
         "  use_hard_links = {}",
         ctx.config.performance.use_hard_links

@@ -16,7 +16,7 @@ use std::path::PathBuf;
 /// - Cannot read the index
 /// - File status checks fail
 pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result<()> {
-    execute_with_verbose(ctx, short, show_untracked, false)
+    execute_verbose(ctx, short, show_untracked, false)
 }
 
 /// Execute status command with optional verbose output
@@ -28,7 +28,7 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
 /// - Cannot read the index
 /// - File status checks fail
 #[allow(clippy::too_many_lines)]
-pub fn execute_with_verbose(
+pub fn execute_verbose(
     ctx: &DotmanContext,
     short: bool,
     show_untracked: bool,
@@ -65,16 +65,42 @@ pub fn execute_with_verbose(
     let mut statuses = Vec::new();
     let home = dirs::home_dir().context("Could not find home directory")?;
 
+    // Load the last commit snapshot to check if files are new or modified
+    let last_commit_files = ref_manager
+        .get_head_commit()?
+        .filter(|id| id != &placeholder_commit)
+        .and_then(|commit_id| {
+            let snapshot_manager = crate::storage::snapshots::SnapshotManager::new(
+                ctx.repo_path.clone(),
+                ctx.config.core.compression_level,
+            );
+            snapshot_manager.load_snapshot(&commit_id).ok()
+        })
+        .map(|snapshot| snapshot.files);
+
+    // Helper to determine file status
+    let file_status = |path: &PathBuf| -> FileStatus {
+        let in_last_commit = last_commit_files
+            .as_ref()
+            .is_some_and(|files| files.contains_key(path));
+
+        if in_last_commit {
+            FileStatus::Modified(path.clone())
+        } else {
+            FileStatus::Added(path.clone())
+        }
+    };
+
+    // Check staged entries
     for (path, staged_entry) in &index.staged_entries {
         match index.entries.get(path) {
-            Some(committed_entry) => {
-                if staged_entry.hash != committed_entry.hash {
-                    statuses.push(FileStatus::Added(path.clone()));
-                }
+            Some(committed_entry) if staged_entry.hash != committed_entry.hash => {
+                statuses.push(file_status(path));
             }
             None => {
-                statuses.push(FileStatus::Added(path.clone()));
+                statuses.push(file_status(path));
             }
+            _ => {} // File unchanged
         }
     }
 
@@ -141,18 +167,58 @@ pub fn execute_with_verbose(
             println!("{} {}", status.status_char(), status.path().display());
         }
     } else {
-        print_status_group(
-            &statuses,
-            &FileStatus::Added(PathBuf::new()),
-            "Changes to be committed:",
-            "new file",
-        );
-        print_status_group(
-            &statuses,
-            &FileStatus::Modified(PathBuf::new()),
-            "Changes not staged:",
-            "modified",
-        );
+        // Separate staged and unstaged modifications
+        let staged_new: Vec<&FileStatus> = statuses
+            .iter()
+            .filter(|s| matches!(s, FileStatus::Added(_)))
+            .collect();
+
+        let staged_modified: Vec<&FileStatus> = statuses
+            .iter()
+            .filter(|s| {
+                matches!(s, FileStatus::Modified(_)) && {
+                    // Check if the file is in staged_entries
+                    if let FileStatus::Modified(p) = s {
+                        index.staged_entries.contains_key(p)
+                    } else {
+                        false
+                    }
+                }
+            })
+            .collect();
+
+        // Print staged changes
+        if !staged_new.is_empty() || !staged_modified.is_empty() {
+            println!("\n{}:", "Changes to be committed:".bold());
+            for status in &staged_new {
+                println!("  {}: {}", "new file".green(), status.path().display());
+            }
+            for status in &staged_modified {
+                println!("  {}: {}", "modified".yellow(), status.path().display());
+            }
+        }
+
+        // Print unstaged modifications
+        let unstaged_modified: Vec<&FileStatus> = statuses
+            .iter()
+            .filter(|s| {
+                matches!(s, FileStatus::Modified(_)) && {
+                    if let FileStatus::Modified(p) = s {
+                        !index.staged_entries.contains_key(p)
+                    } else {
+                        false
+                    }
+                }
+            })
+            .collect();
+
+        if !unstaged_modified.is_empty() {
+            println!("\n{}:", "Changes not staged:".bold());
+            for status in &unstaged_modified {
+                println!("  {}: {}", "modified".yellow(), status.path().display());
+            }
+        }
+
         print_status_group(
             &statuses,
             &FileStatus::Deleted(PathBuf::new()),

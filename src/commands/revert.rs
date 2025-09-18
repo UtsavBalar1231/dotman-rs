@@ -3,9 +3,7 @@ use crate::storage::file_ops::hash_bytes;
 use crate::storage::index::{Index, IndexDiffer};
 use crate::storage::snapshots::SnapshotManager;
 use crate::storage::{Commit, FileEntry, FileStatus};
-use crate::utils::{
-    commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
-};
+use crate::utils::{commit::generate_commit_id, get_precise_timestamp, get_user_from_config};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -23,7 +21,7 @@ use std::path::PathBuf;
 /// - The specified commit cannot be resolved
 /// - The revert operation creates conflicts
 /// - Commit creation fails
-pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool) -> Result<()> {
+pub fn execute(ctx: &DotmanContext, commit_ref: &str, _no_edit: bool, force: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
     if !force {
@@ -78,10 +76,6 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, no_edit: bool, force: bool
     apply_revert_changes(ctx, &changes_to_revert, &snapshot_manager)?;
 
     let revert_message = format!("Revert \"{}\"", target_snapshot.commit.message);
-    // Note: In a real implementation with no_edit = false,
-    // you might want to open an editor here
-    let _ = no_edit; // Suppress unused variable warning
-
     create_revert_commit(ctx, &revert_message)?;
 
     super::print_success(&format!(
@@ -311,8 +305,8 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     let index = Index::load(&index_path)?;
 
     // Get timestamp and author for commit
-    let timestamp = get_current_timestamp();
-    let author = get_current_user_with_config(&ctx.config);
+    let (timestamp, nanos) = get_precise_timestamp();
+    let author = get_user_from_config(&ctx.config);
 
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let parent = resolver.resolve("HEAD").ok();
@@ -326,7 +320,14 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
     // Generate content-addressed commit ID
-    let commit_id = generate_commit_id(&tree_hash, parent.as_deref(), message, &author, timestamp);
+    let commit_id = generate_commit_id(
+        &tree_hash,
+        parent.as_deref(),
+        message,
+        &author,
+        timestamp,
+        nanos,
+    );
 
     // Create commit object
     let commit = Commit {
@@ -359,7 +360,7 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
 
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let message = format!("revert: {commit_id}");
-    ref_manager.set_head_to_commit_with_reflog(commit_id, "revert", &message)
+    ref_manager.set_head_to_commit(commit_id, Some("revert"), Some(&message))
 }
 
 #[derive(Debug, Clone)]

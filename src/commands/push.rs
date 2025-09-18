@@ -241,6 +241,7 @@ fn determine_push_target(
     ))
 }
 
+#[allow(clippy::too_many_lines)]
 fn push_to_git(
     ctx: &DotmanContext,
     remote_config: &crate::config::RemoteConfig,
@@ -344,8 +345,25 @@ fn push_to_git(
     super::print_info(&format!("Pushing branch '{}' to remote...", opts.branch));
 
     if opts.force || opts.force_with_lease {
-        // Use mirror's force push method
-        push_with_force(&mirror, opts.branch, opts.force_with_lease)?;
+        // Push with force options
+        let mirror_path = mirror.get_mirror_path();
+        let mut args = vec!["push", "origin", opts.branch];
+
+        if opts.force_with_lease {
+            args.push("--force-with-lease");
+        } else {
+            args.push("--force");
+        }
+
+        let output = Command::new("git")
+            .args(&args)
+            .current_dir(mirror_path)
+            .output()?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow::anyhow!("Git force push failed: {stderr}"));
+        }
     } else {
         mirror.push(opts.branch)?;
     }
@@ -370,31 +388,6 @@ fn push_to_git(
         url,
         opts.branch
     ));
-    Ok(())
-}
-
-// Helper function to push with force options
-fn push_with_force(mirror: &GitMirror, branch: &str, force_with_lease: bool) -> Result<()> {
-    let mirror_path = mirror.get_mirror_path();
-
-    let mut args = vec!["push", "origin", branch];
-
-    if force_with_lease {
-        args.push("--force-with-lease");
-    } else {
-        args.push("--force");
-    }
-
-    let output = Command::new("git")
-        .args(&args)
-        .current_dir(mirror_path)
-        .output()?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("Git force push failed: {stderr}"));
-    }
-
     Ok(())
 }
 

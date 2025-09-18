@@ -6,7 +6,11 @@ use glob::Pattern;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Execute rm command - remove files from the working tree and index
+/// Execute rm command - remove files from tracking (the index)
+///
+/// Similar to git rm, this removes files from being tracked. With --cached,
+/// only removes from index. Without --cached, removes from both index and
+/// working directory (but we protect against data loss).
 ///
 /// # Errors
 ///
@@ -23,7 +27,6 @@ pub fn execute(
     force: bool,
     recursive: bool,
     dry_run: bool,
-    interactive: bool,
 ) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -102,46 +105,27 @@ pub fn execute(
             removed_count += 1;
         }
 
-        if !cached && path.exists() {
-            // Handle directory removal if recursive
-            if path.is_dir() && recursive {
-                if interactive && !force {
-                    if confirm_removal(&path)? {
-                        fs::remove_dir_all(&path)?;
-                        println!(
-                            "  {} {} (directory)",
-                            "deleted:".red().bold(),
-                            path.display()
-                        );
-                    }
-                } else if force || !interactive {
-                    fs::remove_dir_all(&path)?;
-                    println!(
-                        "  {} {} (directory)",
-                        "deleted:".red().bold(),
-                        path.display()
-                    );
-                }
-            } else if path.is_file() {
-                // Only prompt if interactive mode is on and not forcing
-                if interactive && !force {
-                    if confirm_removal(&path)? {
-                        fs::remove_file(&path)?;
-                        println!("  {} {}", "deleted:".red().bold(), path.display());
-                    }
-                } else if force || !interactive {
-                    // Force mode or non-interactive mode removes without asking
-                    fs::remove_file(&path)?;
-                    println!("  {} {}", "deleted:".red().bold(), path.display());
-                }
-            }
+        // When not using --cached, the traditional git behavior would delete
+        // the file from the working directory. However, for safety in a dotfiles
+        // manager, we NEVER delete actual files from the user's filesystem.
+        // We only remove them from tracking.
+        if !cached {
+            // In a future implementation, we might add an interactive prompt
+            // or a --force flag to actually delete files, but for now we
+            // prioritize data safety over git compatibility.
         }
     }
 
     // Save updated index (only if not in dry run mode)
     if removed_count > 0 && !dry_run {
         index.save(&index_path)?;
-        super::print_success(&format!("Removed {removed_count} file(s) from tracking"));
+        if cached {
+            super::print_success(&format!(
+                "Removed {removed_count} file(s) from index (files unchanged on disk)"
+            ));
+        } else {
+            super::print_success(&format!("Removed {removed_count} file(s) from tracking"));
+        }
     } else if removed_count > 0 && dry_run {
         super::print_success(&format!("Would remove {removed_count} file(s) (dry run)"));
     }
@@ -168,18 +152,6 @@ fn expand_directory_recursive(dir: &Path, paths: &mut Vec<PathBuf>) -> Result<()
         }
     }
     Ok(())
-}
-
-fn confirm_removal(path: &Path) -> Result<bool> {
-    use std::io::{self, Write};
-
-    print!("Remove file {} from filesystem? [y/N]: ", path.display());
-    io::stdout().flush()?;
-
-    let mut response = String::new();
-    io::stdin().read_line(&mut response)?;
-
-    Ok(response.trim().eq_ignore_ascii_case("y"))
 }
 
 #[cfg(test)]
@@ -249,7 +221,6 @@ mod tests {
             false,
             false,
             false,
-            false,
         );
         assert!(result.is_ok());
 
@@ -267,7 +238,6 @@ mod tests {
         let result = execute(
             &ctx,
             &["untracked.txt".to_string()],
-            false,
             false,
             false,
             false,
@@ -292,11 +262,11 @@ mod tests {
             true,
             false,
             false,
-            false,
         );
         assert!(result.is_ok());
 
-        assert!(!file_path.exists());
+        // File should still exist - rm should never delete actual files
+        assert!(file_path.exists());
 
         Ok(())
     }
@@ -338,7 +308,7 @@ mod tests {
             file1.to_string_lossy().to_string(),
             file2.to_string_lossy().to_string(),
         ];
-        let result = execute(&ctx, &paths, true, false, false, false, false);
+        let result = execute(&ctx, &paths, true, false, false, false);
         assert!(result.is_ok());
 
         assert!(file1.exists());
@@ -355,7 +325,7 @@ mod tests {
     fn test_execute_empty_paths() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
-        let result = execute(&ctx, &[], false, false, false, false, false);
+        let result = execute(&ctx, &[], false, false, false, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -388,7 +358,7 @@ mod tests {
             "untracked.txt".to_string(),
         ];
 
-        let result = execute(&ctx, &paths, true, false, false, false, false);
+        let result = execute(&ctx, &paths, true, false, false, false);
         assert!(result.is_ok());
 
         // Tracked file should be removed from index
@@ -399,23 +369,12 @@ mod tests {
     }
 
     #[test]
-    fn test_confirm_removal_parsing() {
-        // Test the response parsing logic
-        assert!("y".trim().eq_ignore_ascii_case("y"));
-        assert!("Y".trim().eq_ignore_ascii_case("y"));
-        assert!(!"n".trim().eq_ignore_ascii_case("y"));
-        assert!(!"".trim().eq_ignore_ascii_case("y"));
-        assert!(!"yes".trim().eq_ignore_ascii_case("y"));
-    }
-
-    #[test]
     fn test_execute_nonexistent_file() -> Result<()> {
         let (_temp, ctx) = setup_test_context()?;
 
         let result = execute(
             &ctx,
             &["/nonexistent/path/file.txt".to_string()],
-            false,
             false,
             false,
             false,
@@ -465,7 +424,7 @@ mod tests {
             rel_file.to_string_lossy().to_string(),
         ];
 
-        let result = execute(&ctx, &paths, true, false, false, false, false);
+        let result = execute(&ctx, &paths, true, false, false, false);
         assert!(result.is_ok());
 
         Ok(())

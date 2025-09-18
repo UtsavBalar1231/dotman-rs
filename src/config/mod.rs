@@ -35,8 +35,6 @@ pub struct Config {
 pub struct CoreConfig {
     #[serde(default = "default_repo_path")]
     pub repo_path: PathBuf,
-    #[serde(default = "default_branch")]
-    pub default_branch: String,
     #[serde(default = "default_compression")]
     pub compression: CompressionType,
     #[serde(default = "default_compression_level")]
@@ -71,10 +69,10 @@ pub struct PerformanceConfig {
     pub parallel_threads: usize,
     #[serde(default = "default_mmap_threshold")]
     pub mmap_threshold: usize,
-    #[serde(default = "default_cache_size")]
-    pub cache_size: usize,
     #[serde(default = "default_use_hard_links")]
     pub use_hard_links: bool,
+    // TODO: Add cache_size field when implementing object caching
+    // pub cache_size: usize,  // Reserved for future LRU cache implementation
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -87,10 +85,6 @@ pub struct TrackingConfig {
 /// Branch configuration for tracking branches and their upstream remotes
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BranchConfig {
-    /// Current active branch
-    #[serde(default = "default_current_branch")]
-    pub current: String,
-
     /// Branch tracking information: `branch_name` -> (`remote_name`, `remote_branch`)
     #[serde(default)]
     pub tracking: HashMap<String, BranchTracking>,
@@ -113,7 +107,6 @@ impl Default for CoreConfig {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
         Self {
             repo_path: home.join(".dotman"),
-            default_branch: "main".to_string(),
             compression: CompressionType::Zstd,
             compression_level: 3,
             pager: None,
@@ -136,7 +129,6 @@ impl Default for PerformanceConfig {
         Self {
             parallel_threads: cpu_count.min(8),
             mmap_threshold: 1_048_576, // 1MB
-            cache_size: 100,           // MB
             use_hard_links: true,
         }
     }
@@ -243,13 +235,11 @@ impl Config {
             ("user", "email") => self.user.email.clone(),
             ("core", "compression") => Some(format!("{:?}", self.core.compression).to_lowercase()),
             ("core", "compression_level") => Some(self.core.compression_level.to_string()),
-            ("core", "default_branch") => Some(self.core.default_branch.clone()),
             ("core", "pager") => self.core.pager.clone(),
             ("performance", "parallel_threads") => {
                 Some(self.performance.parallel_threads.to_string())
             }
             ("performance", "mmap_threshold") => Some(self.performance.mmap_threshold.to_string()),
-            ("performance", "cache_size") => Some(self.performance.cache_size.to_string()),
             ("performance", "use_hard_links") => Some(self.performance.use_hard_links.to_string()),
             ("tracking", "follow_symlinks") => Some(self.tracking.follow_symlinks.to_string()),
             ("tracking", "preserve_permissions") => {
@@ -293,7 +283,6 @@ impl Config {
                 }
                 self.core.compression_level = level;
             }
-            ("core", "default_branch") => self.core.default_branch = value,
             ("core", "pager") => self.core.pager = Some(value),
             ("performance", "parallel_threads") => {
                 self.performance.parallel_threads = value
@@ -302,11 +291,6 @@ impl Config {
             }
             ("performance", "mmap_threshold") => {
                 self.performance.mmap_threshold = value
-                    .parse()
-                    .with_context(|| format!("Invalid number: {value}"))?;
-            }
-            ("performance", "cache_size") => {
-                self.performance.cache_size = value
                     .parse()
                     .with_context(|| format!("Invalid number: {value}"))?;
             }
@@ -374,10 +358,6 @@ fn default_repo_path() -> PathBuf {
     home.join(".dotman")
 }
 
-fn default_branch() -> String {
-    "main".to_string()
-}
-
 const fn default_compression() -> CompressionType {
     CompressionType::Zstd
 }
@@ -394,16 +374,8 @@ const fn default_mmap_threshold() -> usize {
     1_048_576 // 1MB
 }
 
-const fn default_cache_size() -> usize {
-    100 // MB
-}
-
 const fn default_use_hard_links() -> bool {
     true
-}
-
-fn default_current_branch() -> String {
-    "main".to_string()
 }
 
 #[cfg(test)]
@@ -414,7 +386,6 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = Config::default();
-        assert_eq!(config.core.default_branch, "main");
         assert!(config.performance.parallel_threads > 0);
     }
 
@@ -427,7 +398,7 @@ mod tests {
         config.save(&config_path)?;
 
         let loaded = Config::load(&config_path)?;
-        assert_eq!(loaded.core.default_branch, config.core.default_branch);
+        assert_eq!(loaded.core.compression_level, config.core.compression_level);
 
         Ok(())
     }
@@ -479,7 +450,6 @@ mod tests {
 
         // Test getting various config values
         assert_eq!(config.get("core.compression_level"), Some("5".to_string()));
-        assert_eq!(config.get("core.default_branch"), Some("main".to_string()));
         assert_eq!(
             config.get("performance.parallel_threads"),
             Some("8".to_string())
@@ -521,7 +491,6 @@ mod tests {
         let extreme_config = Config {
             core: CoreConfig {
                 repo_path: dir.path().join("repo"),
-                default_branch: "a".repeat(1000), // Very long branch name
                 compression: CompressionType::Zstd,
                 compression_level: 22, // Maximum zstd compression level
                 pager: None,
@@ -541,7 +510,6 @@ mod tests {
             performance: PerformanceConfig {
                 parallel_threads: 1024, // Very high thread count
                 mmap_threshold: 1,      // Everything uses mmap
-                cache_size: 10000,      // 10GB cache (max allowed)
                 use_hard_links: true,
             },
             tracking: TrackingConfig {
@@ -559,7 +527,6 @@ mod tests {
         let loaded_config = Config::load(&config_path)?;
         assert_eq!(loaded_config.core.compression_level, 22);
         assert_eq!(loaded_config.performance.parallel_threads, 1024);
-        assert_eq!(loaded_config.performance.cache_size, 10000);
         assert_eq!(loaded_config.tracking.ignore_patterns.len(), 10000);
 
         Ok(())
@@ -573,7 +540,6 @@ mod tests {
         let unicode_config = Config {
             core: CoreConfig {
                 repo_path: dir.path().join("dotman"),
-                default_branch: "主分支".to_string(), // Chinese for "main branch"
                 compression: CompressionType::Zstd,
                 compression_level: 3,
                 pager: None,
@@ -593,7 +559,6 @@ mod tests {
             performance: PerformanceConfig {
                 parallel_threads: 8,
                 mmap_threshold: 1_048_576,
-                cache_size: 100,
                 use_hard_links: true,
             },
             tracking: TrackingConfig {
@@ -613,7 +578,6 @@ mod tests {
         unicode_config.save(&config_path)?;
 
         let loaded_config = Config::load(&config_path)?;
-        assert_eq!(loaded_config.core.default_branch, "主分支");
         assert!(
             loaded_config
                 .tracking
@@ -629,16 +593,6 @@ mod tests {
         let dir = tempdir()?;
 
         let invalid_configs = vec![
-            (
-                "cache_size_too_large",
-                Config {
-                    performance: PerformanceConfig {
-                        cache_size: 100_000, // Over 10GB limit
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            ),
             (
                 "compression_level_too_high",
                 Config {
@@ -673,7 +627,6 @@ mod tests {
                 // The load might apply defaults or clamp values
                 if let Ok(config) = loaded {
                     // Verify values are clamped to valid ranges
-                    assert!(config.performance.cache_size <= 10000);
                     assert!(config.core.compression_level <= 22);
                     assert!(config.performance.parallel_threads > 0);
                 }
@@ -701,7 +654,7 @@ mod tests {
 
         // Should now load successfully
         let recovered = Config::load(&config_path)?;
-        assert_eq!(recovered.core.default_branch, "main");
+        assert_eq!(recovered.core.compression_level, 3);
 
         Ok(())
     }
@@ -772,27 +725,19 @@ mod tests {
         let dir = tempdir()?;
 
         // Test various config values within valid ranges
-        let long_branch = "a".repeat(100);
-        let test_cases = vec![
-            ("main", 1, 1, 100),
-            ("develop", 22, 64, 10000),
-            ("feature-branch", 10, 8, 500),
-            (long_branch.as_str(), 15, 32, 5000),
-        ];
+        let test_cases = vec![(1, 1), (22, 64), (10, 8), (15, 32)];
 
-        for (branch_name, compression_level, parallel_threads, cache_size) in test_cases {
+        for (compression_level, parallel_threads) in test_cases {
             let config_path = dir.path().join(format!("config_{compression_level}.toml"));
 
             let config_content = format!(
-                r#"
+                r"
                 [core]
-                default_branch = "{branch_name}"
                 compression_level = {compression_level}
 
                 [performance]
                 parallel_threads = {parallel_threads}
-                cache_size = {cache_size}
-                "#
+                "
             );
 
             std::fs::write(&config_path, config_content)?;
@@ -800,15 +745,12 @@ mod tests {
             let loaded = Config::load(&config_path)?;
 
             // Values should be preserved correctly
-            assert_eq!(loaded.core.default_branch, branch_name);
             assert_eq!(loaded.core.compression_level, compression_level);
             assert_eq!(loaded.performance.parallel_threads, parallel_threads);
-            assert_eq!(loaded.performance.cache_size, cache_size);
 
             // Verify ranges are respected
             assert!(loaded.core.compression_level >= 1 && loaded.core.compression_level <= 22);
             assert!(loaded.performance.parallel_threads >= 1);
-            assert!(!loaded.core.default_branch.is_empty());
         }
 
         // Test invalid compression levels

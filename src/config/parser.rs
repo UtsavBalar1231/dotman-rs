@@ -57,11 +57,6 @@ fn validate_config(config: &Config) -> Result<()> {
         return Err(anyhow::anyhow!("Parallel threads must be at least 1"));
     }
 
-    // Validate cache size
-    if config.performance.cache_size > 10_000 {
-        return Err(anyhow::anyhow!("Cache size cannot exceed 10GB"));
-    }
-
     Ok(())
 }
 
@@ -154,19 +149,17 @@ mod tests {
         let toml_content = r#"
 [core]
 repo_path = "~/.dotman"
-default_branch = "main"
 compression = "zstd"
 compression_level = 3
 
 [performance]
 parallel_threads = 4
 mmap_threshold = 1048576
-cache_size = 100
 use_hard_links = true
 "#;
 
         let config = parse_config_str(toml_content).unwrap();
-        assert_eq!(config.core.default_branch, "main");
+        assert_eq!(config.core.compression_level, 3);
         assert_eq!(config.performance.parallel_threads, 4);
     }
 
@@ -207,7 +200,7 @@ parallel_threads = 4"#;
         let empty_content = "";
         let config = parse_config_str(empty_content).unwrap();
         // Should use defaults
-        assert_eq!(config.core.default_branch, "main");
+        assert_eq!(config.core.compression_level, 3);
     }
 
     #[test]
@@ -249,17 +242,6 @@ parallel_threads = 0
     }
 
     #[test]
-    fn test_parse_excessive_cache_size() {
-        let invalid = r"
-[performance]
-cache_size = 20000
-";
-        let result = parse_config_str(invalid);
-        // Should fail for excessive cache size value
-        assert!(result.is_err());
-    }
-
-    #[test]
     fn test_parse_invalid_utf8() {
         let invalid_utf8 = vec![0xFF, 0xFE, 0xFD];
         let result = simdutf8::basic::from_utf8(&invalid_utf8);
@@ -273,7 +255,7 @@ cache_size = 20000
         let config_path = dir.path().join("large.toml");
 
         let mut large_config = String::from(
-            "[core]\nrepo_path = \"~/.dotman\"\ndefault_branch = \"main\"\ncompression = \"zstd\"\ncompression_level = 3\n\n[tracking]\nignore_patterns = [\n",
+            "[core]\nrepo_path = \"~/.dotman\"\ncompression = \"zstd\"\ncompression_level = 3\n\n[tracking]\nignore_patterns = [\n",
         );
         for i in 0..999 {
             writeln!(&mut large_config, "  \"pattern_{i}\",")
@@ -298,17 +280,15 @@ cache_size = 20000
     #[test]
     fn test_parse_missing_required_fields() {
         // Even with missing fields, should use defaults
-        let partial = r#"
+        let partial = r"
 [core]
-default_branch = "develop"
-"#;
+compression_level = 5
+";
         let result = parse_config_str(partial);
         // Should succeed as fields have defaults
         assert!(result.is_ok());
         let config = result.unwrap();
-        assert_eq!(config.core.default_branch, "develop");
-        // Other fields should have defaults
-        assert_eq!(config.core.compression_level, 3);
+        assert_eq!(config.core.compression_level, 5);
     }
 
     #[test]
@@ -326,7 +306,7 @@ compression_level = "not_a_number"
         let special = r#"
 [core]
 repo_path = "/path/with spaces/and-special!@#$%^&*()chars"
-default_branch = "feat/new-feature-123"
+compression_level = 3
 "#;
         let result = parse_config_str(special);
         assert!(result.is_ok());

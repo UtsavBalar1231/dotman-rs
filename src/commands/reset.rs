@@ -62,7 +62,7 @@ pub fn execute(
 
         // Restore files to working directory
         let home = dirs::home_dir().context("Could not find home directory")?;
-        snapshot_manager.restore_snapshot(&commit_id, &home)?;
+        snapshot_manager.restore_snapshot(&commit_id, &home, None)?;
 
         // Update index to match commit
         let mut index = Index::new();
@@ -267,10 +267,13 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
         )?;
     } else {
         // Detached HEAD - update HEAD directly with reflog
-        ref_manager.set_head_to_commit_with_reflog(
+        ref_manager.set_head_to_commit(
             commit_id,
-            "reset",
-            &format!("reset: moving to {}", &commit_id[..8.min(commit_id.len())]),
+            Some("reset"),
+            Some(&format!(
+                "reset: moving to {}",
+                &commit_id[..8.min(commit_id.len())]
+            )),
         )?;
     }
 

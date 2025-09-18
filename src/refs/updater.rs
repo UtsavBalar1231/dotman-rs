@@ -49,7 +49,7 @@ impl ReflogUpdater {
         } else {
             // HEAD is detached, update it directly with reflog
             self.ref_manager
-                .set_head_to_commit_with_reflog(commit_id, operation, message)?;
+                .set_head_to_commit(commit_id, Some(operation), Some(message))?;
         }
 
         Ok(())
@@ -63,10 +63,10 @@ impl ReflogUpdater {
     /// - Failed to update HEAD to branch
     /// - Failed to create reflog entry
     pub fn switch_to_branch(&self, branch: &str) -> Result<()> {
-        self.ref_manager.set_head_to_branch_with_reflog(
+        self.ref_manager.set_head_to_branch(
             branch,
-            "checkout",
-            &format!("checkout: moving to {branch}"),
+            Some("checkout"),
+            Some(&format!("checkout: moving to {branch}")),
         )
     }
 
@@ -84,10 +84,10 @@ impl ReflogUpdater {
             commit_id
         };
 
-        self.ref_manager.set_head_to_commit_with_reflog(
+        self.ref_manager.set_head_to_commit(
             commit_id,
-            "checkout",
-            &format!("checkout: moving to {display_id}"),
+            Some("checkout"),
+            Some(&format!("checkout: moving to {display_id}")),
         )
     }
 

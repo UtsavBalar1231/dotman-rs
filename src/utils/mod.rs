@@ -139,6 +139,20 @@ pub fn get_current_timestamp() -> i64 {
         .unwrap_or(0)
 }
 
+/// Get current timestamp with nanosecond precision for unique commit IDs
+#[must_use]
+pub fn get_precise_timestamp() -> (i64, u32) {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| {
+            (
+                i64::try_from(d.as_secs()).unwrap_or(i64::MAX),
+                d.subsec_nanos(),
+            )
+        })
+        .unwrap_or((0, 0))
+}
+
 /// Retrieves the current system username, falling back to "unknown" if not found.
 #[must_use]
 pub fn get_current_user() -> String {
@@ -149,7 +163,7 @@ pub fn get_current_user() -> String {
 
 /// Constructs the current user string based on the provided configuration.
 #[must_use]
-pub fn get_current_user_with_config(config: &crate::config::Config) -> String {
+pub fn get_user_from_config(config: &crate::config::Config) -> String {
     match (&config.user.name, &config.user.email) {
         (Some(name), Some(email)) => {
             // Format as "Name <email>" like git does
@@ -231,41 +245,41 @@ mod tests {
     }
 
     #[test]
-    fn test_get_current_user_with_config_both_set() {
+    fn test_get_user_from_config_both_set() {
         let mut config = crate::config::Config::default();
         config.user.name = Some("John Doe".to_string());
         config.user.email = Some("john@example.com".to_string());
 
-        let user = get_current_user_with_config(&config);
+        let user = get_user_from_config(&config);
         assert_eq!(user, "John Doe <john@example.com>");
     }
 
     #[test]
-    fn test_get_current_user_with_config_only_name() {
+    fn test_get_user_from_config_only_name() {
         let mut config = crate::config::Config::default();
         config.user.name = Some("Jane Smith".to_string());
         config.user.email = None;
 
-        let user = get_current_user_with_config(&config);
+        let user = get_user_from_config(&config);
         assert_eq!(user, "Jane Smith");
     }
 
     #[test]
-    fn test_get_current_user_with_config_only_email() {
+    fn test_get_user_from_config_only_email() {
         let mut config = crate::config::Config::default();
         config.user.name = None;
         config.user.email = Some("user@example.com".to_string());
 
-        let user = get_current_user_with_config(&config);
+        let user = get_user_from_config(&config);
         let system_user = get_current_user();
         assert_eq!(user, format!("{system_user} <user@example.com>"));
     }
 
     #[test]
-    fn test_get_current_user_with_config_none_set() {
+    fn test_get_user_from_config_none_set() {
         let config = crate::config::Config::default();
 
-        let user = get_current_user_with_config(&config);
+        let user = get_user_from_config(&config);
         let system_user = get_current_user();
         assert_eq!(user, system_user);
     }

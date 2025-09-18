@@ -72,10 +72,7 @@ impl TestEnvironment {
         }
 
         // Create a context with explicit paths and no pager
-        let context = DotmanContext::new_with_explicit_paths_no_pager(
-            self.repo_dir.clone(),
-            self.config_path.clone(),
-        )?;
+        let context = DotmanContext::new_explicit(self.repo_dir.clone(), self.config_path.clone())?;
 
         Ok(context)
     }
@@ -109,7 +106,7 @@ impl TestEnvironment {
 
     /// Create a test file with specific permissions
     #[cfg(unix)]
-    pub fn create_test_file_with_perms(
+    pub fn create_test_file_with_mode(
         &self,
         relative_path: &str,
         content: &str,

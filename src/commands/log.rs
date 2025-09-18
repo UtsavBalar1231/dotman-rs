@@ -1,11 +1,47 @@
 use crate::DotmanContext;
 use crate::refs::resolver::RefResolver;
-use crate::storage::snapshots::SnapshotManager;
+use crate::storage::{Commit, snapshots::SnapshotManager};
 use crate::utils::pager::PagerOutput;
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
 use std::collections::HashSet;
+
+/// Format and display a single commit
+fn display_commit(output: &mut PagerOutput, commit: &Commit, oneline: bool) {
+    if oneline {
+        let display_id = if commit.id.len() >= 8 {
+            &commit.id[..8]
+        } else {
+            &commit.id
+        };
+        output.appendln(&format!("{} {}", display_id.yellow(), commit.message));
+    } else {
+        output.appendln(&format!("{} {}", "commit".yellow(), commit.id));
+
+        if let Some(parent) = &commit.parent {
+            output.appendln(&format!(
+                "{}: {}",
+                "Parent".bold(),
+                &parent[..8.min(parent.len())]
+            ));
+        }
+
+        output.appendln(&format!("{}: {}", "Author".bold(), commit.author));
+
+        let datetime = Local
+            .timestamp_opt(commit.timestamp, 0)
+            .single()
+            .unwrap_or_else(Local::now);
+        output.appendln(&format!(
+            "{}: {}",
+            "Date".bold(),
+            datetime.format("%Y-%m-%d %H:%M:%S")
+        ));
+
+        output.appendln(&format!("\n    {}\n", commit.message));
+    }
+}
 
 /// Display commit history
 ///
@@ -38,10 +74,11 @@ pub fn execute(
 
     let mut commits_displayed = 0;
 
+    // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
+    let resolver = RefResolver::new(ctx.repo_path.clone());
+
     // If a target is specified, start from that commit and follow parent chain
     if let Some(target_ref) = target {
-        // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
-        let resolver = RefResolver::new(ctx.repo_path.clone());
         let start_commit_id = resolver.resolve(target_ref)?;
 
         // Follow parent chain from the starting commit
@@ -64,42 +101,7 @@ pub fn execute(
             };
 
             let commit = &snapshot.commit;
-
-            if oneline {
-                // One-line format - show first 8 chars like git
-                let display_id = if commit.id.len() >= 8 {
-                    &commit.id[..8]
-                } else {
-                    &commit.id
-                };
-                output.appendln(&format!("{} {}", display_id.yellow(), commit.message));
-            } else {
-                // Full format
-                output.appendln(&format!("{} {}", "commit".yellow(), commit.id));
-
-                if let Some(parent) = &commit.parent {
-                    output.appendln(&format!(
-                        "{}: {}",
-                        "Parent".bold(),
-                        &parent[..8.min(parent.len())]
-                    ));
-                }
-
-                output.appendln(&format!("{}: {}", "Author".bold(), commit.author));
-
-                let datetime = Local
-                    .timestamp_opt(commit.timestamp, 0)
-                    .single()
-                    .unwrap_or_else(Local::now);
-                output.appendln(&format!(
-                    "{}: {}",
-                    "Date".bold(),
-                    datetime.format("%Y-%m-%d %H:%M:%S")
-                ));
-
-                output.appendln(&format!("\n    {}\n", commit.message));
-            }
-
+            display_commit(&mut output, commit, oneline);
             commits_displayed += 1;
 
             // Move to parent commit
@@ -109,47 +111,39 @@ pub fn execute(
             }
         }
     } else {
-        // Original behavior: show all commits in reverse chronological order
-        for snapshot_id in snapshots.iter().rev().take(limit) {
-            let snapshot = snapshot_manager.load_snapshot(snapshot_id)?;
-            let commit = &snapshot.commit;
+        // Try to get HEAD commit, if it exists
+        let head_result = resolver.resolve("HEAD");
 
-            if oneline {
-                // One-line format - show first 8 chars like git
-                let display_id = if commit.id.len() >= 8 {
-                    &commit.id[..8]
-                } else {
-                    &commit.id
-                };
-                output.appendln(&format!("{} {}", display_id.yellow(), commit.message));
-            } else {
-                // Full format
-                output.appendln(&format!("{} {}", "commit".yellow(), commit.id));
+        if let Ok(head_commit_id) = head_result {
+            // Follow parent chain from HEAD
+            let mut current_commit_id = Some(head_commit_id);
+            let mut visited = HashSet::new();
 
-                if let Some(parent) = &commit.parent {
-                    output.appendln(&format!(
-                        "{}: {}",
-                        "Parent".bold(),
-                        &parent[..8.min(parent.len())]
-                    ));
+            while let Some(commit_id) = current_commit_id {
+                if commits_displayed >= limit {
+                    break;
                 }
 
-                output.appendln(&format!("{}: {}", "Author".bold(), commit.author));
+                // Prevent infinite loops
+                if visited.contains(&commit_id) {
+                    break;
+                }
+                visited.insert(commit_id.clone());
 
-                let datetime = Local
-                    .timestamp_opt(commit.timestamp, 0)
-                    .single()
-                    .unwrap_or_else(Local::now);
-                output.appendln(&format!(
-                    "{}: {}",
-                    "Date".bold(),
-                    datetime.format("%Y-%m-%d %H:%M:%S")
-                ));
+                let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) else {
+                    break;
+                };
 
-                output.appendln(&format!("\n    {}\n", commit.message));
+                let commit = &snapshot.commit;
+                display_commit(&mut output, commit, oneline);
+                commits_displayed += 1;
+
+                // Move to parent commit
+                #[allow(clippy::assigning_clones)]
+                {
+                    current_commit_id = commit.parent.clone();
+                }
             }
-
-            commits_displayed += 1;
         }
     }
 

@@ -1,5 +1,6 @@
 use crate::storage::file_ops::hash_bytes;
 use anyhow::Result;
+use std::fmt::Write;
 use std::fs;
 use std::path::Path;
 
@@ -71,6 +72,7 @@ pub fn generate_commit_id(
     message: &str,
     author: &str,
     timestamp: i64,
+    nanos: u32,
 ) -> String {
     let mut commit_content = String::new();
 
@@ -86,11 +88,10 @@ pub fn generate_commit_id(
         commit_content.push('\n');
     }
 
-    // Add author and timestamp
     commit_content.push_str("author ");
     commit_content.push_str(author);
     commit_content.push(' ');
-    commit_content.push_str(&timestamp.to_string());
+    write!(&mut commit_content, "{timestamp}.{nanos:09}").expect("Writing to string cannot fail");
     commit_content.push('\n');
 
     // Add message
@@ -175,9 +176,10 @@ mod tests {
         let message = "Test commit";
         let author = "Test User";
         let timestamp = 1_234_567_890i64;
+        let nanos = 123_456_789u32;
 
-        let id1 = generate_commit_id(tree_hash, parent, message, author, timestamp);
-        let id2 = generate_commit_id(tree_hash, parent, message, author, timestamp);
+        let id1 = generate_commit_id(tree_hash, parent, message, author, timestamp, nanos);
+        let id2 = generate_commit_id(tree_hash, parent, message, author, timestamp, nanos);
 
         assert_eq!(id1, id2);
         assert_eq!(id1.len(), 32); // 32 hex characters
@@ -191,16 +193,28 @@ mod tests {
         let message = "Test commit";
         let author = "Test User";
         let timestamp = 1_234_567_890i64;
+        let nanos = 0u32;
 
-        let id1 = generate_commit_id(tree_hash, parent, message, author, timestamp);
+        let id1 = generate_commit_id(tree_hash, parent, message, author, timestamp, nanos);
 
         // Different message should produce different ID
-        let id2 = generate_commit_id(tree_hash, parent, "Different message", author, timestamp);
+        let id2 = generate_commit_id(
+            tree_hash,
+            parent,
+            "Different message",
+            author,
+            timestamp,
+            nanos,
+        );
         assert_ne!(id1, id2);
 
         // Different timestamp should produce different ID
-        let id3 = generate_commit_id(tree_hash, parent, message, author, timestamp + 1);
+        let id3 = generate_commit_id(tree_hash, parent, message, author, timestamp + 1, nanos);
         assert_ne!(id1, id3);
+
+        // Different nanoseconds should produce different ID
+        let id4 = generate_commit_id(tree_hash, parent, message, author, timestamp, nanos + 1);
+        assert_ne!(id1, id4);
     }
 
     #[test]
@@ -210,9 +224,17 @@ mod tests {
         let message = "Initial commit";
         let author = "Test User";
         let timestamp = 1_234_567_890i64;
+        let nanos = 0u32;
 
-        let id1 = generate_commit_id(tree_hash, None, message, author, timestamp);
-        let id2 = generate_commit_id(tree_hash, Some("parent123"), message, author, timestamp);
+        let id1 = generate_commit_id(tree_hash, None, message, author, timestamp, nanos);
+        let id2 = generate_commit_id(
+            tree_hash,
+            Some("parent123"),
+            message,
+            author,
+            timestamp,
+            nanos,
+        );
 
         assert_ne!(id1, id2); // Should be different with and without parent
         assert_eq!(id1.len(), 32);

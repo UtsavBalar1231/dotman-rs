@@ -64,7 +64,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
                 .as_ref()
                 .and_then(|rp| index.get_staged_entry(rp).or_else(|| index.get_entry(rp)))
                 .and_then(|e| e.cached_hash);
-            create_file_entry_with_cache(path, &home, cached_hash.as_ref())
+            create_file_entry(path, &home, cached_hash.as_ref())
         })
         .collect();
 
@@ -212,7 +212,7 @@ fn check_special_file_type(path: &Path) {
     }
 }
 
-/// Create a `FileEntry` from a file path with optional cached hash
+/// Create a `FileEntry` from a file path
 ///
 /// # Errors
 ///
@@ -220,7 +220,7 @@ fn check_special_file_type(path: &Path) {
 /// - Failed to get file metadata
 /// - Failed to hash the file
 /// - Failed to make path relative
-pub fn create_file_entry_with_cache(
+pub fn create_file_entry(
     path: &Path,
     home: &Path,
     cached_hash: Option<&CachedHash>,
@@ -258,18 +258,6 @@ pub fn create_file_entry_with_cache(
     })
 }
 
-/// Create a `FileEntry` from a file path (legacy compatibility)
-///
-/// # Errors
-///
-/// Returns an error if:
-/// - Failed to get file metadata
-/// - Failed to hash the file
-/// - Failed to make path relative
-pub fn create_file_entry(path: &Path, home: &Path) -> Result<FileEntry> {
-    create_file_entry_with_cache(path, home, None)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -281,7 +269,7 @@ mod tests {
         let file_path = dir.path().join("test.txt");
         std::fs::write(&file_path, "test content")?;
 
-        let entry = create_file_entry(&file_path, dir.path())?;
+        let entry = create_file_entry(&file_path, dir.path(), None)?;
 
         assert_eq!(entry.path, PathBuf::from("test.txt"));
         assert!(!entry.hash.is_empty());
@@ -305,12 +293,11 @@ mod tests {
         std::fs::write(&file_path, "cached content")?;
 
         // First call without cache
-        let entry1 = create_file_entry(&file_path, dir.path())?;
+        let entry1 = create_file_entry(&file_path, dir.path(), None)?;
         assert!(entry1.cached_hash.is_some());
 
         // Second call with cache from first entry
-        let entry2 =
-            create_file_entry_with_cache(&file_path, dir.path(), entry1.cached_hash.as_ref())?;
+        let entry2 = create_file_entry(&file_path, dir.path(), entry1.cached_hash.as_ref())?;
 
         // Should have same hash (file unchanged)
         assert_eq!(entry2.hash, entry1.hash);

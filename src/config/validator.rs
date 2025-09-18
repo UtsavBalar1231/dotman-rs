@@ -24,7 +24,6 @@ impl ConfigValidator {
 
         // Deprecated core fields
         deprecated_fields.insert("core.default_branch".to_string());
-        known_fields.insert("core.default_branch".to_string()); // Still parse but mark deprecated
 
         // User fields
         known_fields.insert("user.name".to_string());
@@ -33,7 +32,6 @@ impl ConfigValidator {
         // Performance fields
         known_fields.insert("performance.parallel_threads".to_string());
         known_fields.insert("performance.mmap_threshold".to_string());
-        known_fields.insert("performance.cache_size".to_string());
         known_fields.insert("performance.use_hard_links".to_string());
 
         // Tracking fields
@@ -43,7 +41,6 @@ impl ConfigValidator {
 
         // Branch fields
         deprecated_fields.insert("branches.current".to_string());
-        known_fields.insert("branches.current".to_string()); // Still parse but mark deprecated
         // Dynamic branch tracking fields are handled separately
 
         Self {
@@ -182,25 +179,8 @@ impl ConfigValidator {
     }
 
     /// Check for unused configuration options that have no effect
-    pub fn warn_unused_options(config: &crate::config::Config) {
-        let mut warnings = Vec::new();
-
-        // Check performance options that might not be fully implemented
-        if config.performance.cache_size > 0 {
-            warnings.push(format!(
-                "Configuration 'performance.cache_size = {}' is set but not currently used",
-                config.performance.cache_size
-            ));
-        }
-
-        // Print warnings
-        if !warnings.is_empty() {
-            eprintln!("{}", "Configuration notices:".blue().bold());
-            for warning in warnings {
-                eprintln!("  ℹ {}", warning.dimmed());
-            }
-            eprintln!();
-        }
+    pub const fn warn_unused_options(_config: &crate::config::Config) {
+        // Currently no unused options to warn about
     }
 }
 
@@ -296,10 +276,8 @@ invalid_tracking = "should_warn"
 
     #[test]
     fn test_warn_unused_options() {
-        let mut config = crate::config::Config::default();
-        config.performance.cache_size = 500;
-
+        let config = crate::config::Config::default();
         ConfigValidator::warn_unused_options(&config);
-        // Should print warning about cache_size
+        // No warnings should be printed
     }
 }

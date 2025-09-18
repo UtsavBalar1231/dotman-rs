@@ -7,7 +7,7 @@ use crate::storage::snapshots::SnapshotManager;
 use crate::storage::{Commit, FileEntry, file_ops::hash_bytes};
 use crate::sync::Importer;
 use crate::utils::{
-    commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
+    commit::generate_commit_id, get_current_timestamp, get_precise_timestamp, get_user_from_config,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -68,10 +68,10 @@ pub fn execute(
         if let Some(current_branch) = ref_manager.current_branch()? {
             ref_manager.update_branch(&current_branch, &target_commit)?;
         } else {
-            ref_manager.set_head_to_commit_with_reflog(
+            ref_manager.set_head_to_commit(
                 &target_commit,
-                "merge",
-                &format!("merge: fast-forward to {}", &target_commit[..8]),
+                Some("merge"),
+                Some(&format!("merge: fast-forward to {}", &target_commit[..8])),
             )?;
         }
 
@@ -167,8 +167,8 @@ fn handle_remote_branch_merge(
         ctx.config.tracking.follow_symlinks,
     )?;
 
-    let timestamp = get_current_timestamp();
-    let author = get_current_user_with_config(&ctx.config);
+    let (timestamp, nanos) = get_precise_timestamp();
+    let author = get_user_from_config(&ctx.config);
     let message = format!("Import from {branch_ref}");
 
     // Create tree hash
@@ -180,7 +180,7 @@ fn handle_remote_branch_merge(
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
     // Generate commit ID
-    let commit_id = generate_commit_id(&tree_hash, None, &message, &author, timestamp);
+    let commit_id = generate_commit_id(&tree_hash, None, &message, &author, timestamp, nanos);
 
     // Create commit object
     let commit = Commit {
@@ -206,6 +206,10 @@ fn handle_remote_branch_merge(
 fn is_ancestor(ctx: &DotmanContext, ancestor: &str, descendant: &str) -> bool {
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+
+    // Note: This is a simplified implementation that only follows first-parent chains.
+    // A complete implementation would need to handle multiple parents (merge commits)
+    // and build a full commit graph for accurate ancestry detection.
 
     // Walk back from descendant to see if we reach ancestor
     let mut current = Some(descendant.to_string());
@@ -248,8 +252,13 @@ fn perform_three_way_merge(
     let current_snapshot = snapshot_manager.load_snapshot(current_commit)?;
     let target_snapshot = snapshot_manager.load_snapshot(target_commit)?;
 
-    // Find common ancestor (simplified - just use parent chains)
-    let _common_ancestor = find_common_ancestor(ctx, current_commit, target_commit);
+    // Note: This is a simplified three-way merge that doesn't find the common ancestor.
+    // A proper implementation would:
+    // 1. Find the merge base (common ancestor) using find_common_ancestor()
+    // 2. Load the base snapshot
+    // 3. Perform a true three-way diff between base, current, and target
+    // 4. Apply non-conflicting changes automatically
+    // Currently this just does a two-way merge between current and target.
 
     // Perform three-way merge on files
     let mut merged_files = HashMap::new();
@@ -304,8 +313,8 @@ fn perform_three_way_merge(
     }
 
     // Create merge commit
-    let timestamp = get_current_timestamp();
-    let author = get_current_user_with_config(&ctx.config);
+    let (timestamp, nanos) = get_precise_timestamp();
+    let author = get_user_from_config(&ctx.config);
     let merge_message = message.map_or_else(|| format!("Merge branch '{branch}'"), String::from);
 
     // Create tree hash from merged files
@@ -323,6 +332,7 @@ fn perform_three_way_merge(
         &merge_message,
         &author,
         timestamp,
+        nanos,
     );
 
     // Create commit object with both parents (simplified - only tracking one parent in current structure)
@@ -363,10 +373,10 @@ fn perform_three_way_merge(
     if let Some(current_branch) = ref_manager.current_branch()? {
         ref_manager.update_branch(&current_branch, &commit_id)?;
     } else {
-        ref_manager.set_head_to_commit_with_reflog(
+        ref_manager.set_head_to_commit(
             &commit_id,
-            "merge",
-            &format!("merge: {branch}"),
+            Some("merge"),
+            Some(&format!("merge: {branch}")),
         )?;
     }
 
@@ -423,44 +433,6 @@ fn perform_squash_merge(
     ));
 
     Ok(())
-}
-
-fn find_common_ancestor(ctx: &DotmanContext, commit1: &str, commit2: &str) -> Option<String> {
-    let snapshot_manager =
-        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
-
-    // Build ancestor sets for both commits
-    let ancestors1 = get_all_ancestors(&snapshot_manager, commit1);
-    let ancestors2 = get_all_ancestors(&snapshot_manager, commit2);
-
-    // Find common ancestors
-    let common: Vec<_> = ancestors1.intersection(&ancestors2).cloned().collect();
-
-    if common.is_empty() {
-        return None;
-    }
-
-    // Return the first common ancestor (simplified - should find the most recent)
-    Some(common[0].clone())
-}
-
-fn get_all_ancestors(snapshot_manager: &SnapshotManager, commit: &str) -> HashSet<String> {
-    let mut ancestors = HashSet::new();
-    let mut to_visit = vec![commit.to_string()];
-
-    while let Some(current) = to_visit.pop() {
-        if !ancestors.insert(current.clone()) {
-            continue; // Already visited
-        }
-
-        if let Ok(snapshot) = snapshot_manager.load_snapshot(&current)
-            && let Some(parent) = snapshot.commit.parent
-        {
-            to_visit.push(parent);
-        }
-    }
-
-    ancestors
 }
 
 #[cfg(test)]

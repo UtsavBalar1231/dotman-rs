@@ -114,7 +114,7 @@ fn test_recover_from_missing_objects() -> Result<()> {
     }
 
     // Try to restore - should fail
-    let restore_result = snapshot_manager.restore_snapshot("commit1", dir.path());
+    let restore_result = snapshot_manager.restore_snapshot("commit1", dir.path(), None);
     assert!(restore_result.is_err());
 
     // Recovery: recreate objects from existing files

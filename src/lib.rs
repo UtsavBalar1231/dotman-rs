@@ -113,10 +113,7 @@ impl DotmanContext {
     ///
     /// # Errors
     /// Returns an error if the configuration cannot be loaded or created.
-    pub fn new_with_explicit_paths_no_pager(
-        repo_path: PathBuf,
-        config_path: PathBuf,
-    ) -> Result<Self> {
+    pub fn new_explicit(repo_path: PathBuf, config_path: PathBuf) -> Result<Self> {
         let mut context = Self::new_with_explicit_paths(repo_path, config_path)?;
         context.no_pager = true;
         Ok(context)
@@ -187,12 +184,9 @@ mod tests {
 repo_path = "~/.dotman"
 compression_level = 3
 
-[branches]
-current = "main"
 
 [performance]
 parallel_threads = 4
-cache_size = 100
 mmap_threshold = 1048576
 
 [tracking]

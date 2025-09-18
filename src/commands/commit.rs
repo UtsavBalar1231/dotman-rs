@@ -5,9 +5,7 @@ use crate::storage::file_ops::hash_bytes;
 use crate::storage::index::Index;
 use crate::storage::{Commit, FileEntry};
 use crate::utils::formatters::format_commit_id;
-use crate::utils::{
-    commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
-};
+use crate::utils::{commit::generate_commit_id, get_precise_timestamp, get_user_from_config};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use std::path::PathBuf;
@@ -43,8 +41,8 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
         return Ok(());
     }
 
-    let timestamp = get_current_timestamp();
-    let author = get_current_user_with_config(&ctx.config);
+    let (timestamp, nanos) = get_precise_timestamp();
+    let author = get_user_from_config(&ctx.config);
 
     let parent = get_last_commit_id(ctx)?;
 
@@ -55,7 +53,14 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
-    let commit_id = generate_commit_id(&tree_hash, parent.as_deref(), message, &author, timestamp);
+    let commit_id = generate_commit_id(
+        &tree_hash,
+        parent.as_deref(),
+        message,
+        &author,
+        timestamp,
+        nanos,
+    );
 
     let commit = Commit {
         id: commit_id.clone(),
@@ -129,8 +134,8 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
-    let timestamp = get_current_timestamp();
-    let author = get_current_user_with_config(&ctx.config);
+    let (timestamp, nanos) = get_precise_timestamp();
+    let author = get_user_from_config(&ctx.config);
 
     let commit_id = generate_commit_id(
         &tree_hash,
@@ -138,6 +143,7 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
         commit_message,
         &author,
         timestamp,
+        nanos,
     );
 
     let commit = Commit {
@@ -192,14 +198,15 @@ fn stage_all_tracked_files(ctx: &DotmanContext, index: &mut Index) -> Result<()>
         let abs_path = home.join(&path);
         if abs_path.exists() {
             // Use cached hash from existing entry for performance
-            let entry = crate::commands::add::create_file_entry_with_cache(
+            let entry = crate::commands::add::create_file_entry(
                 &abs_path,
                 &home,
                 existing_entry.cached_hash.as_ref(),
             )
             .unwrap_or_else(|_| {
                 // Fallback to non-cached if there's an error
-                crate::commands::add::create_file_entry(&abs_path, &home).unwrap_or(existing_entry)
+                crate::commands::add::create_file_entry(&abs_path, &home, None)
+                    .unwrap_or(existing_entry)
             });
             index.stage_entry(entry);
             staged += 1;

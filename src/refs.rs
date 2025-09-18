@@ -32,7 +32,7 @@ impl RefManager {
 
         self.create_branch("main", None)?;
 
-        self.set_head_to_branch("main")?;
+        self.set_head_to_branch("main", None, None)?;
 
         Ok(())
     }
@@ -62,28 +62,18 @@ impl RefManager {
     ///
     /// # Errors
     ///
-    /// Returns an error if HEAD cannot be updated
-    pub fn set_head_to_branch(&self, branch: &str) -> Result<()> {
-        self.set_head_to_branch_with_reflog(
-            branch,
-            "checkout",
-            &format!("checkout: moving to {branch}"),
-        )
-    }
-
-    /// Set HEAD to point to a branch with reflog entry
-    ///
-    /// # Errors
-    ///
     /// Returns an error if:
     /// - HEAD file cannot be written
     /// - Reflog entry cannot be created
-    pub fn set_head_to_branch_with_reflog(
+    pub fn set_head_to_branch(
         &self,
         branch: &str,
-        operation: &str,
-        message: &str,
+        operation: Option<&str>,
+        message: Option<&str>,
     ) -> Result<()> {
+        let operation = operation.unwrap_or("checkout");
+        let default_message = format!("checkout: moving to {branch}");
+        let message = message.unwrap_or(&default_message);
         let old_value = self
             .get_current_head_value()
             .unwrap_or_else(|| "0".repeat(40));
@@ -115,31 +105,21 @@ impl RefManager {
     ///
     /// # Errors
     ///
-    /// Returns an error if HEAD cannot be updated
-    pub fn set_head_to_commit(&self, commit_id: &str) -> Result<()> {
-        self.set_head_to_commit_with_reflog(
-            commit_id,
-            "checkout",
-            &format!(
-                "checkout: moving to {}",
-                &commit_id[..8.min(commit_id.len())]
-            ),
-        )
-    }
-
-    /// Set HEAD to point directly to a commit with reflog entry
-    ///
-    /// # Errors
-    ///
     /// Returns an error if:
     /// - HEAD file cannot be written
     /// - Reflog entry cannot be created
-    pub fn set_head_to_commit_with_reflog(
+    pub fn set_head_to_commit(
         &self,
         commit_id: &str,
-        operation: &str,
-        message: &str,
+        operation: Option<&str>,
+        message: Option<&str>,
     ) -> Result<()> {
+        let operation = operation.unwrap_or("checkout");
+        let default_message = format!(
+            "checkout: moving to {}",
+            &commit_id[..8.min(commit_id.len())]
+        );
+        let message = message.unwrap_or(&default_message);
         let old_value = self
             .get_current_head_value()
             .unwrap_or_else(|| "0".repeat(40));
@@ -324,10 +304,10 @@ impl RefManager {
             .as_ref()
             .is_some_and(|c| c == old_name)
         {
-            self.set_head_to_branch_with_reflog(
+            self.set_head_to_branch(
                 new_name,
-                "branch",
-                &format!("Branch: renamed {old_name} to {new_name}"),
+                Some("branch"),
+                Some(&format!("Branch: renamed {old_name} to {new_name}")),
             )?;
         }
 
@@ -528,7 +508,7 @@ mod tests {
     fn test_detached_head() -> Result<()> {
         let (_temp, manager) = setup_test_repo()?;
 
-        manager.set_head_to_commit("abc123")?;
+        manager.set_head_to_commit("abc123", None, None)?;
 
         let current = manager.current_branch()?;
         assert_eq!(current, None); // Detached HEAD

@@ -263,8 +263,6 @@ proptest! {
             // If it loads, values should be within valid ranges
             prop_assert!(config.core.compression_level >= 1 && config.core.compression_level <= 22);
             prop_assert!(config.performance.parallel_threads >= 1);
-            prop_assert!(config.performance.cache_size <= 10000);
-            prop_assert!(!config.core.default_branch.is_empty());
         } else {
             // May reject values outside valid ranges
         }

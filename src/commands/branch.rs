@@ -284,7 +284,7 @@ pub fn checkout(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
     if commit_id == "0".repeat(40) {
         // This is an empty branch with no commits
         // Just update HEAD to point to this branch without trying to restore files
-        ref_manager.set_head_to_branch(name)?;
+        ref_manager.set_head_to_branch(name, None, None)?;
         super::print_success(&format!("Switched to empty branch '{name}'"));
         super::print_info("No commits on this branch yet");
         return Ok(());
@@ -539,7 +539,7 @@ mod tests {
         // (avoiding full checkout which requires commits)
         create(&ctx, "feature", None)?;
         let ref_manager = RefManager::new(ctx.repo_path.clone());
-        ref_manager.set_head_to_branch("feature")?;
+        ref_manager.set_head_to_branch("feature", None, None)?;
 
         // Try to delete main without force
         let result = delete(&ctx, "main", false);

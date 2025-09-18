@@ -49,12 +49,14 @@ pub fn execute(bare: bool) -> Result<()> {
         .init()
         .context("Failed to initialize reference manager")?;
 
-    // Create default config
+    // Create default config only if it doesn't exist
     let config_path = home.join(DEFAULT_CONFIG_PATH);
-    let config = Config::default();
-    config
-        .save(&config_path)
-        .context("Failed to save default configuration")?;
+    if !config_path.exists() {
+        let config = Config::default();
+        config
+            .save(&config_path)
+            .context("Failed to save default configuration")?;
+    }
 
     if bare {
         super::print_success(&format!(

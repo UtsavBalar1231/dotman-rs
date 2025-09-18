@@ -220,25 +220,26 @@ enum Commands {
         to: Option<String>,
     },
 
-    /// Remove files from tracking
+    /// Remove files from tracking (files remain on disk)
     Rm {
-        /// Paths to remove
+        /// Paths to remove from tracking
         paths: Vec<String>,
 
+        /// Only remove from index, keep in repository storage
         #[arg(short, long)]
         cached: bool,
 
+        /// Force removal even if file doesn't exist
         #[arg(short, long)]
         force: bool,
 
+        /// Remove directories recursively
         #[arg(short = 'r', long)]
         recursive: bool,
 
+        /// Show what would be removed without making changes
         #[arg(long)]
         dry_run: bool,
-
-        #[arg(short, long)]
-        interactive: bool,
     },
 
     /// Remove untracked files from working directory
@@ -545,7 +546,7 @@ fn run() -> Result<()> {
         }
         Commands::Status { short, untracked } => {
             let ctx = context.context("Context not initialized for status command")?;
-            commands::status::execute_with_verbose(&ctx, short, untracked, cli.verbose)?;
+            commands::status::execute_verbose(&ctx, short, untracked, cli.verbose)?;
         }
         Commands::Commit {
             message,
@@ -669,10 +670,9 @@ fn run() -> Result<()> {
             force,
             recursive,
             dry_run,
-            interactive,
         } => {
             let ctx = context.context("Context not initialized for rm command")?;
-            commands::rm::execute(&ctx, &paths, cached, force, recursive, dry_run, interactive)?;
+            commands::rm::execute(&ctx, &paths, cached, force, recursive, dry_run)?;
         }
         Commands::Clean { dry_run, force } => {
             let ctx = context.context("Context not initialized for clean command")?;

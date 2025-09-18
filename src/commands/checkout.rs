@@ -56,7 +56,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     let current_files = crate::commands::status::get_current_files(ctx)?;
 
     // Restore files with cleanup of files not in target
-    snapshot_manager.restore_snapshot_with_cleanup(&commit_id, &home, &current_files)?;
+    snapshot_manager.restore_snapshot(&commit_id, &home, Some(&current_files))?;
 
     // Update HEAD with reflog entry
     let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -65,10 +65,10 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     // Check if target is a branch name
     if ref_manager.branch_exists(target) {
         // Checkout the branch (update HEAD to point to the branch)
-        ref_manager.set_head_to_branch_with_reflog(target, "checkout", &message)?;
+        ref_manager.set_head_to_branch(target, Some("checkout"), Some(&message))?;
     } else {
         // Checkout a specific commit (detached HEAD)
-        ref_manager.set_head_to_commit_with_reflog(&commit_id, "checkout", &message)?;
+        ref_manager.set_head_to_commit(&commit_id, Some("checkout"), Some(&message))?;
     }
 
     let display_id = if commit_id.len() >= 8 {
@@ -320,7 +320,7 @@ mod tests {
         let (_temp, ctx) = setup_test_context()?;
 
         let ref_manager = RefManager::new(ctx.repo_path.clone());
-        ref_manager.set_head_to_commit("new_commit_id")?;
+        ref_manager.set_head_to_commit("new_commit_id", None, None)?;
 
         let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
         assert_eq!(head_content, "new_commit_id");
@@ -337,7 +337,7 @@ mod tests {
 
         // Update HEAD using RefManager
         let ref_manager = RefManager::new(ctx.repo_path.clone());
-        ref_manager.set_head_to_commit("new_commit")?;
+        ref_manager.set_head_to_commit("new_commit", None, None)?;
 
         let head_content = fs::read_to_string(ctx.repo_path.join("HEAD"))?;
         assert_eq!(head_content, "new_commit");

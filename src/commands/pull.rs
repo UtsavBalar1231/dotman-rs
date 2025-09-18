@@ -122,6 +122,7 @@ fn determine_pull_target(
     ))
 }
 
+#[allow(clippy::too_many_lines)]
 fn pull_from_git(
     ctx: &DotmanContext,
     remote_config: &crate::config::RemoteConfig,
@@ -132,9 +133,7 @@ fn pull_from_git(
     squash: bool,
 ) -> Result<()> {
     use crate::storage::{Commit, FileEntry, file_ops::hash_bytes};
-    use crate::utils::{
-        commit::generate_commit_id, get_current_timestamp, get_current_user_with_config,
-    };
+    use crate::utils::{commit::generate_commit_id, get_precise_timestamp, get_user_from_config};
 
     let url = remote_config
         .url
@@ -207,8 +206,8 @@ fn pull_from_git(
 
     // Create commit similar to how commit command does it
     // Get timestamp and author for commit
-    let timestamp = get_current_timestamp();
-    let author = get_current_user_with_config(&ctx.config);
+    let (timestamp, nanos) = get_precise_timestamp();
+    let author = get_user_from_config(&ctx.config);
 
     // Get parent commit (if any)
     let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -222,7 +221,14 @@ fn pull_from_git(
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
     // Generate content-addressed commit ID
-    let commit_id = generate_commit_id(&tree_hash, parent.as_deref(), &message, &author, timestamp);
+    let commit_id = generate_commit_id(
+        &tree_hash,
+        parent.as_deref(),
+        &message,
+        &author,
+        timestamp,
+        nanos,
+    );
 
     // Create commit object
     let commit = Commit {
