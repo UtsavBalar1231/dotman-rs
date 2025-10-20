@@ -1,3 +1,35 @@
+//! File addition and staging operations.
+//!
+//! This module provides functionality for staging files to be tracked by dotman,
+//! similar to `git add`. It handles:
+//!
+//! - Recursive directory processing
+//! - Ignore pattern matching
+//! - Special file type detection (devices, sockets, large files, sensitive files)
+//! - Parallel file hashing with cache optimization
+//! - Force mode for non-existent paths
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use dotman::DotmanContext;
+//! use dotman::commands::add;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! let ctx = DotmanContext::new()?;
+//!
+//! // Add a single file
+//! add::execute(&ctx, &["~/.bashrc".to_string()], false)?;
+//!
+//! // Add a directory recursively
+//! add::execute(&ctx, &["~/.config".to_string()], false)?;
+//!
+//! // Force add (skip non-existent paths)
+//! add::execute(&ctx, &["file.txt".to_string()], true)?;
+//! # Ok(())
+//! # }
+//! ```
+
 use crate::DotmanContext;
 use crate::commands::context::CommandContext;
 use crate::storage::{CachedHash, FileEntry};
@@ -7,15 +39,18 @@ use colored::Colorize;
 use rayon::prelude::*;
 use std::path::{Path, PathBuf};
 
-/// Execute the add command to stage files for tracking
+/// Stage files for tracking in the next commit.
+///
+/// Recursively processes directories and respects ignore patterns.
+/// With `force=true`, non-existent paths are skipped rather than erroring.
 ///
 /// # Errors
 ///
 /// Returns an error if:
-/// - The repository is not initialized
-/// - A specified path does not exist (when not using force)
-/// - Failed to read directory entries
-/// - Failed to save the index
+/// - A path does not exist and `force` is `false`
+/// - Cannot read directory entries during recursive traversal
+/// - Cannot create file entries (metadata, hashing, or path resolution failures)
+/// - Cannot save the index after staging
 pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()> {
     ctx.ensure_initialized()?;
 
@@ -25,7 +60,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
     let mut files_to_add = Vec::new();
 
     for path_str in paths {
-        let path = expand_tilde(path_str);
+        let path = expand_tilde(path_str)?;
 
         if !path.exists() {
             if !force {
@@ -104,11 +139,24 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
     Ok(())
 }
 
-/// Collect all files from a directory recursively
+/// Recursively collect files from a directory, respecting ignore patterns.
+///
+/// This function walks through a directory tree and collects all file paths
+/// that pass the ignore pattern filter. It also performs special file type
+/// checking on each discovered file.
+///
+/// # Arguments
+///
+/// * `dir` - Directory to traverse
+/// * `files` - Mutable vector to collect file paths into
+/// * `ignore_patterns` - Patterns to exclude from collection
+/// * `follow_symlinks` - Whether to follow symbolic links
 ///
 /// # Errors
 ///
-/// Returns an error if failed to read directory entries
+/// Returns an error if:
+/// - Cannot read directory entries
+/// - Directory traversal fails due to permissions or I/O errors
 fn collect_files_from_dir(
     dir: &Path,
     files: &mut Vec<PathBuf>,
@@ -131,95 +179,154 @@ fn collect_files_from_dir(
     Ok(())
 }
 
-#[cfg(unix)]
-#[allow(clippy::cast_precision_loss)]
+/// Check for special file types and issue warnings.
+///
+/// This function performs platform-specific checks for special file types
+/// (block devices, character devices, sockets, FIFOs on Unix) and common
+/// checks for large files and potentially sensitive filenames.
+///
+/// Warnings are printed to the user but do not prevent the file from being added.
+///
+/// # Arguments
+///
+/// * `path` - Path to the file to check
 fn check_special_file_type(path: &Path) {
+    let Ok(metadata) = std::fs::metadata(path) else {
+        return;
+    };
+
+    // Check Unix-specific file types
+    #[cfg(unix)]
+    check_unix_special_types(path, &metadata);
+
+    // Common checks for all platforms
+    check_file_size(path, &metadata);
+    check_sensitive_filename(path);
+}
+
+/// Check for Unix-specific special file types.
+///
+/// On Unix systems, this function checks if a file is a block device,
+/// character device, FIFO (named pipe), or socket, and warns the user
+/// if any of these special types are detected.
+///
+/// # Arguments
+///
+/// * `path` - Path to the file
+/// * `metadata` - File metadata containing type information
+#[cfg(unix)]
+fn check_unix_special_types(path: &Path, metadata: &std::fs::Metadata) {
     use std::os::unix::fs::FileTypeExt;
 
-    if let Ok(metadata) = std::fs::metadata(path) {
-        let file_type = metadata.file_type();
+    let file_type = metadata.file_type();
 
-        {
-            if file_type.is_block_device() {
-                super::print_warning(&format!("Warning: {} is a block device", path.display()));
-            } else if file_type.is_char_device() {
-                super::print_warning(&format!(
-                    "Warning: {} is a character device",
-                    path.display()
-                ));
-            } else if file_type.is_fifo() {
-                super::print_warning(&format!(
-                    "Warning: {} is a named pipe (FIFO)",
-                    path.display()
-                ));
-            } else if file_type.is_socket() {
-                super::print_warning(&format!("Warning: {} is a socket", path.display()));
-            }
-        }
-
-        if metadata.len() > 100_000_000 {
-            #[allow(clippy::cast_precision_loss)]
-            let size_mb = metadata.len() as f64 / 1_048_576.0;
-            super::print_warning(&format!(
-                "Warning: {} is very large ({:.2} MB)",
-                path.display(),
-                size_mb
-            ));
-        }
-
-        if let Some(name) = path.file_name().and_then(|n| n.to_str())
-            && (name.contains("password")
-                || name.contains("secret")
-                || name.contains("key")
-                || name.contains(".pem")
-                || name.contains(".key")
-                || name.contains(".pfx"))
-        {
-            super::print_warning(&format!(
-                "Warning: {} may contain sensitive information",
-                path.display()
-            ));
-        }
+    if file_type.is_block_device() {
+        super::print_warning(&format!("Warning: {} is a block device", path.display()));
+    } else if file_type.is_char_device() {
+        super::print_warning(&format!(
+            "Warning: {} is a character device",
+            path.display()
+        ));
+    } else if file_type.is_fifo() {
+        super::print_warning(&format!(
+            "Warning: {} is a named pipe (FIFO)",
+            path.display()
+        ));
+    } else if file_type.is_socket() {
+        super::print_warning(&format!("Warning: {} is a socket", path.display()));
     }
 }
 
-#[cfg(not(unix))]
-fn check_special_file_type(path: &Path) {
-    if let Ok(metadata) = std::fs::metadata(path) {
-        if metadata.len() > 100_000_000 {
-            #[allow(clippy::cast_precision_loss)]
-            let size_mb = metadata.len() as f64 / 1_048_576.0;
-            super::print_warning(&format!(
-                "Warning: {} is very large ({:.2} MB)",
-                path.display(),
-                size_mb
-            ));
-        }
+/// Check if a file exceeds the large file threshold and warn the user.
+///
+/// The threshold is configurable via [`crate::config::TrackingConfig::large_file_threshold`].
+/// Default is 100 MB.
+///
+/// # Arguments
+///
+/// * `path` - Path to the file
+/// * `metadata` - File metadata containing size information
+#[allow(clippy::cast_precision_loss)]
+fn check_file_size(path: &Path, metadata: &std::fs::Metadata) {
+    use crate::DotmanContext;
 
-        if let Some(name) = path.file_name().and_then(|n| n.to_str())
-            && (name.contains("password")
-                || name.contains("secret")
-                || name.contains("key")
-                || name.contains(".pem")
-                || name.contains(".key")
-                || name.contains(".pfx"))
-        {
-            super::print_warning(&format!(
-                "Warning: {} may contain sensitive information",
-                path.display()
-            ));
-        }
+    const MB: f64 = 1_048_576.0;
+
+    // Try to get threshold from config, fall back to default if unavailable
+    let threshold = DotmanContext::new().ok().map_or(100 * 1024 * 1024, |ctx| {
+        ctx.config.tracking.large_file_threshold
+    });
+
+    if metadata.len() > threshold {
+        let size_mb = metadata.len() as f64 / MB;
+        super::print_warning(&format!(
+            "Warning: {} is very large ({:.2} MB)",
+            path.display(),
+            size_mb
+        ));
     }
 }
 
-/// Create a `FileEntry` from a file path
+/// Check if a filename contains patterns that suggest sensitive content.
+///
+/// This function scans the filename for common patterns associated with
+/// sensitive data (passwords, secrets, private keys, certificates) and
+/// warns the user if any are detected.
+///
+/// Patterns checked: "password", "secret", "key", ".pem", ".key", ".pfx"
+///
+/// # Arguments
+///
+/// * `path` - Path to the file to check
+fn check_sensitive_filename(path: &Path) {
+    const SENSITIVE_PATTERNS: &[&str] = &["password", "secret", "key", ".pem", ".key", ".pfx"];
+
+    if let Some(name) = path.file_name().and_then(|n| n.to_str())
+        && SENSITIVE_PATTERNS
+            .iter()
+            .any(|&pattern| name.contains(pattern))
+    {
+        super::print_warning(&format!(
+            "Warning: {} may contain sensitive information",
+            path.display()
+        ));
+    }
+}
+
+/// Build `FileEntry` with hash, metadata, and relative path.
+///
+/// This function creates a complete file entry suitable for adding to the index.
+/// It computes the file hash (using cache if available), extracts metadata,
+/// and converts the path to be relative to the home directory.
+///
+/// # Arguments
+///
+/// * `path` - Absolute path to the file
+/// * `home` - Home directory path for making relative paths
+/// * `cached_hash` - Optional cached hash for performance optimization
 ///
 /// # Errors
 ///
 /// Returns an error if:
-/// - Failed to get file metadata
-/// - Failed to hash the file
-/// - Failed to make path relative
+/// - Cannot read file metadata
+/// - Cannot hash the file contents
+/// - Cannot get file modification time
+/// - File modification time is invalid or too large
+/// - Cannot make path relative to home directory
+///
+/// # Examples
+///
+/// ```no_run
+/// use dotman::commands::add::create_file_entry;
+/// use std::path::PathBuf;
+///
+/// # fn main() -> anyhow::Result<()> {
+/// let path = PathBuf::from("/home/user/.bashrc");
+/// let home = PathBuf::from("/home/user");
+/// let entry = create_file_entry(&path, &home, None)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn create_file_entry(
     path: &Path,
     home: &Path,

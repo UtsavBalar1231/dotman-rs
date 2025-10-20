@@ -24,11 +24,17 @@ pub fn format_branch_name(name: &str, is_current: bool) -> String {
 /// Represents different file statuses for formatting
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileStatus {
+    /// File has been newly added to the index
     Added,
+    /// File exists in the index and has been changed
     Modified,
+    /// File has been removed or marked for deletion
     Deleted,
+    /// File is not tracked by the index
     Untracked,
+    /// File is staged for the next commit
     Staged,
+    /// File has conflicting changes that need resolution
     Conflict,
 }
 

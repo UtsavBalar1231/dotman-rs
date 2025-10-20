@@ -15,6 +15,11 @@ pub struct CommitMapping {
     branch_mappings: HashMap<String, BranchMapping>,
 }
 
+/// Represents the mapping between dotman and git commits for a specific branch.
+///
+/// This struct tracks the current state of a branch in both dotman and git repositories,
+/// allowing synchronization between the two systems. Each branch can have multiple git
+/// remote heads associated with it.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BranchMapping {
     /// Current dotman commit for this branch
@@ -163,9 +168,14 @@ impl Default for CommitMapping {
     }
 }
 
-/// Helper to manage mapping file path
+/// Helper to manage mapping file path and persistence operations.
+///
+/// This struct provides a convenient interface for loading, modifying, and saving
+/// commit mappings to disk. It handles the file path management automatically.
 pub struct MappingManager {
+    /// Path to the mapping file on disk
     mapping_path: PathBuf,
+    /// In-memory commit mapping data
     mapping: CommitMapping,
 }
 

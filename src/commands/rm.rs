@@ -1,3 +1,40 @@
+//! File removal and untracking operations.
+//!
+//! This module provides functionality for removing files from dotman tracking,
+//! similar to `git rm`. It handles:
+//!
+//! - Index-only removal (--cached mode)
+//! - Glob pattern matching
+//! - Recursive directory removal
+//! - Dry-run mode for previewing changes
+//! - Force mode for non-tracked files
+//!
+//! # Safety
+//!
+//! For data safety, this module NEVER deletes actual files from disk.
+//! It only removes entries from the tracking index.
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use dotman::DotmanContext;
+//! use dotman::commands::rm;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! let ctx = DotmanContext::new()?;
+//!
+//! // Remove a file from tracking
+//! rm::execute(&ctx, &["file.txt".to_string()], false, false, false, false)?;
+//!
+//! // Remove with glob pattern
+//! rm::execute(&ctx, &["*.tmp".to_string()], false, false, false, false)?;
+//!
+//! // Dry run (preview)
+//! rm::execute(&ctx, &["file.txt".to_string()], false, false, false, true)?;
+//! # Ok(())
+//! # }
+//! ```
+
 use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
@@ -6,7 +43,7 @@ use glob::Pattern;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Execute rm command - remove files from tracking (the index)
+/// Remove files from tracking (index only, never deletes actual files)
 ///
 /// Similar to git rm, this removes files from being tracked. With --cached,
 /// only removes from index. Without --cached, removes from both index and
@@ -103,7 +140,7 @@ pub fn execute(
         // Check if file is tracked
         if index.entries.contains_key(&index_path) {
             // Mark the file as deleted
-            index.mark_deleted(index_path.clone());
+            index.mark_deleted(&index_path);
             println!("  {} {}", "removed:".red(), path.display());
             removed_count += 1;
         } else if index.staged_entries.remove(&index_path).is_some() {
@@ -112,15 +149,8 @@ pub fn execute(
             removed_count += 1;
         }
 
-        // When not using --cached, the traditional git behavior would delete
-        // the file from the working directory. However, for safety in a dotfiles
-        // manager, we NEVER delete actual files from the user's filesystem.
-        // We only remove them from tracking.
-        if !cached {
-            // In a future implementation, we might add an interactive prompt
-            // or a --force flag to actually delete files, but for now we
-            // prioritize data safety over git compatibility.
-        }
+        // For safety, we never delete actual files from disk
+        if !cached {}
     }
 
     // Save updated index (only if not in dry run mode)
@@ -144,6 +174,22 @@ pub fn execute(
     Ok(())
 }
 
+/// Recursively expand a directory and collect all file paths.
+///
+/// This function traverses a directory tree depth-first and collects
+/// all file paths (not directories) into the provided vector.
+///
+/// # Arguments
+///
+/// * `dir` - Directory to expand
+/// * `paths` - Mutable vector to collect file paths into
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Cannot read directory entries
+/// - Directory traversal fails due to permissions
+/// - I/O errors occur during traversal
 fn expand_directory_recursive(dir: &Path, paths: &mut Vec<PathBuf>) -> Result<()> {
     if dir.is_dir() {
         for entry in fs::read_dir(dir)? {

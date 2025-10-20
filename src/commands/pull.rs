@@ -122,6 +122,31 @@ fn determine_pull_target(
     ))
 }
 
+/// Performs the actual git pull operation (fetch + merge/rebase)
+///
+/// Handles fetching from remote git repository, importing changes to local dotman
+/// repository, and performing merge or rebase based on flags. Creates a commit
+/// for imported changes and updates the mapping between git and dotman commits.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context with repository path and configuration
+/// * `remote_config` - Configuration for the remote being pulled from
+/// * `remote` - Name of the remote (e.g., "origin")
+/// * `branch` - Name of the branch to pull
+/// * `rebase` - If true, rebase local changes on top of pulled changes
+/// * `no_ff` - If true, create a merge commit even if fast-forward is possible
+/// * `squash` - If true, squash all changes into a single commit
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The remote URL is not configured
+/// - The git mirror initialization or pull operation fails
+/// - Importing changes from the mirror fails
+/// - Creating or saving the commit snapshot fails
+/// - Updating references or mappings fails
+/// - The merge or rebase operation fails
 #[allow(clippy::too_many_lines)]
 fn pull_from_git(
     ctx: &DotmanContext,
@@ -283,6 +308,23 @@ fn pull_from_git(
     Ok(())
 }
 
+/// Performs rebase operation onto a specific commit
+///
+/// Replays current branch commits on top of the target commit. This is a simplified
+/// implementation that currently just checks out the new commit. A full implementation
+/// would save local commits since the common ancestor, reset to the new base, and
+/// replay the local commits.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context with repository path and configuration
+/// * `onto_commit` - The commit ID to rebase onto
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The checkout operation to the target commit fails
+/// - The target commit does not exist
 fn perform_rebase(ctx: &DotmanContext, onto_commit: &str) -> Result<()> {
     // Simplified rebase: just move HEAD to the new commit
     // In a full implementation, would replay local commits on top

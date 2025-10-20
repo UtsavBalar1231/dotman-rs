@@ -5,6 +5,7 @@ use std::path::Path;
 /// Cross-platform file permissions handling
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FilePermissions {
+    /// Raw permission mode bits (Unix-style, even on other platforms)
     mode: u32,
 }
 

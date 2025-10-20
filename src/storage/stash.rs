@@ -39,11 +39,23 @@ pub struct StashFile {
 
 /// Manages stash operations for the repository
 pub struct StashManager {
+    /// Path to the dotman repository directory
     repo_path: PathBuf,
+    /// Zstandard compression level (1-22, higher = better compression but slower)
     compression_level: i32,
 }
 
 impl StashManager {
+    /// Creates a new `StashManager` instance
+    ///
+    /// # Arguments
+    ///
+    /// * `repo_path` - Path to the dotman repository directory (typically `~/.dotman`)
+    /// * `compression_level` - Zstandard compression level (1-22, higher = better compression but slower)
+    ///
+    /// # Returns
+    ///
+    /// A new `StashManager` configured with the specified repository path and compression level
     #[must_use]
     pub const fn new(repo_path: PathBuf, compression_level: i32) -> Self {
         Self {

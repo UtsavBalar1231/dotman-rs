@@ -1,39 +1,147 @@
+#![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
+
+//! # Dotman - High-Performance Dotfiles Manager
+//!
+//! Dotman is a Git-like dotfiles manager built in Rust, designed for maximum performance
+//! and reliability through content-addressed storage, parallel processing, and binary indexing.
+//!
+//! ## Features
+//!
+//! - **Content-Addressed Storage**: Files are hashed with xxHash3 and deduplicated automatically
+//! - **Parallel Processing**: Leverages Rayon for multi-core operations
+//! - **SIMD Acceleration**: Uses SIMD for UTF-8 validation and JSON parsing
+//! - **Binary Indexing**: Fast file tracking with bincode serialization
+//! - **Git-like Semantics**: Familiar command interface (add, commit, checkout, branch, etc.)
+//! - **Compression**: Zstandard compression with configurable levels
+//!
+//! ## Architecture
+//!
+//! The codebase is organized into several key modules:
+//!
+//! - [`commands`]: Command implementations (add, commit, checkout, etc.)
+//! - [`storage`]: Core storage layer with index and snapshot management
+//! - [`config`]: Configuration parsing and validation
+//! - [`refs`]: Reference and branch management
+//! - [`utils`]: Utility functions and helpers
+//!
+//! ## Example Usage
+//!
+//! ```no_run
+//! use dotman::DotmanContext;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! // Create a new context
+//! let ctx = DotmanContext::new()?;
+//!
+//! // Initialize repository
+//! dotman::commands::init::execute(false)?;
+//!
+//! // Add files
+//! dotman::commands::add::execute(&ctx, &["~/.bashrc".to_string()], false)?;
+//!
+//! // Commit changes
+//! dotman::commands::commit::execute(&ctx, "Initial commit", false)?;
+//! # Ok(())
+//! # }
+//! ```
+
+/// Commands module containing all CLI command implementations.
 pub mod commands;
+
+/// Configuration parsing, validation, and management.
 pub mod config;
+
+/// File mapping and path resolution utilities.
 pub mod mapping;
+
+/// Mirror repository synchronization.
 pub mod mirror;
+
+/// Reflog for tracking reference changes.
 pub mod reflog;
+
+/// Reference and branch management (HEAD, branches, tags).
 pub mod refs;
+
+/// Core storage layer including index, snapshots, and file operations.
 pub mod storage;
+
+/// Synchronization and remote operations.
 pub mod sync;
+
+/// Utility functions and helpers.
 pub mod utils;
 
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 
+/// Current version of the dotman binary.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Default repository directory name within the home directory.
 pub const DEFAULT_REPO_DIR: &str = ".dotman";
+
+/// Default configuration file path relative to home directory.
 pub const DEFAULT_CONFIG_PATH: &str = ".config/dotman/config";
+
+/// Name of the binary index file.
 pub const INDEX_FILE: &str = "index.bin";
+
+/// Directory name for storing commit snapshots.
 pub const COMMITS_DIR: &str = "commits";
+
+/// Directory name for content-addressed object storage.
 pub const OBJECTS_DIR: &str = "objects";
+
+/// Placeholder commit ID representing no commits (40 zeros).
 pub const NULL_COMMIT_ID: &str = "0000000000000000000000000000000000000000";
 
+/// Central context for all Dotman operations.
+///
+/// This structure holds the repository path, configuration, and settings
+/// needed for executing commands. It provides the primary interface for
+/// interacting with a dotman repository.
+///
+/// # Fields
+///
+/// - `repo_path`: Path to the `.dotman` repository directory
+/// - `config_path`: Path to the configuration file
+/// - `config`: Loaded configuration settings
+/// - `no_pager`: Whether to disable pager output
+///
+/// # Examples
+///
+/// ```no_run
+/// use dotman::DotmanContext;
+///
+/// # fn main() -> anyhow::Result<()> {
+/// // Create context with default paths
+/// let ctx = DotmanContext::new()?;
+///
+/// // Create context with custom paths (for testing)
+/// let ctx = DotmanContext::new_explicit(
+///     "/tmp/test_repo".into(),
+///     "/tmp/test_config".into()
+/// )?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone)]
 pub struct DotmanContext {
+    /// Path to the dotman repository directory.
     pub repo_path: PathBuf,
+
+    /// Path to the configuration file.
     pub config_path: PathBuf,
+
+    /// Loaded configuration settings.
     pub config: config::Config,
+
+    /// Whether to disable pager output for command results.
     pub no_pager: bool,
 }
 
-/// Context for Dotman operations, holding configuration and repository information.
-/// This struct is used throughout the application to access settings and paths.
-/// # Fields
-/// - `repo_path`: The path to the Dotman repository.
-/// - `config_path`: The path to the configuration file.
-/// - `config`: The loaded configuration settings.
-/// - `no_pager`: A flag indicating whether to disable pager functionality.
 impl DotmanContext {
     /// Creates a new `DotmanContext` by loading the configuration from the default path.
     ///
@@ -41,7 +149,7 @@ impl DotmanContext {
     /// Returns an error if the home directory cannot be determined or if the configuration
     /// file cannot be read or created.
     pub fn new() -> Result<Self> {
-        Self::new_with_pager(false)
+        Self::new_with_pager(true)
     }
 
     /// Creates a new `DotmanContext` with an option to disable pager functionality.
@@ -50,10 +158,22 @@ impl DotmanContext {
     /// Returns an error if the home directory cannot be determined or if the configuration
     /// file cannot be read or created.
     pub fn new_with_pager(no_pager: bool) -> Result<Self> {
-        let home = dirs::home_dir().context("Could not find home directory")?;
-        let config_path = home.join(DEFAULT_CONFIG_PATH);
+        // Check environment variable for config path first
+        let config_path = if let Ok(path) = std::env::var("DOTMAN_CONFIG_PATH") {
+            PathBuf::from(path)
+        } else {
+            let home = dirs::home_dir().context("Could not find home directory")?;
+            home.join(DEFAULT_CONFIG_PATH)
+        };
+
         let config = config::Config::load(&config_path)?;
-        let repo_path = config.core.repo_path.clone();
+
+        // Allow environment variable to override config repo_path
+        let repo_path = if let Ok(path) = std::env::var("DOTMAN_REPO_PATH") {
+            PathBuf::from(path)
+        } else {
+            config.core.repo_path.clone()
+        };
 
         // Validate configuration and warn about issues
         let validator = config::validator::ConfigValidator::new();
@@ -116,7 +236,10 @@ impl DotmanContext {
         Ok(context)
     }
 
-    /// Checks if the repository is initialized by verifying the existence of
+    /// Checks if the repository is initialized by verifying the existence of required files.
+    ///
+    /// A repository is considered initialized if the repository directory exists
+    /// and contains both the index file and HEAD reference.
     #[must_use]
     pub fn is_repo_initialized(&self) -> bool {
         self.repo_path.exists()
@@ -131,7 +254,7 @@ impl DotmanContext {
     pub fn check_repo_initialized(&self) -> Result<()> {
         if !self.is_repo_initialized() {
             return Err(anyhow::anyhow!(
-                "Dotman repository not found in {}. Did you run 'dot init'?",
+                "Repository not initialized: Dotman repository not found in {}. Did you run 'dot init'?",
                 self.repo_path.display()
             ));
         }

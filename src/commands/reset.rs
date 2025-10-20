@@ -166,6 +166,35 @@ pub fn execute(
     Ok(())
 }
 
+/// Reset specific files to their state in a given commit
+///
+/// This function performs a file-specific reset operation, updating the index
+/// for the specified files to match their state in the target commit. Unlike
+/// a full reset, this only affects the specified files and leaves other files
+/// and the HEAD pointer unchanged.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `commit` - The commit reference to reset files to (e.g., "HEAD", "HEAD~1", branch name, commit hash)
+/// * `paths` - Slice of file paths to reset (can be absolute or relative)
+///
+/// # Returns
+///
+/// Returns `Ok(())` if the reset operation succeeds, or an error if:
+/// - The commit reference cannot be resolved
+/// - The snapshot for the commit cannot be loaded
+/// - The index file cannot be read or written
+/// - The home directory cannot be determined
+///
+/// # Behavior
+///
+/// For each specified file:
+/// - If the file exists in the target commit, the index entry is updated to match that commit
+/// - If the file doesn't exist in the target commit, it is removed from the index (unstaged)
+/// - Files not present in the current index generate a warning
+///
+/// The working directory is not modified; only the index is updated.
 fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()> {
     super::print_info(&format!(
         "Resetting {} file(s) to {}",
@@ -244,6 +273,36 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
     Ok(())
 }
 
+/// Update HEAD to point to a new commit
+///
+/// This function updates the HEAD reference to point to the specified commit ID,
+/// handling both attached HEAD (on a branch) and detached HEAD states. It also
+/// maintains the reflog for tracking HEAD movements.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `commit_id` - The full commit ID (hash) to update HEAD to
+///
+/// # Returns
+///
+/// Returns `Ok(())` if HEAD is successfully updated, or an error if:
+/// - The current branch cannot be determined
+/// - The branch reference cannot be updated
+/// - The reflog cannot be written
+/// - HEAD file cannot be updated in detached state
+///
+/// # Behavior
+///
+/// If HEAD is attached to a branch:
+/// - Updates the branch reference to point to the new commit
+/// - Records the change in the reflog with the old and new commit IDs
+///
+/// If HEAD is detached (not on a branch):
+/// - Updates HEAD directly to point to the new commit
+/// - Records the change in the reflog automatically via `set_head_to_commit`
+///
+/// The reflog entry includes a "reset" action message with a short commit hash.
 fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     use crate::reflog::ReflogManager;
     use crate::refs::RefManager;

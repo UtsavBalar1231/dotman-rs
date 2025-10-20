@@ -8,6 +8,7 @@ use std::thread;
 use tempfile::TempDir;
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_concurrent_index_basic_operations() -> Result<()> {
     let index = ConcurrentIndex::new();
 
@@ -21,7 +22,7 @@ fn test_concurrent_index_basic_operations() -> Result<()> {
     };
 
     // Test staging
-    index.stage_entry(entry.clone());
+    index.stage_entry(entry);
     assert!(index.has_staged_changes());
 
     let staged = index.get_staged_entry(&PathBuf::from("test.txt"));
@@ -40,19 +41,20 @@ fn test_concurrent_index_basic_operations() -> Result<()> {
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_concurrent_index_thread_safety() -> Result<()> {
     let index = Arc::new(ConcurrentIndex::new());
     let mut handles = vec![];
 
     // Spawn multiple threads that write to the index
-    for i in 0..10 {
+    for i in 0u32..10 {
         let index_clone = Arc::clone(&index);
         let handle = thread::spawn(move || {
-            for j in 0..100 {
+            for j in 0u32..100 {
                 let entry = FileEntry {
-                    path: PathBuf::from(format!("file_{}_{}.txt", i, j)),
-                    hash: format!("hash_{}_{}", i, j),
-                    size: (i * 100 + j) as u64,
+                    path: PathBuf::from(format!("file_{i}_{j}.txt")),
+                    hash: format!("hash_{i}_{j}"),
+                    size: u64::from(i * 100 + j),
                     mode: 0o644,
                     modified: chrono::Utc::now().timestamp(),
                     cached_hash: None,
@@ -83,10 +85,10 @@ fn test_index_persistence() -> Result<()> {
     let index1 = ConcurrentIndex::new();
 
     // Add some entries
-    for i in 0..5 {
+    for i in 0u64..5 {
         let entry = FileEntry {
-            path: PathBuf::from(format!("file_{}.txt", i)),
-            hash: format!("hash_{}", i),
+            path: PathBuf::from(format!("file_{i}.txt")),
+            hash: format!("hash_{i}"),
             size: i * 100,
             mode: 0o644,
             modified: chrono::Utc::now().timestamp(),
@@ -105,15 +107,16 @@ fn test_index_persistence() -> Result<()> {
     // Verify entries were persisted
     assert_eq!(index2.len(), 5);
     for i in 0..5 {
-        let entry = index2.get_entry(&PathBuf::from(format!("file_{}.txt", i)));
+        let entry = index2.get_entry(&PathBuf::from(format!("file_{i}.txt")));
         assert!(entry.is_some());
-        assert_eq!(entry.unwrap().hash, format!("hash_{}", i));
+        assert_eq!(entry.unwrap().hash, format!("hash_{i}"));
     }
 
     Ok(())
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_index_remove_entry() -> Result<()> {
     let index = ConcurrentIndex::new();
 
@@ -126,7 +129,7 @@ fn test_index_remove_entry() -> Result<()> {
         cached_hash: None,
     };
 
-    index.stage_entry(entry.clone());
+    index.stage_entry(entry);
     index.commit_staged();
 
     assert!(index.get_entry(&PathBuf::from("test.txt")).is_some());
@@ -139,14 +142,15 @@ fn test_index_remove_entry() -> Result<()> {
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_index_clear_staged() -> Result<()> {
     let index = ConcurrentIndex::new();
 
     // Stage multiple entries
-    for i in 0..5 {
+    for i in 0u64..5 {
         let entry = FileEntry {
-            path: PathBuf::from(format!("file_{}.txt", i)),
-            hash: format!("hash_{}", i),
+            path: PathBuf::from(format!("file_{i}.txt")),
+            hash: format!("hash_{i}"),
             size: i * 100,
             mode: 0o644,
             modified: chrono::Utc::now().timestamp(),
@@ -167,15 +171,16 @@ fn test_index_clear_staged() -> Result<()> {
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_index_get_all_paths() -> Result<()> {
     let index = ConcurrentIndex::new();
 
-    let paths: HashSet<PathBuf> = (0..10)
+    let paths: HashSet<PathBuf> = (0u64..10)
         .map(|i| {
-            let path = PathBuf::from(format!("file_{}.txt", i));
+            let path = PathBuf::from(format!("file_{i}.txt"));
             let entry = FileEntry {
                 path: path.clone(),
-                hash: format!("hash_{}", i),
+                hash: format!("hash_{i}"),
                 size: i * 100,
                 mode: 0o644,
                 modified: chrono::Utc::now().timestamp(),
@@ -195,6 +200,7 @@ fn test_index_get_all_paths() -> Result<()> {
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_concurrent_stage_and_commit() -> Result<()> {
     let index = Arc::new(ConcurrentIndex::new());
     let mut handles = vec![];
@@ -202,10 +208,10 @@ fn test_concurrent_stage_and_commit() -> Result<()> {
     // Thread 1: Stage entries
     let index1 = Arc::clone(&index);
     let h1 = thread::spawn(move || {
-        for i in 0..100 {
+        for i in 0u64..100 {
             let entry = FileEntry {
-                path: PathBuf::from(format!("staged_{}.txt", i)),
-                hash: format!("hash_{}", i),
+                path: PathBuf::from(format!("staged_{i}.txt")),
+                hash: format!("hash_{i}"),
                 size: i,
                 mode: 0o644,
                 modified: chrono::Utc::now().timestamp(),

@@ -87,6 +87,21 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, _no_edit: bool, force: boo
     Ok(())
 }
 
+/// Check if the working directory is clean (no uncommitted changes)
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+///
+/// # Returns
+///
+/// Returns `Ok(true)` if the working directory is clean, `Ok(false)` otherwise
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The index file cannot be loaded
+/// - Current files cannot be retrieved
 fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     use crate::commands::status::get_current_files;
 
@@ -99,6 +114,26 @@ fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     Ok(statuses.is_empty())
 }
 
+/// Calculate the changes needed to revert a commit
+///
+/// Compares the target commit with its parent to determine what changes
+/// the original commit made, then generates inverse operations.
+///
+/// # Arguments
+///
+/// * `_ctx` - The dotman context (currently unused but kept for consistency)
+/// * `target_snapshot` - The snapshot of the commit being reverted
+/// * `snapshot_manager` - Manager for loading commit snapshots
+///
+/// # Returns
+///
+/// Returns a vector of `RevertChange` operations needed to undo the commit
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The parent commit cannot be loaded
+/// - Snapshot comparison fails
 fn calculate_revert_changes(
     _ctx: &DotmanContext,
     target_snapshot: &crate::storage::snapshots::Snapshot,
@@ -184,6 +219,14 @@ fn calculate_revert_changes(
     Ok(revert_changes)
 }
 
+/// Display a summary of changes that will be reverted
+///
+/// Shows each file that will be deleted or restored, along with
+/// a count of total operations.
+///
+/// # Arguments
+///
+/// * `changes` - Slice of revert changes to display
 fn display_revert_summary(changes: &[RevertChange]) {
     println!();
     super::print_info("Changes to be reverted:");
@@ -214,6 +257,26 @@ fn display_revert_summary(changes: &[RevertChange]) {
     println!();
 }
 
+/// Apply revert changes to the working directory and index
+///
+/// Executes the calculated revert operations by deleting or restoring files
+/// as needed, then updates the index to reflect the changes.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `changes` - Slice of revert changes to apply
+/// * `snapshot_manager` - Manager for restoring file content from objects
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Home directory cannot be found
+/// - Index file cannot be loaded or saved
+/// - File deletion fails
+/// - File restoration fails
+/// - Directory creation fails
+/// - File permissions cannot be set
 fn apply_revert_changes(
     ctx: &DotmanContext,
     changes: &[RevertChange],
@@ -300,6 +363,23 @@ fn apply_revert_changes(
     Ok(())
 }
 
+/// Create a new commit representing the revert operation
+///
+/// Generates a commit that captures the state after reverting changes,
+/// with the specified commit message.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `message` - The commit message for the revert commit
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Index file cannot be loaded
+/// - Commit ID generation fails
+/// - Snapshot creation fails
+/// - HEAD update fails
 fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
@@ -355,6 +435,16 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     Ok(())
 }
 
+/// Update HEAD to point to the new revert commit
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `commit_id` - The ID of the new revert commit
+///
+/// # Errors
+///
+/// Returns an error if the HEAD reference cannot be updated
 fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     use crate::refs::RefManager;
 
@@ -363,12 +453,18 @@ fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     ref_manager.set_head_to_commit(commit_id, Some("revert"), Some(&message))
 }
 
+/// Represents a change operation needed to revert a commit
 #[derive(Debug, Clone)]
 enum RevertChange {
+    /// Delete a file that was added in the original commit
     Delete(PathBuf),
+    /// Restore a file to its previous state
     Restore {
+        /// Path to the file being restored
         path: PathBuf,
+        /// Content hash of the file's previous version
         content_hash: String,
+        /// Unix file mode/permissions
         mode: u32,
     },
 }

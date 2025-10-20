@@ -2,18 +2,19 @@ use anyhow::Result;
 use dotman::storage::FileEntry;
 use dotman::storage::concurrent_index::ConcurrentIndex;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::Duration;
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_concurrent_writes_no_data_loss() -> Result<()> {
     let index = Arc::new(ConcurrentIndex::new());
     let barrier = Arc::new(Barrier::new(10));
     let mut handles = vec![];
 
-    for thread_id in 0..10 {
+    for thread_id in 0u64..10 {
         let index_clone = Arc::clone(&index);
         let barrier_clone = Arc::clone(&barrier);
 
@@ -21,11 +22,11 @@ fn test_concurrent_writes_no_data_loss() -> Result<()> {
             // Synchronize start to maximize contention
             barrier_clone.wait();
 
-            for i in 0..1000 {
+            for i in 0u64..1000 {
                 let entry = FileEntry {
-                    path: PathBuf::from(format!("thread_{}_file_{}.txt", thread_id, i)),
-                    hash: format!("hash_{}_{}", thread_id, i),
-                    size: (thread_id * 1000 + i) as u64,
+                    path: PathBuf::from(format!("thread_{thread_id}_file_{i}.txt")),
+                    hash: format!("hash_{thread_id}_{i}"),
+                    size: thread_id * 1000 + i,
                     mode: 0o644,
                     modified: chrono::Utc::now().timestamp(),
                     cached_hash: None,
@@ -59,6 +60,7 @@ fn test_concurrent_writes_no_data_loss() -> Result<()> {
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_concurrent_read_write_consistency() -> Result<()> {
     let index = Arc::new(ConcurrentIndex::new());
     let stop = Arc::new(AtomicBool::new(false));
@@ -68,12 +70,12 @@ fn test_concurrent_read_write_consistency() -> Result<()> {
     let index_writer = Arc::clone(&index);
     let stop_writer = Arc::clone(&stop);
     let writer = thread::spawn(move || {
-        let mut counter = 0;
+        let mut counter: u64 = 0;
         while !stop_writer.load(Ordering::Relaxed) {
             let entry = FileEntry {
-                path: PathBuf::from(format!("file_{}.txt", counter)),
-                hash: format!("hash_{}", counter),
-                size: counter as u64,
+                path: PathBuf::from(format!("file_{counter}.txt")),
+                hash: format!("hash_{counter}"),
+                size: counter,
                 mode: 0o644,
                 modified: chrono::Utc::now().timestamp(),
                 cached_hash: None,
@@ -119,9 +121,10 @@ fn test_concurrent_read_write_consistency() -> Result<()> {
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_concurrent_stage_commit_cycle() -> Result<()> {
     let index = Arc::new(ConcurrentIndex::new());
-    let counter = Arc::new(AtomicUsize::new(0));
+    let counter = Arc::new(AtomicU64::new(0));
     let mut handles = vec![];
 
     // Multiple threads doing stage/commit cycles
@@ -135,9 +138,9 @@ fn test_concurrent_stage_commit_cycle() -> Result<()> {
                 for i in 0..10 {
                     let id = counter_clone.fetch_add(1, Ordering::SeqCst);
                     let entry = FileEntry {
-                        path: PathBuf::from(format!("t{}_c{}_f{}.txt", thread_id, cycle, i)),
-                        hash: format!("hash_{}", id),
-                        size: id as u64,
+                        path: PathBuf::from(format!("t{thread_id}_c{cycle}_f{i}.txt")),
+                        hash: format!("hash_{id}"),
+                        size: id,
                         mode: 0o644,
                         modified: chrono::Utc::now().timestamp(),
                         cached_hash: None,
@@ -172,6 +175,7 @@ fn test_concurrent_stage_commit_cycle() -> Result<()> {
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_concurrent_modifications() -> Result<()> {
     let index = Arc::new(ConcurrentIndex::new());
     let mut handles = vec![];
@@ -179,8 +183,8 @@ fn test_concurrent_modifications() -> Result<()> {
     // Pre-populate with some entries
     for i in 0..100 {
         let entry = FileEntry {
-            path: PathBuf::from(format!("file_{}.txt", i)),
-            hash: format!("initial_hash_{}", i),
+            path: PathBuf::from(format!("file_{i}.txt")),
+            hash: format!("initial_hash_{i}"),
             size: i,
             mode: 0o644,
             modified: chrono::Utc::now().timestamp(),
@@ -193,18 +197,18 @@ fn test_concurrent_modifications() -> Result<()> {
     let barrier = Arc::new(Barrier::new(5));
 
     // Multiple threads modifying the same files
-    for thread_id in 0..5 {
+    for thread_id in 0u64..5 {
         let index_clone = Arc::clone(&index);
         let barrier_clone = Arc::clone(&barrier);
 
         let handle = thread::spawn(move || {
             barrier_clone.wait();
 
-            for i in 0..100 {
+            for i in 0u64..100 {
                 let entry = FileEntry {
-                    path: PathBuf::from(format!("file_{}.txt", i)),
-                    hash: format!("thread_{}_hash_{}", thread_id, i),
-                    size: (thread_id * 100 + i) as u64,
+                    path: PathBuf::from(format!("file_{i}.txt")),
+                    hash: format!("thread_{thread_id}_hash_{i}"),
+                    size: thread_id * 100 + i,
                     mode: 0o644,
                     modified: chrono::Utc::now().timestamp(),
                     cached_hash: None,
@@ -213,8 +217,9 @@ fn test_concurrent_modifications() -> Result<()> {
 
                 // Occasionally remove entries
                 if i % 20 == 0 {
+                    let file_num = i + 50;
                     let _ =
-                        index_clone.remove_entry(&PathBuf::from(format!("file_{}.txt", i + 50)));
+                        index_clone.remove_entry(&PathBuf::from(format!("file_{file_num}.txt")));
                 }
             }
         });
@@ -236,6 +241,7 @@ fn test_concurrent_modifications() -> Result<()> {
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_concurrent_clear_operations() -> Result<()> {
     let index = Arc::new(ConcurrentIndex::new());
     let mut handles = vec![];
@@ -251,8 +257,8 @@ fn test_concurrent_clear_operations() -> Result<()> {
 
             for i in 0..100 {
                 let entry = FileEntry {
-                    path: PathBuf::from(format!("writer_{}_file_{}.txt", thread_id, i)),
-                    hash: format!("hash_{}_{}", thread_id, i),
+                    path: PathBuf::from(format!("writer_{thread_id}_file_{i}.txt")),
+                    hash: format!("hash_{thread_id}_{i}"),
                     size: i,
                     mode: 0o644,
                     modified: chrono::Utc::now().timestamp(),
@@ -297,6 +303,7 @@ fn test_concurrent_clear_operations() -> Result<()> {
 }
 
 #[test]
+#[allow(clippy::unnecessary_wraps)]
 fn test_concurrent_bulk_operations() -> Result<()> {
     let index = Arc::new(ConcurrentIndex::new());
     let barrier = Arc::new(Barrier::new(4));
@@ -315,8 +322,8 @@ fn test_concurrent_bulk_operations() -> Result<()> {
                     // Bulk add
                     for i in 0..500 {
                         let entry = FileEntry {
-                            path: PathBuf::from(format!("bulk_add_{}.txt", i)),
-                            hash: format!("hash_{}", i),
+                            path: PathBuf::from(format!("bulk_add_{i}.txt")),
+                            hash: format!("hash_{i}"),
                             size: i,
                             mode: 0o644,
                             modified: chrono::Utc::now().timestamp(),
@@ -346,8 +353,8 @@ fn test_concurrent_bulk_operations() -> Result<()> {
                     for i in 0..200 {
                         if i % 2 == 0 {
                             let entry = FileEntry {
-                                path: PathBuf::from(format!("mixed_{}.txt", i)),
-                                hash: format!("mixed_hash_{}", i),
+                                path: PathBuf::from(format!("mixed_{i}.txt")),
+                                hash: format!("mixed_hash_{i}"),
                                 size: i,
                                 mode: 0o644,
                                 modified: chrono::Utc::now().timestamp(),
@@ -356,7 +363,7 @@ fn test_concurrent_bulk_operations() -> Result<()> {
                             index_clone.stage_entry(entry);
                         } else {
                             let _ = index_clone
-                                .remove_entry(&PathBuf::from(format!("bulk_add_{}.txt", i)));
+                                .remove_entry(&PathBuf::from(format!("bulk_add_{i}.txt")));
                         }
                     }
                 }

@@ -1,6 +1,8 @@
 pub mod concurrent_index;
 pub mod index;
+/// Snapshot management and compression
 pub mod snapshots;
+/// Stash storage and retrieval
 pub mod stash;
 
 use anyhow::Result;
@@ -18,34 +20,61 @@ pub struct CachedHash {
     pub mtime_at_hash: i64,
 }
 
+/// Represents a tracked file entry in the index.
+///
+/// Contains all metadata needed to track a file, including its path, content hash,
+/// size, modification time, permissions, and optional cached hash information.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileEntry {
+    /// Path to the file relative to repository root
     pub path: PathBuf,
+    /// XXH3 hash of file content
     pub hash: String,
+    /// File size in bytes
     pub size: u64,
+    /// Unix timestamp of last modification
     pub modified: i64,
+    /// Unix file permissions mode
     pub mode: u32,
     /// Cached hash information for performance optimization
     pub cached_hash: Option<CachedHash>,
 }
 
+/// Represents a commit snapshot in the repository.
+///
+/// Each commit captures the state of tracked files at a specific point in time,
+/// along with metadata about the commit itself (message, author, timestamp, etc.).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Commit {
+    /// Unique commit identifier
     pub id: String,
+    /// Parent commit ID if any
     pub parent: Option<String>,
+    /// Commit message
     pub message: String,
+    /// Author name and email
     pub author: String,
+    /// Unix timestamp of commit creation
     pub timestamp: i64,
+    /// Hash of the file tree at commit time
     pub tree_hash: String,
 }
 
 // Storage trait removed - was unused abstraction
 
+/// Represents the status of a file in the working tree.
+///
+/// This enum categorizes files based on their state relative to the index
+/// and the last commit, similar to Git's status tracking.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FileStatus {
+    /// File newly added to tracking
     Added(PathBuf),
+    /// File modified since last commit
     Modified(PathBuf),
+    /// File deleted from tracking
     Deleted(PathBuf),
+    /// File not tracked by dotman
     Untracked(PathBuf),
 }
 
@@ -70,7 +99,12 @@ impl FileStatus {
     }
 }
 
-// Fast file operations using memory mapping and parallel processing
+/// Fast file operations using memory mapping and parallel processing.
+///
+/// This module provides high-performance file hashing and copying operations,
+/// utilizing memory-mapped I/O for large files, parallel processing with Rayon,
+/// and XXH3 hashing for speed. Includes intelligent caching to avoid recomputing
+/// hashes for unchanged files.
 pub mod file_ops {
     use super::{CachedHash, Path, PathBuf, Result};
     use anyhow::Context;

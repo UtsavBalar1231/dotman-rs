@@ -11,9 +11,13 @@ use walkdir::WalkDir;
 #[derive(Clone, Copy)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct ImportOptions {
+    /// Whether to automatically track imported files
     pub track: bool,
+    /// Force import even if files already exist
     pub force: bool,
+    /// Preview import without making changes
     pub dry_run: bool,
+    /// Assume yes to all prompts
     pub yes: bool,
 }
 

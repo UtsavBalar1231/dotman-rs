@@ -97,8 +97,11 @@ impl ReflogEntry {
 
 /// Manages reflog operations for HEAD
 pub struct ReflogManager {
+    /// Path to the dotman repository root directory
     repo_path: PathBuf,
+    /// Path to the logs directory within the repository
     logs_dir: PathBuf,
+    /// Path to the HEAD reflog file (logs/HEAD)
     head_log_path: PathBuf,
 }
 

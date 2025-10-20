@@ -1,3 +1,45 @@
+//! Core index implementation for file tracking.
+//!
+//! This module provides the main index structure for tracking files in a dotman repository.
+//! The index maintains three categories of files:
+//!
+//! - **Committed entries**: Files already saved in commits
+//! - **Staged entries**: Files ready to be committed
+//! - **Deleted entries**: Files marked for deletion
+//!
+//! # Storage Format
+//!
+//! The index is stored as a binary file using bincode serialization for maximum performance.
+//! File locking via [`fs4`] ensures safe concurrent access.
+//!
+//! # Caching Strategy
+//!
+//! The index implements an intelligent caching system:
+//! - Stores hash alongside file size and modification time
+//! - Avoids re-hashing unchanged files (cache hit)
+//! - Provides cache statistics for performance analysis
+//!
+//! # Thread Safety
+//!
+//! For concurrent operations, use [`ConcurrentIndex`](super::concurrent_index::ConcurrentIndex) instead.
+//! This implementation uses `HashMap` and is not thread-safe.
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use dotman::storage::index::Index;
+//! use std::path::PathBuf;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! let mut index = Index::load(&PathBuf::from(".dotman/index.bin"))?;
+//!
+//! // Check cache statistics
+//! let (total, cached, hit_rate) = index.get_cache_stats();
+//! println!("Cache hit rate: {:.1}%", hit_rate * 100.0);
+//! # Ok(())
+//! # }
+//! ```
+
 use super::{FileEntry, FileStatus};
 use crate::utils::serialization;
 use anyhow::{Context, Result};
@@ -7,12 +49,35 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+/// Main index structure for tracking file states.
+///
+/// The index maintains three categories of files:
+/// - `entries`: Committed files (saved in repository)
+/// - `staged_entries`: Files staged for next commit
+/// - `deleted_entries`: Files marked for deletion
+///
+/// # Versioning
+///
+/// The index version field allows for future format changes while
+/// maintaining backwards compatibility.
+///
+/// # Performance
+///
+/// Uses [`HashMap`] for O(1) lookups. For concurrent operations,
+/// use [`ConcurrentIndex`](super::concurrent_index::ConcurrentIndex).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(clippy::unsafe_derive_deserialize)]
 pub struct Index {
+    /// Index format version for compatibility.
     pub version: u32,
+
+    /// Committed file entries (saved in repository).
     pub entries: HashMap<PathBuf, FileEntry>,
+
+    /// Staged file entries (ready to commit).
     pub staged_entries: HashMap<PathBuf, FileEntry>,
+
+    /// Deleted file entries (marked for removal).
     #[serde(default)]
     pub deleted_entries: HashSet<PathBuf>,
 }
@@ -24,6 +89,14 @@ impl Default for Index {
 }
 
 impl Index {
+    /// Creates a new empty index.
+    ///
+    /// Initializes an index with version 1 and empty collections
+    /// for entries, staged entries, and deleted entries.
+    ///
+    /// # Returns
+    ///
+    /// A new [`Index`] instance with default values
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -64,12 +137,8 @@ impl Index {
         // Release lock before deserialization
         file.unlock().context("Failed to unlock index file")?;
 
-        let mut index: Self =
+        let index: Self =
             serialization::deserialize(&data).context("Failed to deserialize index")?;
-
-        if index.staged_entries.is_empty() && !index.entries.is_empty() {
-            index.staged_entries = index.entries.clone();
-        }
 
         Ok(index)
     }
@@ -214,6 +283,14 @@ impl Index {
         Ok(())
     }
 
+    /// Adds a file entry to the committed entries collection.
+    ///
+    /// Inserts the entry into the index's committed entries map,
+    /// using the entry's path as the key.
+    ///
+    /// # Arguments
+    ///
+    /// * `entry` - The file entry to add to committed entries
     pub fn add_entry(&mut self, entry: FileEntry) {
         self.entries.insert(entry.path.clone(), entry);
     }
@@ -228,24 +305,71 @@ impl Index {
         self.entries.extend(new_entries);
     }
 
+    /// Removes a file entry from the committed entries collection.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path of the entry to remove
+    ///
+    /// # Returns
+    ///
+    /// The removed [`FileEntry`] if it existed, or [`None`] if not found
     pub fn remove_entry(&mut self, path: &Path) -> Option<FileEntry> {
         self.entries.remove(path)
     }
 
+    /// Retrieves a reference to a committed file entry by path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path of the entry to retrieve
+    ///
+    /// # Returns
+    ///
+    /// A reference to the [`FileEntry`] if found, or [`None`] if not present
     #[must_use]
     pub fn get_entry(&self, path: &Path) -> Option<&FileEntry> {
         self.entries.get(path)
     }
 
+    /// Stages a file entry for the next commit.
+    ///
+    /// Adds the entry to the staged entries collection, making it
+    /// ready to be committed. Staged entries will be moved to
+    /// committed entries when [`commit_staged`](Self::commit_staged) is called.
+    ///
+    /// # Arguments
+    ///
+    /// * `entry` - The file entry to stage for commit
     pub fn stage_entry(&mut self, entry: FileEntry) {
         self.staged_entries.insert(entry.path.clone(), entry);
     }
 
+    /// Retrieves a reference to a staged file entry by path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path of the staged entry to retrieve
+    ///
+    /// # Returns
+    ///
+    /// A reference to the staged [`FileEntry`] if found, or [`None`] if not present
     #[must_use]
     pub fn get_staged_entry(&self, path: &Path) -> Option<&FileEntry> {
         self.staged_entries.get(path)
     }
 
+    /// Checks if there are any staged changes ready to commit.
+    ///
+    /// Returns `true` if any of the following conditions are met:
+    /// - There are files marked for deletion
+    /// - There are staged entries with different content than committed entries
+    /// - There are new staged entries not present in committed entries
+    /// - There are committed entries not present in staged entries (unless marked for deletion)
+    ///
+    /// # Returns
+    ///
+    /// `true` if there are staged changes, `false` otherwise
     #[must_use]
     pub fn has_staged_changes(&self) -> bool {
         // Check for deletions
@@ -273,21 +397,34 @@ impl Index {
         false
     }
 
+    /// Commits all staged changes to the index.
+    ///
+    /// This operation performs three actions:
+    /// 1. Moves all staged entries to the committed entries collection
+    /// 2. Removes all files marked for deletion from committed entries
+    /// 3. Clears both the staged entries and deleted entries collections
+    ///
+    /// After this operation, the index will have no staged changes.
     pub fn commit_staged(&mut self) {
-        self.entries = self.staged_entries.clone();
+        // Merge staged_entries into entries (preserve existing committed files)
+        for (path, entry) in &self.staged_entries {
+            self.entries.insert(path.clone(), entry.clone());
+        }
         // Remove deleted entries from committed state
         for path in &self.deleted_entries {
             self.entries.remove(path);
         }
         // Clear deleted entries after commit
         self.deleted_entries.clear();
+        // Clear staged entries after moving them to committed state
+        self.staged_entries.clear();
     }
 
     /// Mark a file as deleted
-    pub fn mark_deleted(&mut self, path: PathBuf) {
+    pub fn mark_deleted(&mut self, path: &PathBuf) {
         self.deleted_entries.insert(path.clone());
         // Remove from staged entries if present
-        self.staged_entries.remove(&path);
+        self.staged_entries.remove(path);
     }
 
     /// Unmark a file as deleted
@@ -303,7 +440,7 @@ impl Index {
 
     /// Get all deleted entries
     #[must_use]
-    pub fn get_deleted_entries(&self) -> &HashSet<PathBuf> {
+    pub const fn get_deleted_entries(&self) -> &HashSet<PathBuf> {
         &self.deleted_entries
     }
 
@@ -324,58 +461,126 @@ impl Index {
                     stored_path.clone()
                 };
 
-                if abs_path.exists() {
-                    crate::storage::file_ops::hash_file(
-                        &abs_path,
-                        stored_entry.cached_hash.as_ref(),
-                    )
-                    .map_or_else(
-                        |_| {
-                            std::fs::metadata(&abs_path).map_or_else(
-                                |_| Some(FileStatus::Deleted(stored_path.clone())),
-                                |metadata| {
-                                    let mtime = metadata
-                                        .modified()
-                                        .ok()
-                                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                                        .map_or(0, |d| {
-                                            i64::try_from(d.as_secs()).unwrap_or(i64::MAX)
-                                        });
-
-                                    if mtime != stored_entry.modified
-                                        || metadata.len() != stored_entry.size
-                                    {
-                                        Some(FileStatus::Modified(stored_path.clone()))
-                                    } else {
-                                        None
-                                    }
-                                },
-                            )
-                        },
-                        |(current_hash, _cache)| {
-                            if current_hash == stored_entry.hash {
-                                None
-                            } else {
-                                Some(FileStatus::Modified(stored_path.clone()))
-                            }
-                        },
-                    )
-                } else {
-                    Some(FileStatus::Deleted(stored_path.clone()))
-                }
+                Self::check_file_status(&abs_path, stored_path, stored_entry)
             })
             .collect();
 
         statuses.extend(index_statuses);
         statuses
     }
+
+    /// Check the status of a single file compared to its stored entry.
+    ///
+    /// Attempts to detect changes by hashing the file. Falls back to
+    /// metadata comparison if hashing fails.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(FileStatus::Deleted)` if file doesn't exist
+    /// - `Some(FileStatus::Modified)` if file content changed
+    /// - `None` if file is unchanged
+    fn check_file_status(
+        abs_path: &Path,
+        stored_path: &Path,
+        stored_entry: &FileEntry,
+    ) -> Option<FileStatus> {
+        // File doesn't exist - it's deleted
+        if !abs_path.exists() {
+            return Some(FileStatus::Deleted(stored_path.to_path_buf()));
+        }
+
+        // Try to hash the file to detect content changes
+        match crate::storage::file_ops::hash_file(abs_path, stored_entry.cached_hash.as_ref()) {
+            Ok((current_hash, _cache)) => {
+                // Hash succeeded - compare hashes
+                if current_hash == stored_entry.hash {
+                    None
+                } else {
+                    Some(FileStatus::Modified(stored_path.to_path_buf()))
+                }
+            }
+            Err(_) => {
+                // Hash failed - fall back to metadata comparison
+                Self::check_file_metadata(abs_path, stored_path, stored_entry)
+            }
+        }
+    }
+
+    /// Check file status using metadata when hashing fails.
+    ///
+    /// Compares modification time and file size as a fallback when
+    /// file hashing is not possible.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(FileStatus::Deleted)` if file doesn't exist
+    /// - `Some(FileStatus::Modified)` if metadata changed
+    /// - `None` if metadata matches (assume unchanged)
+    fn check_file_metadata(
+        abs_path: &Path,
+        stored_path: &Path,
+        stored_entry: &FileEntry,
+    ) -> Option<FileStatus> {
+        std::fs::metadata(abs_path).map_or_else(
+            |_| Some(FileStatus::Deleted(stored_path.to_path_buf())),
+            |metadata| {
+                let mtime = Self::get_file_mtime(&metadata);
+
+                if mtime != stored_entry.modified || metadata.len() != stored_entry.size {
+                    Some(FileStatus::Modified(stored_path.to_path_buf()))
+                } else {
+                    // Metadata matches but we couldn't hash - assume unchanged
+                    None
+                }
+            },
+        )
+    }
+
+    /// Extract modification time from metadata.
+    ///
+    /// Converts the file's modification time to seconds since Unix epoch.
+    /// Returns 0 if the time cannot be determined.
+    ///
+    /// # Arguments
+    ///
+    /// * `metadata` - File metadata containing modification time
+    ///
+    /// # Returns
+    ///
+    /// Modification time as seconds since Unix epoch, or 0 on error
+    fn get_file_mtime(metadata: &std::fs::Metadata) -> i64 {
+        metadata
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .and_then(|d| i64::try_from(d.as_secs()).ok())
+            .unwrap_or(0)
+    }
 }
 
+/// Utility for computing differences between index states.
+///
+/// This struct provides methods for comparing two index snapshots
+/// and determining which files were added, modified, or deleted.
 pub struct IndexDiffer;
 
 impl IndexDiffer {
-    /// Compute the difference between two indices
-    /// Returns a list of file statuses indicating added, modified, or deleted files
+    /// Compute the difference between two indices.
+    ///
+    /// Compares the committed entries of two indices and returns
+    /// a list of file status changes.
+    ///
+    /// # Arguments
+    ///
+    /// * `old` - Previous index state
+    /// * `new` - Current index state
+    ///
+    /// # Returns
+    ///
+    /// Vector of [`FileStatus`] indicating changes:
+    /// - `FileStatus::Added` - File exists in new but not old
+    /// - `FileStatus::Modified` - File hash changed between indices
+    /// - `FileStatus::Deleted` - File exists in old but not new
     #[must_use]
     pub fn diff(old: &Index, new: &Index) -> Vec<FileStatus> {
         let mut statuses = Vec::new();

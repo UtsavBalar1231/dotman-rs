@@ -5,11 +5,22 @@ use std::path::PathBuf;
 
 /// Resolves various reference formats to commit IDs
 pub struct RefResolver {
+    /// Path to the dotman repository
     repo_path: PathBuf,
+    /// Reference manager for accessing branch and tag information
     ref_manager: RefManager,
 }
 
 impl RefResolver {
+    /// Creates a new reference resolver for a repository
+    ///
+    /// # Arguments
+    ///
+    /// * `repo_path` - Path to the dotman repository directory
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `RefResolver` instance configured for the specified repository
     #[must_use]
     pub fn new(repo_path: PathBuf) -> Self {
         let ref_manager = RefManager::new(repo_path.clone());

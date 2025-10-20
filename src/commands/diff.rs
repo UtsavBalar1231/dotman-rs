@@ -205,6 +205,15 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
     Ok(())
 }
 
+/// Format file status lists into grouped, colored output for the pager
+///
+/// Takes a slice of `FileStatus` items and groups them by status type (added, modified, deleted, untracked).
+/// Outputs colored, formatted text showing file counts and paths with appropriate symbols:
+/// - `+` for added/untracked files (green)
+/// - `~` for modified files (yellow)
+/// - `-` for deleted files (red)
+///
+/// Appends a summary line showing total counts for each category.
 fn format_file_statuses(output: &mut PagerOutput, statuses: &[FileStatus]) {
     let mut added = Vec::new();
     let mut modified = Vec::new();

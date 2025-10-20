@@ -135,8 +135,11 @@ fn get_terminal_height() -> usize {
 
 /// Builder for pager output with configurable options
 pub struct PagerOutput<'a> {
+    /// Accumulated content to be displayed
     content: String,
+    /// Whether to use a pager for output
     use_pager: bool,
+    /// Optional context for accessing configuration
     ctx: Option<&'a crate::DotmanContext>,
 }
 
@@ -151,6 +154,12 @@ impl Default for PagerOutput<'_> {
 }
 
 impl<'a> PagerOutput<'a> {
+    /// Create a new pager output builder with the given context
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - Dotman context for accessing configuration
+    /// * `no_pager` - If true, disables pager output
     #[must_use]
     pub const fn new(ctx: &'a crate::DotmanContext, no_pager: bool) -> Self {
         Self {
@@ -160,21 +169,37 @@ impl<'a> PagerOutput<'a> {
         }
     }
 
+    /// Set the content to be displayed
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - The content string to display
     #[must_use]
     pub fn with_content(mut self, content: String) -> Self {
         self.content = content;
         self
     }
 
+    /// Append text to the accumulated content
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - Text to append (no newline added)
     pub fn append(&mut self, text: &str) {
         self.content.push_str(text);
     }
 
+    /// Append text with a newline to the accumulated content
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - Text to append (newline will be added)
     pub fn appendln(&mut self, text: &str) {
         self.content.push_str(text);
         self.content.push('\n');
     }
 
+    /// Disable pager output, forcing direct output to stdout
     #[must_use]
     pub const fn disable_pager(mut self) -> Self {
         self.use_pager = false;

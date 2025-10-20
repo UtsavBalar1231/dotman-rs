@@ -8,14 +8,20 @@ use crate::sync::Exporter;
 use anyhow::{Context, Result};
 use std::process::Command;
 
-/// Options for push operations
+/// Options for push operation to remote repository
 #[allow(clippy::struct_excessive_bools)]
 struct PushOptions<'a> {
+    /// Name of the remote repository
     remote: &'a str,
+    /// Name of the branch to push
     branch: &'a str,
+    /// Force push even if not fast-forward
     force: bool,
+    /// Safer force push that checks remote state
     force_with_lease: bool,
+    /// Preview push without actually sending changes
     dry_run: bool,
+    /// Whether to push tags along with commits
     tags: bool,
 }
 
@@ -241,6 +247,29 @@ fn determine_push_target(
     ))
 }
 
+/// Performs the actual git push operation
+///
+/// This function handles the core push workflow:
+/// 1. Initializes a git mirror repository
+/// 2. Identifies unpushed commits
+/// 3. Exports each commit to the mirror
+/// 4. Commits changes to git with original timestamps
+/// 5. Pushes to the remote repository
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `remote_config` - Configuration for the target remote repository
+/// * `opts` - Push options specifying behavior (force, dry-run, etc.)
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The remote URL is not configured
+/// - Mirror initialization fails
+/// - Commit export or mapping fails
+/// - Git push operation fails
+/// - Tag pushing fails (when requested)
 #[allow(clippy::too_many_lines)]
 fn push_to_git(
     ctx: &DotmanContext,
@@ -391,7 +420,20 @@ fn push_to_git(
     Ok(())
 }
 
-// Helper function to push tags
+/// Pushes tags to remote repository
+///
+/// Executes a git push with --tags flag to push all local tags
+/// to the remote. This is a non-fatal operation - if tag pushing
+/// fails, a warning is printed but the function still returns Ok.
+///
+/// # Arguments
+///
+/// * `mirror` - The git mirror instance to use for pushing
+///
+/// # Errors
+///
+/// Returns an error if the git command fails to execute (not if the
+/// push itself is rejected - that only produces a warning).
 fn push_tags(mirror: &GitMirror) -> Result<()> {
     let output = Command::new("git")
         .args(["push", "origin", "--tags"])

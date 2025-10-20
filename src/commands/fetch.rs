@@ -39,6 +39,34 @@ pub fn execute(
     }
 }
 
+/// Performs the actual git fetch operation from a remote repository
+///
+/// This function handles the core fetch workflow:
+/// - Initializes or updates the git mirror repository
+/// - Executes git fetch with appropriate arguments (branch, --all, --tags)
+/// - Updates remote tracking branches
+/// - Displays fetch progress and results
+///
+/// The function creates a mirror repository in `~/.dotman/mirrors/<remote>/` which acts
+/// as a bare git repository tracking the remote. If the mirror doesn't exist, it's created
+/// and initialized. If it exists, the fetch operation updates the mirror's state.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository path and configuration
+/// * `remote_config` - Configuration for the remote, including URL and type
+/// * `remote` - Name of the remote to fetch from (e.g., "origin")
+/// * `branch` - Optional specific branch to fetch. If None, behavior depends on `all` flag
+/// * `all` - If true and no branch specified, fetches all branches from the remote
+/// * `tags` - If true, fetches tags in addition to branches
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The remote URL is not configured in `remote_config`
+/// - Mirror initialization fails (e.g., filesystem errors, git not found)
+/// - The git fetch command fails (network issues, authentication, invalid refs)
+/// - Unable to list remote branches after fetch
 fn fetch_from_git(
     ctx: &DotmanContext,
     remote_config: &crate::config::RemoteConfig,

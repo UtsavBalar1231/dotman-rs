@@ -1,3 +1,40 @@
+//! Checkout operations for switching between commits and branches.
+//!
+//! This module provides functionality for checking out different commits or branches,
+//! similar to `git checkout`. It handles:
+//!
+//! - Branch switching with reflog tracking
+//! - Commit checkout (detached HEAD state)
+//! - Working directory validation (uncommitted changes detection)
+//! - Snapshot restoration with file cleanup
+//! - Reference resolution (HEAD, branches, commit IDs, ancestry)
+//!
+//! # Safety
+//!
+//! By default, checkout will fail if there are uncommitted changes. Use `--force`
+//! to override this safety check.
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use dotman::DotmanContext;
+//! use dotman::commands::checkout;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! let ctx = DotmanContext::new()?;
+//!
+//! // Checkout a branch
+//! checkout::execute(&ctx, "main", false)?;
+//!
+//! // Checkout a specific commit (detached HEAD)
+//! checkout::execute(&ctx, "abc123", false)?;
+//!
+//! // Checkout with uncommitted changes (force)
+//! checkout::execute(&ctx, "main", true)?;
+//! # Ok(())
+//! # }
+//! ```
+
 use crate::DotmanContext;
 use crate::refs::RefManager;
 use crate::refs::resolver::RefResolver;
@@ -5,7 +42,7 @@ use crate::storage::snapshots::SnapshotManager;
 use anyhow::{Context, Result};
 use colored::Colorize;
 
-/// Execute checkout to switch to a different commit or branch
+/// Switch to a different commit or branch
 ///
 /// # Errors
 ///
@@ -31,6 +68,24 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     let commit_id = resolver
         .resolve(target)
         .with_context(|| format!("Failed to resolve reference: {target}"))?;
+
+    // Check if we're checking out the NULL commit (no commits yet)
+    if commit_id == crate::NULL_COMMIT_ID {
+        // Update HEAD to point to the branch
+        let ref_manager = RefManager::new(ctx.repo_path.clone());
+        let message = format!("checkout: moving to {target}");
+
+        if ref_manager.branch_exists(target) {
+            ref_manager.set_head_to_branch(target, Some("checkout"), Some(&message))?;
+            super::print_success(&format!("Switched to branch '{target}'"));
+        } else {
+            return Err(anyhow::anyhow!(
+                "Cannot checkout '{}' - no commits exist yet",
+                target
+            ));
+        }
+        return Ok(());
+    }
 
     let snapshot_manager = SnapshotManager::with_permissions(
         ctx.repo_path.clone(),
@@ -89,7 +144,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     Ok(())
 }
 
-/// Check if working directory is clean
+/// Returns true if no modifications or staged changes exist
 ///
 /// # Errors
 ///
@@ -105,5 +160,6 @@ fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     let current_files = get_current_files(ctx)?;
     let statuses = index.get_status_parallel(&current_files);
 
-    Ok(statuses.is_empty())
+    // Check both: no modified files on disk AND no staged changes
+    Ok(statuses.is_empty() && !index.has_staged_changes())
 }

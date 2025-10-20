@@ -5,7 +5,9 @@ use std::path::PathBuf;
 
 /// Helper for updating HEAD and reflog atomically
 pub struct ReflogUpdater {
+    /// Manages reference (HEAD, branches, tags) operations
     ref_manager: RefManager,
+    /// Manages reflog entries for HEAD tracking and recovery
     reflog_manager: ReflogManager,
 }
 

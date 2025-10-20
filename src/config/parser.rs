@@ -35,6 +35,15 @@ pub fn parse_config_file(path: &Path) -> Result<Config> {
     }
 }
 
+/// Parse a configuration string into a Config struct
+///
+/// Performs TOML parsing and validation on the provided string content.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - TOML parsing fails
+/// - Configuration validation fails (invalid compression level or thread count)
 fn parse_config_str(content: &str) -> Result<Config> {
     // Use optimized TOML parsing
     let config: Config = toml::from_str(content).with_context(|| "Failed to parse TOML config")?;
@@ -44,6 +53,15 @@ fn parse_config_str(content: &str) -> Result<Config> {
     Ok(config)
 }
 
+/// Validate configuration values
+///
+/// Ensures that configuration values are within acceptable ranges.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Compression level is not between 1 and 22 (Zstandard valid range)
+/// - Parallel threads is 0 (must be at least 1)
 fn validate_config(config: &Config) -> Result<()> {
     // Validate compression level
     if config.core.compression_level < 1 || config.core.compression_level > 22 {
@@ -60,8 +78,34 @@ fn validate_config(config: &Config) -> Result<()> {
     Ok(())
 }
 
-// Fast key-value parser for simple config updates
+/// Fast in-memory configuration updater for efficient TOML editing
+///
+/// This struct provides an optimized way to update individual configuration values
+/// without full TOML parsing/serialization. It operates directly on the byte content
+/// of the configuration file, making it ideal for quick key-value updates.
+///
+/// The updater uses pattern matching to locate sections and keys in the TOML file,
+/// then performs in-place replacements of values. This is significantly faster than
+/// parsing the entire TOML structure, modifying it, and re-serializing.
+///
+/// # Example
+///
+/// ```no_run
+/// use std::path::Path;
+/// use dotman::config::parser::FastConfigUpdater;
+///
+/// # fn main() -> anyhow::Result<()> {
+/// let mut updater = FastConfigUpdater::new(Path::new("config.toml"))?;
+/// updater.update_value("core", "compression_level", "15")?;
+/// updater.save(Path::new("config.toml"))?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct FastConfigUpdater {
+    /// Raw byte content of the configuration file
+    ///
+    /// This field holds the complete TOML file content as bytes, allowing for
+    /// efficient pattern matching and in-place editing without string allocations.
     content: Vec<u8>,
 }
 
@@ -106,6 +150,21 @@ impl FastConfigUpdater {
         Ok(())
     }
 
+    /// Find a byte pattern in the configuration content
+    ///
+    /// Searches for the first occurrence of the specified pattern in the content.
+    ///
+    /// # Arguments
+    ///
+    /// * `pattern` - The byte pattern to search for
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the pattern is not found in the content
+    ///
+    /// # Returns
+    ///
+    /// Returns the byte offset of the first occurrence of the pattern
     fn find_pattern(&self, pattern: &[u8]) -> Result<usize> {
         self.content
             .windows(pattern.len())
@@ -113,6 +172,24 @@ impl FastConfigUpdater {
             .ok_or_else(|| anyhow::anyhow!("Pattern not found"))
     }
 
+    /// Find a byte pattern after a specific position in the content
+    ///
+    /// Searches for the first occurrence of the specified pattern starting from
+    /// the given byte offset. This is useful for finding keys within a specific
+    /// section of the TOML file.
+    ///
+    /// # Arguments
+    ///
+    /// * `pattern` - The byte pattern to search for
+    /// * `start` - The byte offset to start searching from
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the pattern is not found after the start position
+    ///
+    /// # Returns
+    ///
+    /// Returns the absolute byte offset of the first occurrence of the pattern
     fn find_pattern_after(&self, pattern: &[u8], start: usize) -> Result<usize> {
         self.content[start..]
             .windows(pattern.len())
@@ -121,6 +198,19 @@ impl FastConfigUpdater {
             .ok_or_else(|| anyhow::anyhow!("Pattern not found after position"))
     }
 
+    /// Find the end of the current line
+    ///
+    /// Searches for the next newline character starting from the given position.
+    /// If no newline is found, returns the end of the content.
+    ///
+    /// # Arguments
+    ///
+    /// * `start` - The byte offset to start searching from
+    ///
+    /// # Returns
+    ///
+    /// Returns the byte offset of the newline character, or the length of the
+    /// content if no newline is found
     fn find_line_end(&self, start: usize) -> usize {
         self.content[start..]
             .iter()

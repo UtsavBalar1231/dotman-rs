@@ -3,15 +3,23 @@ use anyhow::Result;
 use std::fs;
 use std::path::PathBuf;
 
+/// Reference resolution (HEAD, branches, tags, ancestry)
 pub mod resolver;
+/// Reference update operations
 pub mod updater;
 
 /// Manages git-like references (branches, HEAD, etc.)
 pub struct RefManager {
+    /// Path to the repository root
     repo_path: PathBuf,
 }
 
 impl RefManager {
+    /// Creates a new reference manager for a repository
+    ///
+    /// # Arguments
+    ///
+    /// * `repo_path` - Path to the repository root directory
     #[must_use]
     pub const fn new(repo_path: PathBuf) -> Self {
         Self { repo_path }

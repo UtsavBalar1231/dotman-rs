@@ -9,7 +9,7 @@ proptest! {
     #[test]
     fn test_concurrent_index_consistency(
         entries in prop::collection::vec(
-            (any::<String>(), any::<String>(), 0u64..1000000),
+            (any::<String>(), any::<String>(), 0u64..1_000_000),
             0..100
         )
     ) {
@@ -35,7 +35,7 @@ proptest! {
         let unique_paths: HashSet<_> = entries
             .iter()
             .filter(|(p, _, _)| !p.is_empty())
-            .map(|(p, _, _)| p)
+            .map(|(p, _, _)| PathBuf::from(p))
             .collect();
 
         // Should have one entry per unique path (last write wins)
@@ -43,15 +43,15 @@ proptest! {
     }
 
     #[test]
-    fn test_path_expansion_consistency(path in ".*") {
+    fn test_path_expansion_consistency(path in ".+") {
         // Test invariant: path expansion is idempotent
-        let expanded = utils::expand_tilde(&path);
+        let expanded = utils::expand_tilde(&path).unwrap();
 
         // Expanded path should be absolute or relative, never empty
         assert!(!expanded.as_os_str().is_empty());
 
         // Tilde expansion should be idempotent
-        let double_expanded = utils::expand_tilde(&expanded.to_string_lossy());
+        let double_expanded = utils::expand_tilde(&expanded.to_string_lossy()).unwrap();
         assert_eq!(expanded, double_expanded);
     }
 
@@ -67,7 +67,7 @@ proptest! {
 
         // Hash should change with different data
         if !data.is_empty() {
-            let mut modified = data.clone();
+            let mut modified = data;
             modified[0] = modified[0].wrapping_add(1);
             let hash3 = xxh3_64(&modified);
             assert_ne!(hash1, hash3);
@@ -76,7 +76,7 @@ proptest! {
 
     #[test]
     fn test_compression_roundtrip(
-        data in prop::collection::vec(any::<u8>(), 0..100000),
+        data in prop::collection::vec(any::<u8>(), 0..100_000),
         level in 1i32..=22
     ) {
         // Test invariant: compression/decompression preserves data
@@ -86,10 +86,9 @@ proptest! {
         let decompressed = decompress_bytes(&compressed).unwrap();
         prop_assert_eq!(&data, &decompressed);
 
-        // Compressed should be smaller for non-trivial data
-        if data.len() > 100 {
-            prop_assert!(compressed.len() <= data.len());
-        }
+        // Note: We don't assert compressed.len() <= data.len() because
+        // highly random/high-entropy data can expand during compression
+        // due to compression metadata overhead
     }
 
     #[test]
@@ -99,26 +98,26 @@ proptest! {
     ) {
         // Test invariant: index preserves insertion order for unique paths
         let index = ConcurrentIndex::new();
-        let mut expected_paths = HashSet::new();
+        let mut expected_paths: HashSet<PathBuf> = HashSet::new();
 
         for (path, size) in paths.iter().zip(sizes.iter()) {
             if path.is_empty() { continue; }
 
             let entry = FileEntry {
                 path: PathBuf::from(path),
-                hash: format!("hash_{}", size),
+                hash: format!("hash_{size}"),
                 size: *size,
                 mode: 0o644,
                 modified: chrono::Utc::now().timestamp(),
                 cached_hash: None,
             };
             index.stage_entry(entry);
-            expected_paths.insert(path.clone());
+            expected_paths.insert(PathBuf::from(path));
         }
 
         let staged = index.staged_entries();
         let actual_paths: HashSet<_> = staged.iter()
-            .map(|(p, _)| p.to_string_lossy().to_string())
+            .map(|(p, _)| p.clone())
             .collect();
 
         assert_eq!(actual_paths, expected_paths);
@@ -140,10 +139,10 @@ proptest! {
         prop_assert_eq!(hash2.len(), 16);
 
         // Different data should produce different hashes
-        if data1 != data2 {
-            prop_assert_ne!(hash1, hash2);
-        } else {
+        if data1 == data2 {
             prop_assert_eq!(hash1, hash2);
+        } else {
+            prop_assert_ne!(hash1, hash2);
         }
     }
 
@@ -161,7 +160,7 @@ proptest! {
             cached_hash: None,
         };
 
-        index.stage_entry(entry.clone());
+        index.stage_entry(entry);
         let retrieved = index.get_staged_entry(&PathBuf::from("test.txt")).unwrap();
         prop_assert_eq!(retrieved.mode, mode);
     }
@@ -169,23 +168,30 @@ proptest! {
     #[test]
     fn test_concurrent_index_size_calculation(
         entries in prop::collection::vec(
-            (any::<String>(), 0u64..1000000),
+            (any::<String>(), 0u64..1_000_000),
             0..100
         )
     ) {
         // Test invariant: total size calculation is accurate
         let index = ConcurrentIndex::new();
         let mut expected_size = 0u64;
-        let mut seen_paths = HashSet::new();
+        let mut seen_paths: HashSet<PathBuf> = HashSet::new();
 
         for (path, size) in &entries {
-            if path.is_empty() || seen_paths.contains(path) {
+            if path.is_empty() {
+                continue;
+            }
+
+            let path_buf = PathBuf::from(path);
+
+            // Skip if we've already seen this PathBuf (handles ":" == ":/" case)
+            if seen_paths.contains(&path_buf) {
                 continue;
             }
 
             let entry = FileEntry {
-                path: PathBuf::from(path),
-                hash: format!("hash_{}", size),
+                path: path_buf.clone(),
+                hash: format!("hash_{size}"),
                 size: *size,
                 mode: 0o644,
                 modified: chrono::Utc::now().timestamp(),
@@ -194,7 +200,7 @@ proptest! {
 
             index.stage_entry(entry);
             expected_size += size;
-            seen_paths.insert(path.clone());
+            seen_paths.insert(path_buf);
         }
 
         index.commit_staged();

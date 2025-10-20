@@ -1,10 +1,55 @@
+//! Utility functions and helpers.
+//!
+//! This module provides a collection of utility functions used throughout dotman:
+//!
+//! - Path manipulation (tilde expansion, relative paths)
+//! - File traversal with filtering
+//! - Ignore pattern matching
+//! - File size formatting
+//! - Timestamp utilities
+//! - User information retrieval
+//!
+//! # Submodules
+//!
+//! - [`commit`]: Commit-related utilities
+//! - [`compress`]: Compression helpers
+//! - [`formatters`]: Output formatting
+//! - [`pager`]: Pager integration
+//! - [`paths`]: Path manipulation
+//! - [`permissions`]: Cross-platform file permissions
+//! - [`serialization`]: Binary serialization
+//! - [`thread_pool`]: Thread pool configuration
+//!
+//! # Examples
+//!
+//! ```
+//! use dotman::utils::{expand_tilde, format_size};
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! // Expand tilde in paths
+//! let path = expand_tilde("~/.bashrc")?;
+//!
+//! // Format file sizes
+//! let size_str = format_size(1024 * 1024); // "1.00 MB"
+//! # Ok(())
+//! # }
+//! ```
+
+/// Commit ID generation and utilities
 pub mod commit;
+/// Compression utilities (Zstandard)
 pub mod compress;
+/// Output formatting and colorization
 pub mod formatters;
+/// Pager integration for long output
 pub mod pager;
+/// Path manipulation and resolution utilities
 pub mod paths;
+/// Unix permission handling
 pub mod permissions;
+/// Binary serialization utilities
 pub mod serialization;
+/// Thread pool configuration for parallel operations
 pub mod thread_pool;
 
 use anyhow::Result;
@@ -12,14 +57,20 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 /// Expands a path starting with `~` to the user's home directory.
-#[must_use]
-pub fn expand_tilde(path: &str) -> PathBuf {
+///
+/// # Errors
+///
+/// Returns an error if the path is empty.
+pub fn expand_tilde(path: &str) -> Result<PathBuf> {
+    if path.is_empty() {
+        anyhow::bail!("Path cannot be empty");
+    }
     if path.starts_with("~/")
         && let Some(home) = dirs::home_dir()
     {
-        return home.join(&path[2..]);
+        return Ok(home.join(&path[2..]));
     }
-    PathBuf::from(path)
+    Ok(PathBuf::from(path))
 }
 
 /// Make `path` relative to `base` if possible, otherwise return `path` as is.

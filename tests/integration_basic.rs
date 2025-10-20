@@ -70,7 +70,7 @@ fn test_add_and_status() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["add", test_file.to_str().unwrap()])
+        .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
@@ -109,7 +109,7 @@ fn test_add_directory() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["add", test_dir.to_str().unwrap()])
+        .args(["add", test_dir.to_str().unwrap()])
         .assert()
         .success();
 
@@ -147,7 +147,7 @@ fn test_commit_workflow() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["add", test_file.to_str().unwrap()])
+        .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
@@ -155,7 +155,7 @@ fn test_commit_workflow() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["commit", "-m", "Initial commit"])
+        .args(["commit", "-m", "Initial commit"])
         .assert()
         .success()
         .stdout(predicate::str::contains("Committed"));
@@ -189,7 +189,7 @@ fn test_commit_without_changes() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["commit", "-m", "Empty commit"])
+        .args(["commit", "-m", "Empty commit"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("No files tracked"));
@@ -218,14 +218,14 @@ fn test_file_modification_tracking() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["add", test_file.to_str().unwrap()])
+        .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["commit", "-m", "Initial"])
+        .args(["commit", "-m", "Initial"])
         .assert()
         .success();
 
@@ -265,13 +265,13 @@ fn test_log_command() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["add", test_file.to_str().unwrap()])
+        .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["commit", "-m", "First commit"])
+        .args(["commit", "-m", "First commit"])
         .assert()
         .success();
 
@@ -280,13 +280,13 @@ fn test_log_command() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["add", test_file.to_str().unwrap()])
+        .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["commit", "-m", "Second commit"])
+        .args(["commit", "-m", "Second commit"])
         .assert()
         .success();
 
@@ -324,13 +324,13 @@ fn test_remove_command() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["add", test_file.to_str().unwrap()])
+        .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["commit", "-m", "Add file"])
+        .args(["commit", "-m", "Add file"])
         .assert()
         .success();
 
@@ -338,7 +338,7 @@ fn test_remove_command() -> Result<()> {
     Command::cargo_bin("dot")?
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
-        .args(&["rm", test_file.to_str().unwrap()])
+        .args(["rm", test_file.to_str().unwrap()])
         .assert()
         .success()
         .stdout(predicate::str::contains("removed"));

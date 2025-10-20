@@ -1,4 +1,68 @@
+//! Configuration parsing, validation, and management.
+//!
+//! This module provides the configuration system for dotman, including:
+//!
+//! - TOML-based configuration files
+//! - Multiple remote repository support
+//! - Branch tracking configuration
+//! - Performance tuning options
+//! - File tracking and ignore patterns
+//! - User identity configuration
+//!
+//! # Configuration File Location
+//!
+//! Default: `~/.config/dotman/config`
+//! Override with: `DOTMAN_CONFIG_PATH` environment variable
+//!
+//! # Configuration Structure
+//!
+//! ```toml
+//! [core]
+//! compression = "zstd"
+//! compression_level = 3
+//!
+//! [user]
+//! name = "Your Name"
+//! email = "you@example.com"
+//!
+//! [performance]
+//! parallel_threads = 8
+//! mmap_threshold = 1048576
+//!
+//! [tracking]
+//! ignore_patterns = [".git", "*.swp"]
+//! follow_symlinks = false
+//! preserve_permissions = true
+//! ```
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use dotman::config::Config;
+//! use std::path::PathBuf;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! // Load config from default location
+//! let config = Config::load(&PathBuf::from("~/.config/dotman/config"))?;
+//!
+//! // Modify and save
+//! let mut config = Config::default();
+//! config.set("user.name", "Alice".to_string())?;
+//! config.save(&PathBuf::from("config.toml"))?;
+//! # Ok(())
+//! # }
+//! ```
+
+/// Configuration file parsing utilities.
+///
+/// This module provides functionality for parsing TOML configuration files
+/// and converting them into strongly-typed configuration structures.
 pub mod parser;
+
+/// Configuration validation utilities.
+///
+/// This module provides validation logic for configuration values,
+/// ensuring they meet the required constraints and are semantically correct.
 pub mod validator;
 
 use anyhow::{Context, Result};
@@ -7,98 +71,162 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+/// Main configuration structure for dotman.
+///
+/// This structure contains all configuration sections including core settings,
+/// remote repositories, performance tuning, file tracking, and user identity.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
+    /// Core dotman settings (compression, repository path, etc.).
     #[serde(default)]
     pub core: CoreConfig,
 
-    /// Multiple named remotes (like git's origin, upstream, etc.)
+    /// Multiple named remotes (like git's origin, upstream, etc.).
     #[serde(default)]
     pub remotes: HashMap<String, RemoteConfig>,
 
-    /// Branch tracking configuration
+    /// Branch tracking configuration.
     #[serde(default)]
     pub branches: BranchConfig,
 
+    /// Performance optimization settings.
     #[serde(default)]
     pub performance: PerformanceConfig,
 
+    /// File tracking and ignore patterns.
     #[serde(default)]
     pub tracking: TrackingConfig,
 
-    /// User configuration (name and email for commits)
+    /// User configuration (name and email for commits).
     #[serde(default)]
     pub user: UserConfig,
 }
 
+/// Core dotman configuration settings.
+///
+/// Contains fundamental settings like repository path, compression
+/// algorithm and level, and pager configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoreConfig {
+    /// Path to the dotman repository directory. Default: `~/.dotman`
     #[serde(default = "default_repo_path")]
     pub repo_path: PathBuf,
+
+    /// Compression algorithm for snapshots. Default: Zstd
     #[serde(default = "default_compression")]
     pub compression: CompressionType,
+
+    /// Compression level (1-22 for Zstd). Default: 3
     #[serde(default = "default_compression_level")]
     pub compression_level: i32,
+
+    /// Optional pager command for displaying output.
     #[serde(default)]
     pub pager: Option<String>,
 }
 
+/// Compression algorithm type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CompressionType {
+    /// Zstandard compression (high speed, good ratio)
     Zstd,
+    /// No compression
     None,
 }
 
+/// Remote repository configuration.
+///
+/// Defines a remote repository connection, similar to git remotes.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RemoteConfig {
+    /// Type of remote (Git or None).
     pub remote_type: RemoteType,
+
+    /// URL of the remote repository (if applicable).
     pub url: Option<String>,
 }
 
+/// Remote repository type.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RemoteType {
+    /// Git-based remote repository
     Git,
+    /// No remote (local only)
     None,
 }
 
+/// Performance optimization configuration.
+///
+/// Controls parallel processing, memory-mapped I/O, and hard link usage.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceConfig {
+    /// Number of parallel threads for operations. Default: min(CPU count, 8)
     #[serde(default = "default_parallel_threads")]
     pub parallel_threads: usize,
+
+    /// Memory-map threshold in bytes (files larger use mmap). Default: 1 MB
     #[serde(default = "default_mmap_threshold")]
     pub mmap_threshold: usize,
+
+    /// Whether to use hard links when possible. Default: true
     #[serde(default = "default_use_hard_links")]
     pub use_hard_links: bool,
     // TODO: Add cache_size field when implementing object caching
     // pub cache_size: usize,  // Reserved for future LRU cache implementation
 }
 
+/// File tracking and ignore configuration.
+///
+/// Controls which files are tracked and how they are processed.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackingConfig {
+    /// Patterns to ignore when adding files (glob-style).
     pub ignore_patterns: Vec<String>,
+
+    /// Whether to follow symbolic links during directory traversal.
     pub follow_symlinks: bool,
+
+    /// Whether to preserve file permissions in snapshots.
     pub preserve_permissions: bool,
+
+    /// Warn when adding files larger than this size (in bytes). Default: 100 MB
+    #[serde(default = "default_large_file_threshold")]
+    pub large_file_threshold: u64,
 }
 
-/// Branch configuration for tracking branches and their upstream remotes
+/// Branch tracking configuration.
+///
+/// Maps branch names to their upstream remote tracking information.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BranchConfig {
-    /// Branch tracking information: `branch_name` -> (`remote_name`, `remote_branch`)
+    /// Branch tracking information: `branch_name` -> [`BranchTracking`]
     #[serde(default)]
     pub tracking: HashMap<String, BranchTracking>,
 }
 
+/// Upstream tracking information for a branch.
+///
+/// Associates a local branch with a remote and remote branch.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BranchTracking {
+    /// Name of the remote (e.g., "origin")
     pub remote: String,
+
+    /// Name of the branch on the remote
     pub branch: String,
 }
 
+/// User identity configuration.
+///
+/// Used for commit authorship information.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UserConfig {
+    /// User's full name for commits.
     pub name: Option<String>,
+
+    /// User's email address for commits.
     pub email: Option<String>,
 }
 
@@ -146,6 +274,7 @@ impl Default for TrackingConfig {
             ],
             follow_symlinks: false,
             preserve_permissions: true,
+            large_file_threshold: default_large_file_threshold(),
         }
     }
 }
@@ -337,43 +466,121 @@ impl Config {
     }
 }
 
-// Add dependency for num_cpus
+/// Cached number of available CPUs/threads on the system.
+///
+/// This static is lazily initialized on first access and caches the result
+/// of querying the system's available parallelism. Falls back to 1 if the
+/// query fails.
 static NUM_CPUS: std::sync::LazyLock<usize> = std::sync::LazyLock::new(|| {
     std::thread::available_parallelism()
         .map(std::num::NonZeroUsize::get)
         .unwrap_or(1)
 });
 
+/// Internal module for CPU count queries.
+///
+/// Provides a simple interface to query the cached number of available CPUs
+/// without directly exposing the static.
 mod num_cpus {
     use super::NUM_CPUS;
 
+    /// Returns the number of available CPUs/threads on the system.
+    ///
+    /// # Returns
+    ///
+    /// The number of available CPUs, determined at first call and cached.
+    /// Returns 1 if the system query fails.
     pub fn get() -> usize {
         *NUM_CPUS
     }
 }
 
-// Default functions for serde
+/// Returns the default repository path for dotman.
+///
+/// This function is used by serde as the default value provider for the
+/// repository path configuration field.
+///
+/// # Returns
+///
+/// A `PathBuf` pointing to `~/.dotman`, or `/tmp/.dotman` if the home
+/// directory cannot be determined.
 fn default_repo_path() -> PathBuf {
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
     home.join(".dotman")
 }
 
+/// Returns the default compression type.
+///
+/// This function is used by serde as the default value provider for the
+/// compression type configuration field.
+///
+/// # Returns
+///
+/// `CompressionType::Zstd` - Zstandard compression as the default algorithm.
 const fn default_compression() -> CompressionType {
     CompressionType::Zstd
 }
 
+/// Returns the default compression level.
+///
+/// This function is used by serde as the default value provider for the
+/// compression level configuration field.
+///
+/// # Returns
+///
+/// `3` - A balanced compression level providing good compression ratio
+/// with reasonable performance.
 const fn default_compression_level() -> i32 {
     3
 }
 
+/// Returns the default number of parallel threads.
+///
+/// This function is used by serde as the default value provider for the
+/// parallel threads configuration field. It caps the thread count at 8
+/// to prevent excessive resource usage even on high-core-count systems.
+///
+/// # Returns
+///
+/// The minimum of the system's available CPU count and 8.
 fn default_parallel_threads() -> usize {
     num_cpus::get().min(8)
 }
 
+/// Returns the default memory-mapped I/O threshold.
+///
+/// This function is used by serde as the default value provider for the
+/// mmap threshold configuration field. Files larger than this threshold
+/// will use memory-mapped I/O for better performance.
+///
+/// # Returns
+///
+/// `1_048_576` (1 MB) - Files larger than 1 MB will use mmap.
 const fn default_mmap_threshold() -> usize {
     1_048_576 // 1MB
 }
 
+/// Returns the default setting for using hard links.
+///
+/// This function is used by serde as the default value provider for the
+/// `use_hard_links` configuration field.
+///
+/// # Returns
+///
+/// `true` - Hard links are enabled by default to save disk space.
 const fn default_use_hard_links() -> bool {
     true
+}
+
+/// Returns the default large file threshold.
+///
+/// This function is used by serde as the default value provider for the
+/// large file threshold configuration field. Files larger than this size
+/// may be handled differently (e.g., with special warnings or processing).
+///
+/// # Returns
+///
+/// `104_857_600` (100 MB) - Files larger than 100 MB are considered large.
+const fn default_large_file_threshold() -> u64 {
+    100 * 1024 * 1024 // 100 MB
 }

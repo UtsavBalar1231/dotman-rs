@@ -6,17 +6,43 @@ use std::path::{Path, PathBuf};
 
 /// Export files from dotman storage to a directory
 pub struct Exporter<'a> {
+    /// Reference to the snapshot manager for reading file objects
     snapshot_manager: &'a SnapshotManager,
+    /// Reference to the file index
     index: &'a Index,
+    /// Whether to preserve file permissions during export
     preserve_permissions: bool,
 }
 
 impl<'a> Exporter<'a> {
+    /// Create a new exporter with default settings
+    ///
+    /// Permissions are preserved by default.
+    ///
+    /// # Arguments
+    ///
+    /// * `snapshot_manager` - Reference to the snapshot manager for reading objects
+    /// * `index` - Reference to the file index
+    ///
+    /// # Returns
+    ///
+    /// A new `Exporter` instance with permission preservation enabled
     #[must_use]
     pub const fn new(snapshot_manager: &'a SnapshotManager, index: &'a Index) -> Self {
         Self::with_permissions(snapshot_manager, index, true)
     }
 
+    /// Create a new exporter with configurable permission preservation
+    ///
+    /// # Arguments
+    ///
+    /// * `snapshot_manager` - Reference to the snapshot manager for reading objects
+    /// * `index` - Reference to the file index
+    /// * `preserve_permissions` - Whether to preserve file permissions during export
+    ///
+    /// # Returns
+    ///
+    /// A new `Exporter` instance with the specified permission preservation setting
     #[must_use]
     pub const fn with_permissions(
         snapshot_manager: &'a SnapshotManager,
@@ -143,16 +169,44 @@ impl<'a> Exporter<'a> {
 
 /// Import files from a directory into dotman storage
 pub struct Importer<'a> {
+    /// Mutable reference to the snapshot manager (unused, kept for future use)
     _snapshot_manager: &'a mut SnapshotManager,
+    /// Mutable reference to the file index
     index: &'a mut Index,
+    /// Whether to preserve file permissions during import
     preserve_permissions: bool,
 }
 
 impl<'a> Importer<'a> {
+    /// Create a new importer with default settings
+    ///
+    /// Permissions are preserved by default.
+    ///
+    /// # Arguments
+    ///
+    /// * `snapshot_manager` - Mutable reference to the snapshot manager
+    /// * `index` - Mutable reference to the file index
+    ///
+    /// # Returns
+    ///
+    /// A new `Importer` instance with permission preservation enabled
+    #[must_use]
     pub const fn new(snapshot_manager: &'a mut SnapshotManager, index: &'a mut Index) -> Self {
         Self::with_permissions(snapshot_manager, index, true)
     }
 
+    /// Create a new importer with configurable permission preservation
+    ///
+    /// # Arguments
+    ///
+    /// * `snapshot_manager` - Mutable reference to the snapshot manager
+    /// * `index` - Mutable reference to the file index
+    /// * `preserve_permissions` - Whether to preserve file permissions during import
+    ///
+    /// # Returns
+    ///
+    /// A new `Importer` instance with the specified permission preservation setting
+    #[must_use]
     pub const fn with_permissions(
         snapshot_manager: &'a mut SnapshotManager,
         index: &'a mut Index,
@@ -417,17 +471,31 @@ impl<'a> Importer<'a> {
 /// Result of importing changes from a directory
 #[derive(Debug)]
 pub struct ImportChanges {
+    /// Files that were added during the import
     pub added: Vec<PathBuf>,
+    /// Files that were modified during the import
     pub modified: Vec<PathBuf>,
+    /// Files that were deleted during the import
     pub deleted: Vec<PathBuf>,
 }
 
 impl ImportChanges {
+    /// Check if the import contains no changes
+    ///
+    /// # Returns
+    ///
+    /// `true` if there are no added, modified, or deleted files, `false` otherwise
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.added.is_empty() && self.modified.is_empty() && self.deleted.is_empty()
     }
 
+    /// Generate a human-readable summary of the changes
+    ///
+    /// # Returns
+    ///
+    /// A comma-separated string describing the number of added, modified, and deleted files.
+    /// Returns "No changes" if the import is empty.
     #[must_use]
     pub fn summary(&self) -> String {
         let mut parts = Vec::new();

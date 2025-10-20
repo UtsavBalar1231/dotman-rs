@@ -2,6 +2,7 @@ use once_cell::sync::OnceCell;
 use rayon::ThreadPoolBuilder;
 use std::sync::Arc;
 
+/// Global thread pool singleton for parallel operations
 static THREAD_POOL: OnceCell<Arc<rayon::ThreadPool>> = OnceCell::new();
 
 /// Initialize the global thread pool with the specified number of threads
@@ -66,15 +67,18 @@ pub fn configure_from_config(config: &crate::config::Config) -> anyhow::Result<(
 // Re-export for backward compatibility with existing code
 pub use rayon::prelude::*;
 
+/// CPU detection module for determining optimal thread count
 mod num_cpus {
     use std::sync::LazyLock;
 
+    /// Cached number of available CPU cores
     static NUM_CPUS: LazyLock<usize> = LazyLock::new(|| {
         std::thread::available_parallelism()
             .map(std::num::NonZeroUsize::get)
             .unwrap_or(1)
     });
 
+    /// Get the number of available CPU cores
     pub fn get() -> usize {
         *NUM_CPUS
     }

@@ -8,31 +8,55 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use zstd::stream::{decode_all, encode_all};
 
+/// A complete snapshot of repository state at a commit
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {
+    /// The commit metadata
     pub commit: Commit,
+    /// All files in the snapshot
     pub files: HashMap<PathBuf, SnapshotFile>,
 }
 
+/// Metadata for a file in a snapshot
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SnapshotFile {
+    /// File content hash
     pub hash: String,
+    /// Unix file permissions
     pub mode: u32,
+    /// Content-addressed storage hash
     pub content_hash: String,
 }
 
+/// Manages snapshot storage and compression
 pub struct SnapshotManager {
+    /// Path to the dotman repository
     repo_path: PathBuf,
+    /// Zstandard compression level (1-22)
     compression_level: i32,
+    /// Whether to preserve file permissions when restoring
     preserve_permissions: bool,
 }
 
 impl SnapshotManager {
+    /// Create a new snapshot manager with default settings
+    ///
+    /// # Arguments
+    ///
+    /// * `repo_path` - Path to the dotman repository
+    /// * `compression_level` - Zstandard compression level (1-22, higher = better compression but slower)
     #[must_use]
     pub const fn new(repo_path: PathBuf, compression_level: i32) -> Self {
         Self::with_permissions(repo_path, compression_level, true)
     }
 
+    /// Create a new snapshot manager with permission preservation setting
+    ///
+    /// # Arguments
+    ///
+    /// * `repo_path` - Path to the dotman repository
+    /// * `compression_level` - Zstandard compression level (1-22)
+    /// * `preserve_permissions` - Whether to preserve file permissions when restoring snapshots
     #[must_use]
     pub const fn with_permissions(
         repo_path: PathBuf,
@@ -258,6 +282,14 @@ impl SnapshotManager {
         Ok(())
     }
 
+    /// Store file content in the object store
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to read the source file
+    /// - Failed to compress the content
+    /// - Failed to write the object file
     fn store_file_content(&self, file_path: &Path, hash: &str) -> Result<String> {
         let objects_dir = self.repo_path.join("objects");
         let object_path = objects_dir.join(format!("{hash}.zst"));
@@ -333,6 +365,7 @@ impl SnapshotManager {
         Ok(content)
     }
 
+    /// Check if a snapshot exists by its ID
     #[must_use]
     pub fn snapshot_exists(&self, snapshot_id: &str) -> bool {
         let snapshot_path = self
@@ -396,12 +429,18 @@ impl SnapshotManager {
     }
 }
 
-// Garbage collector for cleaning up unreferenced objects
+/// Removes unreferenced snapshots and objects
 pub struct GarbageCollector {
+    /// Path to the dotman repository
     repo_path: PathBuf,
 }
 
 impl GarbageCollector {
+    /// Create a garbage collector for the repository
+    ///
+    /// # Arguments
+    ///
+    /// * `repo_path` - Path to the dotman repository
     #[must_use]
     pub const fn new(repo_path: PathBuf) -> Self {
         Self { repo_path }

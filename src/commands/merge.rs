@@ -94,6 +94,34 @@ pub fn execute(
     Ok(())
 }
 
+/// Handles merging from remote tracking branches
+///
+/// This function processes merge requests that reference remote branches (e.g., origin/main).
+/// It fetches the latest changes from the remote, imports them if needed, and returns the
+/// corresponding commit ID in the local repository.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `branch_ref` - Remote branch reference in format "remote/branch" (e.g., "origin/main")
+/// * `_no_ff` - Whether to force a merge commit (currently unused)
+/// * `_squash` - Whether to perform a squash merge (currently unused)
+/// * `_message` - Optional custom merge message (currently unused)
+///
+/// # Returns
+///
+/// Returns the commit ID of the remote branch in the local repository. If the remote
+/// commit has been imported before, returns the existing mapping. Otherwise, imports
+/// the remote state and creates a new commit.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The remote branch reference format is invalid
+/// - The remote is not configured
+/// - The remote has no URL configured
+/// - Checkout of the remote branch fails
+/// - Import of remote changes fails
 fn handle_remote_branch_merge(
     ctx: &DotmanContext,
     branch_ref: &str,
@@ -203,6 +231,28 @@ fn handle_remote_branch_merge(
     Ok(commit_id)
 }
 
+/// Checks if one commit is an ancestor of another
+///
+/// This function determines if a commit (ancestor) appears in the history of another
+/// commit (descendant) by walking back through the commit chain. It is used to determine
+/// whether a fast-forward merge is possible.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `ancestor` - The potential ancestor commit ID
+/// * `descendant` - The descendant commit ID to check
+///
+/// # Returns
+///
+/// Returns `true` if `ancestor` is found in the parent chain of `descendant`,
+/// `false` otherwise.
+///
+/// # Note
+///
+/// This is a simplified implementation that only follows first-parent chains.
+/// A complete implementation would need to handle multiple parents (merge commits)
+/// and build a full commit graph for accurate ancestry detection.
 fn is_ancestor(ctx: &DotmanContext, ancestor: &str, descendant: &str) -> bool {
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
@@ -235,6 +285,38 @@ fn is_ancestor(ctx: &DotmanContext, ancestor: &str, descendant: &str) -> bool {
     false
 }
 
+/// Performs a three-way merge between two commits
+///
+/// This function merges changes from a target branch into the current branch by comparing
+/// the files in both commits. When files differ between branches, it detects conflicts
+/// and resolves them automatically by taking the incoming version.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `current_commit` - The commit ID of the current branch (base)
+/// * `target_commit` - The commit ID of the branch to merge in (incoming)
+/// * `branch` - The name of the branch being merged (for display purposes)
+/// * `message` - Optional custom merge commit message
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful merge, updating the index, creating a merge commit,
+/// and updating the working directory.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Loading snapshots fails
+/// - Creating the merge commit fails
+/// - Saving the index fails
+/// - Updating the working directory fails
+///
+/// # Note
+///
+/// This is a simplified implementation that performs a two-way merge between current
+/// and target commits. A proper implementation would find the merge base (common ancestor)
+/// and perform a true three-way diff to better detect conflicts and auto-resolve changes.
 #[allow(clippy::too_many_lines)] // Complex merge logic requires detailed handling
 fn perform_three_way_merge(
     ctx: &DotmanContext,
@@ -392,6 +474,32 @@ fn perform_three_way_merge(
     Ok(())
 }
 
+/// Performs a squash merge of a branch into the current branch
+///
+/// This function takes all the changes from the target branch and stages them in the
+/// index without creating a commit. This allows the user to review and commit the
+/// squashed changes as a single commit, effectively combining all commits from the
+/// source branch into one.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context containing repository configuration
+/// * `_current_commit` - The commit ID of the current branch (unused)
+/// * `target_commit` - The commit ID of the branch to squash merge
+/// * `branch` - The name of the branch being merged (for display purposes)
+/// * `message` - Optional message suggesting what commit message to use
+///
+/// # Returns
+///
+/// Returns `Ok(())` after staging all changes from the target branch. The user
+/// must then run `dot commit` to complete the merge.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Loading the target snapshot fails
+/// - Loading the index fails
+/// - Saving the updated index fails
 fn perform_squash_merge(
     ctx: &DotmanContext,
     _current_commit: &str,

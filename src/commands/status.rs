@@ -1,3 +1,42 @@
+//! Working tree status inspection.
+//!
+//! This module provides functionality for inspecting the current state of the
+//! working tree, similar to `git status`. It handles:
+//!
+//! - Detection of staged changes (files ready to commit)
+//! - Detection of unstaged modifications (changes in working directory)
+//! - Detection of deleted files
+//! - Untracked file discovery
+//! - Short and long output formats
+//! - Cache statistics for performance analysis
+//!
+//! # Output Formats
+//!
+//! - **Long format** (default): Grouped by status with detailed information
+//! - **Short format** (`-s`): Compact single-line per file output
+//! - **Verbose** (`-v`): Includes cache hit rate statistics
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use dotman::DotmanContext;
+//! use dotman::commands::status;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! let ctx = DotmanContext::new()?;
+//!
+//! // Show full status
+//! status::execute(&ctx, false, false)?;
+//!
+//! // Show short status
+//! status::execute(&ctx, true, false)?;
+//!
+//! // Show status with untracked files
+//! status::execute(&ctx, false, true)?;
+//! # Ok(())
+//! # }
+//! ```
+
 use crate::refs::RefManager;
 use crate::storage::FileStatus;
 use crate::storage::index::Index;
@@ -7,7 +46,7 @@ use colored::Colorize;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-/// Execute status command - show the working tree status
+/// Show working tree status
 ///
 /// # Errors
 ///
@@ -19,7 +58,7 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
     execute_verbose(ctx, short, show_untracked, false)
 }
 
-/// Execute status command with optional verbose output
+/// Show working tree status with optional cache statistics
 ///
 /// # Errors
 ///
@@ -28,6 +67,7 @@ pub fn execute(ctx: &DotmanContext, short: bool, show_untracked: bool) -> Result
 /// - Cannot read the index
 /// - File status checks fail
 #[allow(clippy::too_many_lines)]
+#[allow(clippy::cognitive_complexity)]
 pub fn execute_verbose(
     ctx: &DotmanContext,
     short: bool,
@@ -109,6 +149,7 @@ pub fn execute_verbose(
         statuses.push(FileStatus::Deleted(path.clone()));
     }
 
+    // Check if staged files were modified on disk
     for (path, staged_entry) in &index.staged_entries {
         let abs_path = if path.is_relative() {
             home.join(path)
@@ -118,22 +159,60 @@ pub fn execute_verbose(
 
         if abs_path.exists() {
             // Use cached hash for performance
-            let (current_hash, _) =
-                crate::storage::file_ops::hash_file(&abs_path, staged_entry.cached_hash.as_ref())
-                    .unwrap_or_else(|_| {
-                        (
-                            String::new(),
-                            crate::storage::CachedHash {
-                                hash: String::new(),
-                                size_at_hash: 0,
-                                mtime_at_hash: 0,
-                            },
-                        )
-                    });
+            match crate::storage::file_ops::hash_file(&abs_path, staged_entry.cached_hash.as_ref())
+            {
+                Ok((current_hash, _)) => {
+                    if current_hash != staged_entry.hash {
+                        statuses.push(FileStatus::Modified(path.clone()));
+                    }
+                }
+                Err(_) => {
+                    // Hash failed - file may have been deleted or is inaccessible
+                    if !abs_path.exists() {
+                        statuses.push(FileStatus::Deleted(path.clone()));
+                    }
+                    // Otherwise skip - metadata might have changed but content is same
+                }
+            }
+        }
+    }
 
-            if !current_hash.is_empty() && current_hash != staged_entry.hash {
+    // Check if committed files (entries) were modified on disk (not already staged)
+    for (path, committed_entry) in &index.entries {
+        // Skip if already staged (already checked above)
+        if index.staged_entries.contains_key(path) {
+            continue;
+        }
+
+        let abs_path = if path.is_relative() {
+            home.join(path)
+        } else {
+            path.clone()
+        };
+
+        if abs_path.exists() {
+            // Use cached hash for performance
+            let (current_hash, _) = crate::storage::file_ops::hash_file(
+                &abs_path,
+                committed_entry.cached_hash.as_ref(),
+            )
+            .unwrap_or_else(|_| {
+                (
+                    String::new(),
+                    crate::storage::CachedHash {
+                        hash: String::new(),
+                        size_at_hash: 0,
+                        mtime_at_hash: 0,
+                    },
+                )
+            });
+
+            if !current_hash.is_empty() && current_hash != committed_entry.hash {
                 statuses.push(FileStatus::Modified(path.clone()));
             }
+        } else {
+            // File was deleted from disk
+            statuses.push(FileStatus::Deleted(path.clone()));
         }
     }
 
@@ -244,7 +323,7 @@ pub fn execute_verbose(
     Ok(())
 }
 
-/// Get all currently tracked files
+/// Returns absolute paths of all tracked files
 ///
 /// # Errors
 ///
@@ -328,6 +407,17 @@ pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<Pa
     Ok(untracked)
 }
 
+/// Print a group of file statuses with a common status type.
+///
+/// This helper function filters statuses by discriminant type and prints
+/// them in a formatted group with a header and colored labels.
+///
+/// # Arguments
+///
+/// * `statuses` - All file statuses to filter from
+/// * `status_type` - Status type to match (discriminant comparison)
+/// * `header` - Section header to print
+/// * `label` - Status label for each file
 fn print_status_group(
     statuses: &[FileStatus],
     status_type: &FileStatus,

@@ -5,7 +5,9 @@ use std::path::Path;
 
 /// Tracks which configuration fields are actually used at runtime
 pub struct ConfigValidator {
+    /// Set of valid configuration fields that are recognized by dotman
     known_fields: HashSet<String>,
+    /// Set of deprecated configuration fields that should trigger warnings
     deprecated_fields: HashSet<String>,
 }
 
@@ -102,6 +104,18 @@ impl ConfigValidator {
         Ok(())
     }
 
+    /// Recursively checks a TOML table for unknown and deprecated fields
+    ///
+    /// This method traverses the configuration tree and validates each field against
+    /// the known and deprecated field sets. It handles special cases for dynamic
+    /// sections like remotes and branch tracking configurations.
+    ///
+    /// # Arguments
+    ///
+    /// * `table` - The TOML value to validate (expected to be a table)
+    /// * `prefix` - The current path prefix (e.g., "core", "performance.parallel")
+    /// * `unknown` - Vector to collect unknown field paths
+    /// * `deprecated` - Vector to collect deprecated field paths
     fn check_table(
         &self,
         table: &toml::Value,
@@ -154,6 +168,16 @@ impl ConfigValidator {
         }
     }
 
+    /// Validates remote configuration fields
+    ///
+    /// Checks that fields under `remotes.<name>` are valid remote configuration
+    /// options. Valid fields are `remote_type` and `url`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The TOML value representing the remote configuration
+    /// * `prefix` - The full path prefix for the remote (e.g., "remotes.origin")
+    /// * `unknown` - Vector to collect unknown field paths
     fn check_remote_config(value: &toml::Value, prefix: &str, unknown: &mut Vec<String>) {
         if let toml::Value::Table(map) = value {
             for (key, _) in map {
@@ -166,6 +190,16 @@ impl ConfigValidator {
         }
     }
 
+    /// Validates branch tracking configuration fields
+    ///
+    /// Checks that fields under `branches.tracking.<name>` are valid branch tracking
+    /// options. Valid fields are `remote` and `branch`.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The TOML value representing the branch tracking configuration
+    /// * `prefix` - The full path prefix for the branch (e.g., "branches.tracking.main")
+    /// * `unknown` - Vector to collect unknown field paths
     fn check_branch_tracking(value: &toml::Value, prefix: &str, unknown: &mut Vec<String>) {
         if let toml::Value::Table(map) = value {
             for (key, _) in map {

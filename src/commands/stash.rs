@@ -12,25 +12,38 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-/// Stash subcommands
+/// Stash subcommands for managing temporary changes
 #[derive(Debug, Clone)]
 pub enum StashCommand {
+    /// Save current changes to stash
     Push {
+        /// Optional description for the stash
         message: Option<String>,
+        /// Whether to include untracked files
         include_untracked: bool,
+        /// Whether to keep staged changes in index
         keep_index: bool,
     },
+    /// Apply and remove most recent stash
     Pop,
+    /// Apply stash without removing it
     Apply {
+        /// Specific stash to apply (or most recent if None)
         stash_id: Option<String>,
     },
+    /// List all stashes
     List,
+    /// Show contents of a stash
     Show {
+        /// Specific stash to show (or most recent if None)
         stash_id: Option<String>,
     },
+    /// Delete a specific stash
     Drop {
+        /// ID of stash to delete
         stash_id: String,
     },
+    /// Delete all stashes
     Clear,
 }
 
