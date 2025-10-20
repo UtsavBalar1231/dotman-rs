@@ -133,8 +133,7 @@ fn handle_remote_branch_merge(
     let parts: Vec<&str> = branch_ref.split('/').collect();
     if parts.len() != 2 {
         return Err(anyhow::anyhow!(
-            "Invalid remote branch reference: {}",
-            branch_ref
+            "Invalid remote branch reference: {branch_ref}"
         ));
     }
 
@@ -165,8 +164,7 @@ fn handle_remote_branch_merge(
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(anyhow::anyhow!(
-            "Failed to checkout remote branch: {}",
-            stderr
+            "Failed to checkout remote branch: {stderr}"
         ));
     }
 

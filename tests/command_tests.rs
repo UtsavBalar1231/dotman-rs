@@ -473,6 +473,46 @@ mod branch_command_tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_branch_with_b_flag() -> Result<()> {
+        let (_temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create and checkout a new branch using the shorthand
+        commands::branch::create(&ctx, "feature", None)?;
+        commands::checkout::execute(&ctx, "feature", false)?;
+
+        // Verify we're on the new branch
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
+        let current = ref_manager.current_branch()?;
+        assert_eq!(current, Some("feature".to_string()));
+
+        // Verify branch was created
+        assert!(ctx.repo_path.join("refs/heads/feature").exists());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_branch_with_b_flag_and_start_point() -> Result<()> {
+        let (_temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create and checkout feature from main
+        commands::branch::create(&ctx, "feature", Some("main"))?;
+        commands::checkout::execute(&ctx, "feature", false)?;
+
+        // Verify we're on feature branch
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path);
+        let current = ref_manager.current_branch()?;
+        assert_eq!(current, Some("feature".to_string()));
+
+        // Verify both branches point to the same commit
+        let main_commit = ref_manager.get_branch_commit("main")?;
+        let feature_commit = ref_manager.get_branch_commit("feature")?;
+        assert_eq!(main_commit, feature_commit);
+
+        Ok(())
+    }
 }
 
 mod checkout_command_tests {
@@ -523,6 +563,79 @@ mod checkout_command_tests {
 
         let result = commands::checkout::execute(&ctx, "nonexistent", false);
         assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_checkout_with_b_flag_from_head() -> Result<()> {
+        let (_temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create and checkout a new branch from HEAD using -b flag
+        commands::branch::create(&ctx, "feature", None)?;
+        commands::checkout::execute(&ctx, "feature", false)?;
+
+        // Verify we're on the new branch
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
+        let current = ref_manager.current_branch()?;
+        assert_eq!(current, Some("feature".to_string()));
+
+        // Verify branch was created
+        assert!(ctx.repo_path.join("refs/heads/feature").exists());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_checkout_with_b_flag_from_branch() -> Result<()> {
+        let (_temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create dev branch
+        commands::branch::create(&ctx, "dev", None)?;
+
+        // Create and checkout feature from dev
+        commands::branch::create(&ctx, "feature", Some("dev"))?;
+        commands::checkout::execute(&ctx, "feature", false)?;
+
+        // Verify we're on feature branch
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path);
+        let current = ref_manager.current_branch()?;
+        assert_eq!(current, Some("feature".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_checkout_with_b_flag_from_commit() -> Result<()> {
+        let (_temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Since setup_test_repo creates an empty repo, just use main as start point
+        // This tests that we can create a branch from an existing branch name
+        commands::branch::create(&ctx, "feature", Some("main"))?;
+        commands::checkout::execute(&ctx, "feature", false)?;
+
+        // Verify we're on feature branch
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
+        let current = ref_manager.current_branch()?;
+        assert_eq!(current, Some("feature".to_string()));
+
+        // Verify branch was created
+        assert!(ctx.repo_path.join("refs/heads/feature").exists());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_checkout_b_flag_branch_already_exists() -> Result<()> {
+        let (_temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create a branch
+        commands::branch::create(&ctx, "existing", None)?;
+
+        // Try to create the same branch again with -b flag
+        let result = commands::branch::create(&ctx, "existing", None);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("already exists"));
 
         Ok(())
     }

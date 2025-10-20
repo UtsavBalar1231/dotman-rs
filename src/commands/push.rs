@@ -80,8 +80,7 @@ pub fn execute(
     let result = match &remote_config.remote_type {
         crate::config::RemoteType::Git => push_to_git(ctx, remote_config, &push_opts),
         crate::config::RemoteType::None => Err(anyhow::anyhow!(
-            "Remote '{}' has no type configured or is not a Git remote.",
-            remote_name
+            "Remote '{remote_name}' has no type configured or is not a Git remote."
         )),
     };
 
@@ -207,8 +206,7 @@ fn determine_push_target(
             return Ok((tracking.remote.clone(), b.to_string(), false));
         }
         return Err(anyhow::anyhow!(
-            "Branch '{}' has no upstream tracking. Please specify remote or use --set-upstream.",
-            b
+            "Branch '{b}' has no upstream tracking. Please specify remote or use --set-upstream."
         ));
     }
 

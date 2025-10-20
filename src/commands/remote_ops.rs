@@ -73,8 +73,7 @@ impl RemoteOperations for DotmanContext {
         // Verify the remote exists
         if !self.remote_exists(&remote_name) {
             return Err(anyhow::anyhow!(
-                "Remote '{}' does not exist. Use 'dot remote add' to add it.",
-                remote_name
+                "Remote '{remote_name}' does not exist. Use 'dot remote add' to add it."
             ));
         }
 

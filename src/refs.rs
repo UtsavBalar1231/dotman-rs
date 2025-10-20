@@ -175,15 +175,12 @@ impl RefManager {
     pub fn delete_branch(&self, name: &str) -> Result<()> {
         // Prevent deletion of current branch
         if self.current_branch()?.as_ref().is_some_and(|c| c == name) {
-            return Err(anyhow::anyhow!(
-                "Cannot delete the current branch '{}'",
-                name
-            ));
+            return Err(anyhow::anyhow!("Cannot delete the current branch '{name}'"));
         }
 
         let branch_path = self.repo_path.join(format!("refs/heads/{name}"));
         if !branch_path.exists() {
-            return Err(anyhow::anyhow!("Branch '{}' does not exist", name));
+            return Err(anyhow::anyhow!("Branch '{name}' does not exist"));
         }
 
         fs::remove_file(&branch_path)?;
@@ -225,7 +222,7 @@ impl RefManager {
     pub fn get_branch_commit(&self, branch: &str) -> Result<String> {
         let branch_path = self.repo_path.join(format!("refs/heads/{branch}"));
         if !branch_path.exists() {
-            return Err(anyhow::anyhow!("Branch '{}' does not exist", branch));
+            return Err(anyhow::anyhow!("Branch '{branch}' does not exist"));
         }
 
         Ok(fs::read_to_string(&branch_path)?.trim().to_string())
@@ -241,7 +238,7 @@ impl RefManager {
     pub fn update_branch(&self, branch: &str, commit_id: &str) -> Result<()> {
         let branch_path = self.repo_path.join(format!("refs/heads/{branch}"));
         if !branch_path.exists() {
-            return Err(anyhow::anyhow!("Branch '{}' does not exist", branch));
+            return Err(anyhow::anyhow!("Branch '{branch}' does not exist"));
         }
 
         fs::write(&branch_path, commit_id)?;
@@ -297,11 +294,11 @@ impl RefManager {
         let new_path = self.repo_path.join(format!("refs/heads/{new_name}"));
 
         if !old_path.exists() {
-            return Err(anyhow::anyhow!("Branch '{}' does not exist", old_name));
+            return Err(anyhow::anyhow!("Branch '{old_name}' does not exist"));
         }
 
         if new_path.exists() {
-            return Err(anyhow::anyhow!("Branch '{}' already exists", new_name));
+            return Err(anyhow::anyhow!("Branch '{new_name}' already exists"));
         }
 
         fs::rename(&old_path, &new_path)?;
@@ -336,7 +333,7 @@ impl RefManager {
         let tag_path = self.repo_path.join(format!("refs/tags/{name}"));
 
         if tag_path.exists() {
-            return Err(anyhow::anyhow!("Tag '{}' already exists", name));
+            return Err(anyhow::anyhow!("Tag '{name}' already exists"));
         }
 
         // If commit_id is provided, use it; otherwise use current HEAD
@@ -367,7 +364,7 @@ impl RefManager {
         let tag_path = self.repo_path.join(format!("refs/tags/{name}"));
 
         if !tag_path.exists() {
-            return Err(anyhow::anyhow!("Tag '{}' does not exist", name));
+            return Err(anyhow::anyhow!("Tag '{name}' does not exist"));
         }
 
         fs::remove_file(&tag_path)?;
@@ -409,7 +406,7 @@ impl RefManager {
     pub fn get_tag_commit(&self, tag: &str) -> Result<String> {
         let tag_path = self.repo_path.join(format!("refs/tags/{tag}"));
         if !tag_path.exists() {
-            return Err(anyhow::anyhow!("Tag '{}' does not exist", tag));
+            return Err(anyhow::anyhow!("Tag '{tag}' does not exist"));
         }
 
         Ok(fs::read_to_string(&tag_path)?.trim().to_string())

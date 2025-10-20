@@ -36,7 +36,7 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
 /// - Failed to save configuration
 pub fn add(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
     if ctx.config.remotes.contains_key(name) {
-        return Err(anyhow::anyhow!("Remote '{}' already exists", name));
+        return Err(anyhow::anyhow!("Remote '{name}' already exists"));
     }
 
     // Determine remote type from URL
@@ -63,7 +63,7 @@ pub fn add(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
 /// - Failed to save configuration
 pub fn remove(ctx: &mut DotmanContext, name: &str) -> Result<()> {
     if ctx.config.remove_remote(name).is_none() {
-        return Err(anyhow::anyhow!("Remote '{}' does not exist", name));
+        return Err(anyhow::anyhow!("Remote '{name}' does not exist"));
     }
 
     ctx.config.save(&ctx.config_path)?;
@@ -137,11 +137,11 @@ pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
 /// - Failed to save configuration
 pub fn rename(ctx: &mut DotmanContext, old_name: &str, new_name: &str) -> Result<()> {
     if !ctx.config.remotes.contains_key(old_name) {
-        return Err(anyhow::anyhow!("Remote '{}' does not exist", old_name));
+        return Err(anyhow::anyhow!("Remote '{old_name}' does not exist"));
     }
 
     if ctx.config.remotes.contains_key(new_name) {
-        return Err(anyhow::anyhow!("Remote '{}' already exists", new_name));
+        return Err(anyhow::anyhow!("Remote '{new_name}' already exists"));
     }
 
     // Move the remote config

@@ -205,7 +205,7 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
 
     // Check if branch exists
     if !ref_manager.branch_exists(name) {
-        return Err(anyhow::anyhow!("Branch '{}' does not exist", name));
+        return Err(anyhow::anyhow!("Branch '{name}' does not exist"));
     }
 
     // Check if it's the current branch
@@ -215,17 +215,15 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
         .is_some_and(|c| c == name)
     {
         return Err(anyhow::anyhow!(
-            "Cannot delete the currently checked out branch '{}'",
-            name
+            "Cannot delete the currently checked out branch '{name}'"
         ));
     }
 
     // Don't allow deletion of main/master branches without force
     if !force && (name == "main" || name == "master") {
         return Err(anyhow::anyhow!(
-            "Cannot delete the '{}' branch without --force\n\
-             This is typically the default branch and should not be deleted",
-            name
+            "Cannot delete the '{name}' branch without --force\n\
+             This is typically the default branch and should not be deleted"
         ));
     }
 
@@ -245,8 +243,7 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
                 ));
                 super::print_info("If you are sure you want to delete it, use --force");
                 return Err(anyhow::anyhow!(
-                    "Branch '{}' is not fully merged. Use --force to delete anyway",
-                    name
+                    "Branch '{name}' is not fully merged. Use --force to delete anyway"
                 ));
             }
         }
@@ -353,11 +350,11 @@ pub fn set_upstream(
     };
 
     if !ref_manager.branch_exists(&branch_name) {
-        return Err(anyhow::anyhow!("Branch '{}' does not exist", branch_name));
+        return Err(anyhow::anyhow!("Branch '{branch_name}' does not exist"));
     }
 
     if !ctx.config.remotes.contains_key(remote) {
-        return Err(anyhow::anyhow!("Remote '{}' does not exist", remote));
+        return Err(anyhow::anyhow!("Remote '{remote}' does not exist"));
     }
 
     // Use same branch name on remote if not specified

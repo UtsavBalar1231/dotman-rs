@@ -84,7 +84,7 @@ fn validate_tag_name(name: &str) -> Result<()> {
 
     // Check for reserved names
     if name == "." || name == ".." || name == "HEAD" {
-        return Err(anyhow::anyhow!("Tag name '{}' is reserved", name));
+        return Err(anyhow::anyhow!("Tag name '{name}' is reserved"));
     }
 
     // Check for leading/trailing dots or spaces (problematic on some filesystems)
@@ -169,7 +169,7 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
     if !ref_manager.tag_exists(name) {
-        return Err(anyhow::anyhow!("Tag '{}' does not exist", name));
+        return Err(anyhow::anyhow!("Tag '{name}' does not exist"));
     }
 
     // In a real implementation, we might want to check if the tag
@@ -200,7 +200,7 @@ pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
     let ref_manager = RefManager::new(ctx.repo_path.clone());
 
     if !ref_manager.tag_exists(name) {
-        return Err(anyhow::anyhow!("Tag '{}' does not exist", name));
+        return Err(anyhow::anyhow!("Tag '{name}' does not exist"));
     }
 
     let commit_id = ref_manager.get_tag_commit(name)?;

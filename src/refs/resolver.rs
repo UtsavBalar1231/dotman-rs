@@ -122,9 +122,7 @@ impl RefResolver {
         for i in 0..parent_count {
             let Ok(snapshot) = snapshot_manager.load_snapshot(&current) else {
                 return Err(anyhow::anyhow!(
-                    "Cannot go back {} commits from HEAD (only {} commits in history)",
-                    parent_count,
-                    i
+                    "Cannot go back {parent_count} commits from HEAD (only {i} commits in history)"
                 ));
             };
 
@@ -194,8 +192,7 @@ impl RefResolver {
 
         // Invalid caret notation
         Err(anyhow::anyhow!(
-            "Invalid parent specification: {}",
-            full_reference
+            "Invalid parent specification: {full_reference}"
         ))
     }
 

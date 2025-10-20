@@ -33,8 +33,7 @@ pub fn execute(
             fetch_from_git(ctx, remote_config, remote, branch, all, tags)
         }
         crate::config::RemoteType::None => Err(anyhow::anyhow!(
-            "Remote '{}' has no type configured or is not a Git remote.",
-            remote
+            "Remote '{remote}' has no type configured or is not a Git remote."
         )),
     }
 }

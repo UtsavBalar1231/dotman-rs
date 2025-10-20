@@ -80,8 +80,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
             super::print_success(&format!("Switched to branch '{target}'"));
         } else {
             return Err(anyhow::anyhow!(
-                "Cannot checkout '{}' - no commits exist yet",
-                target
+                "Cannot checkout '{target}' - no commits exist yet"
             ));
         }
         return Ok(());

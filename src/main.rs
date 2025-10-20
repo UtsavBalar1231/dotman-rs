@@ -59,11 +59,15 @@ enum Commands {
 
     /// Switch branches or restore working tree files
     Checkout {
-        /// Branch or commit to checkout
-        target: String,
+        /// Branch or commit to checkout (or start point when using -b)
+        target: Option<String>,
 
         #[arg(short, long)]
         force: bool,
+
+        /// Create a new branch and check it out
+        #[arg(short = 'b', long = "branch")]
+        new_branch: Option<String>,
     },
 
     /// Reset current HEAD to the specified state
@@ -263,6 +267,14 @@ enum Commands {
     Branch {
         #[command(subcommand)]
         action: Option<BranchAction>,
+
+        /// Create a new branch and check it out (shorthand for checkout -b)
+        #[arg(short = 'b', long = "branch", conflicts_with = "action")]
+        new_branch: Option<String>,
+
+        /// Start point for new branch (defaults to HEAD)
+        #[arg(requires = "new_branch")]
+        start_point: Option<String>,
     },
 
     /// Get and set repository or user options
@@ -562,9 +574,24 @@ fn run() -> Result<()> {
                 commands::commit::execute(&ctx, &msg, all)?;
             }
         }
-        Commands::Checkout { target, force } => {
+        Commands::Checkout {
+            target,
+            force,
+            new_branch,
+        } => {
             let ctx = context.context("Context not initialized for checkout command")?;
-            commands::checkout::execute(&ctx, &target, force)?;
+
+            if let Some(branch_name) = new_branch {
+                // Create and checkout new branch (-b flag used)
+                let start_point = target.as_deref();
+                commands::branch::create(&ctx, &branch_name, start_point)?;
+                commands::checkout::execute(&ctx, &branch_name, force)?;
+            } else {
+                // Regular checkout (no -b flag)
+                let target_ref =
+                    target.ok_or_else(|| anyhow::anyhow!("Target branch or commit required"))?;
+                commands::checkout::execute(&ctx, &target_ref, force)?;
+            }
         }
         Commands::Reset {
             commit,
@@ -702,34 +729,46 @@ fn run() -> Result<()> {
             let mut ctx = context.context("Context not initialized for config command")?;
             commands::config::execute(&mut ctx, key.as_deref(), value, unset, list)?;
         }
-        Commands::Branch { action } => {
+        Commands::Branch {
+            action,
+            new_branch,
+            start_point,
+        } => {
             let mut ctx = context.context("Context not initialized for branch command")?;
-            match action {
-                None | Some(BranchAction::List) => commands::branch::list(&ctx)?,
-                Some(BranchAction::Create { name, from }) => {
-                    commands::branch::create(&ctx, &name, from.as_deref())?;
-                }
-                Some(BranchAction::Delete { name, force }) => {
-                    commands::branch::delete(&ctx, &name, force)?;
-                }
-                Some(BranchAction::Checkout { name, force }) => {
-                    commands::branch::checkout(&ctx, &name, force)?;
-                }
-                Some(BranchAction::Rename { old_name, new_name }) => {
-                    commands::branch::rename(&ctx, old_name.as_deref(), &new_name)?;
-                }
-                Some(BranchAction::SetUpstream {
-                    branch,
-                    remote,
-                    remote_branch,
-                }) => commands::branch::set_upstream(
-                    &mut ctx,
-                    branch.as_deref(),
-                    &remote,
-                    remote_branch.as_deref(),
-                )?,
-                Some(BranchAction::UnsetUpstream { branch }) => {
-                    commands::branch::unset_upstream(&mut ctx, branch.as_deref())?;
+
+            // Handle -b flag (shorthand for create + checkout)
+            if let Some(branch_name) = new_branch {
+                commands::branch::create(&ctx, &branch_name, start_point.as_deref())?;
+                commands::checkout::execute(&ctx, &branch_name, false)?;
+            } else {
+                // Regular branch subcommands
+                match action {
+                    None | Some(BranchAction::List) => commands::branch::list(&ctx)?,
+                    Some(BranchAction::Create { name, from }) => {
+                        commands::branch::create(&ctx, &name, from.as_deref())?;
+                    }
+                    Some(BranchAction::Delete { name, force }) => {
+                        commands::branch::delete(&ctx, &name, force)?;
+                    }
+                    Some(BranchAction::Checkout { name, force }) => {
+                        commands::branch::checkout(&ctx, &name, force)?;
+                    }
+                    Some(BranchAction::Rename { old_name, new_name }) => {
+                        commands::branch::rename(&ctx, old_name.as_deref(), &new_name)?;
+                    }
+                    Some(BranchAction::SetUpstream {
+                        branch,
+                        remote,
+                        remote_branch,
+                    }) => commands::branch::set_upstream(
+                        &mut ctx,
+                        branch.as_deref(),
+                        &remote,
+                        remote_branch.as_deref(),
+                    )?,
+                    Some(BranchAction::UnsetUpstream { branch }) => {
+                        commands::branch::unset_upstream(&mut ctx, branch.as_deref())?;
+                    }
                 }
             }
         }

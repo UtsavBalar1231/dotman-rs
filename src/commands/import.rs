@@ -56,10 +56,7 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
             return Err(anyhow::anyhow!("Source path does not exist: {source}"));
         }
         if !path.is_dir() {
-            return Err(anyhow::anyhow!(
-                "Source path is not a directory: {}",
-                source
-            ));
+            return Err(anyhow::anyhow!("Source path is not a directory: {source}"));
         }
         (path, None)
     };

@@ -53,8 +53,7 @@ pub fn execute(
             squash,
         ),
         crate::config::RemoteType::None => Err(anyhow::anyhow!(
-            "Remote '{}' has no type configured or is not a Git remote.",
-            remote_name
+            "Remote '{remote_name}' has no type configured or is not a Git remote."
         )),
     }
 }
@@ -92,8 +91,7 @@ fn determine_pull_target(
             return Ok((tracking.remote.clone(), b.to_string()));
         }
         return Err(anyhow::anyhow!(
-            "Branch '{}' has no upstream tracking. Please specify remote.",
-            b
+            "Branch '{b}' has no upstream tracking. Please specify remote."
         ));
     }
 
