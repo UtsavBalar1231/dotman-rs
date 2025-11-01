@@ -38,7 +38,7 @@
 //! dotman::commands::init::execute(false)?;
 //!
 //! // Add files
-//! dotman::commands::add::execute(&ctx, &["~/.bashrc".to_string()], false)?;
+//! dotman::commands::add::execute(&ctx, &["~/.bashrc".to_string()], false, false)?;
 //!
 //! // Commit changes
 //! dotman::commands::commit::execute(&ctx, "Initial commit", false)?;

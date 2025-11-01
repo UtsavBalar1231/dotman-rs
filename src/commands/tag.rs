@@ -133,7 +133,7 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
                         if msg.len() > 50 {
                             format!("{}...", &msg[..47])
                         } else {
-                            msg.to_string()
+                            msg.clone()
                         }
                     },
                 );

@@ -39,7 +39,7 @@ mod add_command_tests {
         fs::write(&test_file, "test content")?;
 
         // Add the file
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
         // Check that it's staged
         let index = CommandContext::load_concurrent_index(&ctx)?;
@@ -64,7 +64,7 @@ mod add_command_tests {
         fs::write(nested_dir.join("file3.txt"), "content 3")?;
 
         // Add the directory
-        commands::add::execute(&ctx, &[test_dir.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_dir.to_string_lossy().into()], false, false)?;
 
         // Check that all files are staged
         let index = CommandContext::load_concurrent_index(&ctx)?;
@@ -78,7 +78,7 @@ mod add_command_tests {
     fn test_add_nonexistent_file_without_force() -> Result<()> {
         let (_temp_dir, ctx) = setup_test_repo()?;
 
-        let result = commands::add::execute(&ctx, &["/nonexistent/file.txt".into()], false);
+        let result = commands::add::execute(&ctx, &["/nonexistent/file.txt".into()], false, false);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("does not exist"));
 
@@ -90,7 +90,7 @@ mod add_command_tests {
         let (_temp_dir, ctx) = setup_test_repo()?;
 
         // Should not error with force flag
-        let result = commands::add::execute(&ctx, &["/nonexistent/file.txt".into()], true);
+        let result = commands::add::execute(&ctx, &["/nonexistent/file.txt".into()], true, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -108,7 +108,7 @@ mod add_command_tests {
         std::os::unix::fs::symlink(&target, &symlink)?;
 
         // Add the symlink
-        commands::add::execute(&ctx, &[symlink.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[symlink.to_string_lossy().into()], false, false)?;
 
         let index = CommandContext::load_concurrent_index(&ctx)?;
         let staged = index.staged_entries();
@@ -134,7 +134,7 @@ mod add_command_tests {
         fs::write(git_dir.join("config"), "git config")?;
 
         // Add the directory
-        commands::add::execute(&ctx, &[test_dir.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_dir.to_string_lossy().into()], false, false)?;
 
         // Only non-ignored files should be staged
         let index = CommandContext::load_concurrent_index(&ctx)?;
@@ -154,13 +154,13 @@ mod add_command_tests {
         fs::write(&test_file, "initial content")?;
 
         // Add the file
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
         // Modify the file
         fs::write(&test_file, "modified content")?;
 
         // Add it again
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
         let index = CommandContext::load_concurrent_index(&ctx)?;
         let staged = index.staged_entries();
@@ -186,7 +186,7 @@ mod add_command_tests {
         fs::set_permissions(&test_file, perms)?;
 
         // Add the file
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
         let index = CommandContext::load_concurrent_index(&ctx)?;
         let staged = index.staged_entries();
@@ -218,6 +218,7 @@ mod commit_command_tests {
                 file1.to_string_lossy().into(),
                 file2.to_string_lossy().into(),
             ],
+            false,
             false,
         )?;
 
@@ -310,7 +311,7 @@ mod commit_command_tests {
         // Stage more files
         let file3 = temp_dir.path().join("file3.txt");
         fs::write(&file3, "content 3")?;
-        commands::add::execute(&ctx, &[file3.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[file3.to_string_lossy().into()], false, false)?;
 
         // Second commit
         commands::commit::execute(&ctx, "Second commit", false)?;
@@ -346,7 +347,7 @@ mod status_command_tests {
 
         let test_file = temp_dir.path().join("staged.txt");
         fs::write(&test_file, "staged content")?;
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
         // Status should show staged files
         commands::status::execute(&ctx, false, true)?;
@@ -364,7 +365,7 @@ mod status_command_tests {
         // Create, add, and commit a file
         let test_file = temp_dir.path().join("test.txt");
         fs::write(&test_file, "initial")?;
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Initial commit", false)?;
 
         // Modify the file
@@ -383,7 +384,7 @@ mod status_command_tests {
         // Create, add, and commit a file
         let test_file = temp_dir.path().join("test.txt");
         fs::write(&test_file, "content")?;
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Add file", false)?;
 
         // Delete the file
@@ -406,7 +407,7 @@ mod branch_command_tests {
         // Create initial commit
         let temp_file = ctx.repo_path.parent().unwrap().join("temp.txt");
         fs::write(&temp_file, "content")?;
-        commands::add::execute(&ctx, &[temp_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[temp_file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Initial commit", false)?;
 
         // Create a new branch
@@ -544,7 +545,7 @@ mod checkout_command_tests {
         // Stage a file
         let test_file = temp_dir.path().join("uncommitted.txt");
         fs::write(&test_file, "uncommitted")?;
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
         // Checkout should fail without force
         let result = commands::checkout::execute(&ctx, "feature", false);
@@ -652,7 +653,7 @@ mod reset_command_tests {
         for i in 1..=3 {
             let file = temp_dir.path().join(format!("file{i}.txt"));
             fs::write(&file, format!("content {i}"))?;
-            commands::add::execute(&ctx, &[file.to_string_lossy().into()], false)?;
+            commands::add::execute(&ctx, &[file.to_string_lossy().into()], false, false)?;
             commands::commit::execute(&ctx, &format!("Commit {i}"), false)?;
             commits.push(ctx.create_ref_resolver().resolve("HEAD")?);
         }
@@ -681,7 +682,7 @@ mod reset_command_tests {
         // Add another file without committing
         let new_file = temp_dir.path().join("new.txt");
         fs::write(&new_file, "new content")?;
-        commands::add::execute(&ctx, &[new_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[new_file.to_string_lossy().into()], false, false)?;
 
         // Soft reset should preserve staged changes
         // Pass soft=true as second parameter
@@ -700,7 +701,7 @@ mod reset_command_tests {
         // Add another file without committing
         let new_file = temp_dir.path().join("new.txt");
         fs::write(&new_file, "new content")?;
-        commands::add::execute(&ctx, &[new_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[new_file.to_string_lossy().into()], false, false)?;
 
         // Hard reset should discard staged changes
         commands::reset::execute(&ctx, &commits[0], true, false, false, false, &[])?;
@@ -732,7 +733,7 @@ mod restore_command_tests {
         // Create and commit a file
         let test_file = temp_dir.path().join("test.txt");
         fs::write(&test_file, "original")?;
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Add file", false)?;
 
         // Modify the file
@@ -755,12 +756,12 @@ mod restore_command_tests {
         // Create, stage, and commit a file
         let test_file = temp_dir.path().join("test.txt");
         fs::write(&test_file, "original")?;
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Add test file", false)?;
 
         // Modify and stage the file
         fs::write(&test_file, "modified")?;
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
         // Restore from HEAD (should restore to "original")
         commands::restore::execute(&ctx, &[test_file.to_string_lossy().into()], None)?;
@@ -779,7 +780,7 @@ mod restore_command_tests {
         // Create and commit a file
         let test_file = temp_dir.path().join("test.txt");
         fs::write(&test_file, "content")?;
-        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Add file", false)?;
 
         // Delete the file
@@ -792,6 +793,55 @@ mod restore_command_tests {
         assert!(test_file.exists());
         let content = fs::read_to_string(&test_file)?;
         assert_eq!(content, "content");
+
+        Ok(())
+    }
+}
+
+mod regression_tests {
+    use super::*;
+
+    /// Regression test for bug: Index not persisting staged entries after multiple add operations
+    /// This test verifies that the index properly accumulates and persists staged entries
+    /// across multiple add calls, ensuring that the fix of changing `save_merge` to `save`
+    /// in the add command properly persists the index state.
+    #[test]
+    fn test_index_consistency_after_multiple_adds() -> Result<()> {
+        let (temp_dir, ctx) = add_command_tests::setup_test_repo()?;
+
+        // Create multiple files
+        let file1 = temp_dir.path().join("file1.txt");
+        let file2 = temp_dir.path().join("file2.txt");
+        let file3 = temp_dir.path().join("file3.txt");
+
+        fs::write(&file1, "content1")?;
+        fs::write(&file2, "content2")?;
+        fs::write(&file3, "content3")?;
+
+        // Add files one by one and verify index state after each add
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        let index1 = CommandContext::load_concurrent_index(&ctx)?;
+        assert_eq!(
+            index1.staged_entries().len(),
+            1,
+            "Should have 1 staged file"
+        );
+
+        commands::add::execute(&ctx, &[file2.to_string_lossy().into()], false, false)?;
+        let index2 = CommandContext::load_concurrent_index(&ctx)?;
+        assert_eq!(
+            index2.staged_entries().len(),
+            2,
+            "Should have 2 staged files"
+        );
+
+        commands::add::execute(&ctx, &[file3.to_string_lossy().into()], false, false)?;
+        let index3 = CommandContext::load_concurrent_index(&ctx)?;
+        assert_eq!(
+            index3.staged_entries().len(),
+            3,
+            "Should have 3 staged files"
+        );
 
         Ok(())
     }

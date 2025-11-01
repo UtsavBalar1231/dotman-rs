@@ -164,7 +164,7 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
             .collect();
 
         // Use the add command to track files
-        match crate::commands::add::execute(ctx, &target_paths, options.force) {
+        match crate::commands::add::execute(ctx, &target_paths, options.force, false) {
             Ok(()) => {
                 super::print_success(&format!(
                     "Successfully tracked {} file{} with dotman",

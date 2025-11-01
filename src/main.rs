@@ -33,6 +33,10 @@ enum Commands {
 
         #[arg(short, long)]
         force: bool,
+
+        /// Stage all changes (modified, deleted, and new files)
+        #[arg(short = 'A', long)]
+        all: bool,
     },
 
     /// Show the working tree status
@@ -552,9 +556,9 @@ fn run() -> Result<()> {
     };
 
     match cli.command {
-        Commands::Add { paths, force } => {
+        Commands::Add { paths, force, all } => {
             let ctx = context.context("Context not initialized for add command")?;
-            commands::add::execute(&ctx, &paths, force)?;
+            commands::add::execute(&ctx, &paths, force, all)?;
         }
         Commands::Status { short, untracked } => {
             let ctx = context.context("Context not initialized for status command")?;

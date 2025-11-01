@@ -131,17 +131,16 @@ pub fn execute_verbose(
         }
     };
 
-    // Check staged entries
-    for (path, staged_entry) in &index.staged_entries {
-        match index.entries.get(path) {
-            Some(committed_entry) if staged_entry.hash != committed_entry.hash => {
-                statuses.push(file_status(path));
-            }
-            None => {
-                statuses.push(file_status(path));
-            }
-            _ => {} // File unchanged
+    // Check staged entries - show ALL staged files (Git-like semantics)
+    for path in index.staged_entries.keys() {
+        // Skip files in deleted_entries to avoid showing them twice
+        if index.deleted_entries.contains(path) {
+            continue;
         }
+
+        // Add all staged files to status, regardless of whether they differ from committed
+        // This matches Git behavior: if a file is staged, it will be committed
+        statuses.push(file_status(path));
     }
 
     // Check for deleted entries
@@ -151,6 +150,11 @@ pub fn execute_verbose(
 
     // Check if staged files were modified on disk
     for (path, staged_entry) in &index.staged_entries {
+        // Skip files already in deleted_entries to avoid duplicates
+        if index.deleted_entries.contains(path) {
+            continue;
+        }
+
         let abs_path = if path.is_relative() {
             home.join(path)
         } else {

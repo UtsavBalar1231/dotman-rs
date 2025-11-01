@@ -34,7 +34,7 @@ mod ref_resolver_tests {
         for i in 1..=3 {
             let file = temp_dir.path().join(format!("file{i}.txt"));
             fs::write(&file, format!("content {i}"))?;
-            commands::add::execute(&ctx, &[file.to_string_lossy().into()], false)?;
+            commands::add::execute(&ctx, &[file.to_string_lossy().into()], false, false)?;
             commands::commit::execute(&ctx, &format!("Commit {i}"), false)?;
             let resolver = ctx.create_ref_resolver();
             commit_ids.push(resolver.resolve("HEAD")?);
@@ -515,7 +515,7 @@ mod integration_tests {
         for i in 1..=3 {
             let file = temp_dir.path().join(format!("file{i}.txt"));
             fs::write(&file, format!("content {i}"))?;
-            commands::add::execute(&ctx, &[file.to_string_lossy().into()], false)?;
+            commands::add::execute(&ctx, &[file.to_string_lossy().into()], false, false)?;
             commands::commit::execute(&ctx, &format!("Commit {i}"), false)?;
         }
 
@@ -529,7 +529,7 @@ mod integration_tests {
         // Create another commit
         let file = temp_dir.path().join("file4.txt");
         fs::write(&file, "content 4")?;
-        commands::add::execute(&ctx, &[file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Commit 4", false)?;
 
         let resolver = RefResolver::new(repo_path);
@@ -568,7 +568,7 @@ mod integration_tests {
         // Create initial structure
         let file = temp_dir.path().join("initial.txt");
         fs::write(&file, "initial")?;
-        commands::add::execute(&ctx, &[file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Initial commit", false)?;
 
         // Create feature branch
@@ -578,7 +578,7 @@ mod integration_tests {
         // Commit on feature branch
         let feature_file = temp_dir.path().join("feature.txt");
         fs::write(&feature_file, "feature work")?;
-        commands::add::execute(&ctx, &[feature_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[feature_file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Feature commit", false)?;
 
         let resolver = ctx.create_ref_resolver();
@@ -590,7 +590,7 @@ mod integration_tests {
         // Commit on main
         let main_file = temp_dir.path().join("main.txt");
         fs::write(&main_file, "main work")?;
-        commands::add::execute(&ctx, &[main_file.to_string_lossy().into()], false)?;
+        commands::add::execute(&ctx, &[main_file.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx, "Main commit", false)?;
 
         let resolver = ctx.create_ref_resolver();

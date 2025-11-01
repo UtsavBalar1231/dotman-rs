@@ -8,6 +8,7 @@
 //! - Special file type detection (devices, sockets, large files, sensitive files)
 //! - Parallel file hashing with cache optimization
 //! - Force mode for non-existent paths
+//! - Stage all changes with `-A` flag (modified, deleted, and new files)
 //!
 //! # Examples
 //!
@@ -19,13 +20,16 @@
 //! let ctx = DotmanContext::new()?;
 //!
 //! // Add a single file
-//! add::execute(&ctx, &["~/.bashrc".to_string()], false)?;
+//! add::execute(&ctx, &["~/.bashrc".to_string()], false, false)?;
 //!
 //! // Add a directory recursively
-//! add::execute(&ctx, &["~/.config".to_string()], false)?;
+//! add::execute(&ctx, &["~/.config".to_string()], false, false)?;
 //!
 //! // Force add (skip non-existent paths)
-//! add::execute(&ctx, &["file.txt".to_string()], true)?;
+//! add::execute(&ctx, &["file.txt".to_string()], true, false)?;
+//!
+//! // Stage all changes (like git add -A)
+//! add::execute(&ctx, &[], false, true)?;
 //! # Ok(())
 //! # }
 //! ```
@@ -37,22 +41,129 @@ use crate::utils::{expand_tilde, make_relative, should_ignore};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use rayon::prelude::*;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+
+/// Stage all changes to tracked files (modified and deleted).
+///
+/// Similar to `git add -A`, this stages:
+/// - All modified tracked files
+/// - All deleted tracked files
+///
+/// Note: This does NOT scan for new untracked files, as that would require
+/// walking the entire home directory which is too slow. Use `dot add <path>`
+/// to explicitly add new files.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Cannot load the index
+/// - Cannot determine home directory
+/// - File operations fail
+/// - Cannot save the index
+fn execute_add_all(ctx: &DotmanContext) -> Result<()> {
+    let index_path = ctx.repo_path.join("index.bin");
+    let index = ctx.load_concurrent_index()?;
+    let home = ctx.get_home_dir()?;
+
+    let mut files_to_stage = Vec::new();
+    let mut files_to_delete = Vec::new();
+
+    // 1. Check all tracked files (entries + staged_entries) for modifications/deletions
+    let tracked_paths: HashSet<PathBuf> = index
+        .entries()
+        .into_iter()
+        .chain(index.staged_entries())
+        .map(|(path, _)| path)
+        .collect();
+
+    for tracked_path in tracked_paths {
+        let abs_path = if tracked_path.is_relative() {
+            home.join(&tracked_path)
+        } else {
+            tracked_path.clone()
+        };
+
+        if !abs_path.exists() {
+            // File was deleted
+            files_to_delete.push(tracked_path);
+        } else if abs_path.is_file() {
+            // Check if file was modified - always re-stage to catch modifications
+            let existing_entry = index
+                .get_staged_entry(&tracked_path)
+                .or_else(|| index.get_entry(&tracked_path));
+
+            let cached_hash = existing_entry.and_then(|e| e.cached_hash);
+
+            files_to_stage.push((abs_path, cached_hash));
+        }
+    }
+
+    // 2. Hash and stage all modified files in parallel
+    let entries: Result<Vec<FileEntry>> = files_to_stage
+        .par_iter()
+        .map(|(path, cached_hash)| create_file_entry(path, &home, cached_hash.as_ref()))
+        .collect();
+
+    let entries = entries?;
+
+    let mut modified_count = 0;
+
+    for entry in entries {
+        index.stage_entry(entry.clone());
+        modified_count += 1;
+        println!("  {} {}", "modified:".yellow(), entry.path.display());
+    }
+
+    // 3. Mark deleted files
+    let deleted_count = files_to_delete.len();
+    for path in &files_to_delete {
+        index.mark_deleted(path);
+        println!("  {} {}", "deleted:".red(), path.display());
+    }
+
+    // 4. Save the index
+    index.save(&index_path)?;
+
+    // 5. Print summary
+    let total = modified_count + deleted_count;
+    if total > 0 {
+        super::print_success(&format!(
+            "Staged {total} file(s): {modified_count} modified, {deleted_count} deleted"
+        ));
+    } else {
+        super::print_info("No changes to stage");
+    }
+
+    Ok(())
+}
 
 /// Stage files for tracking in the next commit.
 ///
 /// Recursively processes directories and respects ignore patterns.
 /// With `force=true`, non-existent paths are skipped rather than erroring.
+/// With `all=true`, stages all changes (modified, deleted, and new files).
 ///
 /// # Errors
 ///
 /// Returns an error if:
 /// - A path does not exist and `force` is `false`
+/// - The `-A` flag is used with path arguments
 /// - Cannot read directory entries during recursive traversal
 /// - Cannot create file entries (metadata, hashing, or path resolution failures)
 /// - Cannot save the index after staging
-pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()> {
+pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) -> Result<()> {
     ctx.ensure_initialized()?;
+
+    // Handle -A flag
+    if all {
+        if !paths.is_empty() {
+            return Err(anyhow::anyhow!(
+                "Cannot specify paths with -A flag. Use 'dot add -A' to stage all changes."
+            ));
+        }
+        return execute_add_all(ctx);
+    }
 
     let index_path = ctx.repo_path.join("index.bin");
     let index = ctx.load_concurrent_index()?;
@@ -126,7 +237,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool) -> Result<()>
         }
     }
 
-    index.save_merge(&index_path)?;
+    index.save(&index_path)?;
 
     if added_count > 0 || updated_count > 0 {
         super::print_success(&format!(
