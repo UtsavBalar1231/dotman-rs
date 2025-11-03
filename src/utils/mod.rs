@@ -11,14 +11,14 @@
 //!
 //! # Submodules
 //!
-//! - [`commit`]: Commit-related utilities
-//! - [`compress`]: Compression helpers
-//! - [`formatters`]: Output formatting
-//! - [`pager`]: Pager integration
-//! - [`paths`]: Path manipulation
-//! - [`permissions`]: Cross-platform file permissions
-//! - [`serialization`]: Binary serialization
-//! - [`thread_pool`]: Thread pool configuration
+//! - [`commit`](crate::utils::commit): Commit-related utilities
+//! - [`compress`](crate::utils::compress): Compression helpers
+//! - [`formatters`](crate::utils::formatters): Output formatting
+//! - [`pager`](crate::utils::pager): Pager integration
+//! - [`paths`](crate::utils::paths): Path manipulation
+//! - [`permissions`](crate::utils::permissions): Cross-platform file permissions
+//! - [`serialization`](crate::utils::serialization): Binary serialization
+//! - [`thread_pool`](crate::utils::thread_pool): Thread pool configuration
 //!
 //! # Examples
 //!

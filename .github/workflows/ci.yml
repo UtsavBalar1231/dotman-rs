@@ -88,10 +88,10 @@ jobs:
         run: cargo test --verbose --all-features
 
       - name: Run integration tests
-        run: cargo test --verbose --test integration_test
+        run: cargo test --verbose --test integration_basic
 
       - name: Run property-based tests
-        run: cargo test --verbose --test property_based_tests
+        run: cargo test --verbose --test property_tests
         continue-on-error: true # Property tests can be flaky
 
       - name: Test without default features
