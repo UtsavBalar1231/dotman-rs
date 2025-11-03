@@ -37,6 +37,17 @@ pub fn execute(bare: bool) -> Result<()> {
     std::fs::create_dir_all(repo_path.join("objects"))
         .context("Failed to create objects directory")?;
 
+    // Create .git marker file to prevent git from treating this as a git repository
+    // This prevents confusing error messages when users run git commands in ~/.dotman
+    let git_marker = repo_path.join(".git");
+    std::fs::write(
+        &git_marker,
+        "This is a dotman repository, not a git repository.\n\
+         Please use 'dot' commands instead of 'git' commands.\n\
+         See https://github.com/UtsavBalar1231/dotman-rs for documentation.\n",
+    )
+    .context("Failed to create .git marker file")?;
+
     // Create empty index
     let index = Index::new();
     let index_path = repo_path.join(INDEX_FILE);
