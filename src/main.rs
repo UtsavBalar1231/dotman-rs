@@ -217,6 +217,10 @@ enum Commands {
 
         #[arg(long)]
         oneline: bool,
+
+        /// Show all commits including orphaned ones
+        #[arg(long)]
+        all: bool,
     },
 
     /// Show changes between commits
@@ -687,9 +691,10 @@ fn run() -> Result<()> {
             target,
             limit,
             oneline,
+            all,
         } => {
             let ctx = context.context("Context not initialized for log command")?;
-            commands::log::execute(&ctx, target.as_deref(), limit, oneline)?;
+            commands::log::execute(&ctx, target.as_deref(), limit, oneline, all)?;
         }
         Commands::Diff { from, to } => {
             let ctx = context.context("Context not initialized for diff command")?;

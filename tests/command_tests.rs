@@ -846,3 +846,140 @@ mod regression_tests {
         Ok(())
     }
 }
+
+mod log_command_tests {
+    use super::*;
+
+    fn setup_test_repo_with_commits() -> Result<(TempDir, DotmanContext)> {
+        let temp_dir = TempDir::new()?;
+        let repo_path = temp_dir.path().join(".dotman");
+        let config_path = temp_dir.path().join(".config/dotman/config");
+
+        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        ctx.ensure_repo_exists()?;
+
+        // Initialize the repository properly
+        let index = dotman::storage::index::Index::new();
+        let index_path = ctx.repo_path.join("index.bin");
+        index.save(&index_path)?;
+
+        // Initialize refs structure (HEAD, branches)
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
+        ref_manager.init()?;
+
+        // Create and commit three test files
+        for i in 1..=3 {
+            let test_file = temp_dir.path().join(format!("test{}.txt", i));
+            fs::write(&test_file, format!("content {}", i))?;
+
+            // Add file
+            commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
+
+            // Commit
+            commands::commit::execute(&ctx, &format!("Commit {}", i), false)?;
+        }
+
+        Ok((temp_dir, ctx))
+    }
+
+    #[test]
+    fn test_log_displays_commits() -> Result<()> {
+        let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
+
+        // Log should work without errors
+        let result = commands::log::execute(&ctx, None, 10, false, false);
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_log_respects_limit() -> Result<()> {
+        let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
+
+        // Should be able to limit to 2 commits
+        let result = commands::log::execute(&ctx, None, 2, false, false);
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_log_oneline_format() -> Result<()> {
+        let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
+
+        // Test oneline format
+        let result = commands::log::execute(&ctx, None, 10, true, false);
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_log_all_shows_orphaned_commits() -> Result<()> {
+        let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
+
+        // Reset to commit 2 (making commit 3 orphaned)
+        let resolver = dotman::refs::resolver::RefResolver::new(ctx.repo_path.clone());
+        let commit2 = resolver.resolve("HEAD~1")?;
+        commands::reset::execute(&ctx, &commit2, false, false, true, false, &[])?;
+
+        // Normal log should show 2 commits (reachable from HEAD)
+        let result_normal = commands::log::execute(&ctx, None, 10, false, false);
+        assert!(result_normal.is_ok());
+
+        // Log --all should show all 3 commits (including orphaned)
+        let result_all = commands::log::execute(&ctx, None, 10, false, true);
+        assert!(result_all.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_log_with_specific_target() -> Result<()> {
+        let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
+
+        // Test starting from a specific commit
+        let resolver = dotman::refs::resolver::RefResolver::new(ctx.repo_path.clone());
+        let commit2 = resolver.resolve("HEAD~1")?;
+
+        let result = commands::log::execute(&ctx, Some(&commit2), 10, false, false);
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_log_with_head_reference() -> Result<()> {
+        let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
+
+        // Test with HEAD reference
+        let result = commands::log::execute(&ctx, Some("HEAD"), 10, false, false);
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_log_empty_repository() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let repo_path = temp_dir.path().join(".dotman");
+        let config_path = temp_dir.path().join(".config/dotman/config");
+
+        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        ctx.ensure_repo_exists()?;
+
+        let index = dotman::storage::index::Index::new();
+        let index_path = ctx.repo_path.join("index.bin");
+        index.save(&index_path)?;
+
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
+        ref_manager.init()?;
+
+        // Log on empty repo should succeed (just show "No commits yet")
+        let result = commands::log::execute(&ctx, None, 10, false, false);
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+}

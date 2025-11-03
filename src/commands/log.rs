@@ -57,6 +57,7 @@ pub fn execute(
     target: Option<&str>,
     limit: usize,
     oneline: bool,
+    all: bool,
 ) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -67,6 +68,47 @@ pub fn execute(
 
     if snapshots.is_empty() {
         super::print_info("No commits yet");
+        return Ok(());
+    }
+
+    // Handle --all flag: show all commits including orphaned ones
+    if all {
+        let mut output = PagerOutput::new(ctx, ctx.no_pager);
+        let mut commits_displayed = 0;
+
+        // Load all snapshots and sort by timestamp (most recent first)
+        let mut snapshot_data: Vec<_> = snapshots
+            .iter()
+            .filter_map(|id| {
+                snapshot_manager
+                    .load_snapshot(id)
+                    .ok()
+                    .map(|snap| (id.clone(), snap))
+            })
+            .collect();
+
+        snapshot_data.sort_by(|a, b| b.1.commit.timestamp.cmp(&a.1.commit.timestamp));
+
+        let display_limit = limit.min(snapshot_data.len());
+
+        for (_, snapshot) in snapshot_data.iter().take(display_limit) {
+            display_commit(&mut output, &snapshot.commit, oneline);
+            commits_displayed += 1;
+        }
+
+        if commits_displayed >= limit && snapshot_data.len() > limit {
+            output.appendln(&format!(
+                "\n{} (showing {} of {} total commits, use -n to see more)",
+                "...".dimmed(),
+                commits_displayed,
+                snapshot_data.len()
+            ));
+        }
+
+        if commits_displayed > 0 {
+            output.show()?;
+        }
+
         return Ok(());
     }
 
@@ -149,12 +191,12 @@ pub fn execute(
 
     if commits_displayed == 0 {
         super::print_info("No commits to display");
-    } else if commits_displayed < snapshots.len() {
+    } else if commits_displayed >= limit {
+        // Only show truncation indicator if we hit the display limit
         output.appendln(&format!(
-            "\n{} (showing {} of {} commits)",
+            "\n{} (showing {} commits, use -n to see more)",
             "...".dimmed(),
-            commits_displayed,
-            snapshots.len()
+            commits_displayed
         ));
     }
 
