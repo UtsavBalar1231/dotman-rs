@@ -1,4 +1,5 @@
 #![allow(clippy::too_many_lines)]
+#![allow(clippy::indexing_slicing)] // Safe in test environment
 
 use anyhow::Result;
 use dotman::storage::{

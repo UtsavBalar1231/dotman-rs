@@ -1,3 +1,6 @@
+#![allow(clippy::indexing_slicing)] // Safe in test environment
+#![allow(clippy::arithmetic_side_effects)] // Safe counter operations in tests
+
 use dotman::storage::FileEntry;
 use dotman::storage::concurrent_index::ConcurrentIndex;
 use dotman::utils;

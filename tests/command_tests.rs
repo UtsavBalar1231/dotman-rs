@@ -1,4 +1,5 @@
 #![allow(clippy::too_many_lines)]
+#![allow(clippy::indexing_slicing)] // Safe in test environment
 
 use anyhow::Result;
 use dotman::commands::context::CommandContext;
@@ -869,14 +870,14 @@ mod log_command_tests {
 
         // Create and commit three test files
         for i in 1..=3 {
-            let test_file = temp_dir.path().join(format!("test{}.txt", i));
-            fs::write(&test_file, format!("content {}", i))?;
+            let test_file = temp_dir.path().join(format!("test{i}.txt"));
+            fs::write(&test_file, format!("content {i}"))?;
 
             // Add file
             commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
             // Commit
-            commands::commit::execute(&ctx, &format!("Commit {}", i), false)?;
+            commands::commit::execute(&ctx, &format!("Commit {i}"), false)?;
         }
 
         Ok((temp_dir, ctx))
