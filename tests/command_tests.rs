@@ -198,6 +198,38 @@ mod add_command_tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_add_unchanged_file_not_marked_modified() -> Result<()> {
+        let (temp_dir, ctx) = setup_test_repo()?;
+
+        // Create and commit a file
+        let test_file = temp_dir.path().join("test.txt");
+        fs::write(&test_file, "original content")?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Initial commit", false)?;
+
+        // Clear staged entries after commit
+        let mut index = CommandContext::load_concurrent_index(&ctx)?;
+        assert!(
+            index.staged_entries().is_empty(),
+            "Staged entries should be empty after commit"
+        );
+
+        // Add the same file again without modifying it
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
+
+        // File should NOT be staged because it's unchanged
+        index = CommandContext::load_concurrent_index(&ctx)?;
+        let staged = index.staged_entries();
+        assert!(
+            staged.is_empty(),
+            "Unchanged file should not be staged, but found {} staged file(s)",
+            staged.len()
+        );
+
+        Ok(())
+    }
 }
 
 mod commit_command_tests {
