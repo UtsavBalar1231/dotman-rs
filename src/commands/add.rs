@@ -168,6 +168,9 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
     let index_path = ctx.repo_path.join("index.bin");
     let index = ctx.load_concurrent_index()?;
 
+    // Extract threshold once to avoid recreating context for every file
+    let large_file_threshold = ctx.config.tracking.large_file_threshold;
+
     let mut files_to_add = Vec::new();
 
     for path_str in paths {
@@ -182,7 +185,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
         }
 
         if path.is_file() {
-            check_special_file_type(&path);
+            check_special_file_type(&path, large_file_threshold);
             files_to_add.push(path);
         } else if path.is_dir() {
             collect_files_from_dir(
@@ -190,6 +193,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
                 &mut files_to_add,
                 &ctx.config.tracking.ignore_patterns,
                 ctx.config.tracking.follow_symlinks,
+                large_file_threshold,
             )?;
         }
     }
@@ -262,6 +266,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
 /// * `files` - Mutable vector to collect file paths into
 /// * `ignore_patterns` - Patterns to exclude from collection
 /// * `follow_symlinks` - Whether to follow symbolic links
+/// * `large_file_threshold` - Threshold in bytes for large file warnings
 ///
 /// # Errors
 ///
@@ -273,6 +278,7 @@ fn collect_files_from_dir(
     files: &mut Vec<PathBuf>,
     ignore_patterns: &[String],
     follow_symlinks: bool,
+    large_file_threshold: u64,
 ) -> Result<()> {
     for entry in walkdir::WalkDir::new(dir)
         .follow_links(follow_symlinks)
@@ -283,7 +289,7 @@ fn collect_files_from_dir(
             entry.with_context(|| format!("Failed to read directory: {}", dir.display()))?;
         if entry.file_type().is_file() {
             let file_path = entry.path().to_path_buf();
-            check_special_file_type(&file_path);
+            check_special_file_type(&file_path, large_file_threshold);
             files.push(file_path);
         }
     }
@@ -301,7 +307,8 @@ fn collect_files_from_dir(
 /// # Arguments
 ///
 /// * `path` - Path to the file to check
-fn check_special_file_type(path: &Path) {
+/// * `large_file_threshold` - Threshold in bytes for large file warnings
+fn check_special_file_type(path: &Path, large_file_threshold: u64) {
     let Ok(metadata) = std::fs::metadata(path) else {
         return;
     };
@@ -311,7 +318,7 @@ fn check_special_file_type(path: &Path) {
     check_unix_special_types(path, &metadata);
 
     // Common checks for all platforms
-    check_file_size(path, &metadata);
+    check_file_size(path, &metadata, large_file_threshold);
     check_sensitive_filename(path);
 }
 
@@ -357,16 +364,10 @@ fn check_unix_special_types(path: &Path, metadata: &std::fs::Metadata) {
 ///
 /// * `path` - Path to the file
 /// * `metadata` - File metadata containing size information
+/// * `threshold` - Large file threshold in bytes
 #[allow(clippy::cast_precision_loss)]
-fn check_file_size(path: &Path, metadata: &std::fs::Metadata) {
-    use crate::DotmanContext;
-
+fn check_file_size(path: &Path, metadata: &std::fs::Metadata, threshold: u64) {
     const MB: f64 = 1_048_576.0;
-
-    // Try to get threshold from config, fall back to default if unavailable
-    let threshold = DotmanContext::new().ok().map_or(100 * 1024 * 1024, |ctx| {
-        ctx.config.tracking.large_file_threshold
-    });
 
     if metadata.len() > threshold {
         let size_mb = metadata.len() as f64 / MB;
