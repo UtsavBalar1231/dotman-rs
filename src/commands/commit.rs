@@ -78,7 +78,25 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
 
     let snapshot_manager = ctx.create_snapshot_manager();
 
-    let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
+    // Merge entries + staged_entries to get the complete state after commit
+    // This ensures the snapshot contains ALL tracked files, not just the staged changes
+    let mut all_files = std::collections::HashMap::new();
+
+    // Start with existing committed files
+    for (path, entry) in &index.entries {
+        if !index.deleted_entries.contains(path) {
+            all_files.insert(path.clone(), entry.clone());
+        }
+    }
+
+    // Override/add with staged changes
+    for (path, entry) in &index.staged_entries {
+        if !index.deleted_entries.contains(path) {
+            all_files.insert(path.clone(), entry.clone());
+        }
+    }
+
+    let files: Vec<FileEntry> = all_files.values().cloned().collect();
     snapshot_manager.create_snapshot(commit.clone(), &files)?;
 
     index.commit_staged();
