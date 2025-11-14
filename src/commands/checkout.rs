@@ -112,6 +112,51 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     // Restore files with cleanup of files not in target
     snapshot_manager.restore_snapshot(&commit_id, &home, Some(&current_files))?;
 
+    // Update index to match the snapshot state using actual file metadata
+    let index_path = ctx.repo_path.join(crate::INDEX_FILE);
+    let mut index = crate::storage::index::Index::new();
+
+    // Rebuild index from snapshot files with actual disk metadata
+    for (path, file) in &snapshot.files {
+        let abs_path = home.join(path);
+
+        // Get actual file metadata (files should exist after restore)
+        let metadata = std::fs::metadata(&abs_path)
+            .with_context(|| format!("File should exist after checkout: {}", abs_path.display()))?;
+
+        let size = metadata.len();
+        let modified = i64::try_from(
+            metadata
+                .modified()
+                .context("Failed to get file modification time")?
+                .duration_since(std::time::UNIX_EPOCH)
+                .context("Invalid file modification time")?
+                .as_secs(),
+        )
+        .context("File modification time too large")?;
+
+        // Create cache since we have the hash and know the file metadata
+        let cached_hash = Some(crate::storage::CachedHash {
+            hash: file.hash.clone(),
+            size_at_hash: size,
+            mtime_at_hash: modified,
+        });
+
+        index.add_entry(crate::storage::FileEntry {
+            path: path.clone(),
+            hash: file.hash.clone(),
+            size,
+            modified,
+            mode: file.mode,
+            cached_hash,
+        });
+    }
+
+    // Save the updated index
+    index
+        .save(&index_path)
+        .with_context(|| "Failed to update index after checkout")?;
+
     // Update HEAD with reflog entry
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let message = format!("checkout: moving to {target}");
