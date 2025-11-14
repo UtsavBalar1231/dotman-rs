@@ -1,10 +1,11 @@
 use crate::refs::resolver::RefResolver;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
+use crate::storage::{CachedHash, FileEntry};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Execute reset command - reset current HEAD to the specified state
 ///
@@ -64,17 +65,18 @@ pub fn execute(
         let home = dirs::home_dir().context("Could not find home directory")?;
         snapshot_manager.restore_snapshot(&commit_id, &home, None)?;
 
-        // Update index to match commit
+        // Update index to match commit with actual file metadata
         let mut index = Index::new();
         for (path, file) in &snapshot.files {
-            index.add_entry(crate::storage::FileEntry {
-                path: path.clone(),
-                hash: file.hash.clone(),
-                size: 0, // Will be updated on next status
-                modified: snapshot.commit.timestamp,
-                mode: file.mode,
-                cached_hash: None,
-            });
+            let entry = create_file_entry_with_metadata(
+                path,
+                &file.hash,
+                file.mode,
+                &home,
+                snapshot.commit.timestamp,
+                true, // Files MUST exist after restore
+            )?;
+            index.add_entry(entry);
         }
 
         let index_path = ctx.repo_path.join(INDEX_FILE);
@@ -105,6 +107,7 @@ pub fn execute(
         // Only update index if files differ from target commit
         let current_index = Index::load(&ctx.repo_path.join(INDEX_FILE))?;
         let mut new_index = Index::new();
+        let home = dirs::home_dir().context("Could not find home directory")?;
 
         for (path, file) in &snapshot.files {
             // Keep local changes if they exist
@@ -114,14 +117,15 @@ pub fn execute(
                 // File has local changes, keep them
                 continue;
             }
-            new_index.add_entry(crate::storage::FileEntry {
-                path: path.clone(),
-                hash: file.hash.clone(),
-                size: 0,
-                modified: snapshot.commit.timestamp,
-                mode: file.mode,
-                cached_hash: None,
-            });
+            let entry = create_file_entry_with_metadata(
+                path,
+                &file.hash,
+                file.mode,
+                &home,
+                snapshot.commit.timestamp,
+                false, // Files might not exist or have local changes
+            )?;
+            new_index.add_entry(entry);
         }
 
         let index_path = ctx.repo_path.join(INDEX_FILE);
@@ -140,15 +144,18 @@ pub fn execute(
 
         // Update index to match commit
         let mut index = Index::new();
+        let home = dirs::home_dir().context("Could not find home directory")?;
+
         for (path, file) in &snapshot.files {
-            index.add_entry(crate::storage::FileEntry {
-                path: path.clone(),
-                hash: file.hash.clone(),
-                size: 0,
-                modified: snapshot.commit.timestamp,
-                mode: file.mode,
-                cached_hash: None,
-            });
+            let entry = create_file_entry_with_metadata(
+                path,
+                &file.hash,
+                file.mode,
+                &home,
+                snapshot.commit.timestamp,
+                false, // Working directory not modified, files might differ
+            )?;
+            index.add_entry(entry);
         }
 
         let index_path = ctx.repo_path.join(INDEX_FILE);
@@ -237,14 +244,15 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
 
         if let Some(file) = snapshot.files.get(&index_path) {
             // Update index with file from target commit
-            index.add_entry(crate::storage::FileEntry {
-                path: index_path.clone(),
-                hash: file.hash.clone(),
-                size: 0, // Will be updated
-                modified: snapshot.commit.timestamp,
-                mode: file.mode,
-                cached_hash: None,
-            });
+            let entry = create_file_entry_with_metadata(
+                &index_path,
+                &file.hash,
+                file.mode,
+                &home,
+                snapshot.commit.timestamp,
+                false, // Working directory not modified
+            )?;
+            index.add_entry(entry);
 
             println!("  {} {}", "reset:".green(), index_path.display());
             reset_count += 1;
@@ -271,6 +279,86 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
     }
 
     Ok(())
+}
+
+/// Create a `FileEntry` from snapshot file info using actual disk metadata
+///
+/// This helper builds a `FileEntry` with correct metadata from the actual file on disk,
+/// enabling hash caching and accurate status detection.
+///
+/// # Arguments
+///
+/// * `path` - Relative path of the file
+/// * `hash` - File content hash from snapshot
+/// * `mode` - File permissions mode from snapshot
+/// * `home` - Home directory for constructing absolute path
+/// * `fallback_timestamp` - Timestamp to use if file doesn't exist on disk
+/// * `require_file_exists` - If true, returns error when file doesn't exist; if false, uses fallback
+///
+/// # Returns
+///
+/// A `FileEntry` with actual file metadata if the file exists on disk, or an error
+/// if `require_file_exists` is true and the file is missing. With `require_file_exists=false`,
+/// falls back to snapshot metadata.
+///
+/// # Errors
+///
+/// Returns an error if `require_file_exists` is true and the file doesn't exist on disk.
+fn create_file_entry_with_metadata(
+    path: &PathBuf,
+    hash: &str,
+    mode: u32,
+    home: &Path,
+    fallback_timestamp: i64,
+    require_file_exists: bool,
+) -> Result<FileEntry> {
+    let abs_path = home.join(path);
+
+    // Try to get actual file metadata if it exists on disk
+    match std::fs::metadata(&abs_path) {
+        Ok(metadata) => {
+            let size = metadata.len();
+            let modified = metadata
+                .modified()
+                .context("Failed to get file modification time")?
+                .duration_since(std::time::UNIX_EPOCH)
+                .context("Invalid file modification time")?
+                .as_secs();
+
+            let modified = i64::try_from(modified).unwrap_or(fallback_timestamp);
+
+            // Create cache since we have the hash and know the file metadata
+            let cached_hash = Some(CachedHash {
+                hash: hash.to_string(),
+                size_at_hash: size,
+                mtime_at_hash: modified,
+            });
+
+            Ok(FileEntry {
+                path: path.clone(),
+                hash: hash.to_string(),
+                size,
+                modified,
+                mode,
+                cached_hash,
+            })
+        }
+        Err(_) if require_file_exists => Err(anyhow::anyhow!(
+            "File should exist after reset but not found: {}",
+            abs_path.display()
+        )),
+        Err(_) => {
+            // File doesn't exist on disk, use fallback metadata (expected for mixed/keep reset)
+            Ok(FileEntry {
+                path: path.clone(),
+                hash: hash.to_string(),
+                size: 0,
+                modified: fallback_timestamp,
+                mode,
+                cached_hash: None,
+            })
+        }
+    }
 }
 
 /// Update HEAD to point to a new commit
