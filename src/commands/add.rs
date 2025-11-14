@@ -331,7 +331,6 @@ fn check_special_file_type(path: &Path, large_file_threshold: u64) {
 
     // Common checks for all platforms
     check_file_size(path, &metadata, large_file_threshold);
-    check_sensitive_filename(path);
 }
 
 /// Check for Unix-specific special file types.
@@ -387,32 +386,6 @@ fn check_file_size(path: &Path, metadata: &std::fs::Metadata, threshold: u64) {
             "Warning: {} is very large ({:.2} MB)",
             path.display(),
             size_mb
-        ));
-    }
-}
-
-/// Check if a filename contains patterns that suggest sensitive content.
-///
-/// This function scans the filename for common patterns associated with
-/// sensitive data (passwords, secrets, private keys, certificates) and
-/// warns the user if any are detected.
-///
-/// Patterns checked: "password", "secret", "key", ".pem", ".key", ".pfx"
-///
-/// # Arguments
-///
-/// * `path` - Path to the file to check
-fn check_sensitive_filename(path: &Path) {
-    const SENSITIVE_PATTERNS: &[&str] = &["password", "secret", "key", ".pem", ".key", ".pfx"];
-
-    if let Some(name) = path.file_name().and_then(|n| n.to_str())
-        && SENSITIVE_PATTERNS
-            .iter()
-            .any(|&pattern| name.contains(pattern))
-    {
-        super::print_warning(&format!(
-            "Warning: {} may contain sensitive information",
-            path.display()
         ));
     }
 }
