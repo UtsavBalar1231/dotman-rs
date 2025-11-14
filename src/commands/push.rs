@@ -228,6 +228,7 @@ fn determine_push_target(
 
     // Check if there's only one remote (common case)
     if ctx.config.remotes.len() == 1 {
+        #[allow(clippy::unwrap_used)] // Safe: len() == 1 guarantees next() returns Some
         let (remote_name, _) = ctx.config.remotes.iter().next().unwrap();
         super::print_info(&format!(
             "No upstream tracking for branch '{current_branch}'. Will set upstream to '{remote_name}/{current_branch}' after successful push."

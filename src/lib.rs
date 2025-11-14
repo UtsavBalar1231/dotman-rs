@@ -1,5 +1,9 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
+// Allow pedantic strict lints that create false positives in this codebase
+#![allow(clippy::arithmetic_side_effects)] // Simple counters and size calculations cannot overflow
+#![allow(clippy::float_arithmetic)] // Required for file size/time formatting
+#![allow(clippy::indexing_slicing)] // Bounds checked by logic
 
 //! # Dotman - High-Performance Dotfiles Manager
 //!

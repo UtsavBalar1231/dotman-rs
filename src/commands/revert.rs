@@ -394,6 +394,7 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     // Create tree hash from all file hashes
     let mut tree_content = String::new();
     for (path, entry) in &index.entries {
+        #[allow(clippy::expect_used)] // Writing to String never fails
         writeln!(&mut tree_content, "{} {}", entry.hash, path.display())
             .expect("String write should never fail");
     }

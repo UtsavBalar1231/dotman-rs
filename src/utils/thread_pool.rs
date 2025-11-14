@@ -7,18 +7,25 @@ static THREAD_POOL: OnceCell<Arc<rayon::ThreadPool>> = OnceCell::new();
 
 /// Initialize the global thread pool with the specified number of threads
 ///
+/// If the thread pool is already initialized, this function succeeds silently.
+/// This makes the function idempotent and safe to call multiple times.
+///
 /// # Errors
 ///
-/// Returns an error if the thread pool cannot be initialized
+/// Returns an error if the thread pool cannot be built
 pub fn init_thread_pool(num_threads: usize) -> anyhow::Result<()> {
+    // If already initialized, succeed silently
+    if THREAD_POOL.get().is_some() {
+        return Ok(());
+    }
+
     let pool = ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .thread_name(|i| format!("dotman-worker-{i}"))
         .build()?;
 
-    THREAD_POOL
-        .set(Arc::new(pool))
-        .map_err(|_| anyhow::anyhow!("Thread pool already initialized"))?;
+    // Try to set, but don't error if already set (race condition in concurrent init)
+    let _ = THREAD_POOL.set(Arc::new(pool));
 
     Ok(())
 }
@@ -28,6 +35,7 @@ pub fn init_thread_pool(num_threads: usize) -> anyhow::Result<()> {
 /// # Panics
 ///
 /// Panics if the thread pool cannot be created
+#[allow(clippy::expect_used)] // Documented panic - thread pool creation is critical
 pub fn get_thread_pool() -> Arc<rayon::ThreadPool> {
     THREAD_POOL
         .get_or_init(|| {

@@ -91,6 +91,7 @@ pub fn generate_commit_id(
     commit_content.push_str("author ");
     commit_content.push_str(author);
     commit_content.push(' ');
+    #[allow(clippy::expect_used)] // Writing to String never fails
     write!(&mut commit_content, "{timestamp}.{nanos:09}").expect("Writing to string cannot fail");
     commit_content.push('\n');
 

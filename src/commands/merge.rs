@@ -200,6 +200,7 @@ fn handle_remote_branch_merge(
     // Create tree hash
     let mut tree_content = String::new();
     for (path, entry) in &index.entries {
+        #[allow(clippy::expect_used)] // Writing to String never fails
         writeln!(&mut tree_content, "{} {}", entry.hash, path.display())
             .expect("String write should never fail");
     }
@@ -400,6 +401,7 @@ fn perform_three_way_merge(
     // Create tree hash from merged files
     let mut tree_content = String::new();
     for (path, file) in &merged_files {
+        #[allow(clippy::expect_used)] // Writing to String never fails
         writeln!(&mut tree_content, "{} {}", file.hash, path.display())
             .expect("String write should never fail");
     }
