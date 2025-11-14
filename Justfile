@@ -65,10 +65,10 @@ lint-strict:
     #!/usr/bin/env bash
     cargo clippy --all-targets --all-features -- \
         -D warnings \
+        -W clippy::arithmetic_side_effects \
         -W clippy::expect_used \
         -W clippy::float_arithmetic \
         -W clippy::indexing_slicing \
-        -W clippy::integer_arithmetic \
         -W clippy::mem_forget \
         -W clippy::nursery \
         -W clippy::panic \
