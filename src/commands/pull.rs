@@ -1,6 +1,7 @@
 use crate::DotmanContext;
 use crate::mapping::MappingManager;
 use crate::mirror::GitMirror;
+use crate::output;
 use crate::refs::RefManager;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
@@ -97,7 +98,7 @@ fn determine_pull_target(
 
     // Neither remote nor branch provided - use tracking info for current branch
     if let Some(tracking) = ctx.config.get_branch_tracking(&current_branch) {
-        super::print_info(&format!(
+        output::info(&format!(
             "Pulling from tracked upstream: {}/{}",
             tracking.remote, tracking.branch
         ));
@@ -185,7 +186,7 @@ fn rollback_pull(
         if let Err(e) = ref_manager.update_branch(branch_name, original) {
             errors.push(format!("Failed to restore branch '{branch_name}': {e}"));
         } else {
-            super::print_info(&format!(
+            output::info(&format!(
                 "Restored branch '{}' to {}",
                 branch_name,
                 &original[..8]
@@ -208,7 +209,7 @@ fn rollback_pull(
                 e
             ));
         } else {
-            super::print_info(&format!("Removed orphaned commit {}", &commit_id[..8]));
+            output::info(&format!("Removed orphaned commit {}", &commit_id[..8]));
         }
     }
 
@@ -219,7 +220,7 @@ fn rollback_pull(
     if index_path.exists() {
         // Index was already saved, but we could restore from backup if we had one
         // For now, just note that index may need manual cleanup
-        super::print_info("Note: Index may contain staged changes from failed pull");
+        output::info("Note: Index may contain staged changes from failed pull");
     }
 
     if errors.is_empty() {
@@ -276,14 +277,14 @@ fn pull_from_git(
         .as_ref()
         .with_context(|| format!("Remote '{remote}' has no URL configured"))?;
 
-    super::print_info(&format!("Pulling from git remote {remote} ({url})"));
+    output::info(&format!("Pulling from git remote {remote} ({url})"));
 
     // Create and initialize mirror
     let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
     mirror.init_mirror()?;
 
     // Pull changes in mirror
-    super::print_info(&format!("Fetching branch '{branch}' from remote..."));
+    output::info(&format!("Fetching branch '{branch}' from remote..."));
     mirror.pull(branch)?;
 
     let git_commit = mirror.get_head_commit()?;
@@ -298,7 +299,7 @@ fn pull_from_git(
 
     if let Some(dotman_commit) = already_synced {
         // We already have this commit, just checkout
-        super::print_info(&format!(
+        output::info(&format!(
             "Commit already synchronized, checking out {}",
             &dotman_commit[..8]
         ));
@@ -306,14 +307,14 @@ fn pull_from_git(
         // Checkout the commit
         crate::commands::checkout::execute(ctx, &dotman_commit, false)?;
 
-        super::print_success(&format!(
+        output::success(&format!(
             "Successfully pulled from {remote} ({branch}) - already up to date"
         ));
         return Ok(());
     }
 
     // Import changes from mirror
-    super::print_info("Importing changes from remote...");
+    output::info("Importing changes from remote...");
 
     let mut index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
     let mut snapshot_manager =
@@ -328,8 +329,8 @@ fn pull_from_git(
     )?;
 
     if changes.is_empty() {
-        super::print_info("No changes to import");
-        super::print_success(&format!(
+        output::info("No changes to import");
+        output::success(&format!(
             "Successfully pulled from {remote} ({branch}) - already up to date"
         ));
         return Ok(());
@@ -337,7 +338,7 @@ fn pull_from_git(
 
     index.save(&ctx.repo_path.join(crate::INDEX_FILE))?;
 
-    super::print_info(&format!(
+    output::info(&format!(
         "Creating commit for imported changes: {}",
         changes.summary()
     ));
@@ -385,7 +386,7 @@ fn pull_from_git(
     let files: Vec<FileEntry> = index.entries.values().cloned().collect();
 
     // TRANSACTION POINT: Create snapshot (persisted to disk)
-    snapshot_manager.create_snapshot(commit, &files)?;
+    snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
     // Store original branch ref for rollback if needed
     let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -404,7 +405,7 @@ fn pull_from_git(
     mapping_manager.add_and_save(remote, &commit_id, &git_commit)?;
     mapping_manager.update_branch_and_save(branch, &commit_id, Some((remote, &git_commit)))?;
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Successfully pulled from {} ({}) - {}",
         remote,
         branch,
@@ -419,25 +420,25 @@ fn pull_from_git(
         // Wrap operations that can fail in rollback handler
         let operation_result = if rebase {
             // Rebase current changes on top of pulled changes
-            super::print_info("Rebasing local changes on top of pulled changes...");
+            output::info("Rebasing local changes on top of pulled changes...");
             perform_rebase(ctx, &commit_id)
         } else if no_ff || squash {
             // Use merge command with appropriate flags
-            super::print_info(&format!(
+            output::info(&format!(
                 "Merging with {} strategy...",
                 if squash { "squash" } else { "no-ff" }
             ));
             crate::commands::merge::execute(ctx, &format!("{remote}/{branch}"), no_ff, squash, None)
         } else {
             // Default: checkout the new commit to update working directory
-            super::print_info("Updating working directory to match pulled changes...");
+            output::info("Updating working directory to match pulled changes...");
             crate::commands::checkout::execute(ctx, &commit_id, false)
         };
 
         // If checkout/merge failed, rollback the pull
         if let Err(e) = operation_result {
             eprintln!("Operation failed: {e}");
-            super::print_info("Rolling back pull due to failure...");
+            output::info("Rolling back pull due to failure...");
 
             // Attempt rollback
             if let Err(rollback_err) = rollback_pull(
@@ -456,7 +457,7 @@ fn pull_from_git(
                     eprintln!("  - Reset branch '{}' to: {}", branch_name, &original[..8]);
                 }
             } else {
-                super::print_info("Successfully rolled back pull operation");
+                output::info("Successfully rolled back pull operation");
             }
 
             return Err(e);
@@ -514,7 +515,7 @@ fn detect_merge_conflicts(
     }
 
     // Conflicts detected - write conflict markers to files
-    super::print_warning(&format!(
+    output::warning(&format!(
         "Merge conflicts detected in {} file(s):",
         conflicts.len()
     ));
@@ -534,7 +535,7 @@ fn detect_merge_conflicts(
             &target_path,
             branch_name,
         ) {
-            super::print_warning(&format!(
+            output::warning(&format!(
                 "Failed to write conflict markers for {}: {}",
                 conflict.path.display(),
                 e
@@ -549,13 +550,13 @@ fn detect_merge_conflicts(
 
     // Print instructions for resolution
     println!();
-    super::print_info("Merge stopped due to conflicts.");
-    super::print_info("After resolving conflicts:");
+    output::info("Merge stopped due to conflicts.");
+    output::info("After resolving conflicts:");
     println!("  1. Edit conflicted files to resolve conflicts");
     println!("  2. Stage resolved files: dot add <files>");
     println!("  3. Complete merge: dot merge --continue");
     println!();
-    super::print_info("Or abort the merge:");
+    output::info("Or abort the merge:");
     println!("  dot merge --abort");
 
     Err(anyhow::anyhow!(

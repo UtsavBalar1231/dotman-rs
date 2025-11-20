@@ -1,5 +1,6 @@
 use crate::DotmanContext;
 use crate::commands::context::CommandContext;
+use crate::output;
 use crate::refs::updater::ReflogUpdater;
 use crate::storage::file_ops::hash_bytes;
 use crate::storage::index::Index;
@@ -25,17 +26,17 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     let mut index = ctx.load_index()?;
 
     if index.staged_entries.is_empty() && index.entries.is_empty() {
-        super::print_warning("No files tracked. Use 'dot add' to track files first.");
+        output::warning("No files tracked. Use 'dot add' to track files first.");
         anyhow::bail!("No files tracked");
     }
 
     if all {
-        super::print_info("Staging all tracked files...");
+        output::info("Staging all tracked files...");
         stage_all_tracked_files(ctx, &mut index)?;
     }
 
     if !index.has_staged_changes() {
-        super::print_warning(
+        output::warning(
             "No changes staged for commit. Use 'dot add' to stage changes or 'dot commit --all' to commit all changes.",
         );
         anyhow::bail!("No changes staged for commit");
@@ -97,7 +98,31 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     }
 
     let files: Vec<FileEntry> = all_files.values().cloned().collect();
-    snapshot_manager.create_snapshot(commit.clone(), &files)?;
+
+    let total_files = files.len();
+    let progress = std::sync::Arc::new(std::sync::Mutex::new(output::start_progress(
+        "Creating snapshot",
+        total_files,
+    )));
+    let progress_for_callback = std::sync::Arc::clone(&progress);
+
+    snapshot_manager.create_snapshot(
+        commit.clone(),
+        &files,
+        Some(move |count| {
+            if let Ok(mut p) = progress_for_callback.lock() {
+                p.update(count);
+            }
+        }),
+    )?;
+
+    // After create_snapshot returns, the callback is dropped, so we can unwrap
+    if let Some(p) = std::sync::Arc::try_unwrap(progress)
+        .ok()
+        .and_then(|p| p.into_inner().ok())
+    {
+        p.finish();
+    }
 
     index.commit_staged();
     index.save(&index_path)?;
@@ -105,7 +130,7 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     update_head(ctx, &commit_id)?;
 
     let display_id = format_commit_id(&commit_id);
-    super::print_success(&format!(
+    output::success(&format!(
         "Committed {} with {} files",
         display_id.yellow(),
         files.len()
@@ -139,12 +164,12 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     let mut index = ctx.load_index()?;
 
     if all {
-        super::print_info("Staging all tracked files...");
+        output::info("Staging all tracked files...");
         stage_all_tracked_files(ctx, &mut index)?;
     }
 
     if index.staged_entries.is_empty() {
-        super::print_warning("No files staged. Use 'dot add' to stage files first.");
+        output::warning("No files staged. Use 'dot add' to stage files first.");
         return Ok(());
     }
 
@@ -187,7 +212,31 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     snapshot_manager.delete_snapshot(&last_commit_id)?;
 
     let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
-    snapshot_manager.create_snapshot(commit.clone(), &files)?;
+
+    let total_files = files.len();
+    let progress = std::sync::Arc::new(std::sync::Mutex::new(output::start_progress(
+        "Creating snapshot",
+        total_files,
+    )));
+    let progress_for_callback = std::sync::Arc::clone(&progress);
+
+    snapshot_manager.create_snapshot(
+        commit.clone(),
+        &files,
+        Some(move |count| {
+            if let Ok(mut p) = progress_for_callback.lock() {
+                p.update(count);
+            }
+        }),
+    )?;
+
+    // After create_snapshot returns, the callback is dropped, so we can unwrap
+    if let Some(p) = std::sync::Arc::try_unwrap(progress)
+        .ok()
+        .and_then(|p| p.into_inner().ok())
+    {
+        p.finish();
+    }
 
     index.commit_staged();
     index.save(&index_path)?;
@@ -197,7 +246,7 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
 
     let display_id = format_commit_id(&commit_id);
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Amended commit {} with {} files",
         display_id.yellow(),
         files.len()
@@ -242,7 +291,7 @@ fn stage_all_tracked_files(ctx: &DotmanContext, index: &mut Index) -> Result<()>
     }
 
     if staged > 0 {
-        super::print_info(&format!("Staged {staged} tracked file(s)"));
+        output::info(&format!("Staged {staged} tracked file(s)"));
     }
 
     Ok(())

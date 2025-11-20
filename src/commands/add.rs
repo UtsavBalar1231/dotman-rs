@@ -36,6 +36,7 @@
 
 use crate::DotmanContext;
 use crate::commands::context::CommandContext;
+use crate::output;
 use crate::storage::{CachedHash, FileEntry};
 use crate::utils::{expand_tilde, make_relative, should_ignore};
 use anyhow::{Context, Result};
@@ -43,6 +44,7 @@ use colored::Colorize;
 use rayon::prelude::*;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 /// Stage all changes to tracked files (modified and deleted).
 ///
@@ -100,11 +102,33 @@ fn execute_add_all(ctx: &DotmanContext) -> Result<()> {
     }
 
     // 2. Hash and stage all modified files in parallel
+    let total_files = files_to_stage.len();
+    let progress = Arc::new(Mutex::new(output::start_progress(
+        "Hashing files",
+        total_files,
+    )));
+    let progress_clone = Arc::clone(&progress);
+
     let entries: Result<Vec<FileEntry>> = files_to_stage
         .par_iter()
-        .map(|(path, cached_hash)| create_file_entry(path, &home, cached_hash.as_ref()))
+        .enumerate()
+        .map(|(i, (path, cached_hash))| {
+            let result = create_file_entry(path, &home, cached_hash.as_ref());
+            if let Ok(mut p) = progress_clone.lock() {
+                p.update(i + 1);
+            }
+            result
+        })
         .collect();
 
+    // Finish progress bar after parallel work is done
+    drop(progress_clone);
+    if let Some(p) = Arc::try_unwrap(progress)
+        .ok()
+        .and_then(|p| p.into_inner().ok())
+    {
+        p.finish();
+    }
     let entries = entries?;
 
     let mut modified_count = 0;
@@ -128,11 +152,11 @@ fn execute_add_all(ctx: &DotmanContext) -> Result<()> {
     // 5. Print summary
     let total = modified_count + deleted_count;
     if total > 0 {
-        super::print_success(&format!(
+        output::success(&format!(
             "Staged {total} file(s): {modified_count} modified, {deleted_count} deleted"
         ));
     } else {
-        super::print_info("No changes to stage");
+        output::info("No changes to stage");
     }
 
     Ok(())
@@ -180,7 +204,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
             if !force {
                 return Err(anyhow::anyhow!("Path does not exist: {}", path.display()));
             }
-            super::print_warning(&format!("Skipping non-existent path: {}", path.display()));
+            output::warning(&format!("Skipping non-existent path: {}", path.display()));
             continue;
         }
 
@@ -199,25 +223,45 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
     }
 
     if files_to_add.is_empty() {
-        super::print_info("No files to add");
+        output::info("No files to add");
         return Ok(());
     }
 
     let home = ctx.get_home_dir()?;
 
+    let total_files = files_to_add.len();
+    let progress = Arc::new(Mutex::new(output::start_progress(
+        "Hashing files",
+        total_files,
+    )));
+    let progress_clone = Arc::clone(&progress);
+
     let entries: Result<Vec<FileEntry>> = files_to_add
         .par_iter()
-        .map(|path| {
+        .enumerate()
+        .map(|(i, path)| {
             // Try to get existing cached hash from index
             let relative_path = make_relative(path, &home).ok();
             let cached_hash = relative_path
                 .as_ref()
                 .and_then(|rp| index.get_staged_entry(rp).or_else(|| index.get_entry(rp)))
                 .and_then(|e| e.cached_hash);
-            create_file_entry(path, &home, cached_hash.as_ref())
+            let result = create_file_entry(path, &home, cached_hash.as_ref());
+            if let Ok(mut p) = progress_clone.lock() {
+                p.update(i + 1);
+            }
+            result
         })
         .collect();
 
+    // Finish progress bar after parallel work is done
+    drop(progress_clone);
+    if let Some(p) = Arc::try_unwrap(progress)
+        .ok()
+        .and_then(|p| p.into_inner().ok())
+    {
+        p.finish();
+    }
     let entries = entries?;
 
     let mut added_count = 0;
@@ -252,11 +296,11 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
     index.save(&index_path)?;
 
     if added_count > 0 || updated_count > 0 {
-        super::print_success(&format!(
+        output::success(&format!(
             "Added {added_count} file(s), updated {updated_count} file(s)"
         ));
     } else {
-        super::print_info("No changes made");
+        output::info("No changes made");
     }
 
     Ok(())
@@ -346,19 +390,19 @@ fn check_unix_special_types(path: &Path, metadata: &std::fs::Metadata) {
     let file_type = metadata.file_type();
 
     if file_type.is_block_device() {
-        super::print_warning(&format!("Warning: {} is a block device", path.display()));
+        output::warning(&format!("Warning: {} is a block device", path.display()));
     } else if file_type.is_char_device() {
-        super::print_warning(&format!(
+        output::warning(&format!(
             "Warning: {} is a character device",
             path.display()
         ));
     } else if file_type.is_fifo() {
-        super::print_warning(&format!(
+        output::warning(&format!(
             "Warning: {} is a named pipe (FIFO)",
             path.display()
         ));
     } else if file_type.is_socket() {
-        super::print_warning(&format!("Warning: {} is a socket", path.display()));
+        output::warning(&format!("Warning: {} is a socket", path.display()));
     }
 }
 
@@ -378,7 +422,7 @@ fn check_file_size(path: &Path, metadata: &std::fs::Metadata, threshold: u64) {
 
     if metadata.len() > threshold {
         let size_mb = metadata.len() as f64 / MB;
-        super::print_warning(&format!(
+        output::warning(&format!(
             "Warning: {} is very large ({:.2} MB)",
             path.display(),
             size_mb

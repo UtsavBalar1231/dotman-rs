@@ -1,6 +1,7 @@
 use crate::DotmanContext;
 use crate::mapping::{CommitMapping, MappingManager};
 use crate::mirror::GitMirror;
+use crate::output;
 use crate::refs::RefManager;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
@@ -81,7 +82,7 @@ fn rollback_push(
     transaction: &PushTransaction,
     mapping_path: &Path,
 ) -> Result<()> {
-    super::print_warning("Push failed - rolling back changes...");
+    output::warning("Push failed - rolling back changes...");
 
     // Reset git mirror to previous HEAD (hard reset to discard commits)
     // Only reset if there was a previous HEAD (mirror wasn't empty)
@@ -107,17 +108,17 @@ fn rollback_push(
     if backup_path.exists() {
         std::fs::copy(&backup_path, mapping_path)
             .context("Failed to restore mapping file from backup during rollback")?;
-        super::print_info("Mapping file restored from backup");
+        output::info("Mapping file restored from backup");
     } else {
         // No backup exists, save the original mappings we cloned
         transaction
             .mappings_before
             .save(mapping_path)
             .context("Failed to restore original mappings during rollback")?;
-        super::print_info("Mapping file restored from transaction");
+        output::info("Mapping file restored from transaction");
     }
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Rollback complete - removed {} uncommitted git commit{}",
         transaction.pushed_commits.len(),
         if transaction.pushed_commits.len() == 1 {
@@ -179,7 +180,7 @@ fn verify_remote_push(mirror: &GitMirror, branch: &str, expected_commit: &str) -
         ));
     }
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Verified remote has commit {}",
         &expected_commit[..8.min(expected_commit.len())]
     ));
@@ -219,7 +220,7 @@ pub fn execute(ctx: &mut DotmanContext, args: &PushArgs) -> Result<()> {
     })?;
 
     if args.dry_run {
-        super::print_info(&format!(
+        output::info(&format!(
             "Dry run mode - would push to {remote_name} ({branch_name})"
         ));
     }
@@ -249,7 +250,7 @@ pub fn execute(ctx: &mut DotmanContext, args: &PushArgs) -> Result<()> {
         ctx.config
             .set_branch_tracking(branch_name.clone(), tracking);
         ctx.config.save(&ctx.config_path)?;
-        super::print_info(&format!(
+        output::info(&format!(
             "Branch '{branch_name}' set up to track '{remote_name}/{branch_name}'"
         ));
     }
@@ -365,7 +366,7 @@ fn determine_push_target(
 
     // Neither remote nor branch provided - use tracking info for current branch
     if let Some(tracking) = ctx.config.get_branch_tracking(&current_branch) {
-        super::print_info(&format!(
+        output::info(&format!(
             "Using tracked upstream: {}/{}",
             tracking.remote, tracking.branch
         ));
@@ -383,7 +384,7 @@ fn determine_push_target(
     if ctx.config.remotes.len() == 1 {
         #[allow(clippy::unwrap_used)] // Safe: len() == 1 guarantees next() returns Some
         let (remote_name, _) = ctx.config.remotes.iter().next().unwrap();
-        super::print_info(&format!(
+        output::info(&format!(
             "No upstream tracking for branch '{current_branch}'. Will set upstream to '{remote_name}/{current_branch}' after successful push."
         ));
         return Ok((remote_name.clone(), current_branch, true));
@@ -433,12 +434,12 @@ fn push_to_git(
         .as_ref()
         .with_context(|| format!("Remote '{}' has no URL configured", opts.remote))?;
 
-    super::print_info(&format!("Pushing to git remote {} ({})", opts.remote, url));
+    output::info(&format!("Pushing to git remote {} ({})", opts.remote, url));
 
     if opts.force {
-        super::print_warning("Force push requested - this may overwrite remote changes!");
+        output::warning("Force push requested - this may overwrite remote changes!");
     } else if opts.force_with_lease {
-        super::print_info("Using --force-with-lease for safer force push");
+        output::info("Using --force-with-lease for safer force push");
     }
 
     let mirror = GitMirror::new(&ctx.repo_path, opts.remote, url, ctx.config.clone());
@@ -463,11 +464,11 @@ fn push_to_git(
     );
 
     if commits_to_push.is_empty() {
-        super::print_info("Already up to date - no new commits to push");
+        output::info("Already up to date - no new commits to push");
         return Ok(());
     }
 
-    super::print_info(&format!(
+    output::info(&format!(
         "Found {} new commit{} to push",
         commits_to_push.len(),
         if commits_to_push.len() == 1 { "" } else { "s" }
@@ -510,14 +511,8 @@ fn push_to_git(
     // This allows us to rollback cleanly if the remote push fails
     let mut pending_mappings: Vec<(String, String)> = Vec::new();
 
+    let mut progress = output::start_progress("Processing commits", commits_to_push.len());
     for (i, commit_id) in commits_to_push.iter().enumerate() {
-        super::print_info(&format!(
-            "Processing commit {}/{}: {}",
-            i + 1,
-            commits_to_push.len(),
-            &commit_id[..8.min(commit_id.len())]
-        ));
-
         let snapshot = snapshot_manager.load_snapshot(commit_id)?;
 
         // Clear the working directory to ensure we have exact state
@@ -536,7 +531,10 @@ fn push_to_git(
 
         // Store mapping in memory only (don't save yet!)
         pending_mappings.push((commit_id.clone(), git_commit));
+
+        progress.update(i + 1);
     }
+    progress.finish();
 
     // Get last git commit from pending mappings (not saved yet)
     let last_git_commit = pending_mappings
@@ -545,8 +543,8 @@ fn push_to_git(
         .context("No commits to push")?;
 
     if opts.dry_run {
-        super::print_info("Dry run - not pushing to remote");
-        super::print_success(&format!(
+        output::info("Dry run - not pushing to remote");
+        output::success(&format!(
             "Dry run complete - would push {} commit{} to {} ({})",
             commits_to_push.len(),
             if commits_to_push.len() == 1 { "" } else { "s" },
@@ -567,7 +565,7 @@ fn push_to_git(
     // At this point we have git commits in the mirror but haven't modified any persistent
     // state (mappings not saved, remote not updated). This is the critical phase where
     // we attempt the actual network operation. If this fails, we can still rollback cleanly.
-    super::print_info(&format!("Pushing branch '{}' to remote...", opts.branch));
+    output::info(&format!("Pushing branch '{}' to remote...", opts.branch));
 
     let push_result = if opts.force || opts.force_with_lease {
         // Push with force options
@@ -604,11 +602,11 @@ fn push_to_git(
 
     // === VERIFICATION PHASE ===
     // Verify that remote actually received the commits
-    super::print_info("Verifying remote received commits...");
+    output::info("Verifying remote received commits...");
     let verify_result = verify_remote_push(&mirror, opts.branch, &last_git_commit);
 
     if let Err(e) = verify_result {
-        super::print_warning(&format!("Remote verification failed: {e}"));
+        output::warning(&format!("Remote verification failed: {e}"));
         rollback_push(&mirror, &transaction, &mapping_path)?;
         return Err(anyhow::anyhow!(
             "Push verification failed - changes rolled back: {e}"
@@ -634,7 +632,7 @@ fn push_to_git(
     // Save mappings - if this fails, we still rolled forward (remote has commits)
     // but we warn the user about the inconsistency
     if let Err(e) = mapping_manager.save() {
-        super::print_warning(&format!(
+        output::warning(&format!(
             "Push succeeded but failed to save mappings: {e}\n\
              You may need to re-push to recreate mappings."
         ));
@@ -649,9 +647,9 @@ fn push_to_git(
 
     // Push tags if requested (non-fatal)
     if opts.tags {
-        super::print_info("Pushing tags...");
+        output::info("Pushing tags...");
         if let Err(e) = push_tags(&mirror) {
-            super::print_warning(&format!("Failed to push tags: {e}"));
+            output::warning(&format!("Failed to push tags: {e}"));
             // Don't fail the entire operation if tags fail
         }
     }
@@ -662,7 +660,7 @@ fn push_to_git(
         Some((opts.remote, &last_git_commit)),
     )?;
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Successfully pushed {} commit{} to {} ({}) - branch '{}'",
         commits_to_push.len(),
         if commits_to_push.len() == 1 { "" } else { "s" },
@@ -694,10 +692,10 @@ fn push_tags(mirror: &GitMirror) -> Result<()> {
         .output()?;
 
     if output.status.success() {
-        super::print_success("Tags pushed successfully");
+        output::success("Tags pushed successfully");
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        super::print_warning(&format!("Failed to push tags: {stderr}"));
+        output::warning(&format!("Failed to push tags: {stderr}"));
         // Don't fail the entire operation if tags fail
     }
 

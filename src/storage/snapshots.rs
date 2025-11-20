@@ -78,7 +78,16 @@ impl SnapshotManager {
     /// - Failed to create directories
     /// - Failed to read or compress files
     /// - Failed to save snapshot
-    pub fn create_snapshot(&self, commit: Commit, files: &[FileEntry]) -> Result<String> {
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn create_snapshot<F>(
+        &self,
+        commit: Commit,
+        files: &[FileEntry],
+        on_progress: Option<F>,
+    ) -> Result<String>
+    where
+        F: Fn(usize) + Send + Sync,
+    {
         let snapshot_id = commit.id.clone();
         let snapshot_path = self
             .repo_path
@@ -95,7 +104,8 @@ impl SnapshotManager {
 
         let stored_files: Result<Vec<(PathBuf, SnapshotFile)>> = files
             .par_iter()
-            .map(|entry| {
+            .enumerate()
+            .map(|(i, entry)| {
                 let abs_path = if entry.path.is_relative() {
                     home.join(&entry.path)
                 } else {
@@ -106,6 +116,12 @@ impl SnapshotManager {
                     .with_context(|| {
                         format!("Failed to store content for: {}", abs_path.display())
                     })?;
+
+                // Call progress callback if provided
+                if let Some(ref callback) = on_progress {
+                    callback(i + 1);
+                }
+
                 Ok((
                     entry.path.clone(),
                     SnapshotFile {

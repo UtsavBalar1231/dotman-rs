@@ -1,4 +1,5 @@
 use crate::commands::status::get_current_files;
+use crate::output;
 use crate::refs::RefManager;
 use crate::storage::FileStatus;
 use crate::storage::file_ops::hash_file;
@@ -99,7 +100,7 @@ fn push_stash(
     }
 
     if statuses.is_empty() {
-        super::print_info("No local changes to save");
+        output::info("No local changes to save");
         return Ok(());
     }
 
@@ -179,7 +180,7 @@ fn push_stash(
     // Save stash
     stash_manager.save_stash(&stash_entry)?;
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Saved working directory and index state: {}",
         message.dimmed()
     ));
@@ -228,7 +229,7 @@ fn pop_stash(ctx: &DotmanContext) -> Result<()> {
     // Delete stash file
     stash_manager.delete_stash(&stash_id)?;
 
-    super::print_success("Dropped stash entry");
+    output::success("Dropped stash entry");
 
     Ok(())
 }
@@ -252,7 +253,7 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
     let current_commit = ref_manager.get_head_commit()?.unwrap_or_default();
 
     if current_commit != stash.parent_commit {
-        super::print_warning(&format!(
+        output::warning(&format!(
             "Stash was created on commit {}, but you are on {}",
             &stash.parent_commit[..8.min(stash.parent_commit.len())],
             &current_commit[..8.min(current_commit.len())]
@@ -265,7 +266,10 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
     let mut applied = 0;
     let mut conflicts = 0;
 
-    for (path, stash_file) in &stash.files {
+    let total_files = stash.files.len();
+    let mut progress = output::start_progress("Applying stashed files", total_files);
+
+    for (i, (path, stash_file)) in stash.files.iter().enumerate() {
         let abs_path = if path.is_relative() {
             home.join(path)
         } else {
@@ -280,7 +284,7 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
                     if abs_path.exists() && current_commit != stash.parent_commit {
                         let (current_hash, _cache) = hash_file(&abs_path, None)?;
                         if current_hash != stash_file.hash {
-                            super::print_warning(&format!(
+                            output::warning(&format!(
                                 "Conflict in {}: file has been modified since stash",
                                 path.display()
                             ));
@@ -313,7 +317,10 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
                 }
             }
         }
+        progress.update(i + 1);
     }
+
+    progress.finish();
 
     // Update index if needed
     if !is_pop {
@@ -322,11 +329,11 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
     }
 
     if conflicts > 0 {
-        super::print_warning(&format!(
+        output::warning(&format!(
             "Applied stash with {conflicts} conflicts. Please resolve them manually."
         ));
     } else {
-        super::print_success(&format!("Applied {applied} changes from stash"));
+        output::success(&format!("Applied {applied} changes from stash"));
     }
 
     Ok(())
@@ -444,7 +451,7 @@ fn drop_stash(ctx: &DotmanContext, stash_id: &str) -> Result<()> {
     let stash_manager = StashManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     stash_manager.delete_stash(stash_id)?;
-    super::print_success(&format!("Dropped stash {stash_id}"));
+    output::success(&format!("Dropped stash {stash_id}"));
 
     Ok(())
 }
@@ -454,7 +461,7 @@ fn clear_stashes(ctx: &DotmanContext) -> Result<()> {
     let stash_manager = StashManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     stash_manager.clear_all_stashes()?;
-    super::print_success("Cleared all stash entries");
+    output::success("Cleared all stash entries");
 
     Ok(())
 }

@@ -36,6 +36,7 @@
 //! ```
 
 use crate::DotmanContext;
+use crate::output;
 use crate::refs::RefManager;
 use crate::refs::resolver::RefResolver;
 use crate::storage::snapshots::SnapshotManager;
@@ -77,7 +78,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
 
         if ref_manager.branch_exists(target) {
             ref_manager.set_head_to_branch(target, Some("checkout"), Some(&message))?;
-            super::print_success(&format!("Switched to branch '{target}'"));
+            output::success(&format!("Switched to branch '{target}'"));
         } else {
             return Err(anyhow::anyhow!(
                 "Cannot checkout '{target}' - no commits exist yet"
@@ -101,7 +102,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     } else {
         &commit_id
     };
-    super::print_info(&format!("Checking out commit {}", display_target.yellow()));
+    output::info(&format!("Checking out commit {}", display_target.yellow()));
 
     // Get home directory as target
     let home = dirs::home_dir().context("Could not find home directory")?;
@@ -117,7 +118,10 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     let mut index = crate::storage::index::Index::new();
 
     // Rebuild index from snapshot files with actual disk metadata
-    for (path, file) in &snapshot.files {
+    let total_files = snapshot.files.len();
+    let mut progress = output::start_progress("Updating index", total_files);
+
+    for (i, (path, file)) in snapshot.files.iter().enumerate() {
         let abs_path = home.join(path);
 
         // Get actual file metadata (files should exist after restore)
@@ -150,7 +154,11 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
             mode: file.mode,
             cached_hash,
         });
+
+        progress.update(i + 1);
     }
+
+    progress.finish();
 
     // Save the updated index
     index
@@ -176,7 +184,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
         &commit_id
     };
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Checked out commit {} ({} files restored)",
         display_id.yellow(),
         snapshot.files.len()

@@ -1,6 +1,7 @@
 use crate::DotmanContext;
 use crate::mapping::MappingManager;
 use crate::mirror::GitMirror;
+use crate::output;
 use crate::refs::{RefManager, resolver::RefResolver};
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
@@ -59,7 +60,7 @@ pub fn execute(
         .context("No commits in current branch")?;
 
     if current_commit == target_commit {
-        super::print_info("Already up to date.");
+        output::info("Already up to date.");
         return Ok(());
     }
 
@@ -67,7 +68,7 @@ pub fn execute(
 
     if can_fast_forward && !no_ff && !squash {
         // Fast-forward merge
-        super::print_info(&format!(
+        output::info(&format!(
             "Fast-forwarding to {}",
             target_commit[..8.min(target_commit.len())].yellow()
         ));
@@ -86,7 +87,7 @@ pub fn execute(
         // Update working directory
         crate::commands::checkout::execute(ctx, &target_commit, false)?;
 
-        super::print_success(&format!(
+        output::success(&format!(
             "Fast-forwarded to {}",
             target_commit[..8.min(target_commit.len())].yellow()
         ));
@@ -187,7 +188,7 @@ fn handle_remote_branch_merge(
     }
 
     // Import the remote branch state
-    super::print_info(&format!("Importing {branch_ref} from remote"));
+    output::info(&format!("Importing {branch_ref} from remote"));
 
     let mut index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
     let mut snapshot_manager =
@@ -229,7 +230,7 @@ fn handle_remote_branch_merge(
 
     // Create snapshot
     let files: Vec<FileEntry> = index.entries.values().cloned().collect();
-    snapshot_manager.create_snapshot(commit, &files)?;
+    snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
     // Update mapping
     let mut mapping_manager = MappingManager::new(&ctx.repo_path)?;
@@ -332,7 +333,7 @@ fn perform_three_way_merge(
     branch: &str,
     message: Option<&str>,
 ) -> Result<()> {
-    super::print_info(&format!("Merging {} into current branch", branch.yellow()));
+    output::info(&format!("Merging {} into current branch", branch.yellow()));
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
@@ -391,14 +392,14 @@ fn perform_three_way_merge(
     }
 
     if !conflicts.is_empty() {
-        super::print_warning(&format!(
+        output::warning(&format!(
             "Merge completed with {} conflicts:",
             conflicts.len()
         ));
         for path in &conflicts {
             println!("  {} {}", "conflict:".red(), path.display());
         }
-        super::print_info("Conflicts were auto-resolved by taking the incoming version");
+        output::info("Conflicts were auto-resolved by taking the incoming version");
     }
 
     // Create merge commit
@@ -449,7 +450,7 @@ fn perform_three_way_merge(
         .collect();
 
     // Save snapshot
-    snapshot_manager.create_snapshot(commit, &files)?;
+    snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
     // Update index
     let mut index = Index::new();
@@ -471,10 +472,10 @@ fn perform_three_way_merge(
     }
 
     // Update working directory
-    super::print_info("Updating working directory...");
+    output::info("Updating working directory...");
     crate::commands::checkout::execute(ctx, &commit_id, false)?;
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Successfully merged '{}' into current branch",
         branch.yellow()
     ));
@@ -515,7 +516,7 @@ fn perform_squash_merge(
     branch: &str,
     message: Option<&str>,
 ) -> Result<()> {
-    super::print_info(&format!(
+    output::info(&format!(
         "Squash merging {} into current branch",
         branch.yellow()
     ));
@@ -542,8 +543,8 @@ fn perform_squash_merge(
 
     index.save(&ctx.repo_path.join(crate::INDEX_FILE))?;
 
-    super::print_success("Squash merge complete. Changes staged for commit.");
-    super::print_info(&format!(
+    output::success("Squash merge complete. Changes staged for commit.");
+    output::info(&format!(
         "Use 'dot commit -m \"{}\"' to complete the merge",
         message.unwrap_or(&format!("Squashed commit from {branch}"))
     ));
@@ -648,7 +649,7 @@ pub fn execute_merge_continue(ctx: &DotmanContext, message: Option<&str>) -> Res
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
     let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
-    snapshot_manager.create_snapshot(commit, &files)?;
+    snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
     // Update index - commit staged changes
     let mut index = index;
@@ -669,7 +670,7 @@ pub fn execute_merge_continue(ctx: &DotmanContext, message: Option<&str>) -> Res
     // Clear merge state
     merge_state.clear()?;
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Merge completed successfully: {}",
         commit_id[..8].yellow()
     ));
@@ -705,7 +706,7 @@ pub fn execute_merge_abort(ctx: &DotmanContext) -> Result<()> {
     merge_state.clear()?;
 
     // Restore working directory to HEAD
-    super::print_info("Restoring working directory to HEAD...");
+    output::info("Restoring working directory to HEAD...");
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     if let Some(head_commit) = ref_manager.get_head_commit()? {
         crate::commands::checkout::execute(ctx, &head_commit, false)?;
@@ -716,7 +717,7 @@ pub fn execute_merge_abort(ctx: &DotmanContext) -> Result<()> {
     index.staged_entries.clear();
     index.save(&ctx.repo_path.join(crate::INDEX_FILE))?;
 
-    super::print_success("Merge aborted. Repository restored to pre-merge state.");
+    output::success("Merge aborted. Repository restored to pre-merge state.");
 
     Ok(())
 }

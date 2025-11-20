@@ -1,4 +1,5 @@
 use crate::DotmanContext;
+use crate::output;
 use anyhow::Result;
 use colored::Colorize;
 
@@ -29,16 +30,16 @@ pub fn execute(
         // Unset a configuration value
         ctx.config.unset(key)?;
         ctx.config.save(&ctx.config_path)?;
-        super::print_success(&format!("Unset {key}"));
+        output::success(&format!("Unset {key}"));
     } else if let Some(val) = value {
         // Set a configuration value
         ctx.config.set(key, val.clone())?;
         ctx.config.save(&ctx.config_path)?;
-        super::print_success(&format!("Set {key} = {val}"));
+        output::success(&format!("Set {key} = {val}"));
     } else if let Some(val) = ctx.config.get(key) {
         println!("{val}");
     } else {
-        super::print_warning(&format!("Configuration key '{key}' is not set"));
+        output::warning(&format!("Configuration key '{key}' is not set"));
     }
 
     Ok(())

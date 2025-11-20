@@ -1,4 +1,5 @@
 use crate::DotmanContext;
+use crate::output;
 use crate::refs::resolver::RefResolver;
 use crate::storage::{Commit, snapshots::SnapshotManager};
 use crate::utils::pager::PagerOutput;
@@ -67,7 +68,7 @@ pub fn execute(
     let snapshots = snapshot_manager.list_snapshots()?;
 
     if snapshots.is_empty() {
-        super::print_info("No commits yet");
+        output::info("No commits yet");
         return Ok(());
     }
 
@@ -184,7 +185,7 @@ pub fn execute(
     }
 
     if commits_displayed == 0 {
-        super::print_info("No commits to display");
+        output::info("No commits to display");
     } else if commits_displayed >= limit {
         // Only show truncation indicator if we hit the display limit
         output.appendln(&format!(

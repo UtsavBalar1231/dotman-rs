@@ -380,7 +380,7 @@ mod snapshot_tests {
         }];
 
         // Save
-        let id = manager.create_snapshot(snapshot.commit.clone(), &entries)?;
+        let id = manager.create_snapshot(snapshot.commit.clone(), &entries, None::<fn(usize)>)?;
         assert_eq!(id, "test123");
 
         // Verify file exists
@@ -404,11 +404,11 @@ mod snapshot_tests {
         // Save parent
         let parent = create_test_snapshot("parent123", None);
         let entries: Vec<FileEntry> = vec![];
-        manager.create_snapshot(parent.commit, &entries)?;
+        manager.create_snapshot(parent.commit, &entries, None::<fn(usize)>)?;
 
         // Save child
         let child = create_test_snapshot("child456", Some("parent123".to_string()));
-        manager.create_snapshot(child.commit, &entries)?;
+        manager.create_snapshot(child.commit, &entries, None::<fn(usize)>)?;
 
         // Load and verify
         let loaded = manager.load_snapshot("child456")?;
@@ -448,7 +448,7 @@ mod snapshot_tests {
             tree_hash: "tree_hash_large".to_string(),
         };
 
-        manager.create_snapshot(commit, &entries)?;
+        manager.create_snapshot(commit, &entries, None::<fn(usize)>)?;
 
         // Check that file is compressed (exists with .zst extension)
         let snapshot_file = temp_dir.path().join("commits/large_snapshot.zst");
@@ -473,7 +473,7 @@ mod snapshot_tests {
         for i in 0..5 {
             let snapshot = create_test_snapshot(&format!("snapshot{i}"), None);
             let entries: Vec<FileEntry> = vec![];
-            manager.create_snapshot(snapshot.commit, &entries)?;
+            manager.create_snapshot(snapshot.commit, &entries, None::<fn(usize)>)?;
         }
 
         // List snapshots
@@ -532,7 +532,7 @@ mod snapshot_tests {
             tree_hash: "tree_special".to_string(),
         };
 
-        manager.create_snapshot(commit.clone(), &entries)?;
+        manager.create_snapshot(commit.clone(), &entries, None::<fn(usize)>)?;
         let loaded = manager.load_snapshot("test_special")?;
 
         assert_eq!(loaded.commit.message, commit.message);

@@ -1,3 +1,4 @@
+use crate::output;
 use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
@@ -19,9 +20,9 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
 
     // Safety check: require either -n or -f flag
     if !dry_run && !force {
-        super::print_error("clean requires either -n (dry run) or -f (force) flag for safety");
-        super::print_info("Use 'dot clean -n' to see what would be removed");
-        super::print_info("Use 'dot clean -f' to actually remove untracked files");
+        output::error("clean requires either -n (dry run) or -f (force) flag for safety");
+        output::info("Use 'dot clean -n' to see what would be removed");
+        output::info("Use 'dot clean -f' to actually remove untracked files");
         return Ok(());
     }
 
@@ -33,7 +34,7 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
     let untracked = find_untracked_files(ctx, &index)?;
 
     if untracked.is_empty() {
-        super::print_info("Already clean - no untracked files found");
+        output::info("Already clean - no untracked files found");
         return Ok(());
     }
 
@@ -52,7 +53,17 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
     let mut removed_count = 0;
     let mut failed_count = 0;
 
-    for path in &untracked {
+    let total_files = untracked.len();
+    let mut progress = output::start_progress(
+        if dry_run {
+            "Checking files"
+        } else {
+            "Removing files"
+        },
+        total_files,
+    );
+
+    for (i, path) in untracked.iter().enumerate() {
         if dry_run {
             println!("  {} {}", "would remove:".yellow(), path.display());
             removed_count += 1;
@@ -64,24 +75,27 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
                     removed_count += 1;
                 }
                 Err(e) => {
-                    super::print_warning(&format!("Failed to remove {}: {e}", path.display()));
+                    output::warning(&format!("Failed to remove {}: {e}", path.display()));
                     failed_count += 1;
                 }
             }
         }
+        progress.update(i + 1);
     }
+
+    progress.finish();
 
     // Print summary
     println!();
     if dry_run {
-        super::print_info(&format!(
+        output::info(&format!(
             "{removed_count} untracked file(s) would be removed"
         ));
-        super::print_info("Run 'dot clean -f' to actually remove these files");
+        output::info("Run 'dot clean -f' to actually remove these files");
     } else {
-        super::print_success(&format!("Removed {removed_count} untracked file(s)"));
+        output::success(&format!("Removed {removed_count} untracked file(s)"));
         if failed_count > 0 {
-            super::print_warning(&format!("Failed to remove {failed_count} file(s)"));
+            output::warning(&format!("Failed to remove {failed_count} file(s)"));
         }
     }
 

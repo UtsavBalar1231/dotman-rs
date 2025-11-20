@@ -1,5 +1,6 @@
 use crate::DotmanContext;
 use crate::config::{RemoteConfig, RemoteType};
+use crate::output;
 use anyhow::{Context, Result};
 use colored::Colorize;
 
@@ -10,7 +11,7 @@ use colored::Colorize;
 /// Returns an error if remotes cannot be accessed
 pub fn list(ctx: &DotmanContext) -> Result<()> {
     if ctx.config.remotes.is_empty() {
-        super::print_info("No remotes configured");
+        output::info("No remotes configured");
         return Ok(());
     }
 
@@ -50,7 +51,7 @@ pub fn add(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
     ctx.config.set_remote(name.to_string(), remote);
     ctx.config.save(&ctx.config_path)?;
 
-    super::print_success(&format!("Added remote '{name}'"));
+    output::success(&format!("Added remote '{name}'"));
     Ok(())
 }
 
@@ -76,7 +77,7 @@ pub fn remove(ctx: &mut DotmanContext, name: &str) -> Result<()> {
     mapping_manager.save()?;
 
     ctx.config.save(&ctx.config_path)?;
-    super::print_success(&format!("Removed remote '{name}'"));
+    output::success(&format!("Removed remote '{name}'"));
     Ok(())
 }
 
@@ -98,7 +99,7 @@ pub fn set_url(ctx: &mut DotmanContext, name: &str, url: &str) -> Result<()> {
     remote.remote_type = detect_remote_type(url);
 
     ctx.config.save(&ctx.config_path)?;
-    super::print_success(&format!("Updated URL for remote '{name}'"));
+    output::success(&format!("Updated URL for remote '{name}'"));
     Ok(())
 }
 
@@ -168,7 +169,7 @@ pub fn rename(ctx: &mut DotmanContext, old_name: &str, new_name: &str) -> Result
     }
 
     ctx.config.save(&ctx.config_path)?;
-    super::print_success(&format!("Renamed remote '{old_name}' to '{new_name}'"));
+    output::success(&format!("Renamed remote '{old_name}' to '{new_name}'"));
     Ok(())
 }
 

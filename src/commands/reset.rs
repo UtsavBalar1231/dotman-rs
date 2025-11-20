@@ -1,3 +1,4 @@
+use crate::output;
 use crate::refs::resolver::RefResolver;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
@@ -69,7 +70,7 @@ pub fn execute(
 
     if options.hard {
         // Hard reset: update index and working directory
-        super::print_info(&format!(
+        output::info(&format!(
             "Hard reset to commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
@@ -95,24 +96,24 @@ pub fn execute(
         let index_path = ctx.repo_path.join(INDEX_FILE);
         index.save(&index_path)?;
 
-        super::print_success(&format!(
+        output::success(&format!(
             "Hard reset complete. Working directory and index updated to match commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
     } else if options.soft {
         // Soft reset: only move HEAD, keep index and working directory
-        super::print_info(&format!(
+        output::info(&format!(
             "Soft reset to commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
 
-        super::print_success(&format!(
+        output::success(&format!(
             "Soft reset complete. HEAD now points to commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
     } else if options.keep {
         // Keep reset: reset HEAD and index but keep working directory changes
-        super::print_info(&format!(
+        output::info(&format!(
             "Keep reset to commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
@@ -144,13 +145,13 @@ pub fn execute(
         let index_path = ctx.repo_path.join(INDEX_FILE);
         new_index.save(&index_path)?;
 
-        super::print_success(&format!(
+        output::success(&format!(
             "Keep reset complete. Local changes preserved, HEAD now points to {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
     } else {
         // Mixed reset (default or explicit): update index but not working directory
-        super::print_info(&format!(
+        output::info(&format!(
             "Mixed reset to commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
@@ -174,7 +175,7 @@ pub fn execute(
         let index_path = ctx.repo_path.join(INDEX_FILE);
         index.save(&index_path)?;
 
-        super::print_success(&format!(
+        output::success(&format!(
             "Mixed reset complete. Index updated to match commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
@@ -216,7 +217,7 @@ pub fn execute(
 ///
 /// The working directory is not modified; only the index is updated.
 fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()> {
-    super::print_info(&format!(
+    output::info(&format!(
         "Resetting {} file(s) to {}",
         paths.len(),
         if commit == "HEAD" {
@@ -275,7 +276,7 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
                 println!("  {} {}", "unstaged:".yellow(), index_path.display());
                 reset_count += 1;
             } else {
-                super::print_warning(&format!("File not in index: {}", path.display()));
+                output::warning(&format!("File not in index: {}", path.display()));
                 not_found_count += 1;
             }
         }
@@ -284,11 +285,11 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
     // Save updated index
     if reset_count > 0 {
         index.save(&index_path)?;
-        super::print_success(&format!("Reset {reset_count} file(s)"));
+        output::success(&format!("Reset {reset_count} file(s)"));
     }
 
     if not_found_count > 0 {
-        super::print_info(&format!("{not_found_count} file(s) were not in the index"));
+        output::info(&format!("{not_found_count} file(s) were not in the index"));
     }
 
     Ok(())

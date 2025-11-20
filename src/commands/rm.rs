@@ -35,6 +35,7 @@
 //! # }
 //! ```
 
+use crate::output;
 use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
@@ -74,7 +75,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], options: &RmOptions) -> Re
     ctx.check_repo_initialized()?;
 
     if options.dry_run {
-        super::print_info("Dry run mode - no files will be removed");
+        output::info("Dry run mode - no files will be removed");
     }
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
@@ -100,7 +101,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], options: &RmOptions) -> Re
                     }
                 }
             } else {
-                super::print_warning(&format!("Invalid glob pattern: {path_str}"));
+                output::warning(&format!("Invalid glob pattern: {path_str}"));
             }
         } else {
             let path = PathBuf::from(path_str);
@@ -128,7 +129,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], options: &RmOptions) -> Re
         let in_index = index.get_entry(&index_path).is_some();
 
         if !in_index && !options.force {
-            super::print_warning(&format!("File not tracked: {}", path.display()));
+            output::warning(&format!("File not tracked: {}", path.display()));
             not_found_count += 1;
             continue;
         }
@@ -163,18 +164,18 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], options: &RmOptions) -> Re
     if removed_count > 0 && !options.dry_run {
         index.save(&index_path)?;
         if options.cached {
-            super::print_success(&format!(
+            output::success(&format!(
                 "Removed {removed_count} file(s) from index (files unchanged on disk)"
             ));
         } else {
-            super::print_success(&format!("Removed {removed_count} file(s) from tracking"));
+            output::success(&format!("Removed {removed_count} file(s) from tracking"));
         }
     } else if removed_count > 0 && options.dry_run {
-        super::print_success(&format!("Would remove {removed_count} file(s) (dry run)"));
+        output::success(&format!("Would remove {removed_count} file(s) (dry run)"));
     }
 
     if not_found_count > 0 {
-        super::print_info(&format!("{not_found_count} file(s) were not tracked"));
+        output::info(&format!("{not_found_count} file(s) were not tracked"));
     }
 
     Ok(())

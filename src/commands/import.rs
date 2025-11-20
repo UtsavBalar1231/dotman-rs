@@ -1,4 +1,5 @@
 use crate::DotmanContext;
+use crate::output;
 use anyhow::{Context, Result};
 use colored::Colorize;
 use std::fs;
@@ -36,12 +37,12 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
     use std::io::{self, Write};
     ctx.check_repo_initialized()?;
 
-    super::print_info(&format!("Importing dotfiles from: {source}"));
+    output::info(&format!("Importing dotfiles from: {source}"));
 
     // Step 1: Determine source type and prepare repository
     let (repo_path, _temp_dir) = if source.starts_with("http") || source.starts_with("git@") {
         // Clone to temporary directory
-        super::print_info("Cloning remote repository...");
+        output::info("Cloning remote repository...");
         let temp_dir = TempDir::new()?;
         let repo_path = temp_dir.path().to_path_buf();
 
@@ -65,11 +66,11 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
     let files_to_import = scan_repository(&repo_path, ctx.config.tracking.follow_symlinks)?;
 
     if files_to_import.is_empty() {
-        super::print_warning("No files found to import");
+        output::warning("No files found to import");
         return Ok(());
     }
 
-    super::print_info(&format!(
+    output::info(&format!(
         "Found {} file{} to import",
         files_to_import.len(),
         if files_to_import.len() == 1 { "" } else { "s" }
@@ -83,7 +84,7 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
     };
 
     if !conflicts.is_empty() && !options.force {
-        super::print_warning(&format!(
+        output::warning(&format!(
             "Found {} existing file{} that would be overwritten:",
             conflicts.len(),
             if conflicts.len() == 1 { "" } else { "s" }
@@ -103,7 +104,7 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
             io::stdin().read_line(&mut input)?;
 
             if !input.trim().eq_ignore_ascii_case("y") {
-                super::print_info("Import cancelled");
+                output::info("Import cancelled");
                 return Ok(());
             }
         }
@@ -113,7 +114,17 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
     let mut imported_count = 0;
     let mut failed_files = Vec::new();
 
-    for (source_file, target_file) in &files_to_import {
+    let total_files = files_to_import.len();
+    let mut progress = output::start_progress(
+        if options.dry_run {
+            "Checking files"
+        } else {
+            "Importing files"
+        },
+        total_files,
+    );
+
+    for (i, (source_file, target_file)) in files_to_import.iter().enumerate() {
         if options.dry_run {
             println!(
                 "  {} {} -> {}",
@@ -134,7 +145,7 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
                     }
                 }
                 Err(e) => {
-                    super::print_error(&format!(
+                    output::error(&format!(
                         "Failed to import {}: {}",
                         source_file.display(),
                         e
@@ -143,10 +154,13 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
                 }
             }
         }
+        progress.update(i + 1);
     }
 
+    progress.finish();
+
     if options.dry_run {
-        super::print_info(&format!(
+        output::info(&format!(
             "Dry run complete. Would import {} file{}",
             files_to_import.len(),
             if files_to_import.len() == 1 { "" } else { "s" }
@@ -156,7 +170,7 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
 
     // Step 5: Optionally track with dotman
     if options.track && imported_count > 0 {
-        super::print_info("Tracking imported files with dotman...");
+        output::info("Tracking imported files with dotman...");
 
         let target_paths: Vec<String> = files_to_import
             .iter()
@@ -166,21 +180,21 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
         // Use the add command to track files
         match crate::commands::add::execute(ctx, &target_paths, options.force, false) {
             Ok(()) => {
-                super::print_success(&format!(
+                output::success(&format!(
                     "Successfully tracked {} file{} with dotman",
                     imported_count,
                     if imported_count == 1 { "" } else { "s" }
                 ));
             }
             Err(e) => {
-                super::print_warning(&format!("Files imported but tracking failed: {e}"));
+                output::warning(&format!("Files imported but tracking failed: {e}"));
             }
         }
     }
 
     // Report results
     if !failed_files.is_empty() {
-        super::print_warning(&format!(
+        output::warning(&format!(
             "Failed to import {} file{}",
             failed_files.len(),
             if failed_files.len() == 1 { "" } else { "s" }
@@ -188,7 +202,7 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
     }
 
     if imported_count > 0 {
-        super::print_success(&format!(
+        output::success(&format!(
             "Successfully imported {} file{}{}",
             imported_count,
             if imported_count == 1 { "" } else { "s" },

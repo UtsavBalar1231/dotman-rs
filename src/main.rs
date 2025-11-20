@@ -17,8 +17,13 @@ struct Cli {
     #[command(subcommand)]
     command: Commands,
 
+    /// Show verbose output
     #[arg(short, long, global = true)]
     verbose: bool,
+
+    /// Suppress informational messages
+    #[arg(short, long, global = true)]
+    quiet: bool,
 
     #[arg(long, global = true, help = "Disable pager output")]
     no_pager: bool,
@@ -545,6 +550,16 @@ fn main() {
 #[allow(clippy::too_many_lines)]
 fn run() -> Result<()> {
     let cli = Cli::parse();
+
+    // Initialize output verbosity from CLI flags
+    let verbosity = if cli.quiet {
+        dotman::output::Verbosity::Quiet
+    } else if cli.verbose {
+        dotman::output::Verbosity::Verbose
+    } else {
+        dotman::output::Verbosity::Normal
+    };
+    dotman::output::set_verbosity(verbosity);
 
     let context = match &cli.command {
         Commands::Init { .. } | Commands::Completion { .. } => None,

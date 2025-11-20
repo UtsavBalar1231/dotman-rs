@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::output;
 use crate::refs::RefManager;
 use crate::storage::index::Index;
 use crate::{DEFAULT_CONFIG_PATH, DEFAULT_REPO_DIR, INDEX_FILE};
@@ -70,12 +71,12 @@ pub fn execute(bare: bool) -> Result<()> {
     }
 
     if bare {
-        super::print_success(&format!(
+        output::success(&format!(
             "Initialized bare dotman repository at {}",
             repo_path.display()
         ));
     } else {
-        super::print_success(&format!(
+        output::success(&format!(
             "Initialized dotman repository at {}",
             repo_path.display()
         ));

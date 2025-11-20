@@ -15,7 +15,7 @@ fn test_init_command() -> Result<()> {
         .arg("init")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Initialized"));
+        .stderr(predicate::str::contains("Initialized"));
 
     assert!(repo_path.exists());
     assert!(repo_path.join("index.bin").exists());
@@ -158,7 +158,7 @@ fn test_commit_workflow() -> Result<()> {
         .args(["commit", "-m", "Initial commit"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("Committed"));
+        .stderr(predicate::str::contains("Committed"));
 
     // Verify clean status
     Command::cargo_bin("dot")?

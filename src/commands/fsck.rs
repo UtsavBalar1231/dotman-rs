@@ -1,5 +1,6 @@
 use crate::DotmanContext;
 use crate::mapping::MappingManager;
+use crate::output;
 use crate::refs::RefManager;
 use crate::storage::index::Index;
 use anyhow::Result;
@@ -20,34 +21,34 @@ use anyhow::Result;
 pub fn execute(ctx: &DotmanContext) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    super::print_info("Checking repository consistency...");
+    output::info("Checking repository consistency...");
 
     let mut warnings = Vec::new();
     let mut errors = Vec::new();
 
     // Check 1: Config/Mapping Consistency
-    super::print_info("Checking config/mapping consistency...");
+    output::info("Checking config/mapping consistency...");
     match check_config_mapping_consistency(ctx) {
         Ok(w) => warnings.extend(w),
         Err(e) => errors.push(format!("Config/mapping check failed: {e}")),
     }
 
     // Check 2: Branch Refs Consistency
-    super::print_info("Checking branch refs...");
+    output::info("Checking branch refs...");
     match check_branch_refs(ctx) {
         Ok(w) => warnings.extend(w),
         Err(e) => errors.push(format!("Branch ref check failed: {e}")),
     }
 
     // Check 3: Remote Refs Consistency
-    super::print_info("Checking remote refs...");
+    output::info("Checking remote refs...");
     match check_remote_refs(ctx) {
         Ok(w) => warnings.extend(w),
         Err(e) => errors.push(format!("Remote ref check failed: {e}")),
     }
 
     // Check 4: Index Consistency
-    super::print_info("Checking index...");
+    output::info("Checking index...");
     match check_index_consistency(ctx) {
         Ok(w) => warnings.extend(w),
         Err(e) => errors.push(format!("Index check failed: {e}")),
@@ -56,12 +57,12 @@ pub fn execute(ctx: &DotmanContext) -> Result<()> {
     // Report results
     println!();
     if errors.is_empty() && warnings.is_empty() {
-        super::print_success("Repository is consistent - no issues found");
+        output::success("Repository is consistent - no issues found");
     } else {
         if !errors.is_empty() {
             println!("Errors found:");
             for error in &errors {
-                super::print_error(error);
+                output::error(error);
             }
             println!();
         }
@@ -69,12 +70,12 @@ pub fn execute(ctx: &DotmanContext) -> Result<()> {
         if !warnings.is_empty() {
             println!("Warnings:");
             for warning in &warnings {
-                super::print_warning(warning);
+                output::warning(warning);
             }
             println!();
         }
 
-        super::print_info(&format!(
+        output::info(&format!(
             "Found {} error(s) and {} warning(s)",
             errors.len(),
             warnings.len()

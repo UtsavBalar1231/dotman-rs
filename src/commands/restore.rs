@@ -1,4 +1,5 @@
 use crate::DotmanContext;
+use crate::output;
 use crate::refs::resolver::RefResolver;
 use crate::storage::snapshots::SnapshotManager;
 use anyhow::{Context, Result};
@@ -47,7 +48,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
         &commit_id
     };
 
-    super::print_info(&format!(
+    output::info(&format!(
         "Restoring files from commit {}",
         display_commit.yellow()
     ));
@@ -98,7 +99,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
 
     // Report results
     if restored_count > 0 {
-        super::print_success(&format!(
+        output::success(&format!(
             "Restored {} file{} from commit {}",
             restored_count,
             if restored_count == 1 { "" } else { "s" },
@@ -107,7 +108,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
     }
 
     if !not_found.is_empty() {
-        super::print_warning(&format!(
+        output::warning(&format!(
             "The following files were not found in commit {}: {}",
             display_commit.yellow(),
             not_found.join(", ")

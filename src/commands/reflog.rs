@@ -1,4 +1,5 @@
 use crate::DotmanContext;
+use crate::output;
 use crate::reflog::ReflogManager;
 use crate::utils::pager::PagerOutput;
 use anyhow::Result;
@@ -20,7 +21,7 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> R
     let mut entries = reflog_manager.read_head_log()?;
 
     if entries.is_empty() {
-        super::print_info("No reflog entries found");
+        output::info("No reflog entries found");
         return Ok(());
     }
 

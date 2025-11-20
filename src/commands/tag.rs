@@ -1,4 +1,5 @@
 use crate::DotmanContext;
+use crate::output;
 use crate::refs::RefManager;
 use crate::refs::resolver::RefResolver;
 use crate::storage::snapshots::SnapshotManager;
@@ -67,7 +68,7 @@ pub fn create(ctx: &DotmanContext, name: &str, commit: Option<&str>) -> Result<(
         }
     });
 
-    super::print_success(&format!("Created tag '{name}' at {display_target}"));
+    output::success(&format!("Created tag '{name}' at {display_target}"));
     Ok(())
 }
 
@@ -112,7 +113,7 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
     let tags = ref_manager.list_tags()?;
 
     if tags.is_empty() {
-        super::print_info("No tags exist");
+        output::info("No tags exist");
         return Ok(());
     }
 
@@ -176,11 +177,11 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
     // points to an important commit and require force flag
     if !force {
         // For now, just show a warning
-        super::print_warning(&format!("Deleting tag '{name}'"));
+        output::warning(&format!("Deleting tag '{name}'"));
     }
 
     ref_manager.delete_tag(name)?;
-    super::print_success(&format!("Deleted tag '{name}'"));
+    output::success(&format!("Deleted tag '{name}'"));
 
     Ok(())
 }

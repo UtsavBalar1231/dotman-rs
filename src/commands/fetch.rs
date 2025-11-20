@@ -1,5 +1,6 @@
 use crate::DotmanContext;
 use crate::mirror::GitMirror;
+use crate::output;
 use anyhow::{Context, Result};
 use colored::Colorize;
 use std::process::Command;
@@ -78,7 +79,7 @@ fn fetch_from_git(
         .as_ref()
         .with_context(|| format!("Remote '{remote}' has no URL configured"))?;
 
-    super::print_info(&format!("Fetching from git remote {remote} ({url})"));
+    output::info(&format!("Fetching from git remote {remote} ({url})"));
 
     // Create and initialize mirror
     let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
@@ -172,7 +173,7 @@ fn fetch_from_git(
         }
 
         if updated_count > 0 {
-            super::print_info(&format!("Updated {updated_count} remote tracking refs"));
+            output::info(&format!("Updated {updated_count} remote tracking refs"));
         }
     }
 
@@ -191,7 +192,7 @@ fn fetch_from_git(
             .collect();
 
         if !remote_branches.is_empty() {
-            super::print_info(&format!("Found {} remote branches", remote_branches.len()));
+            output::info(&format!("Found {} remote branches", remote_branches.len()));
             for branch in remote_branches.iter().take(5) {
                 println!("  {}", branch.green());
             }
@@ -201,11 +202,11 @@ fn fetch_from_git(
         }
     }
 
-    super::print_success(&format!("Successfully fetched from {remote} ({url})"));
+    output::success(&format!("Successfully fetched from {remote} ({url})"));
 
     // Suggest next steps
     if branch.is_none() && !all {
-        super::print_info("Tip: Use 'dot merge origin/branch' to merge fetched changes");
+        output::info("Tip: Use 'dot merge origin/branch' to merge fetched changes");
     }
 
     Ok(())

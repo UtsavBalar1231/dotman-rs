@@ -1,5 +1,6 @@
 use crate::DotmanContext;
 use crate::config::BranchTracking;
+use crate::output;
 use crate::refs::RefManager;
 use crate::storage::snapshots::SnapshotManager;
 use anyhow::{Context, Result};
@@ -22,7 +23,7 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
     let current = ref_manager.current_branch()?;
 
     if branches.is_empty() {
-        super::print_info("No branches exist");
+        output::info("No branches exist");
         return Ok(());
     }
 
@@ -89,7 +90,7 @@ pub fn create(ctx: &DotmanContext, name: &str, start_point: Option<&str>) -> Res
     };
 
     ref_manager.create_branch(name, commit_id)?;
-    super::print_success(&format!("Created branch '{name}'"));
+    output::success(&format!("Created branch '{name}'"));
 
     Ok(())
 }
@@ -238,10 +239,10 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
             let is_merged = is_branch_fully_merged(ctx, name, &merge_target)?;
 
             if !is_merged {
-                super::print_warning(&format!(
+                output::warning(&format!(
                     "Branch '{name}' is not fully merged into '{merge_target}'"
                 ));
-                super::print_info("If you are sure you want to delete it, use --force");
+                output::info("If you are sure you want to delete it, use --force");
                 return Err(anyhow::anyhow!(
                     "Branch '{name}' is not fully merged. Use --force to delete anyway"
                 ));
@@ -251,7 +252,7 @@ pub fn delete(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
 
     // Perform the deletion
     ref_manager.delete_branch(name)?;
-    super::print_success(&format!("Deleted branch '{name}'"));
+    output::success(&format!("Deleted branch '{name}'"));
 
     Ok(())
 }
@@ -282,8 +283,8 @@ pub fn checkout(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
         // This is an empty branch with no commits
         // Just update HEAD to point to this branch without trying to restore files
         ref_manager.set_head_to_branch(name, None, None)?;
-        super::print_success(&format!("Switched to empty branch '{name}'"));
-        super::print_info("No commits on this branch yet");
+        output::success(&format!("Switched to empty branch '{name}'"));
+        output::info("No commits on this branch yet");
         return Ok(());
     }
 
@@ -317,7 +318,7 @@ pub fn rename(ctx: &DotmanContext, old_name: Option<&str>, new_name: &str) -> Re
     };
 
     ref_manager.rename_branch(&old, new_name)?;
-    super::print_success(&format!("Renamed branch '{old}' to '{new_name}'"));
+    output::success(&format!("Renamed branch '{old}' to '{new_name}'"));
 
     Ok(())
 }
@@ -372,7 +373,7 @@ pub fn set_upstream(
         .insert(branch_name.clone(), tracking);
     ctx.config.save(&ctx.config_path)?;
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Branch '{branch_name}' set up to track '{remote}/{remote_branch_name}'"
     ));
 
@@ -401,10 +402,10 @@ pub fn unset_upstream(ctx: &mut DotmanContext, branch: Option<&str>) -> Result<(
     };
 
     if ctx.config.branches.tracking.remove(&branch_name).is_none() {
-        super::print_info(&format!("Branch '{branch_name}' has no upstream tracking"));
+        output::info(&format!("Branch '{branch_name}' has no upstream tracking"));
     } else {
         ctx.config.save(&ctx.config_path)?;
-        super::print_success(&format!(
+        output::success(&format!(
             "Removed upstream tracking for branch '{branch_name}'"
         ));
     }

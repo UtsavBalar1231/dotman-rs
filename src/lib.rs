@@ -27,6 +27,7 @@
 //! - [`storage`]: Core storage layer with index and snapshot management
 //! - [`config`]: Configuration parsing and validation
 //! - [`refs`]: Reference and branch management
+//! - [`output`]: Output formatting, styling, and progress display
 //! - [`utils`]: Utility functions and helpers
 //!
 //! ## Example Usage
@@ -67,6 +68,9 @@ pub mod mapping;
 
 /// Mirror repository synchronization.
 pub mod mirror;
+
+/// Output formatting and progress display.
+pub mod output;
 
 /// Reflog for tracking reference changes.
 pub mod reflog;

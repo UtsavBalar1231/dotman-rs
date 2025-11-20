@@ -1,3 +1,4 @@
+use crate::output;
 use crate::refs::resolver::RefResolver;
 use crate::storage::file_ops::hash_bytes;
 use crate::storage::index::{Index, IndexDiffer};
@@ -55,7 +56,7 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, _no_edit: bool, force: boo
         &target_commit_id
     };
 
-    super::print_info(&format!(
+    output::info(&format!(
         "Reverting commit {} \"{}\"",
         display_target.yellow(),
         target_snapshot.commit.message
@@ -65,7 +66,7 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, _no_edit: bool, force: boo
     let changes_to_revert = calculate_revert_changes(ctx, &target_snapshot, &snapshot_manager)?;
 
     if changes_to_revert.is_empty() {
-        super::print_info("No changes to revert.");
+        output::info("No changes to revert.");
         return Ok(());
     }
 
@@ -78,7 +79,7 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, _no_edit: bool, force: boo
     let revert_message = format!("Revert \"{}\"", target_snapshot.commit.message);
     create_revert_commit(ctx, &revert_message)?;
 
-    super::print_success(&format!(
+    output::success(&format!(
         "Reverted commit {} - \"{}\"",
         display_target.yellow(),
         target_snapshot.commit.message
@@ -229,7 +230,7 @@ fn calculate_revert_changes(
 /// * `changes` - Slice of revert changes to display
 fn display_revert_summary(changes: &[RevertChange]) {
     println!();
-    super::print_info("Changes to be reverted:");
+    output::info("Changes to be reverted:");
 
     let mut deletions = 0;
     let mut restorations = 0;
@@ -428,7 +429,7 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     );
 
     let files: Vec<FileEntry> = index.entries.values().cloned().collect();
-    snapshot_manager.create_snapshot(commit, &files)?;
+    snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
     // Update HEAD
     update_head(ctx, &commit_id)?;
