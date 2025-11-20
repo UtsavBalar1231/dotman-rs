@@ -33,6 +33,14 @@ pub fn execute(
 ) -> Result<()> {
     ctx.check_repo_initialized()?;
 
+    // Check for --continue or --abort flags in branch argument
+    if branch == "--continue" {
+        return execute_merge_continue(ctx, message);
+    }
+    if branch == "--abort" {
+        return execute_merge_abort(ctx);
+    }
+
     // Resolve the target branch/commit
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let target_commit = if branch.contains('/') {
@@ -539,6 +547,176 @@ fn perform_squash_merge(
         "Use 'dot commit -m \"{}\"' to complete the merge",
         message.unwrap_or(&format!("Squashed commit from {branch}"))
     ));
+
+    Ok(())
+}
+
+/// Continue a merge after resolving conflicts
+///
+/// Completes a merge that was stopped due to conflicts by creating a merge commit
+/// with the resolved changes currently staged in the index.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context
+/// * `message` - Optional custom commit message (uses saved `MERGE_MSG` if None)
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - No merge is in progress
+/// - Conflict markers are still present in staged files
+/// - Creating the merge commit fails
+pub fn execute_merge_continue(ctx: &DotmanContext, message: Option<&str>) -> Result<()> {
+    use crate::conflicts::{ConflictMarker, MergeState};
+
+    let merge_state = MergeState::new(ctx.repo_path.clone());
+
+    // Check if merge is in progress
+    let (_merge_head, saved_message) = merge_state
+        .load()?
+        .context("No merge in progress. Nothing to continue.")?;
+
+    // Load the index to check for staged changes
+    let index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
+
+    if index.staged_entries.is_empty() {
+        return Err(anyhow::anyhow!(
+            "No changes staged for merge. Please resolve conflicts and stage files with 'dot add'."
+        ));
+    }
+
+    // Verify no conflict markers remain in staged files
+    let home_dir = dirs::home_dir().context("Could not find home directory")?;
+    for path in index.staged_entries.keys() {
+        let file_path = home_dir.join(path);
+        if file_path.exists() {
+            let content = std::fs::read_to_string(&file_path)
+                .with_context(|| format!("Failed to read staged file: {}", file_path.display()))?;
+
+            if ConflictMarker::has_markers(&content) {
+                return Err(anyhow::anyhow!(
+                    "Conflict markers still present in {}\n\
+                    Please resolve all conflicts before continuing the merge.",
+                    path.display()
+                ));
+            }
+        }
+    }
+
+    // Create merge commit
+    let (timestamp, nanos) = get_precise_timestamp();
+    let author = get_user_from_config(&ctx.config);
+    let commit_message = message.map_or(saved_message, String::from);
+
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let current_commit = ref_manager
+        .get_head_commit()?
+        .context("No current commit")?;
+
+    // Create tree hash from staged files
+    let mut tree_content = String::new();
+    for (path, entry) in &index.staged_entries {
+        #[allow(clippy::expect_used)]
+        writeln!(&mut tree_content, "{} {}", entry.hash, path.display())
+            .expect("String write should never fail");
+    }
+    let tree_hash = hash_bytes(tree_content.as_bytes());
+
+    // Generate commit ID
+    let commit_id = generate_commit_id(
+        &tree_hash,
+        Some(&current_commit),
+        &commit_message,
+        &author,
+        timestamp,
+        nanos,
+    );
+
+    // Create commit object
+    let commit = Commit {
+        id: commit_id.clone(),
+        parent: Some(current_commit),
+        message: commit_message,
+        author,
+        timestamp,
+        tree_hash,
+    };
+
+    // Create snapshot with staged files
+    let snapshot_manager =
+        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+
+    let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
+    snapshot_manager.create_snapshot(commit, &files)?;
+
+    // Update index - commit staged changes
+    let mut index = index;
+    index.commit_staged();
+    index.save(&ctx.repo_path.join(crate::INDEX_FILE))?;
+
+    // Update HEAD
+    if let Some(current_branch) = ref_manager.current_branch()? {
+        ref_manager.update_branch(&current_branch, &commit_id)?;
+    } else {
+        ref_manager.set_head_to_commit(
+            &commit_id,
+            Some("merge"),
+            Some(&format!("merge: continue {}", &commit_id[..8])),
+        )?;
+    }
+
+    // Clear merge state
+    merge_state.clear()?;
+
+    super::print_success(&format!(
+        "Merge completed successfully: {}",
+        commit_id[..8].yellow()
+    ));
+
+    Ok(())
+}
+
+/// Abort an in-progress merge
+///
+/// Cancels a merge operation that was stopped due to conflicts, restoring
+/// the repository state to before the merge began.
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - No merge is in progress
+/// - Failed to restore previous state
+pub fn execute_merge_abort(ctx: &DotmanContext) -> Result<()> {
+    use crate::conflicts::MergeState;
+
+    let merge_state = MergeState::new(ctx.repo_path.clone());
+
+    // Check if merge is in progress
+    if !merge_state.is_merge_in_progress() {
+        return Err(anyhow::anyhow!("No merge in progress. Nothing to abort."));
+    }
+
+    // Clear merge state files
+    merge_state.clear()?;
+
+    // Restore working directory to HEAD
+    super::print_info("Restoring working directory to HEAD...");
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    if let Some(head_commit) = ref_manager.get_head_commit()? {
+        crate::commands::checkout::execute(ctx, &head_commit, false)?;
+    }
+
+    // Clear any staged changes from the merge
+    let mut index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
+    index.staged_entries.clear();
+    index.save(&ctx.repo_path.join(crate::INDEX_FILE))?;
+
+    super::print_success("Merge aborted. Repository restored to pre-merge state.");
 
     Ok(())
 }

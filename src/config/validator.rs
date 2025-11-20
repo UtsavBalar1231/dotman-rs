@@ -40,6 +40,7 @@ impl ConfigValidator {
         known_fields.insert("tracking.ignore_patterns".to_string());
         known_fields.insert("tracking.follow_symlinks".to_string());
         known_fields.insert("tracking.preserve_permissions".to_string());
+        known_fields.insert("tracking.large_file_threshold".to_string());
 
         // Branch fields
         deprecated_fields.insert("branches.current".to_string());

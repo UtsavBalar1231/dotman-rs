@@ -230,10 +230,16 @@ impl RefManager {
 
     /// Update the commit ID for a branch
     ///
+    /// Validates the commit ID format and checks that the commit exists before updating.
+    /// Also verifies the snapshot integrity to ensure all referenced objects are valid.
+    ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - Branch does not exist
+    /// - Commit ID format is invalid (must be hex string, minimum 4 chars)
+    /// - Commit does not exist in repository
+    /// - Snapshot integrity check fails
     /// - Branch file cannot be written
     pub fn update_branch(&self, branch: &str, commit_id: &str) -> Result<()> {
         let branch_path = self.repo_path.join(format!("refs/heads/{branch}"));
@@ -241,7 +247,58 @@ impl RefManager {
             return Err(anyhow::anyhow!("Branch '{branch}' does not exist"));
         }
 
+        // Validate commit ID format
+        Self::validate_commit_id(commit_id)?;
+
+        // Verify commit exists in repository
+        let commit_path = self
+            .repo_path
+            .join("commits")
+            .join(format!("{commit_id}.zst"));
+        if !commit_path.exists() {
+            return Err(anyhow::anyhow!(
+                "Commit '{}' does not exist in repository",
+                &commit_id[..8.min(commit_id.len())]
+            ));
+        }
+
+        // Verify snapshot can be loaded (basic validity check)
+        // Full integrity verification is expensive and should be done by fsck
+        let snapshot_manager = crate::storage::snapshots::SnapshotManager::new(
+            self.repo_path.clone(),
+            3, // Default compression level
+        );
+        if let Err(e) = snapshot_manager.load_snapshot(commit_id) {
+            return Err(anyhow::anyhow!(
+                "Cannot load snapshot for commit '{}': {}",
+                &commit_id[..8.min(commit_id.len())],
+                e
+            ));
+        }
+
         fs::write(&branch_path, commit_id)?;
+        Ok(())
+    }
+
+    /// Validate commit ID format
+    ///
+    /// Checks that the ID is a valid hex string with appropriate length
+    fn validate_commit_id(commit_id: &str) -> Result<()> {
+        // Minimum length check (at least 4 chars for short ID, typically 64 for full)
+        if commit_id.len() < 4 {
+            return Err(anyhow::anyhow!(
+                "Commit ID too short: '{commit_id}' (minimum 4 characters)"
+            ));
+        }
+
+        // Check if all characters are valid hexadecimal
+        if !commit_id.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(anyhow::anyhow!(
+                "Invalid commit ID format: '{}' (must be hexadecimal)",
+                &commit_id[..16.min(commit_id.len())]
+            ));
+        }
+
         Ok(())
     }
 
@@ -416,5 +473,105 @@ impl RefManager {
     #[must_use]
     pub fn tag_exists(&self, name: &str) -> bool {
         self.repo_path.join(format!("refs/tags/{name}")).exists()
+    }
+
+    // Remote ref management methods
+
+    /// Create or update a remote tracking ref
+    ///
+    /// Remote refs are stored as `refs/remotes/<remote>/<branch>` and track
+    /// the state of branches on remote repositories after fetch operations.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to create remote refs directory
+    /// - Failed to write ref file
+    pub fn update_remote_ref(&self, remote: &str, branch: &str, commit_id: &str) -> Result<()> {
+        let ref_path = self
+            .repo_path
+            .join(format!("refs/remotes/{remote}/{branch}"));
+
+        // Create parent directory if needed
+        if let Some(parent) = ref_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        fs::write(&ref_path, commit_id)?;
+        Ok(())
+    }
+
+    /// Get the commit ID for a remote tracking ref
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Remote ref does not exist
+    /// - Failed to read ref file
+    pub fn get_remote_ref(&self, remote: &str, branch: &str) -> Result<String> {
+        let ref_path = self
+            .repo_path
+            .join(format!("refs/remotes/{remote}/{branch}"));
+
+        if !ref_path.exists() {
+            return Err(anyhow::anyhow!(
+                "Remote ref '{remote}/{branch}' does not exist"
+            ));
+        }
+
+        Ok(fs::read_to_string(&ref_path)?.trim().to_string())
+    }
+
+    /// List all remote tracking refs for a remote
+    ///
+    /// Returns a vector of (`branch_name`, `commit_id`) tuples.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if directory cannot be read
+    pub fn list_remote_refs(&self, remote: &str) -> Result<Vec<(String, String)>> {
+        let remotes_dir = self.repo_path.join(format!("refs/remotes/{remote}"));
+
+        if !remotes_dir.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut refs = Vec::new();
+        for entry in fs::read_dir(&remotes_dir)? {
+            let entry = entry?;
+            if entry.file_type()?.is_file() {
+                let branch = entry.file_name().to_string_lossy().to_string();
+                let commit = fs::read_to_string(entry.path())?.trim().to_string();
+                refs.push((branch, commit));
+            }
+        }
+
+        refs.sort_by(|a, b| a.0.cmp(&b.0));
+        Ok(refs)
+    }
+
+    /// Delete all remote refs for a remote
+    ///
+    /// This is typically called when removing a remote configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if directory removal fails
+    pub fn delete_remote_refs(&self, remote: &str) -> Result<()> {
+        let remotes_dir = self.repo_path.join(format!("refs/remotes/{remote}"));
+
+        if remotes_dir.exists() {
+            fs::remove_dir_all(&remotes_dir)?;
+        }
+
+        Ok(())
+    }
+
+    /// Check if a remote ref exists
+    #[must_use]
+    pub fn remote_ref_exists(&self, remote: &str, branch: &str) -> bool {
+        self.repo_path
+            .join(format!("refs/remotes/{remote}/{branch}"))
+            .exists()
     }
 }

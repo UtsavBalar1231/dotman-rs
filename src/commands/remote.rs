@@ -66,6 +66,15 @@ pub fn remove(ctx: &mut DotmanContext, name: &str) -> Result<()> {
         return Err(anyhow::anyhow!("Remote '{name}' does not exist"));
     }
 
+    // Clean up remote tracking refs
+    let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
+    ref_manager.delete_remote_refs(name)?;
+
+    // Clean up commit mappings for this remote
+    let mut mapping_manager = crate::mapping::MappingManager::new(&ctx.repo_path)?;
+    mapping_manager.mapping_mut().remove_remote(name);
+    mapping_manager.save()?;
+
     ctx.config.save(&ctx.config_path)?;
     super::print_success(&format!("Removed remote '{name}'"));
     Ok(())
@@ -164,16 +173,18 @@ pub fn rename(ctx: &mut DotmanContext, old_name: &str, new_name: &str) -> Result
 }
 
 /// Detect remote type from URL
-#[allow(clippy::case_sensitive_file_extension_comparisons)]
 fn detect_remote_type(url: &str) -> RemoteType {
-    if url.ends_with(".git")
-        || url.contains("github.com")
-        || url.contains("gitlab.com")
-        || url.contains("bitbucket.org")
-        || url.contains("git@")
-        || url.starts_with("git://")
-        || url.starts_with("https://") && url.contains(".git")
-        || url.starts_with("http://") && url.contains(".git")
+    let url_lower = url.to_ascii_lowercase();
+    let has_git_extension = std::path::Path::new(url)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("git"));
+
+    if has_git_extension
+        || url_lower.contains("github.com")
+        || url_lower.contains("gitlab.com")
+        || url_lower.contains("bitbucket.org")
+        || url_lower.contains("git@")
+        || url_lower.starts_with("git://")
     {
         RemoteType::Git
     } else {

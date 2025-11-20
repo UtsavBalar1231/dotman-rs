@@ -610,7 +610,17 @@ fn run() -> Result<()> {
             paths,
         } => {
             let ctx = context.context("Context not initialized for reset command")?;
-            commands::reset::execute(&ctx, &commit, hard, soft, mixed, keep, &paths)?;
+            commands::reset::execute(
+                &ctx,
+                &commit,
+                &commands::reset::ResetOptions {
+                    hard,
+                    soft,
+                    mixed,
+                    keep,
+                },
+                &paths,
+            )?;
         }
         Commands::Revert {
             commit,
@@ -654,13 +664,15 @@ fn run() -> Result<()> {
             let mut ctx = context.context("Context not initialized for push command")?;
             commands::push::execute(
                 &mut ctx,
-                remote.as_deref(),
-                branch.as_deref(),
-                force,
-                force_with_lease,
-                dry_run,
-                tags,
-                set_upstream,
+                &commands::push::PushArgs {
+                    remote,
+                    branch,
+                    force,
+                    force_with_lease,
+                    dry_run,
+                    tags,
+                    set_upstream,
+                },
             )?;
         }
         Commands::Pull {
@@ -708,7 +720,16 @@ fn run() -> Result<()> {
             dry_run,
         } => {
             let ctx = context.context("Context not initialized for rm command")?;
-            commands::rm::execute(&ctx, &paths, cached, force, recursive, dry_run)?;
+            commands::rm::execute(
+                &ctx,
+                &paths,
+                &commands::rm::RmOptions {
+                    cached,
+                    force,
+                    recursive,
+                    dry_run,
+                },
+            )?;
         }
         Commands::Clean { dry_run, force } => {
             let ctx = context.context("Context not initialized for clean command")?;

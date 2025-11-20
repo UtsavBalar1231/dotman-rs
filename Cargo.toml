@@ -62,6 +62,7 @@ rand = "0.9"
 libc = "0.2"
 terminal_size = "0.4"
 glob = "0.3.3"
+humantime = "2.1"
 # sha2 = "0.10"
 # base64 = "0.22"
 

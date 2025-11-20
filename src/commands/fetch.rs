@@ -1,5 +1,4 @@
 use crate::DotmanContext;
-use crate::mapping::MappingManager;
 use crate::mirror::GitMirror;
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -127,10 +126,57 @@ fn fetch_from_git(
         }
     }
 
-    // Update mapping to track fetched commits
-    let _mapping_manager = MappingManager::new(&ctx.repo_path)?;
+    // Update remote tracking refs (refs/remotes/origin/*)
+    // Get commit IDs for all remote tracking branches
+    let output = Command::new("git")
+        .args([
+            "for-each-ref",
+            &format!("refs/remotes/{remote}"),
+            "--format=%(objectname) %(refname)",
+        ])
+        .current_dir(mirror_path)
+        .output()?;
 
-    // List remote branches to update tracking
+    let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
+
+    if output.status.success() {
+        let refs = String::from_utf8_lossy(&output.stdout);
+        let mut updated_count = 0;
+
+        for line in refs.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() == 2 {
+                let git_commit = parts[0];
+                let ref_name = parts[1];
+
+                // Extract branch name from refs/remotes/remote/branch
+                if let Some(branch_name) = ref_name.strip_prefix(&format!("refs/remotes/{remote}/"))
+                {
+                    // Try to get dotman commit from mapping
+                    let mapping_manager = crate::mapping::MappingManager::new(&ctx.repo_path)?;
+                    if let Some(dotman_commit) = mapping_manager
+                        .mapping()
+                        .get_dotman_commit(remote, git_commit)
+                    {
+                        // Update remote ref to point to dotman commit
+                        ref_manager.update_remote_ref(remote, branch_name, &dotman_commit)?;
+                    } else {
+                        // No mapping yet - this is a branch that hasn't been pulled/pushed
+                        // We can still track the git commit hash for reference
+                        // Store git commit hash temporarily (will be replaced when pulled)
+                        ref_manager.update_remote_ref(remote, branch_name, git_commit)?;
+                    }
+                    updated_count += 1;
+                }
+            }
+        }
+
+        if updated_count > 0 {
+            super::print_info(&format!("Updated {updated_count} remote tracking refs"));
+        }
+    }
+
+    // List remote branches
     let output = Command::new("git")
         .args(["branch", "-r"])
         .current_dir(mirror_path)

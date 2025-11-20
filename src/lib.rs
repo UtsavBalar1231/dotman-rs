@@ -56,6 +56,12 @@ pub mod commands;
 /// Configuration parsing, validation, and management.
 pub mod config;
 
+/// Merge conflict detection and resolution.
+pub mod conflicts;
+
+/// Operation locking to prevent concurrent remote operations.
+pub mod lock;
+
 /// File mapping and path resolution utilities.
 pub mod mapping;
 

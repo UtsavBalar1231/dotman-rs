@@ -75,8 +75,11 @@ pub fn expand_tilde(path: &str) -> Result<PathBuf> {
 
 /// Make `path` relative to `base` if possible, otherwise return `path` as is.
 ///
+/// This is permissive for local operations (add/commit/checkout) but note that
+/// files outside HOME directory cannot be synchronized via git remotes.
+///
 /// # Errors
-/// If `base` is not a prefix of `path`, an error is returned.
+/// Returns Ok with the relative path if possible, or the original path otherwise.
 pub fn make_relative(path: &Path, base: &Path) -> Result<PathBuf> {
     path.strip_prefix(base)
         .map(Path::to_path_buf)

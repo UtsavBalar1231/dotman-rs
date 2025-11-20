@@ -127,18 +127,18 @@ pub fn execute(
         let mut current_commit_id = Some(start_commit_id);
         let mut visited = HashSet::new();
 
-        while let Some(commit_id) = current_commit_id {
+        while let Some(ref commit_id) = current_commit_id {
             if commits_displayed >= limit {
                 break;
             }
 
             // Prevent infinite loops
-            if visited.contains(&commit_id) {
+            if visited.contains(commit_id) {
                 break;
             }
             visited.insert(commit_id.clone());
 
-            let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) else {
+            let Ok(snapshot) = snapshot_manager.load_snapshot(commit_id) else {
                 break; // Stop if we can't find the commit
             };
 
@@ -147,10 +147,7 @@ pub fn execute(
             commits_displayed += 1;
 
             // Move to parent commit
-            #[allow(clippy::assigning_clones)]
-            {
-                current_commit_id = commit.parent.clone();
-            }
+            current_commit_id.clone_from(&commit.parent);
         }
     } else {
         // Try to get HEAD commit, if it exists
@@ -161,18 +158,18 @@ pub fn execute(
             let mut current_commit_id = Some(head_commit_id);
             let mut visited = HashSet::new();
 
-            while let Some(commit_id) = current_commit_id {
+            while let Some(ref commit_id) = current_commit_id {
                 if commits_displayed >= limit {
                     break;
                 }
 
                 // Prevent infinite loops
-                if visited.contains(&commit_id) {
+                if visited.contains(commit_id) {
                     break;
                 }
                 visited.insert(commit_id.clone());
 
-                let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) else {
+                let Ok(snapshot) = snapshot_manager.load_snapshot(commit_id) else {
                     break;
                 };
 
@@ -181,10 +178,7 @@ pub fn execute(
                 commits_displayed += 1;
 
                 // Move to parent commit
-                #[allow(clippy::assigning_clones)]
-                {
-                    current_commit_id = commit.parent.clone();
-                }
+                current_commit_id.clone_from(&commit.parent);
             }
         }
     }

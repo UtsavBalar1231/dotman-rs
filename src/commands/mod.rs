@@ -16,6 +16,8 @@ pub mod context;
 pub mod diff;
 /// Fetch changes from remote repositories.
 pub mod fetch;
+/// File system consistency check.
+pub mod fsck;
 /// Import configurations from other systems.
 pub mod import;
 /// Repository initialization.

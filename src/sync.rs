@@ -78,9 +78,20 @@ impl<'a> Exporter<'a> {
 
         // Export each file in the snapshot
         for (path, file) in &snapshot.files {
-            let relative_path = path
-                .strip_prefix(std::env::var("HOME").unwrap_or_else(|_| "/home".to_string()))
-                .unwrap_or(path);
+            // Paths in snapshots are already relative to HOME (from how they're stored in the index)
+            // If the path is absolute (shouldn't happen but handle it), make it relative
+            let relative_path = if path.is_absolute() {
+                let home = std::env::var("HOME").unwrap_or_else(|_| "/home".to_string());
+                path.strip_prefix(&home).with_context(|| {
+                    format!(
+                        "Cannot export file outside HOME directory: {}\nFile must be under {}",
+                        path.display(),
+                        home
+                    )
+                })?
+            } else {
+                path
+            };
 
             let target_path = target_dir.join(relative_path);
 

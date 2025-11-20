@@ -66,6 +66,8 @@ use std::path::{Path, PathBuf};
 /// Uses [`HashMap`] for O(1) lookups. For concurrent operations,
 /// use [`ConcurrentIndex`](super::concurrent_index::ConcurrentIndex).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+// False positive: Index has no unsafe methods or invariants.
+// The derived Deserialize implementation is completely safe.
 #[allow(clippy::unsafe_derive_deserialize)]
 pub struct Index {
     /// Index format version for compatibility.

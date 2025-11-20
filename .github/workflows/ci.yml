@@ -85,7 +85,7 @@ jobs:
         run: cargo build --verbose --all-features
 
       - name: Run unit tests
-        run: cargo test --verbose --all-features
+        run: cargo test --verbose --all-features -- --include-ignored
 
       - name: Run integration tests
         run: cargo test --verbose --test integration_basic

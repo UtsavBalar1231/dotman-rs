@@ -227,28 +227,24 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
         let existing_entry = index.get_entry(&entry.path);
         let is_staged = index.get_staged_entry(&entry.path).is_some();
 
-        match existing_entry {
-            Some(committed_entry) => {
-                // File is tracked - only stage if content changed
-                if entry.hash != committed_entry.hash {
-                    index.stage_entry(entry.clone());
-                    updated_count += 1;
-                    println!("  {} {}", "modified:".yellow(), entry.path.display());
-                }
-                // else: unchanged - skip silently
+        if let Some(committed_entry) = existing_entry {
+            // File is tracked - only stage if content changed
+            if entry.hash != committed_entry.hash {
+                index.stage_entry(entry.clone());
+                updated_count += 1;
+                println!("  {} {}", "modified:".yellow(), entry.path.display());
             }
-            None => {
-                // Not in committed entries - check if staged
-                if is_staged {
-                    index.stage_entry(entry.clone());
-                    updated_count += 1;
-                    println!("  {} {}", "updated:".yellow(), entry.path.display());
-                } else {
-                    // New file
-                    index.stage_entry(entry.clone());
-                    added_count += 1;
-                    println!("  {} {}", "added:".green(), entry.path.display());
-                }
+            // else: unchanged - skip silently
+        } else {
+            // Not in committed entries - check if staged
+            index.stage_entry(entry.clone());
+            if is_staged {
+                updated_count += 1;
+                println!("  {} {}", "updated:".yellow(), entry.path.display());
+            } else {
+                // New file
+                added_count += 1;
+                println!("  {} {}", "added:".green(), entry.path.display());
             }
         }
     }

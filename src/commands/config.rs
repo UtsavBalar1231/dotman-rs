@@ -18,7 +18,7 @@ pub fn execute(
 ) -> Result<()> {
     // If --list flag is set or no key is provided, show all configuration
     if list || key.is_none() {
-        show_all_config(ctx)?;
+        show_all_config(ctx);
         return Ok(());
     }
 
@@ -45,12 +45,7 @@ pub fn execute(
 }
 
 /// Show all configuration values
-///
-/// # Errors
-///
-/// This function currently doesn't return errors but returns `Result` for future compatibility
-#[allow(clippy::unnecessary_wraps)]
-fn show_all_config(ctx: &DotmanContext) -> Result<()> {
+fn show_all_config(ctx: &DotmanContext) {
     println!("{}", "[user]".bold());
     if let Some(name) = &ctx.config.user.name {
         println!("  name = {name}");
@@ -108,6 +103,4 @@ fn show_all_config(ctx: &DotmanContext) -> Result<()> {
             }
         }
     }
-
-    Ok(())
 }

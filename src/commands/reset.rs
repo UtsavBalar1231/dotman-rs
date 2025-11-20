@@ -7,6 +7,20 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 use std::path::{Path, PathBuf};
 
+/// Options for the reset command
+#[derive(Clone, Copy, Default)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct ResetOptions {
+    /// Hard reset: update index and working directory
+    pub hard: bool,
+    /// Soft reset: only move HEAD, keep index and working directory
+    pub soft: bool,
+    /// Mixed reset: update index but not working directory (default)
+    pub mixed: bool,
+    /// Keep reset: reset HEAD and index but keep working directory changes
+    pub keep: bool,
+}
+
 /// Execute reset command - reset current HEAD to the specified state
 ///
 /// # Errors
@@ -17,21 +31,20 @@ use std::path::{Path, PathBuf};
 /// - Multiple reset modes are specified
 /// - File operations fail during hard reset
 /// - Index update fails
-#[allow(clippy::fn_params_excessive_bools)]
 #[allow(clippy::too_many_lines)]
 pub fn execute(
     ctx: &DotmanContext,
     commit: &str,
-    hard: bool,
-    soft: bool,
-    mixed: bool,
-    keep: bool,
+    options: &ResetOptions,
     paths: &[String],
 ) -> Result<()> {
     ctx.check_repo_initialized()?;
 
     // Count how many modes are specified
-    let mode_count = [hard, soft, mixed, keep].iter().filter(|&&x| x).count();
+    let mode_count = [options.hard, options.soft, options.mixed, options.keep]
+        .iter()
+        .filter(|&&x| x)
+        .count();
     if mode_count > 1 {
         return Err(anyhow::anyhow!(
             "Cannot use multiple reset modes simultaneously"
@@ -54,7 +67,7 @@ pub fn execute(
         .load_snapshot(&commit_id)
         .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
-    if hard {
+    if options.hard {
         // Hard reset: update index and working directory
         super::print_info(&format!(
             "Hard reset to commit {}",
@@ -86,7 +99,7 @@ pub fn execute(
             "Hard reset complete. Working directory and index updated to match commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
-    } else if soft {
+    } else if options.soft {
         // Soft reset: only move HEAD, keep index and working directory
         super::print_info(&format!(
             "Soft reset to commit {}",
@@ -97,7 +110,7 @@ pub fn execute(
             "Soft reset complete. HEAD now points to commit {}",
             commit_id[..8.min(commit_id.len())].yellow()
         ));
-    } else if keep {
+    } else if options.keep {
         // Keep reset: reset HEAD and index but keep working directory changes
         super::print_info(&format!(
             "Keep reset to commit {}",

@@ -1,14 +1,34 @@
 use crate::DotmanContext;
-use crate::mapping::MappingManager;
+use crate::mapping::{CommitMapping, MappingManager};
 use crate::mirror::GitMirror;
 use crate::refs::RefManager;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
 use crate::sync::Exporter;
 use anyhow::{Context, Result};
+use std::path::Path;
 use std::process::Command;
 
-/// Options for push operation to remote repository
+/// Public arguments for push command
+#[allow(clippy::struct_excessive_bools)]
+pub struct PushArgs {
+    /// Name of the remote repository
+    pub remote: Option<String>,
+    /// Name of the branch to push
+    pub branch: Option<String>,
+    /// Force push even if not fast-forward
+    pub force: bool,
+    /// Safer force push that checks remote state
+    pub force_with_lease: bool,
+    /// Preview push without actually sending changes
+    pub dry_run: bool,
+    /// Whether to push tags along with commits
+    pub tags: bool,
+    /// Set tracking relationship with upstream
+    pub set_upstream: bool,
+}
+
+/// Options for push operation to remote repository (internal use)
 #[allow(clippy::struct_excessive_bools)]
 struct PushOptions<'a> {
     /// Name of the remote repository
@@ -25,6 +45,148 @@ struct PushOptions<'a> {
     tags: bool,
 }
 
+/// Tracks state for push transaction to enable rollback on failure
+///
+/// This struct captures the state of the git mirror and mappings before
+/// a push operation begins. If the push fails at any point, this transaction
+/// can be used to rollback the mirror and mappings to their previous state.
+struct PushTransaction {
+    /// Git HEAD commit in mirror before push (None if mirror was empty)
+    mirror_head_before: Option<String>,
+    /// Clone of commit mappings before any modifications
+    mappings_before: CommitMapping,
+    /// List of dotman commits that were pushed (for logging)
+    pushed_commits: Vec<String>,
+}
+
+/// Rollback a failed push operation
+///
+/// Restores the git mirror and mappings to their state before the push.
+/// This ensures consistency if the push operation fails after git commits
+/// are made but before mappings are saved or remote push succeeds.
+///
+/// # Arguments
+///
+/// * `mirror` - The git mirror to reset
+/// * `transaction` - The transaction containing pre-push state
+/// * `mapping_path` - Path to the mapping file to restore
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Git reset command fails
+/// - Mapping file cannot be restored
+fn rollback_push(
+    mirror: &GitMirror,
+    transaction: &PushTransaction,
+    mapping_path: &Path,
+) -> Result<()> {
+    super::print_warning("Push failed - rolling back changes...");
+
+    // Reset git mirror to previous HEAD (hard reset to discard commits)
+    // Only reset if there was a previous HEAD (mirror wasn't empty)
+    if let Some(previous_head) = &transaction.mirror_head_before {
+        let reset_output = Command::new("git")
+            .args(["reset", "--hard", previous_head])
+            .current_dir(mirror.get_mirror_path())
+            .output()
+            .context("Failed to execute git reset for rollback")?;
+
+        if !reset_output.status.success() {
+            let stderr = String::from_utf8_lossy(&reset_output.stderr);
+            return Err(anyhow::anyhow!("Failed to rollback git mirror: {stderr}"));
+        }
+    } else {
+        // Mirror was empty before push, clean it up completely
+        mirror.clear_working_directory()?;
+    }
+
+    // Restore mappings from transaction (they weren't saved yet, but restore from backup if exists)
+    // The backup was created when loading, so we can restore from it
+    let backup_path = mapping_path.with_extension("bak");
+    if backup_path.exists() {
+        std::fs::copy(&backup_path, mapping_path)
+            .context("Failed to restore mapping file from backup during rollback")?;
+        super::print_info("Mapping file restored from backup");
+    } else {
+        // No backup exists, save the original mappings we cloned
+        transaction
+            .mappings_before
+            .save(mapping_path)
+            .context("Failed to restore original mappings during rollback")?;
+        super::print_info("Mapping file restored from transaction");
+    }
+
+    super::print_success(&format!(
+        "Rollback complete - removed {} uncommitted git commit{}",
+        transaction.pushed_commits.len(),
+        if transaction.pushed_commits.len() == 1 {
+            ""
+        } else {
+            "s"
+        }
+    ));
+
+    Ok(())
+}
+
+/// Verify that remote repository received the pushed commits
+///
+/// Uses git ls-remote to check that the remote branch contains the expected commit.
+/// This provides assurance that the push actually succeeded at the protocol level.
+///
+/// # Arguments
+///
+/// * `mirror` - The git mirror to verify
+/// * `branch` - The branch name that was pushed
+/// * `expected_commit` - The git commit ID we expect to see on the remote
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - git ls-remote command fails
+/// - Remote branch doesn't exist
+/// - Remote branch doesn't contain the expected commit
+fn verify_remote_push(mirror: &GitMirror, branch: &str, expected_commit: &str) -> Result<()> {
+    let output = Command::new("git")
+        .args(["ls-remote", "origin", branch])
+        .current_dir(mirror.get_mirror_path())
+        .output()
+        .context("Failed to execute git ls-remote for verification")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow::anyhow!("Git ls-remote failed: {stderr}"));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // ls-remote output format: <commit-id>\t<ref-name>
+    // Example: abc123def456\trefs/heads/main
+    let remote_commit = stdout
+        .lines()
+        .find(|line| line.contains(&format!("refs/heads/{branch}")))
+        .and_then(|line| line.split_whitespace().next())
+        .context("Remote branch not found in ls-remote output")?;
+
+    // Verify the remote has our commit
+    if !remote_commit.starts_with(expected_commit) && !expected_commit.starts_with(remote_commit) {
+        return Err(anyhow::anyhow!(
+            "Remote branch '{}' has commit {} but expected {}",
+            branch,
+            &remote_commit[..8.min(remote_commit.len())],
+            &expected_commit[..8.min(expected_commit.len())]
+        ));
+    }
+
+    super::print_success(&format!(
+        "Verified remote has commit {}",
+        &expected_commit[..8.min(expected_commit.len())]
+    ));
+
+    Ok(())
+}
+
 /// Execute push command - update remote refs along with associated objects
 ///
 /// # Errors
@@ -35,34 +197,28 @@ struct PushOptions<'a> {
 /// - The branch does not exist locally
 /// - The push is rejected by the remote
 /// - Network operations fail
-#[allow(clippy::fn_params_excessive_bools, clippy::too_many_arguments)]
-pub fn execute(
-    ctx: &mut DotmanContext,
-    remote: Option<&str>,
-    branch: Option<&str>,
-    force: bool,
-    force_with_lease: bool,
-    dry_run: bool,
-    tags: bool,
-    set_upstream: bool,
-) -> Result<()> {
+pub fn execute(ctx: &mut DotmanContext, args: &PushArgs) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    if force && force_with_lease {
+    if args.force && args.force_with_lease {
         return Err(anyhow::anyhow!(
             "Cannot use both --force and --force-with-lease"
         ));
     }
 
     // Determine remote and branch to use
-    let (remote_name, branch_name, should_set_upstream) =
-        determine_push_target(ctx, remote, branch, set_upstream)?;
+    let (remote_name, branch_name, should_set_upstream) = determine_push_target(
+        ctx,
+        args.remote.as_deref(),
+        args.branch.as_deref(),
+        args.set_upstream,
+    )?;
 
     let remote_config = ctx.config.get_remote(&remote_name).with_context(|| {
         format!("Remote '{remote_name}' does not exist. Use 'dot remote add' to add it.")
     })?;
 
-    if dry_run {
+    if args.dry_run {
         super::print_info(&format!(
             "Dry run mode - would push to {remote_name} ({branch_name})"
         ));
@@ -71,10 +227,10 @@ pub fn execute(
     let push_opts = PushOptions {
         remote: &remote_name,
         branch: &branch_name,
-        force,
-        force_with_lease,
-        dry_run,
-        tags,
+        force: args.force,
+        force_with_lease: args.force_with_lease,
+        dry_run: args.dry_run,
+        tags: args.tags,
     };
 
     let result = match &remote_config.remote_type {
@@ -85,7 +241,7 @@ pub fn execute(
     };
 
     // Auto-set upstream on successful push if needed
-    if result.is_ok() && should_set_upstream && !dry_run {
+    if result.is_ok() && should_set_upstream && !args.dry_run {
         let tracking = crate::config::BranchTracking {
             remote: remote_name.clone(),
             branch: branch_name.clone(),
@@ -107,7 +263,7 @@ fn build_commit_chain(snapshot_manager: &SnapshotManager, target_commit: &str) -
     let mut current_commit = Some(target_commit.to_string());
 
     // Follow parent links to collect all commits
-    while let Some(commit_id) = current_commit {
+    while let Some(ref commit_id) = current_commit {
         // Skip the special "all zeros" parent that represents no parent
         if commit_id.chars().all(|c| c == '0') {
             break;
@@ -115,12 +271,9 @@ fn build_commit_chain(snapshot_manager: &SnapshotManager, target_commit: &str) -
 
         commits.push(commit_id.clone());
 
-        match snapshot_manager.load_snapshot(&commit_id) {
+        match snapshot_manager.load_snapshot(commit_id) {
             Ok(snapshot) => {
-                #[allow(clippy::assigning_clones)]
-                {
-                    current_commit = snapshot.commit.parent.clone();
-                }
+                current_commit.clone_from(&snapshot.commit.parent);
             }
             Err(_) => {
                 // Stop if we can't load a commit
@@ -324,6 +477,39 @@ fn push_to_git(
     let index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
     let exporter = Exporter::new(&snapshot_manager, &index);
 
+    // === TRANSACTION START ===
+    // This implements a transactional push with rollback capability using a three-phase approach:
+    //
+    // Phase 1: PREPARE - Create git commits in mirror but don't push or save mappings
+    //   - Export dotman commits to mirror working directory
+    //   - Create git commits with original timestamps
+    //   - Keep mappings in memory only (pending_mappings)
+    //   - Save transaction state for rollback (mirror HEAD, original mappings)
+    //
+    // Phase 2: PUSH - Send commits to remote and verify
+    //   - Push to remote repository
+    //   - Verify remote received commits (git ls-remote)
+    //   - On failure: rollback git mirror to original HEAD
+    //
+    // Phase 3: COMMIT - Persist mappings (point of no return)
+    //   - Save all pending mappings to disk
+    //   - Update branch tracking
+    //   - Push tags if requested
+    //
+    // Rollback guarantee: If anything fails before phase 3 completes, we can restore
+    // to exact pre-push state by resetting mirror HEAD and restoring mapping backup.
+
+    // Capture state before making any git commits for potential rollback
+    // If mirror is empty (no HEAD), there's nothing to rollback to
+    let mirror_head_before = mirror.get_head_commit().ok();
+
+    let mappings_before = mapping_manager.mapping().clone();
+    let mapping_path = ctx.repo_path.join("mapping.toml");
+
+    // Collect mappings in memory - DO NOT save until push succeeds
+    // This allows us to rollback cleanly if the remote push fails
+    let mut pending_mappings: Vec<(String, String)> = Vec::new();
+
     for (i, commit_id) in commits_to_push.iter().enumerate() {
         super::print_info(&format!(
             "Processing commit {}/{}: {}",
@@ -348,14 +534,15 @@ fn push_to_git(
         // Commit in mirror with original timestamp
         let git_commit = mirror.commit_with_timestamp(message, author, timestamp)?;
 
-        mapping_manager.add_and_save(opts.remote, commit_id, &git_commit)?;
+        // Store mapping in memory only (don't save yet!)
+        pending_mappings.push((commit_id.clone(), git_commit));
     }
 
-    let last_dotman_commit = commits_to_push.last().context("No commits to push")?;
-    let last_git_commit = mapping_manager
-        .mapping()
-        .get_git_commit(opts.remote, last_dotman_commit)
-        .context("Failed to get git commit mapping")?;
+    // Get last git commit from pending mappings (not saved yet)
+    let last_git_commit = pending_mappings
+        .last()
+        .map(|(_, git_commit)| git_commit.clone())
+        .context("No commits to push")?;
 
     if opts.dry_run {
         super::print_info("Dry run - not pushing to remote");
@@ -369,10 +556,20 @@ fn push_to_git(
         return Ok(());
     }
 
-    // Push to remote with force options
+    // Create transaction for rollback capability
+    let transaction = PushTransaction {
+        mirror_head_before,
+        mappings_before,
+        pushed_commits: commits_to_push.clone(),
+    };
+
+    // === PUSH PHASE ===
+    // At this point we have git commits in the mirror but haven't modified any persistent
+    // state (mappings not saved, remote not updated). This is the critical phase where
+    // we attempt the actual network operation. If this fails, we can still rollback cleanly.
     super::print_info(&format!("Pushing branch '{}' to remote...", opts.branch));
 
-    if opts.force || opts.force_with_lease {
+    let push_result = if opts.force || opts.force_with_lease {
         // Push with force options
         let mirror_path = mirror.get_mirror_path();
         let mut args = vec!["push", "origin", opts.branch];
@@ -386,20 +583,77 @@ fn push_to_git(
         let output = Command::new("git")
             .args(&args)
             .current_dir(mirror_path)
-            .output()?;
+            .output()
+            .context("Failed to execute git push")?;
 
-        if !output.status.success() {
+        if output.status.success() {
+            Ok(())
+        } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow::anyhow!("Git force push failed: {stderr}"));
+            Err(anyhow::anyhow!("Git force push failed: {stderr}"))
         }
     } else {
-        mirror.push(opts.branch)?;
+        mirror.push(opts.branch)
+    };
+
+    // Handle push failure with rollback
+    if let Err(e) = push_result {
+        rollback_push(&mirror, &transaction, &mapping_path)?;
+        return Err(e);
     }
 
-    // Push tags if requested
+    // === VERIFICATION PHASE ===
+    // Verify that remote actually received the commits
+    super::print_info("Verifying remote received commits...");
+    let verify_result = verify_remote_push(&mirror, opts.branch, &last_git_commit);
+
+    if let Err(e) = verify_result {
+        super::print_warning(&format!("Remote verification failed: {e}"));
+        rollback_push(&mirror, &transaction, &mapping_path)?;
+        return Err(anyhow::anyhow!(
+            "Push verification failed - changes rolled back: {e}"
+        ));
+    }
+
+    // === COMMIT PHASE ===
+    // Push and verification succeeded! Now save all commit mappings.
+    //
+    // This is the COMMIT POINT of the transaction. After mappings are saved to disk,
+    // we're fully committed - the remote has our commits and we've recorded the mapping.
+    // There's no rollback after this point.
+    //
+    // If mapping save fails here, the remote still has our commits but we've lost the
+    // mapping information. This is recoverable (user can re-push to recreate mappings)
+    // but we warn about it since it's an inconsistent state.
+    for (dotman_commit, git_commit) in pending_mappings {
+        mapping_manager
+            .mapping_mut()
+            .add_mapping(opts.remote, &dotman_commit, &git_commit);
+    }
+
+    // Save mappings - if this fails, we still rolled forward (remote has commits)
+    // but we warn the user about the inconsistency
+    if let Err(e) = mapping_manager.save() {
+        super::print_warning(&format!(
+            "Push succeeded but failed to save mappings: {e}\n\
+             You may need to re-push to recreate mappings."
+        ));
+        return Err(e);
+    }
+
+    // Get last dotman commit for remote ref and branch mapping
+    let last_dotman_commit = commits_to_push.last().context("No commits to push")?;
+
+    // Update remote tracking ref to point to the last dotman commit we pushed
+    ref_manager.update_remote_ref(opts.remote, opts.branch, last_dotman_commit)?;
+
+    // Push tags if requested (non-fatal)
     if opts.tags {
         super::print_info("Pushing tags...");
-        push_tags(&mirror)?;
+        if let Err(e) = push_tags(&mirror) {
+            super::print_warning(&format!("Failed to push tags: {e}"));
+            // Don't fail the entire operation if tags fail
+        }
     }
 
     mapping_manager.update_branch_and_save(

@@ -699,7 +699,12 @@ mod reset_command_tests {
         let (_temp_dir, ctx, commits) = setup_repo_with_commits()?;
 
         // Reset to first commit
-        commands::reset::execute(&ctx, &commits[0], false, false, false, false, &[])?;
+        commands::reset::execute(
+            &ctx,
+            &commits[0],
+            &commands::reset::ResetOptions::default(),
+            &[],
+        )?;
 
         // HEAD should point to first commit
         let head = ctx.create_ref_resolver().resolve("HEAD")?;
@@ -718,8 +723,15 @@ mod reset_command_tests {
         commands::add::execute(&ctx, &[new_file.to_string_lossy().into()], false, false)?;
 
         // Soft reset should preserve staged changes
-        // Pass soft=true as second parameter
-        commands::reset::execute(&ctx, &commits[0], false, true, false, false, &[])?;
+        commands::reset::execute(
+            &ctx,
+            &commits[0],
+            &commands::reset::ResetOptions {
+                soft: true,
+                ..Default::default()
+            },
+            &[],
+        )?;
 
         let index = CommandContext::load_concurrent_index(&ctx)?;
         assert!(!index.staged_entries().is_empty());
@@ -737,7 +749,15 @@ mod reset_command_tests {
         commands::add::execute(&ctx, &[new_file.to_string_lossy().into()], false, false)?;
 
         // Hard reset should discard staged changes
-        commands::reset::execute(&ctx, &commits[0], true, false, false, false, &[])?;
+        commands::reset::execute(
+            &ctx,
+            &commits[0],
+            &commands::reset::ResetOptions {
+                hard: true,
+                ..Default::default()
+            },
+            &[],
+        )?;
 
         let index = CommandContext::load_concurrent_index(&ctx)?;
         assert!(index.staged_entries().is_empty());
@@ -750,7 +770,12 @@ mod reset_command_tests {
         let (_temp_dir, ctx, _commits) = setup_repo_with_commits()?;
 
         // Reset to HEAD~1
-        commands::reset::execute(&ctx, "HEAD~1", false, false, false, false, &[])?;
+        commands::reset::execute(
+            &ctx,
+            "HEAD~1",
+            &commands::reset::ResetOptions::default(),
+            &[],
+        )?;
 
         Ok(())
     }
@@ -955,7 +980,15 @@ mod log_command_tests {
         // Reset to commit 2 (making commit 3 orphaned)
         let resolver = dotman::refs::resolver::RefResolver::new(ctx.repo_path.clone());
         let commit2 = resolver.resolve("HEAD~1")?;
-        commands::reset::execute(&ctx, &commit2, false, false, true, false, &[])?;
+        commands::reset::execute(
+            &ctx,
+            &commit2,
+            &commands::reset::ResetOptions {
+                mixed: true,
+                ..Default::default()
+            },
+            &[],
+        )?;
 
         // Normal log should show 2 commits (reachable from HEAD)
         let result_normal = commands::log::execute(&ctx, None, 10, false, false);

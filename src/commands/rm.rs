@@ -18,19 +18,19 @@
 //!
 //! ```no_run
 //! use dotman::DotmanContext;
-//! use dotman::commands::rm;
+//! use dotman::commands::rm::{self, RmOptions};
 //!
 //! # fn main() -> anyhow::Result<()> {
 //! let ctx = DotmanContext::new()?;
 //!
 //! // Remove a file from tracking
-//! rm::execute(&ctx, &["file.txt".to_string()], false, false, false, false)?;
+//! rm::execute(&ctx, &["file.txt".to_string()], &RmOptions::default())?;
 //!
 //! // Remove with glob pattern
-//! rm::execute(&ctx, &["*.tmp".to_string()], false, false, false, false)?;
+//! rm::execute(&ctx, &["*.tmp".to_string()], &RmOptions::default())?;
 //!
 //! // Dry run (preview)
-//! rm::execute(&ctx, &["file.txt".to_string()], false, false, false, true)?;
+//! rm::execute(&ctx, &["file.txt".to_string()], &RmOptions { dry_run: true, ..Default::default() })?;
 //! # Ok(())
 //! # }
 //! ```
@@ -42,6 +42,20 @@ use colored::Colorize;
 use glob::Pattern;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+/// Options for the rm command
+#[derive(Clone, Copy, Default)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct RmOptions {
+    /// Only remove from index, not from working tree
+    pub cached: bool,
+    /// Allow removing non-tracked files
+    pub force: bool,
+    /// Recursively remove directories
+    pub recursive: bool,
+    /// Preview changes without removing
+    pub dry_run: bool,
+}
 
 /// Remove files from tracking (index only, never deletes actual files)
 ///
@@ -56,18 +70,10 @@ use std::path::{Path, PathBuf};
 /// - No files match the specified patterns
 /// - File operations fail
 /// - Index update fails
-#[allow(clippy::fn_params_excessive_bools)]
-pub fn execute(
-    ctx: &DotmanContext,
-    paths: &[String],
-    cached: bool,
-    force: bool,
-    recursive: bool,
-    dry_run: bool,
-) -> Result<()> {
+pub fn execute(ctx: &DotmanContext, paths: &[String], options: &RmOptions) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    if dry_run {
+    if options.dry_run {
         super::print_info("Dry run mode - no files will be removed");
     }
 
@@ -99,7 +105,7 @@ pub fn execute(
         } else {
             let path = PathBuf::from(path_str);
 
-            if recursive && path.is_dir() {
+            if options.recursive && path.is_dir() {
                 // Add all files in directory recursively
                 expand_directory_recursive(&path, &mut expanded_paths)?;
             } else {
@@ -121,13 +127,13 @@ pub fn execute(
 
         let in_index = index.get_entry(&index_path).is_some();
 
-        if !in_index && !force {
+        if !in_index && !options.force {
             super::print_warning(&format!("File not tracked: {}", path.display()));
             not_found_count += 1;
             continue;
         }
 
-        if dry_run {
+        if options.dry_run {
             println!(
                 "  {} {} (dry run)",
                 "would remove:".yellow(),
@@ -150,20 +156,20 @@ pub fn execute(
         }
 
         // For safety, we never delete actual files from disk
-        if !cached {}
+        if !options.cached {}
     }
 
     // Save updated index (only if not in dry run mode)
-    if removed_count > 0 && !dry_run {
+    if removed_count > 0 && !options.dry_run {
         index.save(&index_path)?;
-        if cached {
+        if options.cached {
             super::print_success(&format!(
                 "Removed {removed_count} file(s) from index (files unchanged on disk)"
             ));
         } else {
             super::print_success(&format!("Removed {removed_count} file(s) from tracking"));
         }
-    } else if removed_count > 0 && dry_run {
+    } else if removed_count > 0 && options.dry_run {
         super::print_success(&format!("Would remove {removed_count} file(s) (dry run)"));
     }
 

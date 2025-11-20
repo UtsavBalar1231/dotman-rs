@@ -73,6 +73,13 @@ impl RefResolver {
             return self.resolve_head_parent(parent_count);
         }
 
+        // Try as remote ref (e.g., "origin/main")
+        if let Some((remote, branch)) = reference.split_once('/')
+            && self.ref_manager.remote_ref_exists(remote, branch)
+        {
+            return self.resolve_remote_ref(remote, branch);
+        }
+
         // Try as branch name
         if self.ref_manager.branch_exists(reference) {
             return self.resolve_branch(reference);
@@ -206,7 +213,57 @@ impl RefResolver {
         self.ref_manager.get_tag_commit(tag)
     }
 
-    /// Find a commit by prefix (short hash)
+    /// Resolve a remote ref to commit ID
+    fn resolve_remote_ref(&self, remote: &str, branch: &str) -> Result<String> {
+        self.ref_manager.get_remote_ref(remote, branch)
+    }
+
+    /// Find a commit by prefix (short hash) with validation
+    ///
+    /// This function implements prefix matching for short commit IDs, similar to git.
+    /// It validates that the prefix:
+    /// 1. Is unambiguous (matches exactly one commit)
+    /// 2. Corresponds to an actual commit file on disk
+    ///
+    /// ## Prefix Matching Strategy
+    ///
+    /// Dotman commit IDs are 32-character hex strings (MD5-sized), so we support
+    /// short references like `abc1234` instead of requiring the full
+    /// `abc1234567890abcdef1234567890ab`.
+    ///
+    /// The matching process:
+    /// 1. Scan all commit files in `commits/` directory
+    /// 2. Check each filename (minus `.zst` extension) for prefix match
+    /// 3. Collect all matches
+    /// 4. Validate uniqueness
+    ///
+    /// ## Ambiguity Detection
+    ///
+    /// If multiple commits start with the same prefix, we cannot determine which
+    /// the user meant. This is reported as an error with the full list of matches,
+    /// allowing the user to provide a longer prefix.
+    ///
+    /// Example:
+    /// ```text
+    /// abc1234567890... (commit 1)
+    /// abc1234ABCDEF... (commit 2)
+    /// ```
+    ///
+    /// Prefix `abc1` is ambiguous and will fail. User must use at least `abc12345`
+    /// or `abc1234A` to disambiguate.
+    ///
+    /// ## Minimum Prefix Length
+    ///
+    /// The caller enforces a minimum prefix length (typically 4 chars) before calling
+    /// this function. This prevents expensive directory scans for very short prefixes
+    /// that are likely to be ambiguous.
+    ///
+    /// ## Performance
+    ///
+    /// This function does a linear scan of the commits directory, which is acceptable
+    /// for typical repository sizes (hundreds to thousands of commits). For very large
+    /// repositories, this could be optimized with an in-memory index, but the current
+    /// implementation prioritizes simplicity.
     fn find_commit_by_prefix(&self, prefix: &str) -> Result<Option<String>> {
         let commits_dir = self.repo_path.join("commits");
         if !commits_dir.exists() {
@@ -214,11 +271,14 @@ impl RefResolver {
         }
 
         let mut matches = Vec::new();
+
+        // Scan commits directory for files matching the prefix
         for entry in std::fs::read_dir(&commits_dir)? {
             let entry = entry?;
             let name = entry.file_name();
             let name_str = name.to_string_lossy();
 
+            // Extract commit ID from filename (remove .zst extension)
             if let Some(commit_id) = name_str.strip_suffix(".zst")
                 && commit_id.starts_with(prefix)
             {
@@ -226,14 +286,19 @@ impl RefResolver {
             }
         }
 
+        // Validate match count and return result
         match matches.len() {
             0 => Ok(None),
             1 => Ok(Some(matches[0].clone())),
-            _ => Err(anyhow::anyhow!(
-                "Ambiguous commit reference '{}' matches multiple commits: {}",
-                prefix,
-                matches.join(", ")
-            )),
+            _ => {
+                // Multiple matches - ambiguous reference
+                // Show user all matches so they can choose a longer prefix
+                Err(anyhow::anyhow!(
+                    "Ambiguous commit reference '{}' matches multiple commits: {}",
+                    prefix,
+                    matches.join(", ")
+                ))
+            }
         }
     }
 }

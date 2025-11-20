@@ -241,6 +241,10 @@ mod ref_resolver_tests {
 
 mod ref_manager_tests {
     use super::*;
+    use dotman::storage::{Commit, snapshots::Snapshot};
+    use dotman::utils::serialization;
+    use std::collections::HashMap;
+    use zstd::stream::encode_all;
 
     fn setup_test_repo() -> Result<(TempDir, PathBuf)> {
         let temp_dir = TempDir::new()?;
@@ -368,11 +372,61 @@ mod ref_manager_tests {
         let (_temp, repo_path) = setup_test_repo()?;
         let ref_manager = RefManager::new(repo_path.clone());
 
-        ref_manager.create_branch("feature", Some("old_commit"))?;
-        ref_manager.update_branch("feature", "new_commit")?;
+        // Use valid hex commit IDs and create valid snapshot files
+        let old_commit = "abc123def456";
+        let new_commit = "def789abc012";
+
+        // Create minimal valid snapshots
+
+        // Create minimal valid snapshot for old_commit
+        let old_snapshot = Snapshot {
+            commit: Commit {
+                id: old_commit.to_string(),
+                parent: None,
+                message: "test".to_string(),
+                author: "test".to_string(),
+                timestamp: 0,
+                tree_hash: "test".to_string(),
+            },
+            files: HashMap::new(),
+        };
+
+        // Create minimal valid snapshot for new_commit
+        let new_snapshot = Snapshot {
+            commit: Commit {
+                id: new_commit.to_string(),
+                parent: Some(old_commit.to_string()),
+                message: "test".to_string(),
+                author: "test".to_string(),
+                timestamp: 1,
+                tree_hash: "test2".to_string(),
+            },
+            files: HashMap::new(),
+        };
+
+        // Save snapshots
+        let commits_dir = repo_path.join("commits");
+        fs::create_dir_all(&commits_dir)?;
+
+        let old_serialized = serialization::serialize(&old_snapshot)?;
+        let old_compressed = encode_all(&old_serialized[..], 3)?;
+        fs::write(
+            commits_dir.join(format!("{old_commit}.zst")),
+            old_compressed,
+        )?;
+
+        let new_serialized = serialization::serialize(&new_snapshot)?;
+        let new_compressed = encode_all(&new_serialized[..], 3)?;
+        fs::write(
+            commits_dir.join(format!("{new_commit}.zst")),
+            new_compressed,
+        )?;
+
+        ref_manager.create_branch("feature", Some(old_commit))?;
+        ref_manager.update_branch("feature", new_commit)?;
 
         let content = fs::read_to_string(repo_path.join("refs/heads/feature"))?;
-        assert_eq!(content, "new_commit");
+        assert_eq!(content, new_commit);
 
         Ok(())
     }

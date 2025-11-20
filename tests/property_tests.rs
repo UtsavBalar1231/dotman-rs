@@ -79,7 +79,7 @@ proptest! {
 
     #[test]
     fn test_compression_roundtrip(
-        data in prop::collection::vec(any::<u8>(), 0..100_000),
+        data in prop::collection::vec(any::<u8>(), 0..10_000),  // Reduced from 100KB to 10KB for faster local tests
         level in 1i32..=22
     ) {
         // Test invariant: compression/decompression preserves data

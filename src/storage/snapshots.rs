@@ -365,6 +365,60 @@ impl SnapshotManager {
         Ok(content)
     }
 
+    /// Verify snapshot integrity by checking all referenced objects exist and have correct hashes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The snapshot cannot be loaded
+    /// - Failed to read object files
+    /// - Failed to verify object contents
+    pub fn verify_snapshot(&self, snapshot_id: &str) -> Result<Vec<String>> {
+        let snapshot = self.load_snapshot(snapshot_id)?;
+        let mut errors = Vec::new();
+
+        for (file_path, snapshot_file) in &snapshot.files {
+            let object_path = self
+                .repo_path
+                .join("objects")
+                .join(format!("{}.zst", &snapshot_file.content_hash));
+
+            // Check if object exists
+            if !object_path.exists() {
+                errors.push(format!(
+                    "Missing object for file '{}': {}",
+                    file_path.display(),
+                    snapshot_file.content_hash
+                ));
+                continue;
+            }
+
+            // Verify object content matches hash
+            match self.read_object(&snapshot_file.content_hash) {
+                Ok(content) => {
+                    let actual_hash = crate::storage::file_ops::hash_bytes(&content);
+                    if actual_hash != snapshot_file.hash {
+                        errors.push(format!(
+                            "Hash mismatch for file '{}': expected {}, got {}",
+                            file_path.display(),
+                            snapshot_file.hash,
+                            actual_hash
+                        ));
+                    }
+                }
+                Err(e) => {
+                    errors.push(format!(
+                        "Failed to read object for file '{}': {}",
+                        file_path.display(),
+                        e
+                    ));
+                }
+            }
+        }
+
+        Ok(errors)
+    }
+
     /// Check if a snapshot exists by its ID
     #[must_use]
     pub fn snapshot_exists(&self, snapshot_id: &str) -> bool {
@@ -448,11 +502,19 @@ impl GarbageCollector {
 
     /// Collect garbage by removing unreferenced objects
     ///
+    /// Checks all references including:
+    /// - Commits in the commits directory
+    /// - Branches (refs/heads)
+    /// - Tags (refs/tags)
+    /// - Remote refs (refs/remotes)
+    /// - Staged and committed files in the index
+    ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - Failed to read commits or objects directories
     /// - Failed to deserialize snapshots
+    /// - Failed to load index
     /// - Failed to delete orphaned objects
     pub fn collect(&self) -> Result<usize> {
         let commits_dir = self.repo_path.join("commits");
@@ -465,8 +527,9 @@ impl GarbageCollector {
         // Collect all referenced objects
         let mut referenced = std::collections::HashSet::new();
 
+        // Mark objects referenced by commits
         if commits_dir.exists() {
-            for entry in fs::read_dir(commits_dir).context("Failed to read commits directory")? {
+            for entry in fs::read_dir(&commits_dir).context("Failed to read commits directory")? {
                 let entry = entry.context("Failed to read directory entry")?;
                 let path = entry.path();
 
@@ -482,6 +545,45 @@ impl GarbageCollector {
                     for file in snapshot.files.values() {
                         referenced.insert(file.content_hash.clone());
                     }
+                }
+            }
+        }
+
+        // Mark objects referenced by branches
+        let heads_dir = self.repo_path.join("refs/heads");
+        if heads_dir.exists() {
+            self.collect_refs_objects(&heads_dir, &mut referenced)?;
+        }
+
+        // Mark objects referenced by tags
+        let tags_dir = self.repo_path.join("refs/tags");
+        if tags_dir.exists() {
+            self.collect_refs_objects(&tags_dir, &mut referenced)?;
+        }
+
+        // Mark objects referenced by remote refs
+        let remotes_dir = self.repo_path.join("refs/remotes");
+        if remotes_dir.exists() {
+            self.collect_remote_refs_objects(&remotes_dir, &mut referenced)?;
+        }
+
+        // Mark objects referenced by the index (staged and committed entries)
+        let index_path = self.repo_path.join("index.bin");
+        if index_path.exists() {
+            match crate::storage::index::Index::load(&index_path) {
+                Ok(index) => {
+                    // Mark objects from committed entries
+                    for entry in index.entries.values() {
+                        referenced.insert(entry.hash.clone());
+                    }
+                    // Mark objects from staged entries
+                    for entry in index.staged_entries.values() {
+                        referenced.insert(entry.hash.clone());
+                    }
+                }
+                Err(e) => {
+                    // Log warning but continue - index might be corrupted
+                    eprintln!("Warning: Failed to load index for garbage collection: {e}");
                 }
             }
         }
@@ -503,5 +605,74 @@ impl GarbageCollector {
         }
 
         Ok(deleted)
+    }
+
+    /// Helper to collect objects referenced by refs in a directory
+    fn collect_refs_objects(
+        &self,
+        refs_dir: &std::path::Path,
+        referenced: &mut std::collections::HashSet<String>,
+    ) -> Result<()> {
+        let snapshot_manager = SnapshotManager::new(self.repo_path.clone(), 3);
+
+        for entry in fs::read_dir(refs_dir)
+            .with_context(|| format!("Failed to read refs directory: {}", refs_dir.display()))?
+        {
+            let entry = entry.context("Failed to read directory entry")?;
+            let path = entry.path();
+
+            if entry.file_type()?.is_file() {
+                let commit_id = fs::read_to_string(&path)
+                    .with_context(|| format!("Failed to read ref file: {}", path.display()))?
+                    .trim()
+                    .to_string();
+
+                // Load the snapshot and mark all its objects
+                if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+                    for file in snapshot.files.values() {
+                        referenced.insert(file.content_hash.clone());
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Helper to recursively collect objects from remote refs
+    fn collect_remote_refs_objects(
+        &self,
+        remotes_dir: &std::path::Path,
+        referenced: &mut std::collections::HashSet<String>,
+    ) -> Result<()> {
+        let snapshot_manager = SnapshotManager::new(self.repo_path.clone(), 3);
+
+        for entry in fs::read_dir(remotes_dir).with_context(|| {
+            format!(
+                "Failed to read remotes directory: {}",
+                remotes_dir.display()
+            )
+        })? {
+            let entry = entry.context("Failed to read directory entry")?;
+            let path = entry.path();
+
+            if entry.file_type()?.is_dir() {
+                // Recursively process remote directory
+                self.collect_refs_objects(&path, referenced)?;
+            } else if entry.file_type()?.is_file() {
+                // Process remote ref file
+                let commit_id = fs::read_to_string(&path)
+                    .with_context(|| format!("Failed to read remote ref: {}", path.display()))?
+                    .trim()
+                    .to_string();
+
+                // Load the snapshot and mark all its objects
+                if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+                    for file in snapshot.files.values() {
+                        referenced.insert(file.content_hash.clone());
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }
