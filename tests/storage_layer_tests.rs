@@ -35,15 +35,18 @@ mod concurrent_index_tests {
         index.stage_entry(entry);
         assert_eq!(index.staged_entries().len(), 1);
 
-        // Test commit
-        index.commit_staged();
-        assert_eq!(index.staged_entries().len(), 0);
-        assert_eq!(index.entries().len(), 1);
-
-        // Test get_entry
-        let retrieved = index.get_entry(&PathBuf::from("test.txt"));
+        // Test get_staged_entry before commit
+        let retrieved = index.get_staged_entry(&PathBuf::from("test.txt"));
         assert!(retrieved.is_some());
         assert_eq!(retrieved.unwrap().hash, "hash123");
+
+        // Test commit - should clear staging area
+        index.commit_staged();
+        assert_eq!(index.staged_entries().len(), 0);
+
+        // After commit, staging area should be empty
+        let retrieved_after = index.get_staged_entry(&PathBuf::from("test.txt"));
+        assert!(retrieved_after.is_none());
 
         Ok(())
     }
@@ -62,18 +65,23 @@ mod concurrent_index_tests {
             cached_hash: None,
         };
 
-        // First stage then commit to add to entries
+        // Test staging and removal
         index.stage_entry(entry.clone());
-        index.commit_staged();
-        assert_eq!(index.entries().len(), 1);
+        assert_eq!(index.staged_entries().len(), 1);
 
-        // Test removal
-        let _ = index.remove_entry(&PathBuf::from("test.txt"));
-        assert_eq!(index.entries().len(), 0);
-
-        // Test unstage
-        index.stage_entry(entry);
+        // Test removal of staged entry
         let _ = index.remove_staged(&PathBuf::from("test.txt"));
+        assert_eq!(index.staged_entries().len(), 0);
+
+        // Test unstage after re-staging
+        index.stage_entry(entry.clone());
+        assert_eq!(index.staged_entries().len(), 1);
+        let _ = index.remove_staged(&PathBuf::from("test.txt"));
+        assert_eq!(index.staged_entries().len(), 0);
+
+        // Test commit clears staging area
+        index.stage_entry(entry);
+        index.commit_staged();
         assert_eq!(index.staged_entries().len(), 0);
 
         Ok(())
@@ -84,7 +92,7 @@ mod concurrent_index_tests {
     fn test_concurrent_index_clear_operations() -> Result<()> {
         let index = ConcurrentIndex::new();
 
-        // Add multiple entries
+        // Stage multiple entries without committing
         for i in 0..5u64 {
             let entry = FileEntry {
                 path: PathBuf::from(format!("file{i}.txt")),
@@ -94,28 +102,33 @@ mod concurrent_index_tests {
                 modified: 1_234_567_890_i64 + i64::try_from(i).unwrap(),
                 cached_hash: None,
             };
-            // Add to entries by staging and committing
-            index.stage_entry(entry.clone());
-            index.commit_staged();
-            // Stage another copy
             index.stage_entry(entry);
         }
 
-        assert_eq!(index.entries().len(), 5);
-        // The last entry (i=4) was staged after the final commit
-        assert_eq!(index.staged_entries().len(), 1);
+        // All 5 files should be staged
+        assert_eq!(index.staged_entries().len(), 5);
 
-        // Clear staged
+        // Clear staged area
         index.clear_staged();
         assert_eq!(index.staged_entries().len(), 0);
-        assert_eq!(index.entries().len(), 5);
 
-        // Clear all entries (no direct clear method, so we remove them)
-        let entries = index.entries();
-        for (path, _) in entries {
-            let _ = index.remove_entry(&path);
+        // Re-stage and test commit clears staging
+        for i in 0..3u64 {
+            let entry = FileEntry {
+                path: PathBuf::from(format!("newfile{i}.txt")),
+                hash: format!("newhash{i}"),
+                size: i,
+                mode: 0o644,
+                modified: 1_234_567_890_i64 + i64::try_from(i).unwrap(),
+                cached_hash: None,
+            };
+            index.stage_entry(entry);
         }
-        assert_eq!(index.entries().len(), 0);
+        assert_eq!(index.staged_entries().len(), 3);
+
+        // Commit should clear staging area
+        index.commit_staged();
+        assert_eq!(index.staged_entries().len(), 0);
 
         Ok(())
     }
@@ -127,7 +140,7 @@ mod concurrent_index_tests {
 
         let index = ConcurrentIndex::new();
 
-        // Add entries
+        // Add entries with cached hashes
         for i in 0..3u64 {
             let entry = FileEntry {
                 path: PathBuf::from(format!("file{i}.txt")),
@@ -141,9 +154,7 @@ mod concurrent_index_tests {
                     size_at_hash: i,
                 }),
             };
-            // Add to entries by staging and committing
-            index.stage_entry(entry.clone());
-            index.commit_staged();
+            // Stage entries with even indices (0, 2)
             if i % 2 == 0 {
                 index.stage_entry(entry);
             }
@@ -155,9 +166,18 @@ mod concurrent_index_tests {
 
         // Load
         let loaded = ConcurrentIndex::load(&index_path)?;
-        assert_eq!(loaded.entries().len(), 3);
-        // Only file2 (i=2, i%2==0) remains staged after the commit pattern
-        assert_eq!(loaded.staged_entries().len(), 1);
+        // Should have file0 and file2 (i%2==0)
+        assert_eq!(loaded.staged_entries().len(), 2);
+
+        // Verify data integrity (note: cached_hash is not persisted to disk)
+        let file0 = loaded.get_staged_entry(&PathBuf::from("file0.txt"));
+        assert!(file0.is_some());
+        let file0_entry = file0.unwrap();
+        assert_eq!(file0_entry.hash, "hash0");
+
+        let file2 = loaded.get_staged_entry(&PathBuf::from("file2.txt"));
+        assert!(file2.is_some());
+        assert_eq!(file2.unwrap().hash, "hash2");
 
         Ok(())
     }
@@ -198,7 +218,7 @@ mod concurrent_index_tests {
 
                     // Occasional reads to create more contention
                     if i % 10 == 0 {
-                        let _ = index_clone.entries();
+                        let _ = index_clone.staged_entries();
                         let _ = index_clone.staged_entries();
                     }
                 }
@@ -261,13 +281,12 @@ mod concurrent_index_tests {
             handle.join().unwrap();
         }
 
+        // All entries should be staged
         assert_eq!(index.staged_entries().len(), 500);
 
-        // Commit all staged
+        // Commit all staged - should clear staging area
         index.commit_staged();
-
         assert_eq!(index.staged_entries().len(), 0);
-        assert_eq!(index.entries().len(), 500);
 
         Ok(())
     }
@@ -277,7 +296,7 @@ mod concurrent_index_tests {
     fn test_index_conversion_roundtrip() -> Result<()> {
         let concurrent = ConcurrentIndex::new();
 
-        // Add various entries
+        // Add various entries - only stage, don't commit
         for i in 0..10u64 {
             let entry = FileEntry {
                 path: PathBuf::from(format!("file{i}.txt")),
@@ -296,31 +315,32 @@ mod concurrent_index_tests {
                 },
             };
 
-            if i < 5 {
-                // Add to entries by staging and committing
-                concurrent.stage_entry(entry.clone());
-                concurrent.commit_staged();
-            } else {
-                concurrent.stage_entry(entry);
-            }
+            // Stage all entries without committing
+            concurrent.stage_entry(entry);
         }
 
         // Convert to regular index
         let regular = concurrent.to_index();
-        assert_eq!(regular.entries.len(), 5);
-        assert_eq!(regular.staged_entries.len(), 5);
+        assert_eq!(regular.staged_entries.len(), 10);
 
         // Convert back to concurrent
         let concurrent2 = ConcurrentIndex::from_index(regular);
-        assert_eq!(concurrent2.entries().len(), 5);
-        assert_eq!(concurrent2.staged_entries().len(), 5);
+        assert_eq!(concurrent2.staged_entries().len(), 10);
 
-        // Verify data integrity
-        for i in 0..5 {
+        // Verify data integrity for all staged entries
+        for i in 0..10 {
             let path = PathBuf::from(format!("file{i}.txt"));
-            let entry = concurrent2.get_entry(&path);
+            let entry = concurrent2.get_staged_entry(&path);
             assert!(entry.is_some());
             assert_eq!(entry.unwrap().hash, format!("hash{i}"));
+        }
+
+        // Verify cached hashes are preserved for i%3==0 (0, 3, 6, 9)
+        for i in [0, 3, 6, 9] {
+            let path = PathBuf::from(format!("file{i}.txt"));
+            let entry = concurrent2.get_staged_entry(&path);
+            assert!(entry.is_some());
+            assert!(entry.unwrap().cached_hash.is_some());
         }
 
         Ok(())
@@ -561,15 +581,15 @@ mod index_tests {
 
         // Add entry
         index
-            .entries
+            .staged_entries
             .insert(PathBuf::from("test.txt"), entry.clone());
-        assert_eq!(index.entries.len(), 1);
+        assert_eq!(index.staged_entries.len(), 1);
 
-        // Stage entry
+        // Stage another entry
         index
             .staged_entries
             .insert(PathBuf::from("staged.txt"), entry);
-        assert_eq!(index.staged_entries.len(), 1);
+        assert_eq!(index.staged_entries.len(), 2);
 
         Ok(())
     }
@@ -581,7 +601,7 @@ mod index_tests {
 
         let mut index = Index::new();
 
-        // Add entries with various configurations
+        // Add entries with various configurations to staged_entries
         for i in 0..10u64 {
             let entry = FileEntry {
                 path: PathBuf::from(format!("file{i}.txt")),
@@ -600,11 +620,7 @@ mod index_tests {
                 },
             };
 
-            if i < 5 {
-                index.entries.insert(entry.path.clone(), entry);
-            } else {
-                index.staged_entries.insert(entry.path.clone(), entry);
-            }
+            index.staged_entries.insert(entry.path.clone(), entry);
         }
 
         // Save
@@ -613,15 +629,15 @@ mod index_tests {
 
         // Load
         let loaded = Index::load(&index_path)?;
-        assert_eq!(loaded.entries.len(), 5);
-        assert_eq!(loaded.staged_entries.len(), 5);
+        assert_eq!(loaded.staged_entries.len(), 10);
 
-        // Verify data integrity
-        for i in 0..5u64 {
+        // Verify data integrity for all entries (note: cached_hash is not persisted)
+        for i in 0..10u64 {
             let path = PathBuf::from(format!("file{i}.txt"));
-            let entry = &loaded.entries[&path];
+            let entry = &loaded.staged_entries[&path];
             assert_eq!(entry.hash, format!("hash{i}"));
             assert_eq!(entry.size, i * 100);
+            assert_eq!(entry.mode, if i % 2 == 0 { 0o644 } else { 0o755 });
         }
 
         Ok(())
@@ -630,10 +646,10 @@ mod index_tests {
     #[test]
     fn test_index_version_compatibility() -> Result<()> {
         let mut index = Index::new();
-        assert_eq!(index.version, 1);
+        assert_eq!(index.version, 2);
 
         // Add an entry to ensure it's not empty
-        index.entries.insert(
+        index.staged_entries.insert(
             PathBuf::from("test.txt"),
             FileEntry {
                 path: PathBuf::from("test.txt"),
@@ -645,15 +661,14 @@ mod index_tests {
             },
         );
 
-        // Future versions should be handled gracefully
-        index.version = 2;
-
         let temp_dir = TempDir::new()?;
         let index_path = temp_dir.path().join("index.bin");
 
-        // This might fail if version checking is strict
-        let result = index.save(&index_path);
-        assert!(result.is_ok() || result.unwrap_err().to_string().contains("version"));
+        // Save and load to verify version is preserved
+        index.save(&index_path)?;
+        let loaded = Index::load(&index_path)?;
+        assert_eq!(loaded.version, 2);
+        assert_eq!(loaded.staged_entries.len(), 1);
 
         Ok(())
     }
@@ -667,7 +682,7 @@ mod index_tests {
         index.save(&index_path)?;
 
         let loaded = Index::load(&index_path)?;
-        assert_eq!(loaded.entries.len(), 0);
+        assert_eq!(loaded.staged_entries.len(), 0);
         assert_eq!(loaded.staged_entries.len(), 0);
 
         Ok(())
@@ -683,7 +698,7 @@ mod index_tests {
         assert!(result.is_ok());
 
         let index = result?;
-        assert_eq!(index.entries.len(), 0);
+        assert_eq!(index.staged_entries.len(), 0);
         assert_eq!(index.staged_entries.len(), 0);
 
         Ok(())

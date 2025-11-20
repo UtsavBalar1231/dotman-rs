@@ -167,8 +167,8 @@ fn test_concurrent_stage_commit_cycle() -> Result<()> {
     index.commit_staged();
 
     // Verify final state
-    let total = index.len();
-    assert!(total > 0);
+    let total = index.staged_entries().len();
+    assert!(total == 0); // All should be committed, so staged should be empty
     assert!(!index.has_staged_changes());
 
     Ok(())
@@ -215,11 +215,10 @@ fn test_concurrent_modifications() -> Result<()> {
                 };
                 index_clone.stage_entry(entry);
 
-                // Occasionally remove entries
+                // Occasionally mark entries for deletion
                 if i % 20 == 0 {
                     let file_num = i + 50;
-                    let _ =
-                        index_clone.remove_entry(&PathBuf::from(format!("file_{file_num}.txt")));
+                    index_clone.mark_deleted(&PathBuf::from(format!("file_{file_num}.txt")));
                 }
             }
         });
@@ -342,9 +341,8 @@ fn test_concurrent_bulk_operations() -> Result<()> {
                 2 => {
                     // Bulk reads
                     for _ in 0..100 {
-                        let _ = index_clone.len();
+                        let _ = index_clone.staged_entries().len();
                         let _ = index_clone.staged_entries();
-                        let _ = index_clone.entries();
                         thread::yield_now();
                     }
                 }
@@ -362,8 +360,7 @@ fn test_concurrent_bulk_operations() -> Result<()> {
                             };
                             index_clone.stage_entry(entry);
                         } else {
-                            let _ = index_clone
-                                .remove_entry(&PathBuf::from(format!("bulk_add_{i}.txt")));
+                            index_clone.mark_deleted(&PathBuf::from(format!("bulk_add_{i}.txt")));
                         }
                     }
                 }
@@ -379,11 +376,11 @@ fn test_concurrent_bulk_operations() -> Result<()> {
 
     // Final state should be consistent
     index.commit_staged();
-    let total = index.len();
-    assert!(total > 0);
+    let total = index.staged_entries().len();
+    assert!(total == 0); // All should be committed
 
-    // Verify no internal corruption
-    let all_entries = index.entries();
+    // Verify no internal corruption in staged entries
+    let all_entries = index.staged_entries();
     for (_path, entry) in all_entries {
         assert!(!entry.hash.is_empty());
         assert!(entry.mode > 0);

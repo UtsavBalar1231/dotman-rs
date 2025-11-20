@@ -286,7 +286,12 @@ mod commit_command_tests {
         // Try to commit without staging anything
         let result = commands::commit::execute(&ctx, "Empty commit", false);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No files tracked"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("No changes staged for commit")
+        );
 
         Ok(())
     }
@@ -399,13 +404,40 @@ mod status_command_tests {
         let test_file = temp_dir.path().join("test.txt");
         fs::write(&test_file, "initial")?;
         commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
+
+        // Verify file is staged before commit
+        let index_path = ctx.repo_path.join("index.bin");
+        let index_before_commit = dotman::storage::index::Index::load(&index_path)?;
+        assert!(
+            !index_before_commit.staged_entries.is_empty(),
+            "File should be staged before commit"
+        );
+
         commands::commit::execute(&ctx, "Initial commit", false)?;
+
+        // Verify file moved to committed entries after commit
+        let index_after_commit = dotman::storage::index::Index::load(&index_path)?;
+        assert!(
+            index_after_commit.staged_entries.is_empty(),
+            "Staged entries should be empty after commit"
+        );
+
+        // Verify initial state
+        let initial_content = fs::read_to_string(&test_file)?;
+        assert_eq!(initial_content, "initial");
 
         // Modify the file
         fs::write(&test_file, "modified")?;
 
-        // Status should show modified files
-        commands::status::execute(&ctx, false, true)?;
+        // Verify file was actually modified
+        let modified_content = fs::read_to_string(&test_file)?;
+        assert_eq!(modified_content, "modified");
+        assert_ne!(modified_content, initial_content);
+
+        // Status should detect the modification and not crash
+        // This is the key test: status should see that the file was modified
+        // The fix ensures that hash_file errors don't silently hide modifications
+        commands::status::execute(&ctx, false, false)?;
 
         Ok(())
     }
@@ -776,6 +808,75 @@ mod reset_command_tests {
             &commands::reset::ResetOptions::default(),
             &[],
         )?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_reset_mixed_then_status_detects_modifications() -> Result<()> {
+        let (temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create, add, and commit a file
+        let test_file = temp_dir.path().join("test.txt");
+        fs::write(&test_file, "original content")?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Initial commit", false)?;
+
+        // Verify file is committed (staged entries should be empty after commit)
+        let index_path = ctx.repo_path.join("index.bin");
+        let index_after_commit = dotman::storage::index::Index::load(&index_path)?;
+        assert!(
+            index_after_commit.staged_entries.is_empty(),
+            "Staged entries should be empty after commit"
+        );
+
+        // Modify the file on disk
+        fs::write(&test_file, "modified content")?;
+
+        // Verify file was actually modified
+        let modified_content = fs::read_to_string(&test_file)?;
+        assert_eq!(modified_content, "modified content");
+
+        // Do reset --mixed to HEAD (this resets index to match HEAD but leaves working directory)
+        commands::reset::execute(
+            &ctx,
+            "HEAD",
+            &commands::reset::ResetOptions {
+                mixed: true,
+                ..Default::default()
+            },
+            &[],
+        )?;
+
+        // Load index after reset - staged entries should be empty after mixed reset
+        let index_after_reset = dotman::storage::index::Index::load(&index_path)?;
+
+        // After mixed reset to HEAD, staged entries should be cleared
+        assert!(
+            index_after_reset.staged_entries.is_empty(),
+            "Staged entries should be empty after mixed reset"
+        );
+
+        // Now status should detect that the file on disk differs from the index
+        // This is the critical test: status must recompute the hash and detect the modification
+        // Previously this would show "working tree clean" due to invalid cache
+        commands::status::execute(&ctx, false, false)?;
+
+        // We can't easily capture status output in tests, but we can verify the file
+        // would be detected as modified by checking if it can be re-added
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
+
+        // After re-adding, it should be in staged_entries (because it was modified)
+        let index_after_readd = dotman::storage::index::Index::load(&index_path)?;
+
+        // Check if file is in staged entries (try both absolute and relative paths)
+        let is_staged = index_after_readd.staged_entries.contains_key(&test_file)
+            || test_file
+                .strip_prefix(temp_dir.path())
+                .ok()
+                .is_some_and(|rel| index_after_readd.staged_entries.contains_key(rel));
+
+        assert!(is_staged, "Modified file should be staged after re-adding");
 
         Ok(())
     }

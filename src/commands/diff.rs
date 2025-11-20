@@ -1,11 +1,57 @@
 use crate::refs::resolver::RefResolver;
 use crate::storage::FileStatus;
-use crate::storage::index::{Index, IndexDiffer};
-use crate::storage::snapshots::SnapshotManager;
+use crate::storage::index::Index;
+use crate::storage::snapshots::{SnapshotFile, SnapshotManager};
 use crate::utils::pager::PagerOutput;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
+use std::collections::HashMap;
+use std::path::PathBuf;
+
+/// Compare two file collections and return their differences.
+///
+/// Compares files from two snapshots or file collections and returns a list of changes:
+/// - Added: Files present in `to_files` but not in `from_files`
+/// - Modified: Files present in both with different hashes
+/// - Deleted: Files present in `from_files` but not in `to_files`
+///
+/// # Arguments
+///
+/// * `from_files` - The baseline file collection
+/// * `to_files` - The target file collection to compare against
+///
+/// # Returns
+///
+/// A vector of [`FileStatus`] representing the differences between the two collections
+fn compare_file_collections(
+    from_files: &HashMap<PathBuf, SnapshotFile>,
+    to_files: &HashMap<PathBuf, SnapshotFile>,
+) -> Vec<FileStatus> {
+    let mut statuses = Vec::new();
+
+    // Find added and modified files
+    for (path, to_file) in to_files {
+        if let Some(from_file) = from_files.get(path) {
+            // File exists in both - check if modified
+            if from_file.hash != to_file.hash {
+                statuses.push(FileStatus::Modified(path.clone()));
+            }
+        } else {
+            // File only in "to" - it was added
+            statuses.push(FileStatus::Added(path.clone()));
+        }
+    }
+
+    // Find deleted files
+    for path in from_files.keys() {
+        if !to_files.contains_key(path) {
+            statuses.push(FileStatus::Deleted(path.clone()));
+        }
+    }
+
+    statuses
+}
 
 /// Execute diff command to show differences between commits or working directory
 ///
@@ -98,23 +144,23 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
         .load_snapshot(&commit_id)
         .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
-    // Convert snapshot to index format for comparison
-    let mut commit_index = Index::new();
-    for (path, file) in &snapshot.files {
-        commit_index.add_entry(crate::storage::FileEntry {
-            path: path.clone(),
-            hash: file.hash.clone(),
-            size: 0,
-            modified: snapshot.commit.timestamp,
-            mode: file.mode,
-            cached_hash: None,
-        });
+    let index_path = ctx.repo_path.join(INDEX_FILE);
+    let index = Index::load(&index_path)?;
+
+    // Convert staged entries to snapshot file format for comparison
+    let mut working_files = HashMap::new();
+    for (path, entry) in &index.staged_entries {
+        working_files.insert(
+            path.clone(),
+            SnapshotFile {
+                hash: entry.hash.clone(),
+                mode: entry.mode,
+                content_hash: entry.hash.clone(),
+            },
+        );
     }
 
-    let index_path = ctx.repo_path.join(INDEX_FILE);
-    let working_index = Index::load(&index_path)?;
-
-    let statuses = IndexDiffer::diff(&commit_index, &working_index);
+    let statuses = compare_file_collections(&snapshot.files, &working_files);
 
     if statuses.is_empty() {
         output.appendln("No differences found");
@@ -166,32 +212,8 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
         .load_snapshot(&to_id)
         .with_context(|| format!("Failed to load commit: {to_id}"))?;
 
-    // Convert snapshots to index format
-    let mut from_index = Index::new();
-    for (path, file) in &from_snapshot.files {
-        from_index.add_entry(crate::storage::FileEntry {
-            path: path.clone(),
-            hash: file.hash.clone(),
-            size: 0,
-            modified: from_snapshot.commit.timestamp,
-            mode: file.mode,
-            cached_hash: None,
-        });
-    }
-
-    let mut to_index = Index::new();
-    for (path, file) in &to_snapshot.files {
-        to_index.add_entry(crate::storage::FileEntry {
-            path: path.clone(),
-            hash: file.hash.clone(),
-            size: 0,
-            modified: to_snapshot.commit.timestamp,
-            mode: file.mode,
-            cached_hash: None,
-        });
-    }
-
-    let statuses = IndexDiffer::diff(&from_index, &to_index);
+    // Compare snapshots directly
+    let statuses = compare_file_collections(&from_snapshot.files, &to_snapshot.files);
 
     if statuses.is_empty() {
         output.appendln("No differences found");

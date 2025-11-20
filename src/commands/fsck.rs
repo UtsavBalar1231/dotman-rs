@@ -163,12 +163,13 @@ fn check_index_consistency(ctx: &DotmanContext) -> Result<Vec<String>> {
     let index = Index::load(&index_path)?;
     let objects_dir = ctx.repo_path.join("objects");
 
-    // Check that all hashes in index have corresponding objects
-    for (path, entry) in index.entries.iter().chain(index.staged_entries.iter()) {
+    // Check that all hashes in staged entries have corresponding objects
+    // Note: Committed files are stored in snapshots, not in the index
+    for (path, entry) in &index.staged_entries {
         let object_path = objects_dir.join(format!("{}.zst", entry.hash));
         if !object_path.exists() {
             warnings.push(format!(
-                "Index entry '{}' references missing object '{}'",
+                "Staged entry '{}' references missing object '{}'",
                 path.display(),
                 &entry.hash[..8.min(entry.hash.len())]
             ));

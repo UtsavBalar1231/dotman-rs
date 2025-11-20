@@ -135,7 +135,6 @@ mod command_context_tests {
         ctx.ensure_repo_exists()?;
 
         let index = ctx.load_concurrent_index()?;
-        assert!(index.entries().is_empty());
         assert!(index.staged_entries().is_empty());
 
         Ok(())

@@ -25,6 +25,7 @@
 //!
 //! - [`commands`]: Command implementations (add, commit, checkout, etc.)
 //! - [`storage`]: Core storage layer with index and snapshot management
+//! - [`tracking`]: Directory and file tracking manifest system
 //! - [`config`]: Configuration parsing and validation
 //! - [`refs`]: Reference and branch management
 //! - [`output`]: Output formatting, styling, and progress display
@@ -83,6 +84,9 @@ pub mod storage;
 
 /// Synchronization and remote operations.
 pub mod sync;
+
+/// Tracking system for managing tracked directories and files.
+pub mod tracking;
 
 /// Utility functions and helpers.
 pub mod utils;

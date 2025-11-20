@@ -94,7 +94,23 @@ pub fn execute_verbose(
         .get_head_commit()?
         .is_some_and(|c| c != placeholder_commit);
 
-    if index.entries.is_empty() && index.staged_entries.is_empty() {
+    // Load HEAD snapshot to get committed files (source of truth)
+    let committed_files = ref_manager.get_head_commit()?.and_then(|commit_id| {
+        if commit_id == placeholder_commit {
+            None
+        } else {
+            let snapshot_manager = crate::storage::snapshots::SnapshotManager::new(
+                ctx.repo_path.clone(),
+                ctx.config.core.compression_level,
+            );
+            snapshot_manager
+                .load_snapshot(&commit_id)
+                .map(|snapshot| snapshot.files)
+                .ok()
+        }
+    });
+
+    if committed_files.is_none() && index.staged_entries.is_empty() {
         if !has_commits {
             println!("\nNo commits yet");
         }
@@ -148,6 +164,9 @@ pub fn execute_verbose(
         statuses.push(FileStatus::Deleted(path.clone()));
     }
 
+    // Track files that couldn't be checked due to errors
+    let mut check_errors: Vec<(PathBuf, String)> = Vec::new();
+
     // Check if staged files were modified on disk
     for (path, staged_entry) in &index.staged_entries {
         // Skip files already in deleted_entries to avoid duplicates
@@ -170,53 +189,58 @@ pub fn execute_verbose(
                         statuses.push(FileStatus::Modified(path.clone()));
                     }
                 }
-                Err(_) => {
-                    // Hash failed - file may have been deleted or is inaccessible
-                    if !abs_path.exists() {
+                Err(e) => {
+                    // Hash failed - check if deleted or inaccessible
+                    if abs_path.exists() {
+                        // File exists but can't be hashed - log error
+                        check_errors.push((path.clone(), format!("{e:#}")));
+                    } else {
                         statuses.push(FileStatus::Deleted(path.clone()));
                     }
-                    // Otherwise skip - metadata might have changed but content is same
                 }
             }
         }
     }
 
-    // Check if committed files (entries) were modified on disk (not already staged)
-    for (path, committed_entry) in &index.entries {
-        // Skip if already staged (already checked above)
-        if index.staged_entries.contains_key(path) {
-            continue;
-        }
-
-        let abs_path = if path.is_relative() {
-            home.join(path)
-        } else {
-            path.clone()
-        };
-
-        if abs_path.exists() {
-            // Use cached hash for performance
-            let (current_hash, _) = crate::storage::file_ops::hash_file(
-                &abs_path,
-                committed_entry.cached_hash.as_ref(),
-            )
-            .unwrap_or_else(|_| {
-                (
-                    String::new(),
-                    crate::storage::CachedHash {
-                        hash: String::new(),
-                        size_at_hash: 0,
-                        mtime_at_hash: 0,
-                    },
-                )
-            });
-
-            if !current_hash.is_empty() && current_hash != committed_entry.hash {
-                statuses.push(FileStatus::Modified(path.clone()));
+    // Check if committed files were modified on disk (not already staged)
+    if let Some(ref files) = committed_files {
+        for (path, snapshot_file) in files {
+            // Skip if already staged (already checked above)
+            if index.staged_entries.contains_key(path) {
+                continue;
             }
-        } else {
-            // File was deleted from disk
-            statuses.push(FileStatus::Deleted(path.clone()));
+
+            let abs_path = if path.is_relative() {
+                home.join(path)
+            } else {
+                path.clone()
+            };
+
+            if abs_path.exists() {
+                // Hash file to check for modifications (no cache available from snapshot)
+                match crate::storage::file_ops::hash_file(&abs_path, None) {
+                    Ok((current_hash, _)) => {
+                        if current_hash != snapshot_file.hash {
+                            statuses.push(FileStatus::Modified(path.clone()));
+                        }
+                    }
+                    Err(e) => {
+                        // Log error but continue checking other files
+                        check_errors.push((path.clone(), format!("{e:#}")));
+                    }
+                }
+            } else {
+                // File was deleted from disk
+                statuses.push(FileStatus::Deleted(path.clone()));
+            }
+        }
+    }
+
+    // Report any files that couldn't be checked
+    if !check_errors.is_empty() {
+        eprintln!("{}", "Warning: Could not check some files:".yellow());
+        for (path, error) in &check_errors {
+            eprintln!("  {}: {}", path.display(), error);
         }
     }
 
@@ -332,23 +356,31 @@ pub fn execute_verbose(
 /// # Errors
 ///
 /// Returns an error if:
-/// - Cannot load the index
+/// - Cannot load the HEAD snapshot
 /// - Cannot determine home directory
 pub fn get_current_files(ctx: &DotmanContext) -> Result<Vec<PathBuf>> {
-    let index_path = ctx.repo_path.join(INDEX_FILE);
-    let index = Index::load(&index_path)?;
-
     let mut files = Vec::new();
-
     let home = dirs::home_dir().context("Could not find home directory")?;
 
-    for path in index.entries.keys() {
-        let abs_path = if path.is_relative() {
-            home.join(path)
-        } else {
-            path.clone()
-        };
-        files.push(abs_path);
+    // Load files from HEAD snapshot (committed files)
+    let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
+    if let Some(commit_id) = ref_manager.get_head_commit()?
+        && commit_id != "0".repeat(40)
+    {
+        let snapshot_manager = crate::storage::snapshots::SnapshotManager::new(
+            ctx.repo_path.clone(),
+            ctx.config.core.compression_level,
+        );
+        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+            for path in snapshot.files.keys() {
+                let abs_path = if path.is_relative() {
+                    home.join(path)
+                } else {
+                    path.clone()
+                };
+                files.push(abs_path);
+            }
+        }
     }
 
     Ok(files)
@@ -369,7 +401,28 @@ pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<Pa
 
     let mut tracked_paths: HashSet<PathBuf> = HashSet::new();
 
-    for path in index.entries.keys().chain(index.staged_entries.keys()) {
+    // Get committed files from HEAD snapshot
+    let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
+    if let Some(commit_id) = ref_manager.get_head_commit()?
+        && commit_id != "0".repeat(40)
+    {
+        let snapshot_manager = crate::storage::snapshots::SnapshotManager::new(
+            ctx.repo_path.clone(),
+            ctx.config.core.compression_level,
+        );
+        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+            for path in snapshot.files.keys() {
+                if path.is_relative() {
+                    tracked_paths.insert(home.join(path));
+                } else {
+                    tracked_paths.insert(path.clone());
+                }
+            }
+        }
+    }
+
+    // Also include staged files
+    for path in index.staged_entries.keys() {
         if path.is_relative() {
             tracked_paths.insert(home.join(path));
         } else {

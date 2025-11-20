@@ -583,15 +583,11 @@ impl GarbageCollector {
             self.collect_remote_refs_objects(&remotes_dir, &mut referenced)?;
         }
 
-        // Mark objects referenced by the index (staged and committed entries)
+        // Mark objects referenced by the index (staged entries only - committed entries are in snapshots)
         let index_path = self.repo_path.join("index.bin");
         if index_path.exists() {
             match crate::storage::index::Index::load(&index_path) {
                 Ok(index) => {
-                    // Mark objects from committed entries
-                    for entry in index.entries.values() {
-                        referenced.insert(entry.hash.clone());
-                    }
                     // Mark objects from staged entries
                     for entry in index.staged_entries.values() {
                         referenced.insert(entry.hash.clone());

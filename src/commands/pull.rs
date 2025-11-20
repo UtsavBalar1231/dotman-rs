@@ -356,7 +356,7 @@ fn pull_from_git(
 
     // Create tree hash from all file hashes
     let mut tree_content = String::new();
-    for (path, entry) in &index.entries {
+    for (path, entry) in &index.staged_entries {
         writeln!(tree_content, "{} {}", entry.hash, path.display())?;
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
@@ -383,7 +383,7 @@ fn pull_from_git(
 
     // Validate we can proceed before creating snapshot (point of no return)
     // This prevents orphaned commits if later steps fail
-    let files: Vec<FileEntry> = index.entries.values().cloned().collect();
+    let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
 
     // TRANSACTION POINT: Create snapshot (persisted to disk)
     snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
@@ -495,20 +495,28 @@ fn detect_merge_conflicts(
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    // Load current index and target snapshot
-    let current_index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
+    // Load current and target snapshots for conflict detection
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let current_commit = ref_manager.get_head_commit()?;
+
+    // If there's no current commit, there can't be conflicts
+    let Some(current_commit_id) = current_commit else {
+        return Ok(false);
+    };
+
+    let current_snapshot = snapshot_manager.load_snapshot(&current_commit_id)?;
     let target_snapshot = snapshot_manager.load_snapshot(target_commit)?;
 
     // Try to find common ancestor for proper three-way merge
-    let ref_manager = RefManager::new(ctx.repo_path.clone());
-    let current_commit = ref_manager.get_head_commit()?;
-    let common_ancestor = current_commit.as_ref().and_then(|current| {
-        find_common_ancestor(ctx, current, target_commit)
-            .and_then(|ancestor_id| snapshot_manager.load_snapshot(&ancestor_id).ok())
-    });
+    let common_ancestor = find_common_ancestor(ctx, &current_commit_id, target_commit)
+        .and_then(|ancestor_id| snapshot_manager.load_snapshot(&ancestor_id).ok());
 
-    // Detect conflicts
-    let conflicts = detect_conflicts(&current_index, &target_snapshot, common_ancestor.as_ref())?;
+    // Detect conflicts between snapshots
+    let conflicts = detect_conflicts(
+        &current_snapshot,
+        &target_snapshot,
+        common_ancestor.as_ref(),
+    )?;
 
     if conflicts.is_empty() {
         return Ok(false);

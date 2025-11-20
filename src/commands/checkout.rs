@@ -107,63 +107,44 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     // Get home directory as target
     let home = dirs::home_dir().context("Could not find home directory")?;
 
-    // Get list of currently tracked files for cleanup
-    let current_files = crate::commands::status::get_current_files(ctx)?;
+    // Get list of currently tracked files for cleanup by loading HEAD snapshot
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let current_files = if let Some(head_commit) = ref_manager.get_head_commit()? {
+        if head_commit == crate::NULL_COMMIT_ID {
+            Vec::new()
+        } else {
+            // Load current HEAD snapshot to get tracked files
+            let head_snapshot = snapshot_manager
+                .load_snapshot(&head_commit)
+                .with_context(|| format!("Failed to load HEAD commit: {head_commit}"))?;
+
+            // Convert snapshot paths to absolute paths
+            head_snapshot
+                .files
+                .keys()
+                .map(|path| {
+                    if path.is_relative() {
+                        home.join(path)
+                    } else {
+                        path.clone()
+                    }
+                })
+                .collect()
+        }
+    } else {
+        Vec::new()
+    };
 
     // Restore files with cleanup of files not in target
     snapshot_manager.restore_snapshot(&commit_id, &home, Some(&current_files))?;
 
-    // Update index to match the snapshot state using actual file metadata
+    // Clear the index - after checkout, there are no staged changes
+    // Committed files are stored in the snapshot, not in the index
     let index_path = ctx.repo_path.join(crate::INDEX_FILE);
-    let mut index = crate::storage::index::Index::new();
-
-    // Rebuild index from snapshot files with actual disk metadata
-    let total_files = snapshot.files.len();
-    let mut progress = output::start_progress("Updating index", total_files);
-
-    for (i, (path, file)) in snapshot.files.iter().enumerate() {
-        let abs_path = home.join(path);
-
-        // Get actual file metadata (files should exist after restore)
-        let metadata = std::fs::metadata(&abs_path)
-            .with_context(|| format!("File should exist after checkout: {}", abs_path.display()))?;
-
-        let size = metadata.len();
-        let modified = i64::try_from(
-            metadata
-                .modified()
-                .context("Failed to get file modification time")?
-                .duration_since(std::time::UNIX_EPOCH)
-                .context("Invalid file modification time")?
-                .as_secs(),
-        )
-        .context("File modification time too large")?;
-
-        // Create cache since we have the hash and know the file metadata
-        let cached_hash = Some(crate::storage::CachedHash {
-            hash: file.hash.clone(),
-            size_at_hash: size,
-            mtime_at_hash: modified,
-        });
-
-        index.add_entry(crate::storage::FileEntry {
-            path: path.clone(),
-            hash: file.hash.clone(),
-            size,
-            modified,
-            mode: file.mode,
-            cached_hash,
-        });
-
-        progress.update(i + 1);
-    }
-
-    progress.finish();
-
-    // Save the updated index
+    let index = crate::storage::index::Index::new();
     index
         .save(&index_path)
-        .with_context(|| "Failed to update index after checkout")?;
+        .with_context(|| "Failed to clear index after checkout")?;
 
     // Update HEAD with reflog entry
     let ref_manager = RefManager::new(ctx.repo_path.clone());
@@ -203,15 +184,56 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
 /// Returns an error if failed to check file status
 fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     use crate::INDEX_FILE;
-    use crate::commands::status::get_current_files;
     use crate::storage::index::Index;
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
 
-    let current_files = get_current_files(ctx)?;
-    let statuses = index.get_status_parallel(&current_files);
+    // Check for staged changes
+    if index.has_staged_changes() {
+        return Ok(false);
+    }
 
-    // Check both: no modified files on disk AND no staged changes
-    Ok(statuses.is_empty() && !index.has_staged_changes())
+    // Check for unstaged modifications by comparing with HEAD snapshot
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let head_commit = match ref_manager.get_head_commit()? {
+        Some(commit) if commit != crate::NULL_COMMIT_ID => commit,
+        _ => return Ok(true), // No commits yet, so working directory is clean
+    };
+
+    // Load HEAD snapshot
+    let snapshot_manager = SnapshotManager::with_permissions(
+        ctx.repo_path.clone(),
+        ctx.config.core.compression_level,
+        ctx.config.tracking.preserve_permissions,
+    );
+
+    let snapshot = snapshot_manager
+        .load_snapshot(&head_commit)
+        .with_context(|| format!("Failed to load HEAD commit: {head_commit}"))?;
+
+    // Get home directory
+    let home = dirs::home_dir().context("Could not find home directory")?;
+
+    // Check if any files in the snapshot have been modified or deleted
+    for (path, file) in &snapshot.files {
+        let abs_path = home.join(path);
+
+        // Check if file exists
+        if !abs_path.exists() {
+            return Ok(false); // File was deleted
+        }
+
+        // Check if file has been modified by comparing hash
+        // Use the cached hash if available to avoid re-hashing
+        let (current_hash, _) = crate::storage::file_ops::hash_file(&abs_path, None)?;
+        if current_hash != file.hash {
+            return Ok(false); // File was modified
+        }
+    }
+
+    // Check for new untracked files that might conflict
+    // (This is a basic check - a more thorough check would scan for all untracked files)
+    // For now, if we've made it this far, consider it clean
+    Ok(true)
 }

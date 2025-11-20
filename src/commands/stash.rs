@@ -1,6 +1,7 @@
 use crate::commands::status::get_current_files;
 use crate::output;
 use crate::refs::RefManager;
+use crate::storage::FileEntry;
 use crate::storage::FileStatus;
 use crate::storage::file_ops::hash_file;
 use crate::storage::index::Index;
@@ -76,6 +77,7 @@ pub fn execute(ctx: &DotmanContext, command: StashCommand) -> Result<()> {
 }
 
 /// Push current changes to stash
+#[allow(clippy::too_many_lines)] // Complex command handling staged/unstaged changes, tracking manifest, and stash operations
 fn push_stash(
     ctx: &DotmanContext,
     message: Option<String>,
@@ -167,6 +169,32 @@ fn push_stash(
         }
     }
 
+    // Load HEAD snapshot to get committed files for index_state
+    let snapshot_manager = crate::storage::snapshots::SnapshotManager::with_permissions(
+        ctx.repo_path.clone(),
+        ctx.config.core.compression_level,
+        ctx.config.tracking.preserve_permissions,
+    );
+    let snapshot = snapshot_manager.load_snapshot(&head_commit)?;
+
+    // Convert snapshot files to FileEntry for index_state
+    let index_state: Vec<FileEntry> = snapshot
+        .files
+        .iter()
+        .map(|(path, snap_file)| {
+            // For stashed index state, we don't need exact size/modified time
+            // since we have the hash and mode which are the critical fields
+            FileEntry {
+                path: path.clone(),
+                hash: snap_file.hash.clone(),
+                size: 0,     // Not critical for stash restore
+                modified: 0, // Not critical for stash restore
+                mode: snap_file.mode,
+                cached_hash: None,
+            }
+        })
+        .collect();
+
     // Create stash entry
     let stash_entry = StashEntry {
         id: stash_id,
@@ -174,7 +202,7 @@ fn push_stash(
         timestamp: crate::utils::get_current_timestamp(),
         parent_commit: head_commit,
         files: stash_files,
-        index_state: index.entries.values().cloned().collect(),
+        index_state,
     };
 
     // Save stash

@@ -142,7 +142,7 @@ mod push_pull_tests {
 
         // Verify file exists in repo2
         let index = CommandContext::load_concurrent_index(&ctx2)?;
-        let entries = index.entries();
+        let entries = index.staged_entries();
 
         assert!(!entries.is_empty(), "Should have pulled files");
 

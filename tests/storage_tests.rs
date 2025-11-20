@@ -29,13 +29,13 @@ fn test_concurrent_index_basic_operations() -> Result<()> {
     assert!(staged.is_some());
     assert_eq!(staged.unwrap().hash, "abc123");
 
-    // Test commit
+    // Test commit (clears staged entries)
     index.commit_staged();
     assert!(!index.has_staged_changes());
 
-    let committed = index.get_entry(&PathBuf::from("test.txt"));
-    assert!(committed.is_some());
-    assert_eq!(committed.unwrap().hash, "abc123");
+    // After commit, staged entries are cleared (committed files not stored in Index)
+    let committed = index.get_staged_entry(&PathBuf::from("test.txt"));
+    assert!(committed.is_none());
 
     Ok(())
 }
@@ -84,7 +84,7 @@ fn test_index_persistence() -> Result<()> {
 
     let index1 = ConcurrentIndex::new();
 
-    // Add some entries
+    // Add some staged entries (don't commit to test staging persistence)
     for i in 0u64..5 {
         let entry = FileEntry {
             path: PathBuf::from(format!("file_{i}.txt")),
@@ -96,7 +96,6 @@ fn test_index_persistence() -> Result<()> {
         };
         index1.stage_entry(entry);
     }
-    index1.commit_staged();
 
     // Save to disk
     index1.save(&index_path)?;
@@ -104,10 +103,10 @@ fn test_index_persistence() -> Result<()> {
     // Load from disk
     let index2 = ConcurrentIndex::load(&index_path)?;
 
-    // Verify entries were persisted
-    assert_eq!(index2.len(), 5);
+    // Verify staged entries were persisted
+    assert_eq!(index2.staged_entries().len(), 5);
     for i in 0..5 {
-        let entry = index2.get_entry(&PathBuf::from(format!("file_{i}.txt")));
+        let entry = index2.get_staged_entry(&PathBuf::from(format!("file_{i}.txt")));
         assert!(entry.is_some());
         assert_eq!(entry.unwrap().hash, format!("hash_{i}"));
     }
@@ -130,13 +129,12 @@ fn test_index_remove_entry() -> Result<()> {
     };
 
     index.stage_entry(entry);
-    index.commit_staged();
 
-    assert!(index.get_entry(&PathBuf::from("test.txt")).is_some());
+    assert!(index.get_staged_entry(&PathBuf::from("test.txt")).is_some());
 
-    // Remove entry
-    let _ = index.remove_entry(&PathBuf::from("test.txt"));
-    assert!(index.get_entry(&PathBuf::from("test.txt")).is_none());
+    // Remove staged entry
+    let _ = index.remove_staged(&PathBuf::from("test.txt"));
+    assert!(index.get_staged_entry(&PathBuf::from("test.txt")).is_none());
 
     Ok(())
 }
@@ -191,9 +189,7 @@ fn test_index_get_all_paths() -> Result<()> {
         })
         .collect();
 
-    index.commit_staged();
-
-    let all_paths: HashSet<_> = index.entries().into_iter().map(|(p, _)| p).collect();
+    let all_paths: HashSet<_> = index.staged_entries().into_iter().map(|(p, _)| p).collect();
     assert_eq!(all_paths, paths);
 
     Ok(())
@@ -240,12 +236,15 @@ fn test_concurrent_stage_and_commit() -> Result<()> {
         handle.join().unwrap();
     }
 
-    // Final commit to ensure all staged are committed
+    // Note: Thread 2 may have already committed some/all staged entries,
+    // so staged_count could be 0. The test verifies concurrent operations
+    // complete without panicking or data corruption.
+
+    // Final commit to ensure any remaining staged entries are committed
     index.commit_staged();
 
-    // Verify all entries are in committed state
-    let total_entries = index.len();
-    assert!(total_entries > 0);
+    // After commit, staged entries should be cleared
+    assert_eq!(index.staged_entries().len(), 0);
     assert!(!index.has_staged_changes());
 
     Ok(())

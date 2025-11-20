@@ -1,8 +1,8 @@
 use crate::output;
 use crate::refs::resolver::RefResolver;
+use crate::storage::FileEntry;
 use crate::storage::index::Index;
 use crate::storage::snapshots::SnapshotManager;
-use crate::storage::{CachedHash, FileEntry};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -64,7 +64,7 @@ pub fn execute(
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    let snapshot = snapshot_manager
+    let _snapshot = snapshot_manager
         .load_snapshot(&commit_id)
         .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
@@ -79,20 +79,8 @@ pub fn execute(
         let home = dirs::home_dir().context("Could not find home directory")?;
         snapshot_manager.restore_snapshot(&commit_id, &home, None)?;
 
-        // Update index to match commit with actual file metadata
-        let mut index = Index::new();
-        for (path, file) in &snapshot.files {
-            let entry = create_file_entry_with_metadata(
-                path,
-                &file.hash,
-                file.mode,
-                &home,
-                snapshot.commit.timestamp,
-                true, // Files MUST exist after restore
-            )?;
-            index.add_entry(entry);
-        }
-
+        // Clear the staging area - files are now in the working directory and snapshot
+        let index = Index::new();
         let index_path = ctx.repo_path.join(INDEX_FILE);
         index.save(&index_path)?;
 
@@ -118,32 +106,10 @@ pub fn execute(
             commit_id[..8.min(commit_id.len())].yellow()
         ));
 
-        // Only update index if files differ from target commit
-        let current_index = Index::load(&ctx.repo_path.join(INDEX_FILE))?;
-        let mut new_index = Index::new();
-        let home = dirs::home_dir().context("Could not find home directory")?;
-
-        for (path, file) in &snapshot.files {
-            // Keep local changes if they exist
-            if let Some(current_entry) = current_index.get_entry(path)
-                && current_entry.hash != file.hash
-            {
-                // File has local changes, keep them
-                continue;
-            }
-            let entry = create_file_entry_with_metadata(
-                path,
-                &file.hash,
-                file.mode,
-                &home,
-                snapshot.commit.timestamp,
-                false, // Files might not exist or have local changes
-            )?;
-            new_index.add_entry(entry);
-        }
-
+        // Clear the staging area - committed files are in snapshots
+        let index = Index::new();
         let index_path = ctx.repo_path.join(INDEX_FILE);
-        new_index.save(&index_path)?;
+        index.save(&index_path)?;
 
         output::success(&format!(
             "Keep reset complete. Local changes preserved, HEAD now points to {}",
@@ -156,22 +122,8 @@ pub fn execute(
             commit_id[..8.min(commit_id.len())].yellow()
         ));
 
-        // Update index to match commit
-        let mut index = Index::new();
-        let home = dirs::home_dir().context("Could not find home directory")?;
-
-        for (path, file) in &snapshot.files {
-            let entry = create_file_entry_with_metadata(
-                path,
-                &file.hash,
-                file.mode,
-                &home,
-                snapshot.commit.timestamp,
-                false, // Working directory not modified, files might differ
-            )?;
-            index.add_entry(entry);
-        }
-
+        // Clear the staging area - committed files are in snapshots
+        let index = Index::new();
         let index_path = ctx.repo_path.join(INDEX_FILE);
         index.save(&index_path)?;
 
@@ -266,13 +218,13 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
                 snapshot.commit.timestamp,
                 false, // Working directory not modified
             )?;
-            index.add_entry(entry);
+            index.stage_entry(entry);
 
             println!("  {} {}", "reset:".green(), index_path.display());
             reset_count += 1;
         } else {
             // File doesn't exist in target commit - remove from index (unstage)
-            if index.remove_entry(&index_path).is_some() {
+            if index.staged_entries.remove(&index_path).is_some() {
                 println!("  {} {}", "unstaged:".yellow(), index_path.display());
                 reset_count += 1;
             } else {
@@ -341,12 +293,11 @@ fn create_file_entry_with_metadata(
 
             let modified = i64::try_from(modified).unwrap_or(fallback_timestamp);
 
-            // Create cache since we have the hash and know the file metadata
-            let cached_hash = Some(CachedHash {
-                hash: hash.to_string(),
-                size_at_hash: size,
-                mtime_at_hash: modified,
-            });
+            // DON'T create a cached hash here - the hash is from the commit snapshot,
+            // not computed from the current file on disk. Creating a cache with the
+            // commit hash and current size/mtime would be INVALID and cause status
+            // to incorrectly report files as unchanged when they've been modified.
+            // Setting cached_hash to None forces status to recompute the hash from disk.
 
             Ok(FileEntry {
                 path: path.clone(),
@@ -354,7 +305,7 @@ fn create_file_entry_with_metadata(
                 size,
                 modified,
                 mode,
-                cached_hash,
+                cached_hash: None,
             })
         }
         Err(_) if require_file_exists => Err(anyhow::anyhow!(

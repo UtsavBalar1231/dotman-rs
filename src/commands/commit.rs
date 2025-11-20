@@ -9,7 +9,6 @@ use crate::utils::formatters::format_commit_id;
 use crate::utils::{commit::generate_commit_id, get_precise_timestamp, get_user_from_config};
 use anyhow::{Context, Result};
 use colored::Colorize;
-use std::path::PathBuf;
 
 /// Execute commit command to create a new commit
 ///
@@ -25,7 +24,9 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     let index_path = ctx.repo_path.join("index.bin");
     let mut index = ctx.load_index()?;
 
-    if index.staged_entries.is_empty() && index.entries.is_empty() {
+    // Check if repo has any commits or staged files
+    let has_commits = get_last_commit_id(ctx)?.is_some();
+    if index.staged_entries.is_empty() && !has_commits {
         output::warning("No files tracked. Use 'dot add' to track files first.");
         anyhow::bail!("No files tracked");
     }
@@ -79,25 +80,13 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
 
     let snapshot_manager = ctx.create_snapshot_manager();
 
-    // Merge entries + staged_entries to get the complete state after commit
-    // This ensures the snapshot contains ALL tracked files, not just the staged changes
-    let mut all_files = std::collections::HashMap::new();
-
-    // Start with existing committed files
-    for (path, entry) in &index.entries {
-        if !index.deleted_entries.contains(path) {
-            all_files.insert(path.clone(), entry.clone());
-        }
-    }
-
-    // Override/add with staged changes
-    for (path, entry) in &index.staged_entries {
-        if !index.deleted_entries.contains(path) {
-            all_files.insert(path.clone(), entry.clone());
-        }
-    }
-
-    let files: Vec<FileEntry> = all_files.values().cloned().collect();
+    // Snapshot contains only what's in the staging area
+    let files: Vec<FileEntry> = index
+        .staged_entries
+        .iter()
+        .filter(|(path, _entry)| !index.deleted_entries.contains(*path))
+        .map(|(_path, entry)| entry.clone())
+        .collect();
 
     let total_files = files.len();
     let progress = std::sync::Arc::new(std::sync::Mutex::new(output::start_progress(
@@ -263,30 +252,26 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
 ///
 /// Returns an error if failed to find home directory or create file entries
 fn stage_all_tracked_files(ctx: &DotmanContext, index: &mut Index) -> Result<()> {
-    // Get home directory for making paths relative
     let home = ctx.get_home_dir()?;
-
     let mut staged = 0;
 
-    // Stage all currently tracked files with their current state
-    let entries: Vec<(PathBuf, FileEntry)> = index.entries.clone().into_iter().collect();
-    for (path, existing_entry) in entries {
-        // Need to convert relative path back to absolute for checking existence
-        let abs_path = home.join(&path);
-        if abs_path.exists() {
-            // Use cached hash from existing entry for performance
-            let entry = crate::commands::add::create_file_entry(
-                &abs_path,
-                &home,
-                existing_entry.cached_hash.as_ref(),
-            )
-            .unwrap_or_else(|_| {
-                // Fallback to non-cached if there's an error
-                crate::commands::add::create_file_entry(&abs_path, &home, None)
-                    .unwrap_or(existing_entry)
-            });
-            index.stage_entry(entry);
-            staged += 1;
+    // Load files from HEAD snapshot if it exists
+    let resolver = ctx.create_ref_resolver();
+    if let Ok(commit_id) = resolver.resolve("HEAD") {
+        let snapshot_manager = ctx.create_snapshot_manager();
+        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+            for (path, _snapshot_file) in snapshot.files {
+                let abs_path = home.join(&path);
+                if abs_path.exists() {
+                    // Create new entry with current file state
+                    if let Ok(entry) =
+                        crate::commands::add::create_file_entry(&abs_path, &home, None)
+                    {
+                        index.stage_entry(entry);
+                        staged += 1;
+                    }
+                }
+            }
         }
     }
 

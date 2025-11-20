@@ -192,7 +192,7 @@ fn test_commit_without_changes() -> Result<()> {
         .args(["commit", "-m", "Empty commit"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("No files tracked"));
+        .stderr(predicate::str::contains("No changes staged for commit"));
 
     Ok(())
 }

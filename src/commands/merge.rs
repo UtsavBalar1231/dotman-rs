@@ -208,7 +208,7 @@ fn handle_remote_branch_merge(
 
     // Create tree hash
     let mut tree_content = String::new();
-    for (path, entry) in &index.entries {
+    for (path, entry) in &index.staged_entries {
         #[allow(clippy::expect_used)] // Writing to String never fails
         writeln!(&mut tree_content, "{} {}", entry.hash, path.display())
             .expect("String write should never fail");
@@ -229,7 +229,7 @@ fn handle_remote_branch_merge(
     };
 
     // Create snapshot
-    let files: Vec<FileEntry> = index.entries.values().cloned().collect();
+    let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
     // Update mapping
@@ -455,7 +455,7 @@ fn perform_three_way_merge(
     // Update index
     let mut index = Index::new();
     for file in &files {
-        index.add_entry(file.clone());
+        index.stage_entry(file.clone());
     }
     index.save(&ctx.repo_path.join(crate::INDEX_FILE))?;
 
@@ -531,7 +531,7 @@ fn perform_squash_merge(
     let mut index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
 
     for (path, file) in &target_snapshot.files {
-        index.add_entry(FileEntry {
+        index.stage_entry(FileEntry {
             path: path.clone(),
             hash: file.hash.clone(),
             size: 0,

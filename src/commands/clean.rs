@@ -1,3 +1,4 @@
+use crate::commands::context::CommandContext;
 use crate::output;
 use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
@@ -16,7 +17,7 @@ use walkdir::WalkDir;
 /// - Failed to load index
 /// - Failed to find untracked files
 pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
-    ctx.check_repo_initialized()?;
+    ctx.ensure_initialized()?;
 
     // Safety check: require either -n or -f flag
     if !dry_run && !force {
@@ -110,7 +111,22 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
 fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
     let home = dirs::home_dir().context("Could not find home directory")?;
 
-    let tracked_paths: HashSet<PathBuf> = index.entries.keys().map(|p| home.join(p)).collect();
+    // Get tracked paths from HEAD snapshot (committed files)
+    let snapshot_manager = ctx.create_snapshot_manager();
+    let resolver = ctx.create_ref_resolver();
+
+    let mut tracked_paths: HashSet<PathBuf> = if let Ok(commit_id) = resolver.resolve("HEAD") {
+        let snapshot = snapshot_manager.load_snapshot(&commit_id)?;
+        snapshot.files.keys().map(|p| home.join(p)).collect()
+    } else {
+        // No HEAD yet (empty repo)
+        HashSet::new()
+    };
+
+    // Also include staged files as tracked
+    for path in index.staged_entries.keys() {
+        tracked_paths.insert(home.join(path));
+    }
 
     let mut untracked = Vec::new();
 

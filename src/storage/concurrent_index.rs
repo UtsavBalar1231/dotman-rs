@@ -6,10 +6,12 @@
 //!
 //! # Design
 //!
-//! The [`ConcurrentIndex`] uses three concurrent data structures:
-//! - `entries`: Committed files (in repository)
+//! The [`ConcurrentIndex`] uses two concurrent data structures for the staging area:
 //! - `staged_entries`: Files staged for next commit
 //! - `deleted_entries`: Files marked for deletion
+//!
+//! **Note**: Committed files are stored in snapshots, not in the index. The concurrent
+//! index is purely a staging area for the next commit.
 //!
 //! All operations are lock-free and thread-safe, making it ideal for parallel
 //! file processing with [`rayon`].
@@ -46,8 +48,6 @@ use std::sync::Arc;
 /// Thread-safe concurrent index using `DashMap` for lock-free operations
 #[derive(Debug, Clone)]
 pub struct ConcurrentIndex {
-    /// Committed files currently tracked in the repository
-    entries: Arc<DashMap<PathBuf, FileEntry>>,
     /// Files staged for the next commit
     staged_entries: Arc<DashMap<PathBuf, FileEntry>>,
     /// Files marked for deletion in the next commit
@@ -65,7 +65,6 @@ impl ConcurrentIndex {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            entries: Arc::new(DashMap::new()),
             staged_entries: Arc::new(DashMap::new()),
             deleted_entries: Arc::new(DashSet::new()),
         }
@@ -86,10 +85,6 @@ impl ConcurrentIndex {
     pub fn from_index(index: Index) -> Self {
         let concurrent = Self::new();
 
-        for (path, entry) in index.entries {
-            concurrent.entries.insert(path, entry);
-        }
-
         for (path, entry) in index.staged_entries {
             concurrent.staged_entries.insert(path, entry);
         }
@@ -105,12 +100,6 @@ impl ConcurrentIndex {
     #[must_use]
     pub fn to_index(&self) -> Index {
         let mut index = Index::new();
-
-        for entry in self.entries.iter() {
-            index
-                .entries
-                .insert(entry.key().clone(), entry.value().clone());
-        }
 
         for entry in self.staged_entries.iter() {
             index
@@ -157,22 +146,10 @@ impl ConcurrentIndex {
         self.staged_entries.get(path).map(|e| e.clone())
     }
 
-    /// Get a committed entry
-    #[must_use]
-    pub fn get_entry(&self, path: &Path) -> Option<FileEntry> {
-        self.entries.get(path).map(|e| e.clone())
-    }
-
     /// Remove a staged entry
     #[must_use]
     pub fn remove_staged(&self, path: &Path) -> Option<FileEntry> {
         self.staged_entries.remove(path).map(|(_, v)| v)
-    }
-
-    /// Remove a committed entry
-    #[must_use]
-    pub fn remove_entry(&self, path: &Path) -> Option<FileEntry> {
-        self.entries.remove(path).map(|(_, v)| v)
     }
 
     /// Check if there are any staged changes
@@ -190,50 +167,20 @@ impl ConcurrentIndex {
             .collect()
     }
 
-    /// Get all committed entries
-    #[must_use]
-    pub fn entries(&self) -> Vec<(PathBuf, FileEntry)> {
-        self.entries
-            .iter()
-            .map(|entry| (entry.key().clone(), entry.value().clone()))
-            .collect()
-    }
-
     /// Clear all staged entries
     pub fn clear_staged(&self) {
         self.staged_entries.clear();
     }
 
-    /// Commit staged entries to the main index
+    /// Commit staged entries - clears the staging area
+    ///
+    /// This method should be called AFTER creating a snapshot with the staged files.
+    /// It simply clears the staging area to prepare for the next commit.
     pub fn commit_staged(&self) {
-        // Merge staged_entries into entries (preserve existing committed files)
-        for entry in self.staged_entries.iter() {
-            self.entries
-                .insert(entry.key().clone(), entry.value().clone());
-        }
-
-        // Remove deleted entries from committed state
-        for entry in self.deleted_entries.iter() {
-            self.entries.remove(entry.key());
-        }
-
-        // Clear deleted entries after commit
-        self.deleted_entries.clear();
-
-        // Clear staged entries after moving them to committed state
+        // Clear staged entries - they're now in the snapshot
         self.staged_entries.clear();
-    }
-
-    /// Get the number of tracked files
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.entries.len()
-    }
-
-    /// Check if the index is empty
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
+        // Clear deleted entries - deletions are now in the snapshot
+        self.deleted_entries.clear();
     }
 
     /// Mark a file as deleted

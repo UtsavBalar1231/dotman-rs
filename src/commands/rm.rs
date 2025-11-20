@@ -36,11 +36,14 @@
 //! ```
 
 use crate::output;
+use crate::refs::resolver::RefResolver;
 use crate::storage::index::Index;
+use crate::storage::snapshots::SnapshotManager;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use glob::Pattern;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -81,6 +84,21 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], options: &RmOptions) -> Re
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let mut index = Index::load(&index_path)?;
 
+    // Load HEAD snapshot to get committed files
+    let resolver = RefResolver::new(ctx.repo_path.clone());
+    let committed_files = resolver
+        .resolve("HEAD")
+        .ok()
+        .map_or_else(HashMap::new, |head_commit| {
+            let snapshot_manager =
+                SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+            snapshot_manager
+                .load_snapshot(&head_commit)
+                .ok()
+                .map(|snapshot| snapshot.files)
+                .unwrap_or_default()
+        });
+
     let mut removed_count = 0;
     let mut not_found_count = 0;
 
@@ -94,8 +112,14 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], options: &RmOptions) -> Re
         if path_str.contains('*') || path_str.contains('?') || path_str.contains('[') {
             // Handle glob pattern
             if let Ok(pattern) = Pattern::new(path_str) {
-                // Match against files in index
-                for indexed_path in index.entries.keys() {
+                // Match against committed files
+                for indexed_path in committed_files.keys() {
+                    if pattern.matches(&indexed_path.to_string_lossy()) {
+                        expanded_paths.push(indexed_path.clone());
+                    }
+                }
+                // Also match against staged files
+                for indexed_path in index.staged_entries.keys() {
                     if pattern.matches(&indexed_path.to_string_lossy()) {
                         expanded_paths.push(indexed_path.clone());
                     }
@@ -126,7 +150,9 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], options: &RmOptions) -> Re
             path.clone()
         };
 
-        let in_index = index.get_entry(&index_path).is_some();
+        let in_committed = committed_files.contains_key(&index_path);
+        let in_staged = index.staged_entries.contains_key(&index_path);
+        let in_index = in_committed || in_staged;
 
         if !in_index && !options.force {
             output::warning(&format!("File not tracked: {}", path.display()));
@@ -145,7 +171,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], options: &RmOptions) -> Re
         }
 
         // Check if file is tracked
-        if index.entries.contains_key(&index_path) {
+        if in_committed {
             // Mark the file as deleted
             index.mark_deleted(&index_path);
             println!("  {} {}", "removed:".red(), path.display());

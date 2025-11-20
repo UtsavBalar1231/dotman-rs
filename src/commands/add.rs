@@ -37,14 +37,40 @@
 use crate::DotmanContext;
 use crate::commands::context::CommandContext;
 use crate::output;
+use crate::refs::RefManager;
+use crate::storage::snapshots::{SnapshotFile, SnapshotManager};
 use crate::storage::{CachedHash, FileEntry};
+use crate::tracking::manifest::TrackingManifest;
 use crate::utils::{expand_tilde, make_relative, should_ignore};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use rayon::prelude::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+
+/// Load committed files from the HEAD snapshot.
+///
+/// Returns a map of file paths to their snapshot entries, or an empty map if:
+/// - HEAD doesn't point to a commit
+/// - HEAD points to the placeholder commit
+/// - The snapshot cannot be loaded
+fn load_committed_files(ctx: &DotmanContext) -> Result<HashMap<PathBuf, SnapshotFile>> {
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let placeholder_commit = "0".repeat(40);
+
+    ref_manager
+        .get_head_commit()?
+        .filter(|commit_id| commit_id != &placeholder_commit)
+        .map_or(Ok(HashMap::new()), |commit_id| {
+            let snapshot_manager =
+                SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+            Ok(snapshot_manager
+                .load_snapshot(&commit_id)
+                .map(|snapshot| snapshot.files)
+                .unwrap_or_default())
+        })
+}
 
 /// Stage all changes to tracked files (modified and deleted).
 ///
@@ -68,15 +94,17 @@ fn execute_add_all(ctx: &DotmanContext) -> Result<()> {
     let index = ctx.load_concurrent_index()?;
     let home = ctx.get_home_dir()?;
 
+    // Load committed files from HEAD snapshot
+    let committed_files = load_committed_files(ctx)?;
+
     let mut files_to_stage = Vec::new();
     let mut files_to_delete = Vec::new();
 
-    // 1. Check all tracked files (entries + staged_entries) for modifications/deletions
-    let tracked_paths: HashSet<PathBuf> = index
-        .entries()
-        .into_iter()
-        .chain(index.staged_entries())
-        .map(|(path, _)| path)
+    // 1. Check all tracked files (committed + staged) for modifications/deletions
+    let tracked_paths: HashSet<PathBuf> = committed_files
+        .keys()
+        .cloned()
+        .chain(index.staged_entries().into_iter().map(|(path, _)| path))
         .collect();
 
     for tracked_path in tracked_paths {
@@ -91,11 +119,10 @@ fn execute_add_all(ctx: &DotmanContext) -> Result<()> {
             files_to_delete.push(tracked_path);
         } else if abs_path.is_file() {
             // Check if file was modified - always re-stage to catch modifications
-            let existing_entry = index
+            // Only get cached_hash from staged entries (committed files don't have cache)
+            let cached_hash = index
                 .get_staged_entry(&tracked_path)
-                .or_else(|| index.get_entry(&tracked_path));
-
-            let cached_hash = existing_entry.and_then(|e| e.cached_hash);
+                .and_then(|e| e.cached_hash);
 
             files_to_stage.push((abs_path, cached_hash));
         }
@@ -176,6 +203,7 @@ fn execute_add_all(ctx: &DotmanContext) -> Result<()> {
 /// - Cannot read directory entries during recursive traversal
 /// - Cannot create file entries (metadata, hashing, or path resolution failures)
 /// - Cannot save the index after staging
+#[allow(clippy::too_many_lines)] // Complex command with sequential state management and parallel processing
 pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) -> Result<()> {
     ctx.ensure_initialized()?;
 
@@ -192,10 +220,17 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
     let index_path = ctx.repo_path.join("index.bin");
     let index = ctx.load_concurrent_index()?;
 
+    // Load tracking manifest to record user's tracking intent
+    let mut manifest = TrackingManifest::load(&ctx.repo_path)?;
+
+    // Load committed files from HEAD snapshot
+    let committed_files = load_committed_files(ctx)?;
+
     // Extract threshold once to avoid recreating context for every file
     let large_file_threshold = ctx.config.tracking.large_file_threshold;
 
     let mut files_to_add = Vec::new();
+    let home = ctx.get_home_dir()?;
 
     for path_str in paths {
         let path = expand_tilde(path_str)?;
@@ -210,8 +245,18 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
 
         if path.is_file() {
             check_special_file_type(&path, large_file_threshold);
-            files_to_add.push(path);
+            files_to_add.push(path.clone());
+
+            // Record file in tracking manifest (relative to home)
+            if let Ok(relative_path) = make_relative(&path, &home) {
+                manifest.add_file(relative_path);
+            }
         } else if path.is_dir() {
+            // Record directory in tracking manifest (relative to home)
+            if let Ok(relative_path) = make_relative(&path, &home) {
+                manifest.add_directory(relative_path);
+            }
+
             collect_files_from_dir(
                 &path,
                 &mut files_to_add,
@@ -224,10 +269,10 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
 
     if files_to_add.is_empty() {
         output::info("No files to add");
+        // Still save manifest even if no files (e.g., empty directory tracked)
+        manifest.save(&ctx.repo_path)?;
         return Ok(());
     }
-
-    let home = ctx.get_home_dir()?;
 
     let total_files = files_to_add.len();
     let progress = Arc::new(Mutex::new(output::start_progress(
@@ -240,11 +285,12 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
         .par_iter()
         .enumerate()
         .map(|(i, path)| {
-            // Try to get existing cached hash from index
+            // Try to get existing cached hash from staged entries only
+            // (committed files don't have cached_hash in snapshots)
             let relative_path = make_relative(path, &home).ok();
             let cached_hash = relative_path
                 .as_ref()
-                .and_then(|rp| index.get_staged_entry(rp).or_else(|| index.get_entry(rp)))
+                .and_then(|rp| index.get_staged_entry(rp))
                 .and_then(|e| e.cached_hash);
             let result = create_file_entry(path, &home, cached_hash.as_ref());
             if let Ok(mut p) = progress_clone.lock() {
@@ -268,7 +314,7 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
     let mut updated_count = 0;
 
     for entry in entries {
-        let existing_entry = index.get_entry(&entry.path);
+        let existing_entry = committed_files.get(&entry.path).cloned();
         let is_staged = index.get_staged_entry(&entry.path).is_some();
 
         if let Some(committed_entry) = existing_entry {
@@ -294,6 +340,9 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
     }
 
     index.save(&index_path)?;
+
+    // Save tracking manifest to persist user's tracking intent
+    manifest.save(&ctx.repo_path)?;
 
     if added_count > 0 || updated_count > 0 {
         output::success(&format!(

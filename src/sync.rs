@@ -128,7 +128,10 @@ impl<'a> Exporter<'a> {
         Ok(exported_files)
     }
 
-    /// Export current index state to a target directory
+    /// Export current index state (staged files) to a target directory
+    ///
+    /// Note: This exports the staging area, not committed files.
+    /// Use `export_commit()` to export from a snapshot.
     ///
     /// # Errors
     ///
@@ -138,7 +141,8 @@ impl<'a> Exporter<'a> {
     pub fn export_current(&self, target_dir: &Path) -> Result<Vec<(PathBuf, PathBuf)>> {
         let mut exported_files = Vec::new();
 
-        for path in self.index.entries.keys() {
+        // Export staged files
+        for (path, entry) in &self.index.staged_entries {
             let relative_path = path
                 .strip_prefix(std::env::var("HOME").unwrap_or_else(|_| "/home".to_string()))
                 .unwrap_or(path);
@@ -152,26 +156,27 @@ impl<'a> Exporter<'a> {
                 })?;
             }
 
-            // For current state, we read from the actual file location
-            if path.exists() {
-                fs::copy(path, &target_path).with_context(|| {
+            // Read content from storage using the hash
+            let content = self
+                .snapshot_manager
+                .read_object(&entry.hash)
+                .with_context(|| {
                     format!(
-                        "Failed to copy {} to {}",
-                        path.display(),
-                        target_path.display()
+                        "Failed to read staged object {} for {}",
+                        entry.hash,
+                        path.display()
                     )
                 })?;
 
-                // Preserve permissions
-                #[cfg(unix)]
-                {
-                    let metadata = fs::metadata(path)?;
-                    let permissions = metadata.permissions();
-                    fs::set_permissions(&target_path, permissions)?;
-                }
+            // Write to target
+            fs::write(&target_path, content)
+                .with_context(|| format!("Failed to write {}", target_path.display()))?;
 
-                exported_files.push((path.clone(), relative_path.to_path_buf()));
-            }
+            // Set file permissions using cross-platform module
+            let permissions = crate::utils::permissions::FilePermissions::from_mode(entry.mode);
+            permissions.apply_to_path(&target_path, self.preserve_permissions)?;
+
+            exported_files.push((path.clone(), relative_path.to_path_buf()));
         }
 
         Ok(exported_files)
@@ -312,7 +317,7 @@ impl<'a> Importer<'a> {
                 },
                 cached_hash: None,
             };
-            self.index.add_entry(file_entry);
+            self.index.stage_entry(file_entry);
 
             imported_files.push(target_path);
         }
@@ -357,8 +362,8 @@ impl<'a> Importer<'a> {
 
             seen_files.insert(target_path.clone());
 
-            if let Some(index_entry) = self.index.get_entry(&target_path) {
-                // File exists, check if modified
+            if let Some(index_entry) = self.index.get_staged_entry(&target_path) {
+                // File exists in staging, check if modified
                 let content = fs::read(path)?;
                 let (hash, _cache) = crate::storage::file_ops::hash_file(path, None)?;
 
@@ -408,7 +413,7 @@ impl<'a> Importer<'a> {
                         },
                         cached_hash: None,
                     };
-                    self.index.add_entry(file_entry);
+                    self.index.stage_entry(file_entry);
                 }
             } else {
                 // New file
@@ -455,16 +460,16 @@ impl<'a> Importer<'a> {
                     },
                     cached_hash: None,
                 };
-                self.index.add_entry(file_entry);
+                self.index.stage_entry(file_entry);
             }
         }
 
-        // Need to clone the keys to avoid borrowing issues
-        let indexed_paths: Vec<PathBuf> = self.index.entries.keys().cloned().collect();
-        for indexed_path in &indexed_paths {
-            if !seen_files.contains(indexed_path) {
-                deleted.push(indexed_path.clone());
-                self.index.remove_entry(indexed_path);
+        // Check for files that were in staging but are now deleted in source
+        let staged_paths: Vec<PathBuf> = self.index.staged_entries.keys().cloned().collect();
+        for staged_path in &staged_paths {
+            if !seen_files.contains(staged_path) {
+                deleted.push(staged_path.clone());
+                self.index.staged_entries.remove(staged_path);
 
                 // Optionally remove the file from the filesystem
                 // For now, we'll keep it to be safe

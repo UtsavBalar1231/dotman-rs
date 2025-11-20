@@ -3,7 +3,6 @@
 //! This module provides functionality for detecting conflicts during three-way merges,
 //! generating conflict markers in files, and managing merge state persistence.
 
-use crate::storage::index::Index;
 use crate::storage::snapshots::{Snapshot, SnapshotManager};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -73,14 +72,14 @@ impl ConflictMarker {
     }
 }
 
-/// Detects conflicts between current state, remote changes, and common ancestor
+/// Detects conflicts between local snapshot, remote changes, and common ancestor
 ///
 /// Performs a three-way merge analysis to identify files that have conflicting
 /// changes in both the local and remote branches since their common ancestor.
 ///
 /// # Arguments
 ///
-/// * `current_index` - The current working tree index
+/// * `local_snapshot` - Snapshot of the local/current branch
 /// * `remote_snapshot` - Snapshot of the remote/target branch
 /// * `common_ancestor` - Snapshot of the merge base (common ancestor), if available
 ///
@@ -92,41 +91,41 @@ impl ConflictMarker {
 ///
 /// Returns an error if file comparisons fail
 pub fn detect_conflicts(
-    current_index: &Index,
+    local_snapshot: &Snapshot,
     remote_snapshot: &Snapshot,
     common_ancestor: Option<&Snapshot>,
 ) -> Result<Vec<ConflictInfo>> {
     let mut conflicts = Vec::new();
 
-    // Get all unique file paths across current, remote, and base
+    // Get all unique file paths across local, remote, and base
     let mut all_paths = HashSet::new();
-    all_paths.extend(current_index.entries.keys().cloned());
+    all_paths.extend(local_snapshot.files.keys().cloned());
     all_paths.extend(remote_snapshot.files.keys().cloned());
     if let Some(base) = common_ancestor {
         all_paths.extend(base.files.keys().cloned());
     }
 
     for path in all_paths {
-        let in_current = current_index.entries.get(&path);
+        let in_local = local_snapshot.files.get(&path);
         let in_remote = remote_snapshot.files.get(&path);
         let in_base = common_ancestor.and_then(|base| base.files.get(&path));
 
         // Three-way merge logic
-        let has_conflict = match (in_current, in_remote, in_base) {
+        let has_conflict = match (in_local, in_remote, in_base) {
             // Both modified from base - check if they differ
-            (Some(current), Some(remote), Some(base)) => {
-                let current_changed = current.hash != base.hash;
+            (Some(local), Some(remote), Some(base)) => {
+                let local_changed = local.hash != base.hash;
                 let remote_changed = remote.hash != base.hash;
 
                 // Conflict if both changed but to different values
-                current_changed && remote_changed && current.hash != remote.hash
+                local_changed && remote_changed && local.hash != remote.hash
             }
             // File added in both branches with different content
-            (Some(current), Some(remote), None) => current.hash != remote.hash,
+            (Some(local), Some(remote), None) => local.hash != remote.hash,
             // File deleted in one branch but modified in another
-            (Some(current), None, Some(base)) => {
+            (Some(local), None, Some(base)) => {
                 // Remote deleted, check if we modified
-                current.hash != base.hash
+                local.hash != base.hash
             }
             (None, Some(remote), Some(base)) => {
                 // Local deleted, check if remote modified
@@ -137,7 +136,7 @@ pub fn detect_conflicts(
         };
 
         if has_conflict {
-            let local_hash = in_current.map(|e| e.hash.clone()).unwrap_or_default();
+            let local_hash = in_local.map(|f| f.hash.clone()).unwrap_or_default();
             let remote_hash = in_remote.map(|f| f.hash.clone()).unwrap_or_default();
             let base_hash = in_base.map(|f| f.hash.clone());
 

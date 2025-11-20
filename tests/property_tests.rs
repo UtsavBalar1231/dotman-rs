@@ -206,10 +206,8 @@ proptest! {
             seen_paths.insert(path_buf);
         }
 
-        index.commit_staged();
-
-        // Calculate actual total size
-        let actual_size: u64 = index.entries()
+        // Calculate actual total size from staged entries
+        let actual_size: u64 = index.staged_entries()
             .iter()
             .map(|(_, e)| e.size)
             .sum();

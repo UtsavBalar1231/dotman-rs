@@ -1,16 +1,61 @@
 use crate::output;
 use crate::refs::resolver::RefResolver;
 use crate::storage::file_ops::hash_bytes;
-use crate::storage::index::{Index, IndexDiffer};
-use crate::storage::snapshots::SnapshotManager;
+use crate::storage::index::Index;
+use crate::storage::snapshots::{SnapshotFile, SnapshotManager};
 use crate::storage::{Commit, FileEntry, FileStatus};
 use crate::utils::{commit::generate_commit_id, get_precise_timestamp, get_user_from_config};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
+use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::fs;
 use std::path::PathBuf;
+
+/// Compare two file collections and return their differences.
+///
+/// Compares files from two snapshots and returns a list of changes:
+/// - Added: Files present in `to_files` but not in `from_files`
+/// - Modified: Files present in both with different hashes
+/// - Deleted: Files present in `from_files` but not in `to_files`
+///
+/// # Arguments
+///
+/// * `from_files` - The baseline file collection
+/// * `to_files` - The target file collection to compare against
+///
+/// # Returns
+///
+/// A vector of [`FileStatus`] representing the differences between the two collections
+fn compare_file_collections(
+    from_files: &HashMap<PathBuf, SnapshotFile>,
+    to_files: &HashMap<PathBuf, SnapshotFile>,
+) -> Vec<FileStatus> {
+    let mut statuses = Vec::new();
+
+    // Find added and modified files
+    for (path, to_file) in to_files {
+        if let Some(from_file) = from_files.get(path) {
+            // File exists in both - check if modified
+            if from_file.hash != to_file.hash {
+                statuses.push(FileStatus::Modified(path.clone()));
+            }
+        } else {
+            // File only in "to" - it was added
+            statuses.push(FileStatus::Added(path.clone()));
+        }
+    }
+
+    // Find deleted files
+    for path in from_files.keys() {
+        if !to_files.contains_key(path) {
+            statuses.push(FileStatus::Deleted(path.clone()));
+        }
+    }
+
+    statuses
+}
 
 /// Execute revert command - revert changes from a specific commit
 ///
@@ -142,39 +187,14 @@ fn calculate_revert_changes(
 ) -> Result<Vec<RevertChange>> {
     let mut revert_changes = Vec::new();
 
-    // Convert target snapshot to index for comparison
-    let mut target_index = Index::new();
-    for (path, file) in &target_snapshot.files {
-        target_index.add_entry(FileEntry {
-            path: path.clone(),
-            hash: file.hash.clone(),
-            size: 0, // Size not needed for comparison
-            modified: target_snapshot.commit.timestamp,
-            mode: file.mode,
-            cached_hash: None,
-        });
-    }
-
     if let Some(parent_id) = &target_snapshot.commit.parent {
         // Commit has a parent - compare with parent to see what the original commit did
         let parent_snapshot = snapshot_manager
             .load_snapshot(parent_id)
             .with_context(|| format!("Failed to load parent commit: {parent_id}"))?;
 
-        let mut parent_index = Index::new();
-        for (path, file) in &parent_snapshot.files {
-            parent_index.add_entry(FileEntry {
-                path: path.clone(),
-                hash: file.hash.clone(),
-                size: 0,
-                modified: parent_snapshot.commit.timestamp,
-                mode: file.mode,
-                cached_hash: None,
-            });
-        }
-
         // Find what changed from parent to target
-        let changes = IndexDiffer::diff(&parent_index, &target_index);
+        let changes = compare_file_collections(&parent_snapshot.files, &target_snapshot.files);
 
         // Create inverse operations
         for change in changes {
@@ -185,19 +205,17 @@ fn calculate_revert_changes(
                 }
                 FileStatus::Modified(path) => {
                     // Original commit modified this file - revert by restoring parent version
-                    if let Some(parent_entry) = parent_index.get_entry(&path) {
+                    if let Some(parent_file) = parent_snapshot.files.get(&path) {
                         revert_changes.push(RevertChange::Restore {
                             path: path.clone(),
-                            content_hash: parent_entry.hash.clone(),
-                            mode: parent_entry.mode,
+                            content_hash: parent_file.content_hash.clone(),
+                            mode: parent_file.mode,
                         });
                     }
                 }
                 FileStatus::Deleted(path) => {
                     // Original commit deleted this file - revert by restoring it from parent
-                    if let Some(_parent_entry) = parent_index.get_entry(&path)
-                        && let Some(parent_file) = parent_snapshot.files.get(&path)
-                    {
+                    if let Some(parent_file) = parent_snapshot.files.get(&path) {
                         revert_changes.push(RevertChange::Restore {
                             path: path.clone(),
                             content_hash: parent_file.content_hash.clone(),
@@ -305,7 +323,8 @@ fn apply_revert_changes(
                     })?;
                 }
 
-                index.remove_entry(path);
+                // Remove from staged entries
+                index.staged_entries.remove(path);
             }
             RevertChange::Restore {
                 path,
@@ -339,8 +358,8 @@ fn apply_revert_changes(
                 let (new_hash, _cache) = crate::storage::file_ops::hash_file(&abs_path, None)?;
                 let metadata = fs::metadata(&abs_path)?;
 
-                // Update index with restored file
-                index.add_entry(FileEntry {
+                // Stage the restored file
+                index.stage_entry(FileEntry {
                     path: path.clone(),
                     hash: new_hash,
                     size: metadata.len(),
@@ -392,9 +411,9 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     let resolver = RefResolver::new(ctx.repo_path.clone());
     let parent = resolver.resolve("HEAD").ok();
 
-    // Create tree hash from all file hashes
+    // Create tree hash from all staged file hashes
     let mut tree_content = String::new();
-    for (path, entry) in &index.entries {
+    for (path, entry) in &index.staged_entries {
         #[allow(clippy::expect_used)] // Writing to String never fails
         writeln!(&mut tree_content, "{} {}", entry.hash, path.display())
             .expect("String write should never fail");
@@ -428,7 +447,7 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
         ctx.config.tracking.preserve_permissions,
     );
 
-    let files: Vec<FileEntry> = index.entries.values().cloned().collect();
+    let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
     // Update HEAD
