@@ -1,0 +1,75 @@
+# Pre-commit hooks configuration for dotman
+# https://pre-commit.com/
+
+repos:
+  # Rust formatting
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all --
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+  # Rust linting with strict warnings
+  - repo: local
+    hooks:
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --all-targets --all-features -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+  # Documentation validation
+  - repo: local
+    hooks:
+      - id: cargo-doc
+        name: cargo doc
+        entry: bash -c 'RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features'
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+  # Unit tests (fast subset)
+  - repo: local
+    hooks:
+      - id: cargo-test
+        name: cargo test (unit)
+        entry: cargo test --lib --all-features
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+  # Standard file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-toml
+        name: check TOML syntax
+      - id: check-yaml
+        name: check YAML syntax
+      - id: check-merge-conflict
+        name: check for merge conflicts
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+      - id: end-of-file-fixer
+        name: fix end of files
+      - id: check-added-large-files
+        name: check for large files
+        args: ['--maxkb=500']
+
+# Pre-commit.ci configuration
+ci:
+  autofix_commit_msg: |
+    chore: auto-fix pre-commit hooks
+
+    [pre-commit.ci] automated fixes from pre-commit hooks
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: 'chore: update pre-commit hook versions'
+  autoupdate_schedule: weekly
+  # Skip expensive hooks on pre-commit.ci to save CI resources
+  # These run locally and in GitHub Actions CI
+  skip: [cargo-clippy, cargo-doc, cargo-test]
