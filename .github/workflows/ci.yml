@@ -198,6 +198,8 @@ jobs:
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@0be4756f42223b67aa4b7df5effad59010cbf4b9 # v2.62.51
+        with:
+          tool: cargo-llvm-cov
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
@@ -311,4 +313,3 @@ jobs:
 
       - name: CI Success
         run: echo "All CI checks passed successfully!"
-
