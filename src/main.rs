@@ -49,7 +49,8 @@ enum Commands {
         #[arg(short, long)]
         short: bool,
 
-        #[arg(short, long)]
+        /// Show untracked files (default: true, use --no-untracked to disable)
+        #[arg(short, long, default_value_t = true, action = clap::ArgAction::Set)]
         untracked: bool,
     },
 

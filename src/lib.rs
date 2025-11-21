@@ -28,6 +28,7 @@
 //! - [`tracking`]: Directory and file tracking manifest system
 //! - [`config`]: Configuration parsing and validation
 //! - [`refs`]: Reference and branch management
+//! - [`scanner`]: Filesystem scanning and directory traversal utilities
 //! - [`output`]: Output formatting, styling, and progress display
 //! - [`utils`]: Utility functions and helpers
 //!
@@ -78,6 +79,9 @@ pub mod reflog;
 
 /// Reference and branch management (HEAD, branches, tags).
 pub mod refs;
+
+/// Filesystem scanning and directory traversal utilities.
+pub mod scanner;
 
 /// Core storage layer including index, snapshots, and file operations.
 pub mod storage;

@@ -368,6 +368,71 @@ mod commit_command_tests {
 
 mod status_command_tests {
     use super::*;
+    use std::collections::HashSet;
+
+    // Test wrapper for trie-based untracked file scanning
+    fn find_untracked_files_for_test(
+        ctx: &DotmanContext,
+        index: &dotman::storage::index::Index,
+        home_dir: Option<std::path::PathBuf>,
+    ) -> Result<Vec<std::path::PathBuf>> {
+        let home = home_dir.as_ref().map_or_else(
+            || dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory")),
+            |h| Ok(h.clone()),
+        )?;
+
+        // Build trie and tracked files set
+        let mut trie = dotman::scanner::DirTrie::new();
+        let mut tracked_files = HashSet::new();
+
+        // Get committed files from HEAD snapshot
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
+        if let Some(commit_id) = ref_manager.get_head_commit()?
+            && commit_id != "0".repeat(40)
+        {
+            let snapshot_manager = dotman::storage::snapshots::SnapshotManager::new(
+                ctx.repo_path.clone(),
+                ctx.config.core.compression_level,
+            );
+            if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+                for path in snapshot.files.keys() {
+                    let abs_path = if path.is_relative() {
+                        home.join(path)
+                    } else {
+                        path.clone()
+                    };
+                    trie.insert_tracked_file(&abs_path, &home);
+                    tracked_files.insert(abs_path);
+                }
+            }
+        }
+
+        // Add staged files
+        for path in index.staged_entries.keys() {
+            let abs_path = if path.is_relative() {
+                home.join(path)
+            } else {
+                path.clone()
+            };
+            trie.insert_tracked_file(&abs_path, &home);
+            tracked_files.insert(abs_path);
+        }
+
+        // Find untracked files using shared scanner
+        let untracked_files =
+            dotman::scanner::find_untracked_files(&home, &ctx.repo_path, &trie, &tracked_files)?;
+
+        // Filter by ignore patterns
+        let untracked: Vec<std::path::PathBuf> = untracked_files
+            .into_iter()
+            .filter(|file| {
+                let relative_path = file.strip_prefix(&home).unwrap_or(file);
+                !dotman::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns)
+            })
+            .collect();
+
+        Ok(untracked)
+    }
 
     #[test]
     fn test_status_clean_repo() -> Result<()> {
@@ -457,6 +522,190 @@ mod status_command_tests {
 
         // Status should show deleted files
         commands::status::execute(&ctx, false, true)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_status_shows_untracked_in_tracked_dotfile_dir() -> Result<()> {
+        let (temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create .config/kitty directory structure
+        let config_dir = temp_dir.path().join(".config/kitty");
+        fs::create_dir_all(&config_dir)?;
+
+        // Create and track one file
+        let tracked_file = config_dir.join("kitty.conf");
+        fs::write(&tracked_file, "initial config")?;
+        commands::add::execute(&ctx, &[tracked_file.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add kitty.conf", false)?;
+
+        // Create an untracked file in the same directory
+        let untracked_file = config_dir.join("kitty.conf.test");
+        fs::write(&untracked_file, "test config")?;
+
+        // Run status with untracked files enabled (default behavior)
+        // This should show the untracked file because .config/kitty is a tracked directory
+        let untracked_files = find_untracked_files_for_test(
+            &ctx,
+            &CommandContext::load_index(&ctx)?,
+            Some(temp_dir.path().to_path_buf()),
+        )?;
+
+        // Verify the untracked file is found
+        let untracked_relative: Vec<_> = untracked_files
+            .iter()
+            .map(|p| p.strip_prefix(temp_dir.path()).unwrap_or(p))
+            .collect();
+
+        assert!(
+            untracked_relative
+                .iter()
+                .any(|p| p.ends_with("kitty.conf.test")),
+            "Untracked file in tracked dotfile directory should be detected. Found: {:?}",
+            untracked_relative
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_status_hides_untracked_in_untracked_dotfile_dir() -> Result<()> {
+        let (temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create .random_hidden directory (not tracked)
+        let hidden_dir = temp_dir.path().join(".random_hidden");
+        fs::create_dir_all(&hidden_dir)?;
+
+        // Create a file in the untracked dotfile directory
+        let untracked_file = hidden_dir.join("secret.txt");
+        fs::write(&untracked_file, "secret content")?;
+
+        // Run status with untracked files enabled
+        let untracked_files = find_untracked_files_for_test(
+            &ctx,
+            &CommandContext::load_index(&ctx)?,
+            Some(temp_dir.path().to_path_buf()),
+        )?;
+
+        // Verify the file is NOT found (directory is skipped)
+        let untracked_relative: Vec<_> = untracked_files
+            .iter()
+            .map(|p| p.strip_prefix(temp_dir.path()).unwrap_or(p))
+            .collect();
+
+        assert!(
+            !untracked_relative.iter().any(|p| p.ends_with("secret.txt")),
+            "Files in untracked dotfile directories should be hidden. Found: {:?}",
+            untracked_relative
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_status_shows_untracked_in_nested_tracked_dirs() -> Result<()> {
+        let (temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create nested directory structure .config/nvim/lua/plugins
+        let plugins_dir = temp_dir.path().join(".config/nvim/lua/plugins");
+        fs::create_dir_all(&plugins_dir)?;
+
+        // Track a file deep in the hierarchy
+        let tracked_file = plugins_dir.join("init.lua");
+        fs::write(&tracked_file, "plugin config")?;
+        commands::add::execute(&ctx, &[tracked_file.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add nvim plugin config", false)?;
+
+        // Create untracked files at various levels of the hierarchy
+        // NOTE: With focused dotfiles management, only files in the LEAF directory
+        // (the directory that directly contains tracked files) should be shown.
+        // Files in parent directories (.config/, .config/nvim/, etc.) should NOT be shown.
+        let untracked_at_config = temp_dir.path().join(".config/test.txt");
+        let untracked_at_nvim = temp_dir.path().join(".config/nvim/test.txt");
+        let untracked_at_plugins = plugins_dir.join("new-plugin.lua");
+
+        fs::write(&untracked_at_config, "test1")?;
+        fs::write(&untracked_at_nvim, "test2")?;
+        fs::write(&untracked_at_plugins, "new plugin")?;
+
+        // Run status
+        let untracked_files = find_untracked_files_for_test(
+            &ctx,
+            &CommandContext::load_index(&ctx)?,
+            Some(temp_dir.path().to_path_buf()),
+        )?;
+
+        let untracked_relative: Vec<_> = untracked_files
+            .iter()
+            .map(|p| p.strip_prefix(temp_dir.path()).unwrap_or(p))
+            .collect();
+
+        // ONLY the file in the leaf directory should be found
+        // Files in parent directories should be ignored for focused dotfiles management
+        assert!(
+            !untracked_relative
+                .iter()
+                .any(|p| p.ends_with(".config/test.txt")),
+            "Should NOT find untracked file at .config level (parent dir, not leaf)"
+        );
+        assert!(
+            !untracked_relative
+                .iter()
+                .any(|p| p.to_string_lossy().contains("nvim/test.txt")),
+            "Should NOT find untracked file at nvim level (parent dir, not leaf)"
+        );
+        assert!(
+            untracked_relative
+                .iter()
+                .any(|p| p.ends_with("new-plugin.lua")),
+            "Should find untracked file in plugins directory (leaf dir with tracked files)"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_status_modified_file_in_dotfile_dir() -> Result<()> {
+        let (temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create .config/kitty directory
+        let config_dir = temp_dir.path().join(".config/kitty");
+        fs::create_dir_all(&config_dir)?;
+
+        // Create, track, and commit a file
+        let config_file = config_dir.join("kitty.conf");
+        fs::write(&config_file, "initial")?;
+        commands::add::execute(&ctx, &[config_file.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Initial kitty config", false)?;
+
+        // Modify the file
+        fs::write(&config_file, "modified")?;
+
+        // Create an untracked file in the same directory
+        let untracked_file = config_dir.join("new-file.conf");
+        fs::write(&untracked_file, "new content")?;
+
+        // Status should show both the modification and the untracked file
+        // This is the exact scenario from the bug report
+        let untracked_files = find_untracked_files_for_test(
+            &ctx,
+            &CommandContext::load_index(&ctx)?,
+            Some(temp_dir.path().to_path_buf()),
+        )?;
+
+        let untracked_relative: Vec<_> = untracked_files
+            .iter()
+            .map(|p| p.strip_prefix(temp_dir.path()).unwrap_or(p))
+            .collect();
+
+        assert!(
+            untracked_relative
+                .iter()
+                .any(|p| p.ends_with("new-file.conf")),
+            "Should detect untracked file in same directory as modified file. Found: {:?}",
+            untracked_relative
+        );
 
         Ok(())
     }

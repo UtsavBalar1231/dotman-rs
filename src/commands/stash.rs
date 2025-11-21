@@ -1,6 +1,7 @@
 use crate::commands::status::get_current_files;
 use crate::output;
 use crate::refs::RefManager;
+use crate::scanner::DirTrie;
 use crate::storage::FileEntry;
 use crate::storage::FileStatus;
 use crate::storage::file_ops::hash_file;
@@ -10,7 +11,7 @@ use crate::utils::pager::PagerOutput;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 
@@ -534,10 +535,61 @@ fn reset_to_head(ctx: &DotmanContext) -> Result<()> {
     Ok(())
 }
 
-/// Find untracked files
+/// Find untracked files using the shared scanner
 fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
-    use crate::commands::status::find_untracked_files as status_find_untracked;
-    status_find_untracked(ctx, index)
+    let home = dirs::home_dir().context("Could not find home directory")?;
+
+    // Build trie and tracked files set
+    let mut trie = DirTrie::new();
+    let mut tracked_files = HashSet::new();
+
+    // Get committed files from HEAD snapshot
+    let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
+    if let Some(commit_id) = ref_manager.get_head_commit()?
+        && commit_id != "0".repeat(40)
+    {
+        let snapshot_manager = crate::storage::snapshots::SnapshotManager::new(
+            ctx.repo_path.clone(),
+            ctx.config.core.compression_level,
+        );
+        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+            for path in snapshot.files.keys() {
+                let abs_path = if path.is_relative() {
+                    home.join(path)
+                } else {
+                    path.clone()
+                };
+                trie.insert_tracked_file(&abs_path, &home);
+                tracked_files.insert(abs_path);
+            }
+        }
+    }
+
+    // Add staged files
+    for path in index.staged_entries.keys() {
+        let abs_path = if path.is_relative() {
+            home.join(path)
+        } else {
+            path.clone()
+        };
+        trie.insert_tracked_file(&abs_path, &home);
+        tracked_files.insert(abs_path);
+    }
+
+    // Find untracked files using shared scanner
+    let untracked_files =
+        crate::scanner::find_untracked_files(&home, &ctx.repo_path, &trie, &tracked_files)?;
+
+    // Filter by ignore patterns
+    let untracked: Vec<PathBuf> = untracked_files
+        .into_iter()
+        .filter(|file| {
+            let relative_path = file.strip_prefix(&home).unwrap_or(file);
+            !crate::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns)
+        })
+        .collect();
+
+    Ok(untracked)
 }
 
 /// Get file mode from metadata

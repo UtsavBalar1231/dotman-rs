@@ -38,6 +38,7 @@
 //! ```
 
 use crate::refs::RefManager;
+use crate::scanner::{DirTrie, find_untracked_files};
 use crate::storage::FileStatus;
 use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
@@ -245,9 +246,41 @@ pub fn execute_verbose(
     }
 
     if show_untracked {
-        let untracked = find_untracked_files(ctx, &index)?;
+        // Build trie and tracked files set for untracked file discovery
+        let mut trie = DirTrie::new();
+        let mut tracked_files = HashSet::new();
+
+        // Add committed files
+        if let Some(ref files) = committed_files {
+            for path in files.keys() {
+                let abs_path = if path.is_relative() {
+                    home.join(path)
+                } else {
+                    path.clone()
+                };
+                trie.insert_tracked_file(&abs_path, &home);
+                tracked_files.insert(abs_path);
+            }
+        }
+
+        // Add staged files
+        for path in index.staged_entries.keys() {
+            let abs_path = if path.is_relative() {
+                home.join(path)
+            } else {
+                path.clone()
+            };
+            trie.insert_tracked_file(&abs_path, &home);
+            tracked_files.insert(abs_path);
+        }
+
+        let untracked = find_untracked_files(&home, &ctx.repo_path, &trie, &tracked_files)?;
         for file in untracked {
-            statuses.push(FileStatus::Untracked(file));
+            // Check against ignore patterns
+            let relative_path = file.strip_prefix(&home).unwrap_or(&file);
+            if !crate::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns) {
+                statuses.push(FileStatus::Untracked(file));
+            }
         }
     }
 
@@ -384,84 +417,6 @@ pub fn get_current_files(ctx: &DotmanContext) -> Result<Vec<PathBuf>> {
     }
 
     Ok(files)
-}
-
-/// Find untracked files based on configured patterns
-///
-/// # Errors
-///
-/// Returns an error if:
-/// - Cannot determine home directory
-/// - File traversal fails
-pub fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
-    use walkdir::WalkDir;
-
-    let mut untracked = Vec::new();
-    let home = dirs::home_dir().context("Could not find home directory")?;
-
-    let mut tracked_paths: HashSet<PathBuf> = HashSet::new();
-
-    // Get committed files from HEAD snapshot
-    let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
-    if let Some(commit_id) = ref_manager.get_head_commit()?
-        && commit_id != "0".repeat(40)
-    {
-        let snapshot_manager = crate::storage::snapshots::SnapshotManager::new(
-            ctx.repo_path.clone(),
-            ctx.config.core.compression_level,
-        );
-        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
-            for path in snapshot.files.keys() {
-                if path.is_relative() {
-                    tracked_paths.insert(home.join(path));
-                } else {
-                    tracked_paths.insert(path.clone());
-                }
-            }
-        }
-    }
-
-    // Also include staged files
-    for path in index.staged_entries.keys() {
-        if path.is_relative() {
-            tracked_paths.insert(home.join(path));
-        } else {
-            tracked_paths.insert(path.clone());
-        }
-    }
-
-    for entry in WalkDir::new(&home)
-        .follow_links(ctx.config.tracking.follow_symlinks)
-        .into_iter()
-        .filter_entry(|e| {
-            let path = e.path();
-            if path != home
-                && path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|n| n.starts_with('.'))
-            {
-                return false;
-            }
-            // Skip the dotman repo itself
-            if path == ctx.repo_path {
-                return false;
-            }
-            true
-        })
-        .flatten()
-    {
-        let path = entry.path();
-        if entry.file_type().is_file() && !tracked_paths.contains(path) {
-            // Check against ignore patterns
-            let relative_path = path.strip_prefix(&home).unwrap_or(path);
-            if !crate::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns) {
-                untracked.push(path.to_path_buf());
-            }
-        }
-    }
-
-    Ok(untracked)
 }
 
 /// Print a group of file statuses with a common status type.

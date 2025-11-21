@@ -1,12 +1,12 @@
 use crate::commands::context::CommandContext;
 use crate::output;
+use crate::scanner::{DirTrie, find_untracked_files};
 use crate::storage::index::Index;
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use walkdir::WalkDir;
 
 /// Execute clean command to remove untracked files
 ///
@@ -31,8 +31,56 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
 
-    // Find untracked files
-    let untracked = find_untracked_files(ctx, &index)?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
+
+    // Build trie and tracked files set for untracked file discovery
+    let mut trie = DirTrie::new();
+    let mut tracked_files = HashSet::new();
+
+    // Get committed files from HEAD snapshot
+    let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
+    if let Some(commit_id) = ref_manager.get_head_commit()?
+        && commit_id != "0".repeat(40)
+    {
+        let snapshot_manager = crate::storage::snapshots::SnapshotManager::new(
+            ctx.repo_path.clone(),
+            ctx.config.core.compression_level,
+        );
+        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
+            for path in snapshot.files.keys() {
+                let abs_path = if path.is_relative() {
+                    home.join(path)
+                } else {
+                    path.clone()
+                };
+                trie.insert_tracked_file(&abs_path, &home);
+                tracked_files.insert(abs_path);
+            }
+        }
+    }
+
+    // Also include staged files
+    for path in index.staged_entries.keys() {
+        let abs_path = if path.is_relative() {
+            home.join(path)
+        } else {
+            path.clone()
+        };
+        trie.insert_tracked_file(&abs_path, &home);
+        tracked_files.insert(abs_path);
+    }
+
+    // Find untracked files using shared scanner
+    let untracked_files = find_untracked_files(&home, &ctx.repo_path, &trie, &tracked_files)?;
+
+    // Filter by ignore patterns
+    let untracked: Vec<PathBuf> = untracked_files
+        .into_iter()
+        .filter(|file| {
+            let relative_path = file.strip_prefix(&home).unwrap_or(file);
+            !crate::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns)
+        })
+        .collect();
 
     if untracked.is_empty() {
         output::info("Already clean - no untracked files found");
@@ -101,67 +149,4 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Find all untracked files in the home directory
-///
-/// # Errors
-///
-/// Returns an error if failed to find home directory
-fn find_untracked_files(ctx: &DotmanContext, index: &Index) -> Result<Vec<PathBuf>> {
-    let home = dirs::home_dir().context("Could not find home directory")?;
-
-    // Get tracked paths from HEAD snapshot (committed files)
-    let snapshot_manager = ctx.create_snapshot_manager();
-    let resolver = ctx.create_ref_resolver();
-
-    let mut tracked_paths: HashSet<PathBuf> = if let Ok(commit_id) = resolver.resolve("HEAD") {
-        let snapshot = snapshot_manager.load_snapshot(&commit_id)?;
-        snapshot.files.keys().map(|p| home.join(p)).collect()
-    } else {
-        // No HEAD yet (empty repo)
-        HashSet::new()
-    };
-
-    // Also include staged files as tracked
-    for path in index.staged_entries.keys() {
-        tracked_paths.insert(home.join(path));
-    }
-
-    let mut untracked = Vec::new();
-
-    // Walk through home directory
-    for entry in WalkDir::new(&home)
-        .follow_links(ctx.config.tracking.follow_symlinks)
-        .into_iter()
-        .filter_entry(|e| {
-            let path = e.path();
-            // Skip hidden directories (except tracked ones)
-            if path != home
-                && path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|n| n.starts_with('.'))
-            {
-                return false;
-            }
-            // Skip the dotman repo itself
-            if path == ctx.repo_path {
-                return false;
-            }
-            true
-        })
-        .flatten()
-    {
-        let path = entry.path();
-        if entry.file_type().is_file() && !tracked_paths.contains(path) {
-            // Check against ignore patterns
-            let relative_path = path.strip_prefix(&home).unwrap_or(path);
-            if !crate::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns) {
-                untracked.push(path.to_path_buf());
-            }
-        }
-    }
-
-    Ok(untracked)
 }
