@@ -66,9 +66,17 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
 
     // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
     let resolver = RefResolver::new(ctx.repo_path.clone());
-    let commit_id = resolver
-        .resolve(target)
-        .with_context(|| format!("Failed to resolve reference: {target}"))?;
+    let commit_id = resolver.resolve(target).with_context(|| {
+        // Check if target looks like a file path
+        if target.contains('/') || std::path::Path::new(target).exists() {
+            format!(
+                "Failed to resolve reference: {target}\n\
+                    Hint: To restore files, use: dot restore {target}"
+            )
+        } else {
+            format!("Failed to resolve reference: {target}")
+        }
+    })?;
 
     // Check if we're checking out the NULL commit (no commits yet)
     if commit_id == crate::NULL_COMMIT_ID {
