@@ -11,6 +11,7 @@ use dotman::{DotmanContext, commands};
 use serial_test::serial;
 use std::fs;
 use std::path::PathBuf;
+use std::process::Stdio;
 use tempfile::TempDir;
 
 /// Setup a test repository with basic structure
@@ -19,7 +20,7 @@ fn setup_test_repo() -> Result<(TempDir, DotmanContext)> {
     let repo_path = temp_dir.path().join(".dotman");
     let config_path = temp_dir.path().join(".config/dotman/config");
 
-    let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+    let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
     ctx.ensure_repo_exists()?;
 
     let index = dotman::storage::index::Index::new();
@@ -40,6 +41,8 @@ fn setup_bare_git_remote(temp_dir: &TempDir) -> Result<PathBuf> {
     let output = std::process::Command::new("git")
         .args(["init", "--bare"])
         .current_dir(&remote_path)
+        .env("GIT_PAGER", "cat")
+        .stdin(Stdio::null())
         .output()?;
 
     if !output.status.success() {
@@ -120,8 +123,9 @@ mod push_pull_tests {
             },
         )?;
 
-        // Clean up test files so repo2 starts fresh
-        let _ = fs::remove_dir_all(&test_dir);
+        // Clean up test files so repo2 starts fresh - must succeed to avoid hanging
+        fs::remove_dir_all(&test_dir)
+            .context("Failed to clean up test files before repo2 setup")?;
 
         // Create second repository
         let (_temp_dir2, mut ctx2) = setup_test_repo()?;
@@ -422,8 +426,9 @@ mod conflict_tests {
             },
         )?;
 
-        // Clean up test files so repo2 starts fresh
-        let _ = fs::remove_dir_all(&test_dir);
+        // Clean up test files so repo2 starts fresh - must succeed to avoid hanging
+        fs::remove_dir_all(&test_dir)
+            .context("Failed to clean up test files before repo2 setup")?;
 
         // Setup repo2 and pull
         let (temp_dir2, mut ctx2) = setup_test_repo()?;

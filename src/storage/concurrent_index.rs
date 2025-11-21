@@ -124,16 +124,6 @@ impl ConcurrentIndex {
         index.save(path)
     }
 
-    /// Save and merge the concurrent index with existing disk index
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if failed to save or merge the index
-    pub fn save_merge(&self, path: &Path) -> Result<()> {
-        let index = self.to_index();
-        index.save_merge(path)
-    }
-
     /// Stage a file entry
     pub fn stage_entry(&self, entry: FileEntry) {
         let path = entry.path.clone();

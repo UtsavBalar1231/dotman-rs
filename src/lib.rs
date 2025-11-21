@@ -13,7 +13,7 @@
 //! ## Features
 //!
 //! - **Content-Addressed Storage**: Files are hashed with xxHash3 and deduplicated automatically
-//! - **Parallel Processing**: Leverages Rayon for multi-core operations
+//! - **Parallel Processing**: Uses Rayon for multi-core operations
 //! - **SIMD Acceleration**: Uses SIMD for UTF-8 validation and JSON parsing
 //! - **Binary Indexing**: Fast file tracking with bincode serialization
 //! - **Git-like Semantics**: Familiar command interface (add, commit, checkout, branch, etc.)
@@ -58,6 +58,9 @@ pub mod commands;
 
 /// Configuration parsing, validation, and management.
 pub mod config;
+
+/// Diff generation for file comparisons (unified diff, binary detection).
+pub mod diff;
 
 /// Merge conflict detection and resolution.
 pub mod conflicts;
@@ -116,8 +119,8 @@ pub const COMMITS_DIR: &str = "commits";
 /// Directory name for content-addressed object storage.
 pub const OBJECTS_DIR: &str = "objects";
 
-/// Placeholder commit ID representing no commits (40 zeros).
-pub const NULL_COMMIT_ID: &str = "0000000000000000000000000000000000000000";
+/// Placeholder commit ID representing no commits (32-character xxHash3 format).
+pub const NULL_COMMIT_ID: &str = "00000000000000000000000000000000";
 
 /// Central context for all Dotman operations.
 ///
@@ -162,6 +165,10 @@ pub struct DotmanContext {
 
     /// Whether to disable pager output for command results.
     pub no_pager: bool,
+
+    /// Whether to run in non-interactive mode (no prompts).
+    /// Used primarily for testing to prevent stdin reads.
+    pub non_interactive: bool,
 }
 
 impl DotmanContext {
@@ -214,6 +221,7 @@ impl DotmanContext {
             config_path,
             config,
             no_pager,
+            non_interactive: false,
         })
     }
 
@@ -245,6 +253,7 @@ impl DotmanContext {
             config_path,
             config,
             no_pager: false,
+            non_interactive: false,
         })
     }
 
@@ -255,6 +264,7 @@ impl DotmanContext {
     pub fn new_explicit(repo_path: PathBuf, config_path: PathBuf) -> Result<Self> {
         let mut context = Self::new_with_explicit_paths(repo_path, config_path)?;
         context.no_pager = true;
+        context.non_interactive = true;
         Ok(context)
     }
 

@@ -18,26 +18,52 @@ use std::path::PathBuf;
 /// - Failed to find untracked files
 pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
     ctx.ensure_initialized()?;
+    check_clean_flags(dry_run, force)?;
 
-    // Safety check: require either -n or -f flag
+    let index_path = ctx.repo_path.join(INDEX_FILE);
+    let index = Index::load(&index_path)?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
+
+    let mut trie = DirTrie::new();
+    let mut tracked_files = HashSet::new();
+
+    get_committed_files(ctx, &home, &mut trie, &mut tracked_files)?;
+    add_staged_files_to_tracking(&index, &home, &mut trie, &mut tracked_files);
+
+    let untracked_files = find_untracked_files(&home, &ctx.repo_path, &trie, &tracked_files)?;
+    let untracked =
+        filter_ignored_files(untracked_files, &home, &ctx.config.tracking.ignore_patterns);
+
+    if untracked.is_empty() {
+        output::info("Already clean - no untracked files found");
+        return Ok(());
+    }
+
+    display_clean_header(dry_run);
+    let (removed_count, failed_count) = process_files_for_clean(&untracked, dry_run);
+    print_clean_summary(dry_run, removed_count, failed_count);
+
+    Ok(())
+}
+
+/// Check that clean command has appropriate safety flags
+fn check_clean_flags(dry_run: bool, force: bool) -> Result<()> {
     if !dry_run && !force {
         output::error("clean requires either -n (dry run) or -f (force) flag for safety");
         output::info("Use 'dot clean -n' to see what would be removed");
         output::info("Use 'dot clean -f' to actually remove untracked files");
-        return Ok(());
+        return Err(anyhow::anyhow!("Missing required flag"));
     }
+    Ok(())
+}
 
-    // Load index to get tracked files
-    let index_path = ctx.repo_path.join(INDEX_FILE);
-    let index = Index::load(&index_path)?;
-
-    let home = dirs::home_dir().context("Could not find home directory")?;
-
-    // Build trie and tracked files set for untracked file discovery
-    let mut trie = DirTrie::new();
-    let mut tracked_files = HashSet::new();
-
-    // Get committed files from HEAD snapshot
+/// Get committed files from HEAD snapshot
+fn get_committed_files(
+    ctx: &DotmanContext,
+    home: &std::path::Path,
+    trie: &mut DirTrie,
+    tracked_files: &mut HashSet<PathBuf>,
+) -> Result<()> {
     let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
     if let Some(commit_id) = ref_manager.get_head_commit()?
         && commit_id != "0".repeat(40)
@@ -53,41 +79,49 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
                 } else {
                     path.clone()
                 };
-                trie.insert_tracked_file(&abs_path, &home);
+                trie.insert_tracked_file(&abs_path, home);
                 tracked_files.insert(abs_path);
             }
         }
     }
+    Ok(())
+}
 
-    // Also include staged files
+/// Add staged files to tracking structures
+fn add_staged_files_to_tracking(
+    index: &Index,
+    home: &std::path::Path,
+    trie: &mut DirTrie,
+    tracked_files: &mut HashSet<PathBuf>,
+) {
     for path in index.staged_entries.keys() {
         let abs_path = if path.is_relative() {
             home.join(path)
         } else {
             path.clone()
         };
-        trie.insert_tracked_file(&abs_path, &home);
+        trie.insert_tracked_file(&abs_path, home);
         tracked_files.insert(abs_path);
     }
+}
 
-    // Find untracked files using shared scanner
-    let untracked_files = find_untracked_files(&home, &ctx.repo_path, &trie, &tracked_files)?;
-
-    // Filter by ignore patterns
-    let untracked: Vec<PathBuf> = untracked_files
+/// Filter untracked files by ignore patterns
+fn filter_ignored_files(
+    untracked_files: Vec<PathBuf>,
+    home: &std::path::Path,
+    ignore_patterns: &[String],
+) -> Vec<PathBuf> {
+    untracked_files
         .into_iter()
         .filter(|file| {
-            let relative_path = file.strip_prefix(&home).unwrap_or(file);
-            !crate::utils::should_ignore(relative_path, &ctx.config.tracking.ignore_patterns)
+            let relative_path = file.strip_prefix(home).unwrap_or(file);
+            !crate::utils::should_ignore(relative_path, ignore_patterns)
         })
-        .collect();
+        .collect()
+}
 
-    if untracked.is_empty() {
-        output::info("Already clean - no untracked files found");
-        return Ok(());
-    }
-
-    // Display what will be/was removed
+/// Display header for clean operation
+fn display_clean_header(dry_run: bool) {
     if dry_run {
         println!(
             "\n{}",
@@ -98,7 +132,10 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
     } else {
         println!("\n{}", "Removing untracked files:".red().bold());
     }
+}
 
+/// Process files for clean operation
+fn process_files_for_clean(untracked: &[PathBuf], dry_run: bool) -> (usize, usize) {
     let mut removed_count = 0;
     let mut failed_count = 0;
 
@@ -117,7 +154,6 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
             println!("  {} {}", "would remove:".yellow(), path.display());
             removed_count += 1;
         } else {
-            // Actually remove the file
             match std::fs::remove_file(path) {
                 Ok(()) => {
                     println!("  {} {}", "removed:".red(), path.display());
@@ -133,8 +169,11 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
     }
 
     progress.finish();
+    (removed_count, failed_count)
+}
 
-    // Print summary
+/// Print summary after clean operation
+fn print_clean_summary(dry_run: bool, removed_count: usize, failed_count: usize) {
     println!();
     if dry_run {
         output::info(&format!(
@@ -147,6 +186,4 @@ pub fn execute(ctx: &DotmanContext, dry_run: bool, force: bool) -> Result<()> {
             output::warning(&format!("Failed to remove {failed_count} file(s)"));
         }
     }
-
-    Ok(())
 }

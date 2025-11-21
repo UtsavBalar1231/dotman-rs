@@ -1,5 +1,5 @@
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::{Command, cargo};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::TempDir;
@@ -9,7 +9,7 @@ fn test_init_command() -> Result<()> {
     let temp_dir = TempDir::new()?;
     let repo_path = temp_dir.path().join(".dotman");
 
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -30,7 +30,7 @@ fn test_init_already_initialized() -> Result<()> {
     let repo_path = temp_dir.path().join(".dotman");
 
     // First init
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -38,7 +38,7 @@ fn test_init_already_initialized() -> Result<()> {
         .success();
 
     // Second init should fail
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -59,7 +59,7 @@ fn test_add_and_status() -> Result<()> {
     fs::write(&test_file, b"test content")?;
 
     // Initialize repo
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -67,7 +67,7 @@ fn test_add_and_status() -> Result<()> {
         .success();
 
     // Add file
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["add", test_file.to_str().unwrap()])
@@ -75,7 +75,7 @@ fn test_add_and_status() -> Result<()> {
         .success();
 
     // Check status
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("status")
@@ -98,7 +98,7 @@ fn test_add_directory() -> Result<()> {
     fs::write(test_dir.join("file2.conf"), b"config 2")?;
 
     // Initialize repo
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -106,7 +106,7 @@ fn test_add_directory() -> Result<()> {
         .success();
 
     // Add directory
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["add", test_dir.to_str().unwrap()])
@@ -114,7 +114,7 @@ fn test_add_directory() -> Result<()> {
         .success();
 
     // Check status - should show both files
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("status")
@@ -136,7 +136,7 @@ fn test_commit_workflow() -> Result<()> {
     fs::write(&test_file, b"test content")?;
 
     // Initialize
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -144,7 +144,7 @@ fn test_commit_workflow() -> Result<()> {
         .success();
 
     // Add
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["add", test_file.to_str().unwrap()])
@@ -152,7 +152,7 @@ fn test_commit_workflow() -> Result<()> {
         .success();
 
     // Commit
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["commit", "-m", "Initial commit"])
@@ -161,7 +161,7 @@ fn test_commit_workflow() -> Result<()> {
         .stderr(predicate::str::contains("Committed"));
 
     // Verify clean status
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("status")
@@ -178,7 +178,7 @@ fn test_commit_without_changes() -> Result<()> {
     let repo_path = temp_dir.path().join(".dotman");
 
     // Initialize
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -186,7 +186,7 @@ fn test_commit_without_changes() -> Result<()> {
         .success();
 
     // Commit without staged changes should fail
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["commit", "-m", "Empty commit"])
@@ -207,7 +207,7 @@ fn test_file_modification_tracking() -> Result<()> {
     fs::write(&test_file, b"initial content")?;
 
     // Initialize
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -215,14 +215,14 @@ fn test_file_modification_tracking() -> Result<()> {
         .success();
 
     // Add and commit
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
 
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["commit", "-m", "Initial"])
@@ -233,7 +233,7 @@ fn test_file_modification_tracking() -> Result<()> {
     fs::write(&test_file, b"modified content")?;
 
     // Status should show modification
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("status")
@@ -253,7 +253,7 @@ fn test_log_command() -> Result<()> {
     let test_file = temp_dir.path().join("test.txt");
 
     // Initialize
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -262,13 +262,13 @@ fn test_log_command() -> Result<()> {
 
     // First commit
     fs::write(&test_file, b"content 1")?;
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["commit", "-m", "First commit"])
@@ -277,13 +277,13 @@ fn test_log_command() -> Result<()> {
 
     // Second commit
     fs::write(&test_file, b"content 2")?;
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["commit", "-m", "Second commit"])
@@ -291,7 +291,7 @@ fn test_log_command() -> Result<()> {
         .success();
 
     // Check log
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("log")
@@ -313,7 +313,7 @@ fn test_remove_command() -> Result<()> {
     fs::write(&test_file, b"test content")?;
 
     // Initialize
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("init")
@@ -321,13 +321,13 @@ fn test_remove_command() -> Result<()> {
         .success();
 
     // Add and commit
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["add", test_file.to_str().unwrap()])
         .assert()
         .success();
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["commit", "-m", "Add file"])
@@ -335,7 +335,7 @@ fn test_remove_command() -> Result<()> {
         .success();
 
     // Remove file
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .args(["rm", test_file.to_str().unwrap()])
@@ -344,7 +344,7 @@ fn test_remove_command() -> Result<()> {
         .stdout(predicate::str::contains("removed"));
 
     // Status should show the deletion
-    Command::cargo_bin("dot")?
+    Command::new(cargo::cargo_bin!("dot"))
         .env("HOME", temp_dir.path())
         .env("DOTMAN_REPO_PATH", &repo_path)
         .arg("status")

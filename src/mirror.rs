@@ -71,7 +71,7 @@ use anyhow::{Context, Result};
 use fs4::fs_std::FileExt;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 /// Git error categorization and handling
@@ -188,6 +188,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["config", "--get", "user.email"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to check git config")?;
 
@@ -202,6 +203,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["remote", "get-url", "origin"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to check remote configuration")?;
 
@@ -269,6 +271,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["init"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to initialize git repository")?;
 
@@ -292,6 +295,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["config", "user.email", user_email])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to configure git email")?;
 
@@ -303,6 +307,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["config", "user.name", user_name])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to configure git name")?;
 
@@ -322,6 +327,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["remote", "add", "origin", &self.remote_url])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to add git remote")?;
 
@@ -341,6 +347,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["remote", "set-url", "origin", &self.remote_url])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to update git remote")?;
 
@@ -400,6 +407,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["add", "-A"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to add files to git")?;
 
@@ -411,6 +419,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["status", "--porcelain"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to check git status")?;
 
@@ -434,6 +443,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["commit", "-m", message, "--author", &formatted_author])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to commit changes")?;
 
@@ -466,6 +476,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["add", "-A"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to add files to git")?;
 
@@ -477,6 +488,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["status", "--porcelain"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to check git status")?;
 
@@ -525,6 +537,7 @@ impl GitMirror {
             .env("GIT_AUTHOR_DATE", &date_str)
             .env("GIT_COMMITTER_DATE", &date_str)
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to commit changes")?;
 
@@ -596,6 +609,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["rm", "-rf", "--cached", "."])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to execute git rm command")?;
 
@@ -757,6 +771,7 @@ impl GitMirror {
         let _ = Command::new("git")
             .args(["fetch", "origin"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output();
 
         // Build push command arguments
@@ -772,6 +787,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(&args)
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to push to remote")?;
 
@@ -826,6 +842,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(&args)
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to fetch from remote")?;
 
@@ -852,6 +869,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(&args)
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to merge branch")?;
 
@@ -872,6 +890,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["push", "origin", "--tags"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to push tags")?;
 
@@ -893,6 +912,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["fetch", "origin"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to fetch from remote")?;
 
@@ -904,6 +924,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["rev-parse", "--verify", branch])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()?;
 
         if output.status.success() {
@@ -956,6 +977,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["rev-parse", "HEAD"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to get HEAD commit")?;
 
@@ -982,6 +1004,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["ls-files"])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to list files in mirror")?;
 
@@ -1007,6 +1030,7 @@ impl GitMirror {
         let output = Command::new("git")
             .args(["checkout", branch])
             .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to checkout branch")?;
 

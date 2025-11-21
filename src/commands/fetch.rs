@@ -3,7 +3,7 @@ use crate::mirror::GitMirror;
 use crate::output;
 use anyhow::{Context, Result};
 use colored::Colorize;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 /// Execute fetch command - download objects and refs from remote repository
 ///
@@ -85,9 +85,34 @@ fn fetch_from_git(
     let mirror = GitMirror::new(&ctx.repo_path, remote, url, ctx.config.clone());
     mirror.init_mirror()?;
 
-    // Run git fetch in the mirror repository
     let mirror_path = mirror.get_mirror_path();
 
+    // Execute fetch operation
+    execute_git_fetch(mirror_path, branch, all, tags)?;
+
+    // Update remote tracking refs
+    update_remote_tracking_refs(ctx, remote, mirror_path)?;
+
+    // Display remote branches
+    display_remote_branches(mirror_path)?;
+
+    output::success(&format!("Successfully fetched from {remote} ({url})"));
+
+    // Suggest next steps
+    if branch.is_none() && !all {
+        output::info("Tip: Use 'dot merge origin/branch' to merge fetched changes");
+    }
+
+    Ok(())
+}
+
+/// Build and execute git fetch command in the mirror repository
+fn execute_git_fetch(
+    mirror_path: &std::path::Path,
+    branch: Option<&str>,
+    all: bool,
+    tags: bool,
+) -> Result<()> {
     let mut args = vec!["fetch", "origin"];
 
     // Add branch if specified
@@ -108,6 +133,7 @@ fn fetch_from_git(
     let output = Command::new("git")
         .args(&args)
         .current_dir(mirror_path)
+        .stdin(Stdio::null())
         .output()?;
 
     if !output.status.success() {
@@ -115,7 +141,6 @@ fn fetch_from_git(
         return Err(anyhow::anyhow!("Git fetch failed: {stderr}"));
     }
 
-    let _stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     // Git fetch outputs to stderr for progress
@@ -127,8 +152,15 @@ fn fetch_from_git(
         }
     }
 
-    // Update remote tracking refs (refs/remotes/origin/*)
-    // Get commit IDs for all remote tracking branches
+    Ok(())
+}
+
+/// Update remote tracking refs in dotman repository
+fn update_remote_tracking_refs(
+    ctx: &DotmanContext,
+    remote: &str,
+    mirror_path: &std::path::Path,
+) -> Result<()> {
     let output = Command::new("git")
         .args([
             "for-each-ref",
@@ -136,6 +168,7 @@ fn fetch_from_git(
             "--format=%(objectname) %(refname)",
         ])
         .current_dir(mirror_path)
+        .stdin(Stdio::null())
         .output()?;
 
     let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
@@ -177,10 +210,15 @@ fn fetch_from_git(
         }
     }
 
-    // List remote branches
+    Ok(())
+}
+
+/// List and display remote branches from the mirror repository
+fn display_remote_branches(mirror_path: &std::path::Path) -> Result<()> {
     let output = Command::new("git")
         .args(["branch", "-r"])
         .current_dir(mirror_path)
+        .stdin(Stdio::null())
         .output()?;
 
     if output.status.success() {
@@ -200,13 +238,6 @@ fn fetch_from_git(
                 println!("  ... and {} more", remote_branches.len() - 5);
             }
         }
-    }
-
-    output::success(&format!("Successfully fetched from {remote} ({url})"));
-
-    // Suggest next steps
-    if branch.is_none() && !all {
-        output::info("Tip: Use 'dot merge origin/branch' to merge fetched changes");
     }
 
     Ok(())

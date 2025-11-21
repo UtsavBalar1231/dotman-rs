@@ -100,6 +100,14 @@ pub struct Config {
     /// User configuration (name and email for commits).
     #[serde(default)]
     pub user: UserConfig,
+
+    /// Pager configuration for command output.
+    #[serde(default)]
+    pub pager: Option<PagerConfig>,
+
+    /// Diff command configuration.
+    #[serde(default)]
+    pub diff: DiffConfig,
 }
 
 /// Core dotman configuration settings.
@@ -173,8 +181,8 @@ pub struct PerformanceConfig {
     /// Whether to use hard links when possible. Default: true
     #[serde(default = "default_use_hard_links")]
     pub use_hard_links: bool,
-    // TODO: Add cache_size field when implementing object caching
-    // pub cache_size: usize,  // Reserved for future LRU cache implementation
+    // Future: Add cache_size field for LRU object caching (see issue #1)
+    // pub cache_size: usize,
 }
 
 /// File tracking and ignore configuration.
@@ -228,6 +236,105 @@ pub struct UserConfig {
 
     /// User's email address for commits.
     pub email: Option<String>,
+}
+
+/// Pager configuration for controlling output pagination.
+///
+/// Allows per-command control of pager behavior and custom pager commands.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PagerConfig {
+    /// Enable/disable pager for diff command.
+    #[serde(default)]
+    pub diff: Option<bool>,
+
+    /// Enable/disable pager for log command.
+    #[serde(default)]
+    pub log: Option<bool>,
+
+    /// Enable/disable pager for show command.
+    #[serde(default)]
+    pub show: Option<bool>,
+
+    /// Enable/disable pager for branch command.
+    #[serde(default)]
+    pub branch: Option<bool>,
+
+    /// Enable/disable pager for status command.
+    #[serde(default)]
+    pub status: Option<bool>,
+
+    /// Custom pager command for diff (overrides core.pager).
+    #[serde(default)]
+    pub diff_pager: Option<String>,
+
+    /// Custom pager command for log (overrides core.pager).
+    #[serde(default)]
+    pub log_pager: Option<String>,
+
+    /// Auto-detect if paging is needed based on output size.
+    #[serde(default)]
+    pub auto: Option<bool>,
+
+    /// Minimum number of lines before paging is used.
+    #[serde(default)]
+    pub min_lines: Option<usize>,
+}
+
+/// Diff command configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiffConfig {
+    /// Show unified diff by default (true) or file status (false).
+    #[serde(default = "default_unified")]
+    pub unified: bool,
+
+    /// Number of context lines in unified diffs.
+    #[serde(default = "default_context")]
+    pub context: usize,
+
+    /// Diff algorithm to use.
+    #[serde(default)]
+    pub algorithm: DiffAlgorithm,
+
+    /// Colorize diff output.
+    #[serde(default = "default_true")]
+    pub color: bool,
+}
+
+/// Diff algorithm selection.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum DiffAlgorithm {
+    /// Myers diff algorithm (default, fast).
+    #[default]
+    Myers,
+    /// Patience diff algorithm (better for large changes).
+    Patience,
+}
+
+impl Default for DiffConfig {
+    fn default() -> Self {
+        Self {
+            unified: true, // Default to unified diff (Git-like)
+            context: 3,    // 3 lines of context
+            algorithm: DiffAlgorithm::Myers,
+            color: true, // Colorize by default
+        }
+    }
+}
+
+/// Default value for unified diff format. Returns `true` to enable unified diffs by default.
+const fn default_unified() -> bool {
+    true
+}
+
+/// Default number of context lines for diffs. Returns 3 lines of context.
+const fn default_context() -> usize {
+    3
+}
+
+/// Default boolean value helper for serde. Returns `true` for boolean configuration options.
+const fn default_true() -> bool {
+    true
 }
 
 impl Default for CoreConfig {

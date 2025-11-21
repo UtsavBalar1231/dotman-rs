@@ -99,12 +99,11 @@ impl FileStatus {
     }
 }
 
-/// Fast file operations using memory mapping and parallel processing.
+/// File operations with memory mapping and parallel processing.
 ///
-/// This module provides high-performance file hashing and copying operations,
-/// utilizing memory-mapped I/O for large files, parallel processing with Rayon,
-/// and XXH3 hashing for speed. Includes intelligent caching to avoid recomputing
-/// hashes for unchanged files.
+/// Provides file hashing and copying using memory-mapped I/O for files ≥1MB,
+/// Rayon for parallelization, and xxHash3 for hashing. Caches hashes with
+/// size and mtime to avoid recomputation for unchanged files.
 pub mod file_ops {
     use super::{CachedHash, Path, PathBuf, Result};
     use anyhow::Context;
@@ -165,7 +164,8 @@ pub mod file_ops {
 
         // Cache miss - compute new hash
         let hash = if size == 0 {
-            String::from("0")
+            // Empty files get a 32-char zero hash (consistent with xxHash3 format)
+            String::from("00000000000000000000000000000000")
         } else if size < mmap_threshold as u64 {
             // Small file - read directly
             let content = std::fs::read(path)?;

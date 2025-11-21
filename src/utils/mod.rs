@@ -189,8 +189,16 @@ pub fn format_size(size: u64) -> String {
 pub fn get_current_timestamp() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
-        .unwrap_or(0)
+        .unwrap_or_else(|_| {
+            eprintln!("Warning: System time before Unix epoch, using 0");
+            std::time::Duration::from_secs(0)
+        })
+        .as_secs()
+        .try_into()
+        .unwrap_or_else(|_| {
+            eprintln!("Warning: Timestamp too large for i64, using i64::MAX");
+            i64::MAX
+        })
 }
 
 /// Get current timestamp with nanosecond precision for unique commit IDs

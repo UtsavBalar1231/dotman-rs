@@ -647,7 +647,7 @@ fn find_common_ancestor(ctx: &DotmanContext, commit1: &str, commit2: &str) -> Op
 ///
 /// Always returns an error indicating the feature is not implemented
 fn perform_rebase(_ctx: &DotmanContext, onto_commit: &str) -> Result<()> {
-    // TODO: Implement proper rebase functionality
+    // Rebase implementation tracked in issue #3
     // For now, return a clear error to prevent data loss
 
     Err(anyhow::anyhow!(

@@ -1,7 +1,7 @@
 use crate::DotmanContext;
 use crate::refs::resolver::RefResolver;
 use crate::storage::snapshots::SnapshotManager;
-use crate::utils::pager::PagerOutput;
+use crate::utils::pager::{Pager, PagerConfig};
 use anyhow::{Context, Result};
 use chrono::{Local, TimeZone};
 use colored::Colorize;
@@ -34,56 +34,63 @@ pub fn execute(ctx: &DotmanContext, object: &str) -> Result<()> {
 
     let commit = &snapshot.commit;
 
-    let mut output = PagerOutput::new(ctx, ctx.no_pager);
+    // Create pager with context
+    let pager_config = PagerConfig::from_context(ctx, "show");
+    let mut pager = Pager::builder().config(pager_config).build()?;
+    let writer = pager.writer();
 
     // Display commit information
-    output.appendln(&format!("{} {}", "commit".yellow(), commit.id));
+    writeln!(writer, "{} {}", "commit".yellow(), commit.id)?;
 
     if let Some(parent) = &commit.parent {
-        output.appendln(&format!(
+        writeln!(
+            writer,
             "{}: {}",
             "Parent".bold(),
             &parent[..8.min(parent.len())]
-        ));
+        )?;
     }
 
-    output.appendln(&format!("{}: {}", "Author".bold(), commit.author));
+    writeln!(writer, "{}: {}", "Author".bold(), commit.author)?;
 
     let datetime = Local
         .timestamp_opt(commit.timestamp, 0)
         .single()
         .unwrap_or_else(Local::now);
-    output.appendln(&format!(
+    writeln!(
+        writer,
         "{}: {}",
         "Date".bold(),
         datetime.format("%Y-%m-%d %H:%M:%S")
-    ));
-    output.appendln(&format!("{}: {}", "Tree".bold(), &commit.tree_hash[..16]));
+    )?;
+    writeln!(writer, "{}: {}", "Tree".bold(), &commit.tree_hash[..16])?;
 
-    output.appendln(&format!("\n    {}\n", commit.message));
+    writeln!(writer, "\n    {}\n", commit.message)?;
 
     // Display file list
-    output.appendln(&format!("{}", "Files in this commit:".bold()));
+    writeln!(writer, "{}", "Files in this commit:".bold())?;
 
     let mut files: Vec<_> = snapshot.files.iter().collect();
     files.sort_by_key(|(path, _)| path.as_path());
 
     for (path, file) in files {
-        output.appendln(&format!(
+        writeln!(
+            writer,
             "  {} {} {}",
             format!("{:06o}", file.mode).dimmed(),
-            file.hash[..8].to_string().cyan(),
+            file.hash[..8.min(file.hash.len())].to_string().cyan(),
             path.display()
-        ));
+        )?;
     }
 
-    output.appendln(&format!(
+    writeln!(
+        writer,
         "\n{}: {}",
         "Total files".bold(),
         snapshot.files.len()
-    ));
+    )?;
 
-    output.show()?;
+    pager.finish()?;
 
     Ok(())
 }

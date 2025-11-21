@@ -8,7 +8,7 @@ use crate::storage::snapshots::SnapshotManager;
 use crate::sync::Exporter;
 use anyhow::{Context, Result};
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 /// Public arguments for push command
 #[allow(clippy::struct_excessive_bools)]
@@ -90,6 +90,7 @@ fn rollback_push(
         let reset_output = Command::new("git")
             .args(["reset", "--hard", previous_head])
             .current_dir(mirror.get_mirror_path())
+            .stdin(Stdio::null())
             .output()
             .context("Failed to execute git reset for rollback")?;
 
@@ -581,6 +582,7 @@ fn push_to_git(
         let output = Command::new("git")
             .args(&args)
             .current_dir(mirror_path)
+            .stdin(Stdio::null())
             .output()
             .context("Failed to execute git push")?;
 

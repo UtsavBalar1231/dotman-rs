@@ -134,10 +134,7 @@ impl RefResolver {
             };
 
             if let Some(parent) = snapshot.commit.parent {
-                if parent == "0".repeat(40)
-                    || parent == "0".repeat(32)
-                    || parent.chars().all(|c| c == '0')
-                {
+                if parent == crate::NULL_COMMIT_ID {
                     if i == 0 {
                         return Err(anyhow::anyhow!(
                             "Cannot go back {} commit{} from HEAD: current commit is the initial commit",
@@ -262,8 +259,8 @@ impl RefResolver {
     ///
     /// This function does a linear scan of the commits directory, which is acceptable
     /// for typical repository sizes (hundreds to thousands of commits). For very large
-    /// repositories, this could be optimized with an in-memory index, but the current
-    /// implementation prioritizes simplicity.
+    /// repositories (10,000+ commits), an in-memory index optimization is available
+    /// (see issue #4). Current implementation prioritizes simplicity.
     fn find_commit_by_prefix(&self, prefix: &str) -> Result<Option<String>> {
         let commits_dir = self.repo_path.join("commits");
         if !commits_dir.exists() {

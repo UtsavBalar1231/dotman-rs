@@ -7,7 +7,7 @@ use crate::storage::FileStatus;
 use crate::storage::file_ops::hash_file;
 use crate::storage::index::Index;
 use crate::storage::stash::{StashEntry, StashFile, StashManager};
-use crate::utils::pager::PagerOutput;
+use crate::utils::pager::{Pager, PagerConfig};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -413,19 +413,24 @@ fn show_stash(ctx: &DotmanContext, stash_id: Option<String>) -> Result<()> {
     // Load stash
     let stash = stash_manager.load_stash(&stash_id)?;
 
-    let mut output = PagerOutput::default();
-    output.appendln(&format!("{}", "Stash contents:".bold()));
-    output.appendln(&format!("  ID: {}", stash.id.dimmed()));
-    output.appendln(&format!("  Message: {}", stash.message));
-    output.appendln(&format!("  Parent: {}", stash.parent_commit.dimmed()));
-    output.appendln(&format!(
+    // Use pager config from context to respect no_pager setting
+    let pager_config = PagerConfig::from_context(ctx, "stash");
+    let mut pager = Pager::builder().config(pager_config).build()?;
+    let writer = pager.writer();
+
+    writeln!(writer, "{}", "Stash contents:".bold())?;
+    writeln!(writer, "  ID: {}", stash.id.dimmed())?;
+    writeln!(writer, "  Message: {}", stash.message)?;
+    writeln!(writer, "  Parent: {}", stash.parent_commit.dimmed())?;
+    writeln!(
+        writer,
         "  Created: {}",
         chrono::DateTime::from_timestamp(stash.timestamp, 0).map_or_else(
             || "Unknown".to_string(),
             |dt| dt.format("%Y-%m-%d %H:%M:%S").to_string()
         )
-    ));
-    output.appendln("");
+    )?;
+    writeln!(writer)?;
 
     // Group files by status
     let mut added = Vec::new();
@@ -443,34 +448,34 @@ fn show_stash(ctx: &DotmanContext, stash_id: Option<String>) -> Result<()> {
     }
 
     if !added.is_empty() {
-        output.appendln(&format!("{}", "Added files:".green().bold()));
+        writeln!(writer, "{}", "Added files:".green().bold())?;
         for path in added {
-            output.appendln(&format!("  + {}", path.display()));
+            writeln!(writer, "  + {}", path.display())?;
         }
     }
 
     if !modified.is_empty() {
-        output.appendln(&format!("{}", "Modified files:".yellow().bold()));
+        writeln!(writer, "{}", "Modified files:".yellow().bold())?;
         for path in modified {
-            output.appendln(&format!("  ~ {}", path.display()));
+            writeln!(writer, "  ~ {}", path.display())?;
         }
     }
 
     if !deleted.is_empty() {
-        output.appendln(&format!("{}", "Deleted files:".red().bold()));
+        writeln!(writer, "{}", "Deleted files:".red().bold())?;
         for path in deleted {
-            output.appendln(&format!("  - {}", path.display()));
+            writeln!(writer, "  - {}", path.display())?;
         }
     }
 
     if !untracked.is_empty() {
-        output.appendln(&format!("{}", "Untracked files:".blue().bold()));
+        writeln!(writer, "{}", "Untracked files:".blue().bold())?;
         for path in untracked {
-            output.appendln(&format!("  ? {}", path.display()));
+            writeln!(writer, "  ? {}", path.display())?;
         }
     }
 
-    output.show()?;
+    pager.finish()?;
 
     Ok(())
 }

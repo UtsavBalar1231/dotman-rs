@@ -156,7 +156,8 @@ impl RefManager {
         let commit = if let Some(id) = commit_id {
             id.to_string()
         } else {
-            self.get_head_commit()?.unwrap_or_else(|| "0".repeat(40)) // Empty commit ID if no commits yet
+            self.get_head_commit()?
+                .unwrap_or_else(|| crate::NULL_COMMIT_ID.to_string())
         };
 
         fs::write(&branch_path, commit)?;

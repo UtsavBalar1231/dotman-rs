@@ -21,11 +21,11 @@ mod context_tests {
     fn test_context_new_with_explicit_paths() -> Result<()> {
         let (_temp, repo_path, config_path) = setup_test_env()?;
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path.clone(), config_path.clone())?;
+        let ctx = DotmanContext::new_explicit(repo_path.clone(), config_path.clone())?;
 
         assert_eq!(ctx.repo_path, repo_path);
         assert_eq!(ctx.config_path, config_path);
-        assert!(!ctx.no_pager);
+        assert!(ctx.no_pager); // new_explicit() sets no_pager: true for tests
         assert!(config_path.exists());
 
         Ok(())
@@ -36,10 +36,10 @@ mod context_tests {
         let (_temp, repo_path, config_path) = setup_test_env()?;
 
         // Create config first
-        let _ctx1 = DotmanContext::new_with_explicit_paths(repo_path.clone(), config_path.clone())?;
+        let _ctx1 = DotmanContext::new_explicit(repo_path.clone(), config_path.clone())?;
 
         // Load it again
-        let ctx2 = DotmanContext::new_with_explicit_paths(repo_path.clone(), config_path)?;
+        let ctx2 = DotmanContext::new_explicit(repo_path.clone(), config_path)?;
 
         assert_eq!(ctx2.repo_path, repo_path);
         assert_eq!(ctx2.config.core.repo_path, repo_path);
@@ -51,7 +51,7 @@ mod context_tests {
     fn test_is_repo_initialized() -> Result<()> {
         let (_temp, repo_path, config_path) = setup_test_env()?;
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
 
         // Initially not initialized
         assert!(!ctx.is_repo_initialized());
@@ -71,7 +71,7 @@ mod context_tests {
     fn test_ensure_repo_exists() -> Result<()> {
         let (_temp, repo_path, config_path) = setup_test_env()?;
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
 
         ctx.ensure_repo_exists()?;
 
@@ -91,7 +91,7 @@ mod context_tests {
     fn test_check_repo_initialized_error() -> Result<()> {
         let (_temp, repo_path, config_path) = setup_test_env()?;
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
 
         let result = ctx.check_repo_initialized();
         assert!(result.is_err());
@@ -104,7 +104,7 @@ mod context_tests {
     fn test_get_home_dir() -> Result<()> {
         let (_temp, repo_path, config_path) = setup_test_env()?;
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
 
         let home = CommandContext::get_home_dir(&ctx)?;
         assert!(home.exists());
@@ -115,7 +115,8 @@ mod context_tests {
 
     #[test]
     fn test_null_commit_id_constant() {
-        assert_eq!(NULL_COMMIT_ID.len(), 40);
+        // NULL_COMMIT_ID should be 32 characters to match xxHash3 format
+        assert_eq!(NULL_COMMIT_ID.len(), 32);
         assert!(NULL_COMMIT_ID.chars().all(|c| c == '0'));
     }
 }
@@ -131,7 +132,7 @@ mod command_context_tests {
         let repo_path = temp_dir.path().join(DEFAULT_REPO_DIR);
         let config_path = temp_dir.path().join(DEFAULT_CONFIG_PATH);
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
         let index = ctx.load_concurrent_index()?;
@@ -146,7 +147,7 @@ mod command_context_tests {
         let repo_path = temp_dir.path().join(DEFAULT_REPO_DIR);
         let config_path = temp_dir.path().join(DEFAULT_CONFIG_PATH);
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
         let index = ConcurrentIndex::new();
@@ -164,7 +165,7 @@ mod command_context_tests {
         let repo_path = temp_dir.path().join(DEFAULT_REPO_DIR);
         let config_path = temp_dir.path().join(DEFAULT_CONFIG_PATH);
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
 
         // Should fail initially
         assert!(ctx.ensure_initialized().is_err());
@@ -191,7 +192,7 @@ mod command_context_tests {
         let repo_path = temp_dir.path().join(DEFAULT_REPO_DIR);
         let config_path = temp_dir.path().join(DEFAULT_CONFIG_PATH);
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
         // Initialize refs properly
@@ -210,7 +211,7 @@ mod command_context_tests {
         let repo_path = temp_dir.path().join(DEFAULT_REPO_DIR);
         let config_path = temp_dir.path().join(DEFAULT_CONFIG_PATH);
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
         // No commits yet
@@ -256,7 +257,7 @@ mod path_validation_tests {
         let abs_path = temp_dir.path().join("my_repo");
         let config_path = temp_dir.path().join("config");
 
-        let ctx = DotmanContext::new_with_explicit_paths(abs_path.clone(), config_path)?;
+        let ctx = DotmanContext::new_explicit(abs_path.clone(), config_path)?;
         assert_eq!(ctx.repo_path, abs_path);
         assert!(ctx.repo_path.is_absolute());
 
@@ -273,7 +274,7 @@ mod repository_initialization_tests {
         let repo_path = temp_dir.path().join("test_repo");
         let config_path = temp_dir.path().join("config");
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path.clone(), config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path.clone(), config_path)?;
         ctx.ensure_repo_exists()?;
 
         // Initialize the repository properly
@@ -309,7 +310,7 @@ mod repository_initialization_tests {
         let repo_path = temp_dir.path().join("test_repo");
         let config_path = temp_dir.path().join("config");
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
 
         // First initialization
         ctx.ensure_repo_exists()?;
@@ -334,7 +335,7 @@ mod repository_initialization_tests {
         let repo_path = temp_dir.path().join("test_repo");
         let config_path = temp_dir.path().join("config");
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
         // Compute head_file path before moving ctx.repo_path
@@ -364,7 +365,7 @@ mod error_handling_tests {
         let config_path = temp_dir.path().join("config");
 
         // This should succeed - the context is created
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
 
         // But repo operations should handle the non-existent path gracefully
         assert!(!ctx.is_repo_initialized());
@@ -378,7 +379,7 @@ mod error_handling_tests {
         let repo_path = temp_dir.path().join("test_repo");
         let config_path = temp_dir.path().join("config");
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
         // Corrupt the HEAD file
@@ -402,7 +403,7 @@ mod error_handling_tests {
             .join("deeply/nested/config/path/config.toml");
 
         // Should create parent directories
-        let _ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path.clone())?;
+        let _ctx = DotmanContext::new_explicit(repo_path, config_path.clone())?;
 
         assert!(config_path.parent().unwrap().exists());
         assert!(config_path.exists());
@@ -497,7 +498,7 @@ mod concurrent_operations_tests {
                 let repo = repo_path.clone();
                 let config = config_path.clone();
                 thread::spawn(move || {
-                    DotmanContext::new_with_explicit_paths((*repo).clone(), (*config).clone())
+                    DotmanContext::new_explicit((*repo).clone(), (*config).clone())
                 })
             })
             .collect();
@@ -517,8 +518,7 @@ mod concurrent_operations_tests {
         let config_path = Arc::new(temp_dir.path().join("config"));
 
         // Create contexts first
-        let ctx =
-            DotmanContext::new_with_explicit_paths((*repo_path).clone(), (*config_path).clone())?;
+        let ctx = DotmanContext::new_explicit((*repo_path).clone(), (*config_path).clone())?;
         let ctx = Arc::new(ctx);
 
         let handles: Vec<_> = (0..10)

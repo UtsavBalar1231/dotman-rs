@@ -3,8 +3,9 @@ use crate::output;
 use anyhow::{Context, Result};
 use colored::Colorize;
 use std::fs;
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use tempfile::TempDir;
 use walkdir::WalkDir;
 
@@ -34,7 +35,7 @@ pub struct ImportOptions {
 /// - The import operation is cancelled by the user
 #[allow(clippy::too_many_lines)] // Complex import logic requires detailed handling
 pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Result<()> {
-    use std::io::{self, Write};
+    use std::io::Write;
     ctx.check_repo_initialized()?;
 
     output::info(&format!("Importing dotfiles from: {source}"));
@@ -95,13 +96,25 @@ pub fn execute(ctx: &DotmanContext, source: &str, options: &ImportOptions) -> Re
         }
 
         if !options.yes {
+            // Check if we're in a non-interactive environment
+            let is_non_interactive = ctx.non_interactive
+                || std::env::var("DOTMAN_NON_INTERACTIVE").is_ok()
+                || !std::io::stdin().is_terminal();
+
+            if is_non_interactive {
+                // In non-interactive mode, fail with a clear error message
+                return Err(anyhow::anyhow!(
+                    "Import would overwrite existing files. Use --yes to proceed anyway."
+                ));
+            }
+
             // Ask for confirmation
             println!();
             print!("Do you want to overwrite these files? [y/N]: ");
-            io::stdout().flush()?;
+            std::io::stdout().flush()?;
 
             let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
+            std::io::stdin().read_line(&mut input)?;
 
             if !input.trim().eq_ignore_ascii_case("y") {
                 output::info("Import cancelled");
@@ -229,6 +242,7 @@ fn clone_repository(url: &str, target_dir: &Path) -> Result<()> {
                 .to_str()
                 .context("Invalid target directory path")?,
         ])
+        .stdin(Stdio::null())
         .output()
         .context("Failed to execute git clone")?;
 

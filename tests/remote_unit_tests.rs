@@ -11,6 +11,7 @@ use dotman::refs::RefManager;
 use serial_test::serial;
 use std::fs;
 use std::path::PathBuf;
+use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -22,7 +23,7 @@ fn setup_test_repo() -> Result<(TempDir, DotmanContext)> {
     let repo_path = temp_dir.path().join(".dotman");
     let config_path = temp_dir.path().join(".config/dotman/config");
 
-    let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+    let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
     ctx.ensure_repo_exists()?;
 
     let index = dotman::storage::index::Index::new();
@@ -43,6 +44,8 @@ fn setup_test_git_remote(temp_dir: &TempDir) -> Result<PathBuf> {
     let output = std::process::Command::new("git")
         .args(["init", "--bare"])
         .current_dir(&remote_path)
+        .env("GIT_PAGER", "cat")
+        .stdin(Stdio::null())
         .output()?;
 
     if !output.status.success() {

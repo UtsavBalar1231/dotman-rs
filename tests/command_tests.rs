@@ -16,7 +16,7 @@ mod add_command_tests {
         let repo_path = temp_dir.path().join(".dotman");
         let config_path = temp_dir.path().join(".config/dotman/config");
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
         // Initialize the repository properly
@@ -371,6 +371,7 @@ mod status_command_tests {
     use std::collections::HashSet;
 
     // Test wrapper for trie-based untracked file scanning
+    #[allow(clippy::needless_pass_by_value)]
     fn find_untracked_files_for_test(
         ctx: &DotmanContext,
         index: &dotman::storage::index::Index,
@@ -562,8 +563,7 @@ mod status_command_tests {
             untracked_relative
                 .iter()
                 .any(|p| p.ends_with("kitty.conf.test")),
-            "Untracked file in tracked dotfile directory should be detected. Found: {:?}",
-            untracked_relative
+            "Untracked file in tracked dotfile directory should be detected. Found: {untracked_relative:?}"
         );
 
         Ok(())
@@ -596,8 +596,7 @@ mod status_command_tests {
 
         assert!(
             !untracked_relative.iter().any(|p| p.ends_with("secret.txt")),
-            "Files in untracked dotfile directories should be hidden. Found: {:?}",
-            untracked_relative
+            "Files in untracked dotfile directories should be hidden. Found: {untracked_relative:?}"
         );
 
         Ok(())
@@ -703,8 +702,7 @@ mod status_command_tests {
             untracked_relative
                 .iter()
                 .any(|p| p.ends_with("new-file.conf")),
-            "Should detect untracked file in same directory as modified file. Found: {:?}",
-            untracked_relative
+            "Should detect untracked file in same directory as modified file. Found: {untracked_relative:?}"
         );
 
         Ok(())
@@ -1263,7 +1261,7 @@ mod log_command_tests {
         let repo_path = temp_dir.path().join(".dotman");
         let config_path = temp_dir.path().join(".config/dotman/config");
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
         // Initialize the repository properly
@@ -1382,7 +1380,7 @@ mod log_command_tests {
         let repo_path = temp_dir.path().join(".dotman");
         let config_path = temp_dir.path().join(".config/dotman/config");
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
         let index = dotman::storage::index::Index::new();

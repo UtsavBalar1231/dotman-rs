@@ -5,13 +5,14 @@ use colored::Colorize;
 use dotman::{DotmanContext, commands};
 use std::io;
 use std::process;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
 #[command(
     name = "dot",
     version = dotman::VERSION,
-    about = "Extremely fast dotfiles manager",
-    long_about = "A git-like dotfiles manager optimized for maximum performance"
+    about = "Git-like dotfiles manager with content deduplication",
+    long_about = "A dotfiles manager with git-like commands, using xxHash3 and parallel processing"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -541,7 +542,39 @@ enum BranchAction {
     },
 }
 
+/// Initialize signal handlers for proper pager interaction
+#[cfg(unix)]
+fn init_signal_handlers() {
+    unsafe {
+        // Ignore SIGPIPE - handle as EPIPE error instead of crashing
+        // This is critical for pager interaction (when user quits pager early)
+        libc::signal(libc::SIGPIPE, libc::SIG_IGN);
+    }
+}
+
+#[cfg(not(unix))]
+fn init_signal_handlers() {
+    // No SIGPIPE on Windows
+}
+
+/// Initialize tracing/logging system
+fn init_tracing() {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
+        )
+        .with_target(false)
+        .with_level(true)
+        .init();
+}
+
 fn main() {
+    // Initialize signal handlers (must be done early)
+    init_signal_handlers();
+
+    // Initialize tracing
+    init_tracing();
+
     if let Err(e) = run() {
         eprintln!("{} {}", "Error:".red().bold(), e);
         process::exit(1);

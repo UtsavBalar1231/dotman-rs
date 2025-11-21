@@ -1,7 +1,7 @@
 use crate::DotmanContext;
 use crate::output;
 use crate::reflog::ReflogManager;
-use crate::utils::pager::PagerOutput;
+use crate::utils::pager::{Pager, PagerConfig};
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
@@ -36,19 +36,23 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> R
     };
     let entries_to_show = &entries[..display_limit];
 
-    let mut output = PagerOutput::new(ctx, ctx.no_pager);
+    // Create pager with context
+    let pager_config = PagerConfig::from_context(ctx, "reflog");
+    let mut pager = Pager::builder().config(pager_config).build()?;
+    let writer = pager.writer();
 
     // Display entries
     for (index, entry) in entries_to_show.iter().enumerate() {
         if oneline {
             // Compact one-line format: <short_hash> HEAD@{n}: <operation>: <message>
-            output.appendln(&format!(
+            writeln!(
+                writer,
                 "{} {}: {}: {}",
                 entry.short_hash().yellow(),
                 format!("HEAD@{{{index}}}").cyan(),
                 entry.operation.green(),
                 entry.message
-            ));
+            )?;
         } else {
             // Full format with timestamp
             let datetime = Local
@@ -56,28 +60,30 @@ pub fn execute(ctx: &DotmanContext, limit: usize, oneline: bool, all: bool) -> R
                 .single()
                 .unwrap_or_else(Local::now);
 
-            output.appendln(&format!(
+            writeln!(
+                writer,
                 "{} {} ({})",
                 entry.short_hash().yellow(),
                 format!("HEAD@{{{index}}}").cyan(),
                 datetime.format("%Y-%m-%d %H:%M:%S").to_string().dimmed()
-            ));
+            )?;
 
-            output.appendln(&format!(
+            writeln!(
+                writer,
                 "{}  {}: {}",
                 "    ".dimmed(),
                 entry.operation.green(),
                 entry.message
-            ));
+            )?;
 
             if !oneline && index < entries_to_show.len() - 1 {
-                output.append("\n"); // Add spacing between entries
+                writeln!(writer)?; // Add spacing between entries
             }
         }
     }
 
     if display_limit > 0 {
-        output.show()?;
+        pager.finish()?;
     }
 
     Ok(())

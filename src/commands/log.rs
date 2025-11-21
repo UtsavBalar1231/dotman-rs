@@ -2,46 +2,49 @@ use crate::DotmanContext;
 use crate::output;
 use crate::refs::resolver::RefResolver;
 use crate::storage::{Commit, snapshots::SnapshotManager};
-use crate::utils::pager::PagerOutput;
+use crate::utils::pager::{Pager, PagerConfig, PagerWriter};
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
 use std::collections::HashSet;
 
 /// Format and display a single commit
-fn display_commit(output: &mut PagerOutput, commit: &Commit, oneline: bool) {
+fn display_commit(writer: &mut dyn PagerWriter, commit: &Commit, oneline: bool) -> Result<()> {
     if oneline {
         let display_id = if commit.id.len() >= 8 {
             &commit.id[..8]
         } else {
             &commit.id
         };
-        output.appendln(&format!("{} {}", display_id.yellow(), commit.message));
+        writeln!(writer, "{} {}", display_id.yellow(), commit.message)?;
     } else {
-        output.appendln(&format!("{} {}", "commit".yellow(), commit.id));
+        writeln!(writer, "{} {}", "commit".yellow(), commit.id)?;
 
         if let Some(parent) = &commit.parent {
-            output.appendln(&format!(
+            writeln!(
+                writer,
                 "{}: {}",
                 "Parent".bold(),
                 &parent[..8.min(parent.len())]
-            ));
+            )?;
         }
 
-        output.appendln(&format!("{}: {}", "Author".bold(), commit.author));
+        writeln!(writer, "{}: {}", "Author".bold(), commit.author)?;
 
         let datetime = Local
             .timestamp_opt(commit.timestamp, 0)
             .single()
             .unwrap_or_else(Local::now);
-        output.appendln(&format!(
+        writeln!(
+            writer,
             "{}: {}",
             "Date".bold(),
             datetime.format("%Y-%m-%d %H:%M:%S")
-        ));
+        )?;
 
-        output.appendln(&format!("\n    {}\n", commit.message));
+        writeln!(writer, "\n    {}\n", commit.message)?;
     }
+    Ok(())
 }
 
 /// Display commit history
@@ -72,9 +75,13 @@ pub fn execute(
         return Ok(());
     }
 
+    // Create pager once at the start
+    let pager_config = PagerConfig::from_context(ctx, "log");
+    let mut pager = Pager::builder().config(pager_config).build()?;
+    let writer = pager.writer();
+
     // Handle --all flag: show all commits including orphaned ones
     if all {
-        let mut output = PagerOutput::new(ctx, ctx.no_pager);
         let mut commits_displayed = 0;
 
         // Load all snapshots and sort by timestamp (most recent first)
@@ -93,27 +100,26 @@ pub fn execute(
         let display_limit = limit.min(snapshot_data.len());
 
         for (_, snapshot) in snapshot_data.iter().take(display_limit) {
-            display_commit(&mut output, &snapshot.commit, oneline);
+            display_commit(writer, &snapshot.commit, oneline)?;
             commits_displayed += 1;
         }
 
         if commits_displayed >= limit && snapshot_data.len() > limit {
-            output.appendln(&format!(
+            writeln!(
+                writer,
                 "\n{} (showing {} of {} total commits, use -n to see more)",
                 "...".dimmed(),
                 commits_displayed,
                 snapshot_data.len()
-            ));
+            )?;
         }
 
         if commits_displayed > 0 {
-            output.show()?;
+            pager.finish()?;
         }
 
         return Ok(());
     }
-
-    let mut output = PagerOutput::new(ctx, ctx.no_pager);
 
     let mut commits_displayed = 0;
 
@@ -144,7 +150,7 @@ pub fn execute(
             };
 
             let commit = &snapshot.commit;
-            display_commit(&mut output, commit, oneline);
+            display_commit(writer, commit, oneline)?;
             commits_displayed += 1;
 
             // Move to parent commit
@@ -175,7 +181,7 @@ pub fn execute(
                 };
 
                 let commit = &snapshot.commit;
-                display_commit(&mut output, commit, oneline);
+                display_commit(writer, commit, oneline)?;
                 commits_displayed += 1;
 
                 // Move to parent commit
@@ -188,15 +194,16 @@ pub fn execute(
         output::info("No commits to display");
     } else if commits_displayed >= limit {
         // Only show truncation indicator if we hit the display limit
-        output.appendln(&format!(
+        writeln!(
+            writer,
             "\n{} (showing {} commits, use -n to see more)",
             "...".dimmed(),
             commits_displayed
-        ));
+        )?;
     }
 
     if commits_displayed > 0 {
-        output.show()?;
+        pager.finish()?;
     }
 
     Ok(())

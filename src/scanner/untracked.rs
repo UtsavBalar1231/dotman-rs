@@ -18,11 +18,15 @@ use walkdir::WalkDir;
 ///
 /// # Returns
 /// Vector of untracked file paths found in leaf directories
-pub fn find_untracked_files(
+///
+/// # Errors
+///
+/// Returns an error if directory traversal fails
+pub fn find_untracked_files<S: ::std::hash::BuildHasher>(
     home: &Path,
     repo_path: &Path,
     trie: &DirTrie,
-    tracked_files: &HashSet<PathBuf>,
+    tracked_files: &HashSet<PathBuf, S>,
 ) -> Result<Vec<PathBuf>> {
     let mut untracked = Vec::new();
 
@@ -45,7 +49,7 @@ pub fn find_untracked_files(
             // For files: always return true here, we'll filter in the main loop
             true
         })
-        .filter_map(|e| e.ok())
+        .filter_map(Result::ok)
         .filter(|e| e.file_type().is_file())
         .for_each(|entry| {
             let path = entry.path();

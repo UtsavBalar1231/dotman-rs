@@ -16,13 +16,14 @@ pub enum DirectoryRole {
 /// Prefix tree (trie) representing the tracked directory hierarchy
 pub struct DirTrie {
     /// Child nodes keyed by directory name component
-    children: HashMap<OsString, DirTrie>,
+    children: HashMap<OsString, Self>,
     /// Role of this directory in the hierarchy
     role: DirectoryRole,
 }
 
 impl DirTrie {
     /// Create a new empty trie with Transit role (for root)
+    #[must_use]
     pub fn new() -> Self {
         Self {
             children: HashMap::new(),
@@ -51,7 +52,7 @@ impl DirTrie {
             current = current
                 .children
                 .entry(name.to_os_string())
-                .or_insert_with(|| DirTrie {
+                .or_insert_with(|| Self {
                     children: HashMap::new(),
                     role: DirectoryRole::Transit,
                 });
@@ -62,6 +63,7 @@ impl DirTrie {
     }
 
     /// Look up a directory's role in the tracked hierarchy
+    #[must_use]
     pub fn get_role(&self, dir_path: &Path, home: &Path) -> DirectoryRole {
         // Handle home directory specially - always Transit
         if dir_path == home {
@@ -92,6 +94,7 @@ impl DirTrie {
 
     /// Returns true for Transit and Leaf directories (directories in tracked hierarchy)
     #[inline]
+    #[must_use]
     pub fn should_traverse(&self, dir_path: &Path, home: &Path) -> bool {
         matches!(
             self.get_role(dir_path, home),
@@ -101,6 +104,7 @@ impl DirTrie {
 
     /// Returns true for Leaf directories (directories directly containing tracked files)
     #[inline]
+    #[must_use]
     pub fn should_collect(&self, dir_path: &Path, home: &Path) -> bool {
         self.get_role(dir_path, home) == DirectoryRole::Leaf
     }

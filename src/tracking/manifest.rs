@@ -154,9 +154,10 @@ impl TrackingManifest {
     ///
     /// This helps avoid tracking the same path multiple times with different
     /// representations.
+    ///
+    /// Note: Currently returns path as-is. Full normalization (symlink resolution,
+    /// canonicalization) is tracked in issue #2.
     const fn normalize_path(path: PathBuf) -> PathBuf {
-        // For now, just return the path as-is
-        // TODO: Implement proper path normalization if needed
         path
     }
 

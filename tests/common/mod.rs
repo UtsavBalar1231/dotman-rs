@@ -15,7 +15,7 @@ impl TestRepo {
         let repo_path = temp_dir.path().join(".dotman");
         let config_path = temp_dir.path().join(".config/dotman/config");
 
-        let ctx = DotmanContext::new_with_explicit_paths(repo_path.clone(), config_path)?;
+        let ctx = DotmanContext::new_explicit(repo_path.clone(), config_path)?;
         ctx.ensure_repo_exists()?;
 
         // Initialize index

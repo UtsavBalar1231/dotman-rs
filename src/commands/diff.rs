@@ -1,13 +1,18 @@
+use crate::commands::context::CommandContext;
+use crate::diff::binary::is_binary_file;
+use crate::diff::unified::{
+    UnifiedDiffConfig, generate_binary_diff_message, generate_unified_diff,
+};
 use crate::refs::resolver::RefResolver;
 use crate::storage::FileStatus;
 use crate::storage::index::Index;
 use crate::storage::snapshots::{SnapshotFile, SnapshotManager};
-use crate::utils::pager::PagerOutput;
+use crate::utils::pager::{Pager, PagerConfig, PagerWriter};
 use crate::{DotmanContext, INDEX_FILE};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Compare two file collections and return their differences.
 ///
@@ -53,6 +58,40 @@ fn compare_file_collections(
     statuses
 }
 
+/// Generate unified diff for a single file.
+///
+/// Reads file contents and generates a unified diff, handling binary files appropriately.
+///
+/// # Arguments
+///
+/// * `writer` - Output writer for the diff
+/// * `path` - File path for display
+/// * `old_content` - Old file content (empty string for added files)
+/// * `new_content` - New file content (empty string for deleted files)
+/// * `ctx` - Dotman context with configuration
+/// * `is_file_binary` - Whether the file is binary
+fn generate_file_diff(
+    writer: &mut dyn PagerWriter,
+    path: &Path,
+    old_content: &str,
+    new_content: &str,
+    ctx: &DotmanContext,
+    is_file_binary: bool,
+) -> Result<()> {
+    if is_file_binary {
+        generate_binary_diff_message(path, path, writer)?;
+    } else {
+        let algorithm = crate::diff::config_to_algorithm(&ctx.config.diff.algorithm);
+        let config = UnifiedDiffConfig {
+            context_lines: ctx.config.diff.context,
+            algorithm,
+            colorize: ctx.config.diff.color,
+        };
+        generate_unified_diff(old_content, new_content, path, path, &config, writer)?;
+    }
+    Ok(())
+}
+
 /// Execute diff command to show differences between commits or working directory
 ///
 /// # Errors
@@ -87,29 +126,122 @@ pub fn execute(ctx: &DotmanContext, from: Option<&str>, to: Option<&str>) -> Res
 ///
 /// Returns an error if failed to load index or get file status
 fn diff_working_vs_index(ctx: &DotmanContext) -> Result<()> {
-    use crate::commands::status::get_current_files;
-
-    let mut output = PagerOutput::new(ctx, ctx.no_pager);
-    output.appendln(&format!(
-        "{}",
-        "Comparing working directory with index...".blue()
-    ));
+    let pager_config = PagerConfig::from_context(ctx, "diff");
+    let mut pager = Pager::builder().config(pager_config).build()?;
+    let writer = pager.writer();
 
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
+    let home_dir = ctx.get_home_dir()?;
+    let snapshot_manager =
+        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
 
-    let current_files = get_current_files(ctx)?;
-    let statuses = index.get_status_parallel(&current_files);
+    // Load HEAD snapshot to get committed files
+    let ref_manager = crate::refs::RefManager::new(ctx.repo_path.clone());
+    let committed_files = if let Some(commit_id) = ref_manager.get_head_commit()?
+        && commit_id != "0".repeat(40)
+    {
+        snapshot_manager
+            .load_snapshot(&commit_id)
+            .ok()
+            .map(|snapshot| snapshot.files)
+    } else {
+        None
+    };
+
+    let mut statuses = Vec::new();
+
+    // Check staged files against working directory
+    for (path, staged_entry) in &index.staged_entries {
+        let abs_path = if path.is_relative() {
+            home_dir.join(path)
+        } else {
+            path.clone()
+        };
+
+        if abs_path.exists() {
+            // Hash file to check for modifications
+            match crate::storage::file_ops::hash_file(&abs_path, staged_entry.cached_hash.as_ref())
+            {
+                Ok((current_hash, _)) => {
+                    if current_hash != staged_entry.hash {
+                        statuses.push(FileStatus::Modified(path.clone()));
+                    }
+                }
+                Err(_) => {
+                    // Hash failed - file might be binary or inaccessible, still show it
+                    statuses.push(FileStatus::Modified(path.clone()));
+                }
+            }
+        } else {
+            statuses.push(FileStatus::Deleted(path.clone()));
+        }
+    }
+
+    // Check committed files (not already staged) against working directory
+    if let Some(ref files) = committed_files {
+        for (path, snapshot_file) in files {
+            // Skip if already staged (checked above)
+            if index.staged_entries.contains_key(path) {
+                continue;
+            }
+
+            let abs_path = if path.is_relative() {
+                home_dir.join(path)
+            } else {
+                path.clone()
+            };
+
+            if abs_path.exists() {
+                // Hash file to check for modifications (no cache available from snapshot)
+                match crate::storage::file_ops::hash_file(&abs_path, None) {
+                    Ok((current_hash, _)) => {
+                        if current_hash != snapshot_file.hash {
+                            statuses.push(FileStatus::Modified(path.clone()));
+                        }
+                    }
+                    Err(_) => {
+                        // Hash failed but file exists - show as modified
+                        statuses.push(FileStatus::Modified(path.clone()));
+                    }
+                }
+            } else {
+                // File was deleted from disk
+                statuses.push(FileStatus::Deleted(path.clone()));
+            }
+        }
+    }
 
     if statuses.is_empty() {
-        output.appendln("No differences found");
-        output.show()?;
+        writeln!(writer, "No differences found")?;
+        pager.finish()?;
         return Ok(());
     }
 
-    format_file_statuses(&mut output, &statuses);
-    output.show()?;
+    // If unified diff is disabled, just show file status
+    if !ctx.config.diff.unified {
+        writeln!(
+            writer,
+            "{}",
+            "Comparing working directory with index...".blue()
+        )?;
+        format_file_statuses(writer, &statuses)?;
+        pager.finish()?;
+        return Ok(());
+    }
 
+    // Generate unified diffs
+    process_working_vs_index_diff(
+        writer,
+        &statuses,
+        ctx,
+        &index,
+        committed_files.as_ref(),
+        &snapshot_manager,
+        &home_dir,
+    )?;
+
+    pager.finish()?;
     Ok(())
 }
 
@@ -127,15 +259,9 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
         .resolve(commit)
         .with_context(|| format!("Failed to resolve reference: {commit}"))?;
 
-    let mut output = PagerOutput::new(ctx, ctx.no_pager);
-    output.appendln(&format!(
-        "{}",
-        format!(
-            "Comparing commit {} with working directory...",
-            commit_id[..8.min(commit_id.len())].yellow()
-        )
-        .blue()
-    ));
+    let pager_config = PagerConfig::from_context(ctx, "diff");
+    let mut pager = Pager::builder().config(pager_config).build()?;
+    let writer = pager.writer();
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
@@ -163,14 +289,40 @@ fn diff_commit_vs_working(ctx: &DotmanContext, commit: &str) -> Result<()> {
     let statuses = compare_file_collections(&snapshot.files, &working_files);
 
     if statuses.is_empty() {
-        output.appendln("No differences found");
-        output.show()?;
+        writeln!(writer, "No differences found")?;
+        pager.finish()?;
         return Ok(());
     }
 
-    format_file_statuses(&mut output, &statuses);
-    output.show()?;
+    // If unified diff is disabled, just show file status
+    if !ctx.config.diff.unified {
+        writeln!(
+            writer,
+            "{}",
+            format!(
+                "Comparing commit {} with working directory...",
+                commit_id[..8.min(commit_id.len())].yellow()
+            )
+            .blue()
+        )?;
+        format_file_statuses(writer, &statuses)?;
+        pager.finish()?;
+        return Ok(());
+    }
 
+    // Generate unified diffs
+    let home_dir = ctx.get_home_dir()?;
+    process_commit_vs_working_diff(
+        writer,
+        &statuses,
+        ctx,
+        &snapshot,
+        &index,
+        &snapshot_manager,
+        &home_dir,
+    )?;
+
+    pager.finish()?;
     Ok(())
 }
 
@@ -191,16 +343,9 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
         .resolve(to)
         .with_context(|| format!("Failed to resolve reference: {to}"))?;
 
-    let mut output = PagerOutput::new(ctx, ctx.no_pager);
-    output.appendln(&format!(
-        "{}",
-        format!(
-            "Comparing commit {} with commit {}...",
-            from_id[..8.min(from_id.len())].yellow(),
-            to_id[..8.min(to_id.len())].yellow()
-        )
-        .blue()
-    ));
+    let pager_config = PagerConfig::from_context(ctx, "diff");
+    let mut pager = Pager::builder().config(pager_config).build()?;
+    let writer = pager.writer();
 
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
@@ -216,14 +361,39 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
     let statuses = compare_file_collections(&from_snapshot.files, &to_snapshot.files);
 
     if statuses.is_empty() {
-        output.appendln("No differences found");
-        output.show()?;
+        writeln!(writer, "No differences found")?;
+        pager.finish()?;
         return Ok(());
     }
 
-    format_file_statuses(&mut output, &statuses);
-    output.show()?;
+    // If unified diff is disabled, just show file status
+    if !ctx.config.diff.unified {
+        writeln!(
+            writer,
+            "{}",
+            format!(
+                "Comparing commit {} with commit {}...",
+                from_id[..8.min(from_id.len())].yellow(),
+                to_id[..8.min(to_id.len())].yellow()
+            )
+            .blue()
+        )?;
+        format_file_statuses(writer, &statuses)?;
+        pager.finish()?;
+        return Ok(());
+    }
 
+    // Generate unified diffs
+    process_commits_diff(
+        writer,
+        &statuses,
+        ctx,
+        &from_snapshot,
+        &to_snapshot,
+        &snapshot_manager,
+    )?;
+
+    pager.finish()?;
     Ok(())
 }
 
@@ -236,7 +406,7 @@ fn diff_commits(ctx: &DotmanContext, from: &str, to: &str) -> Result<()> {
 /// - `-` for deleted files (red)
 ///
 /// Appends a summary line showing total counts for each category.
-fn format_file_statuses(output: &mut PagerOutput, statuses: &[FileStatus]) {
+fn format_file_statuses(writer: &mut dyn PagerWriter, statuses: &[FileStatus]) -> Result<()> {
     let mut added = Vec::new();
     let mut modified = Vec::new();
     let mut deleted = Vec::new();
@@ -250,35 +420,254 @@ fn format_file_statuses(output: &mut PagerOutput, statuses: &[FileStatus]) {
     }
 
     if !added.is_empty() {
-        output.appendln("");
-        output.appendln(&format!("{}", "Added files:".green().bold()));
+        writeln!(writer)?;
+        writeln!(writer, "{}", "Added files:".green().bold())?;
         for path in &added {
-            output.appendln(&format!("  + {}", path.display()));
+            writeln!(writer, "  + {}", path.display())?;
         }
     }
 
     if !modified.is_empty() {
-        output.appendln("");
-        output.appendln(&format!("{}", "Modified files:".yellow().bold()));
+        writeln!(writer)?;
+        writeln!(writer, "{}", "Modified files:".yellow().bold())?;
         for path in &modified {
-            output.appendln(&format!("  ~ {}", path.display()));
+            writeln!(writer, "  ~ {}", path.display())?;
         }
     }
 
     if !deleted.is_empty() {
-        output.appendln("");
-        output.appendln(&format!("{}", "Deleted files:".red().bold()));
+        writeln!(writer)?;
+        writeln!(writer, "{}", "Deleted files:".red().bold())?;
         for path in &deleted {
-            output.appendln(&format!("  - {}", path.display()));
+            writeln!(writer, "  - {}", path.display())?;
         }
     }
 
-    output.appendln("");
-    output.appendln(&format!(
+    writeln!(writer)?;
+    writeln!(
+        writer,
         "{}: {} added, {} modified, {} deleted",
         "Summary".bold(),
         added.len(),
         modified.len(),
         deleted.len()
-    ));
+    )?;
+
+    Ok(())
+}
+
+/// Read content from object store by hash
+fn read_object_content(snapshot_manager: &SnapshotManager, hash: &str) -> String {
+    let bytes = snapshot_manager.read_object(hash).unwrap_or_default();
+    String::from_utf8_lossy(&bytes).to_string()
+}
+
+/// Process and display diff for working vs index comparison
+fn process_working_vs_index_diff(
+    writer: &mut dyn PagerWriter,
+    statuses: &[FileStatus],
+    ctx: &DotmanContext,
+    index: &Index,
+    committed_files: Option<&HashMap<PathBuf, SnapshotFile>>,
+    snapshot_manager: &SnapshotManager,
+    home_dir: &Path,
+) -> Result<()> {
+    for status in statuses {
+        match status {
+            FileStatus::Modified(path) => {
+                let full_path = if path.is_relative() {
+                    home_dir.join(path)
+                } else {
+                    path.clone()
+                };
+                let new_content =
+                    std::fs::read_to_string(&full_path).unwrap_or_else(|_| String::new());
+
+                let old_content = get_old_content_for_working_diff(
+                    path,
+                    index,
+                    committed_files,
+                    snapshot_manager,
+                );
+
+                let is_binary = full_path.exists() && is_binary_file(&full_path).unwrap_or(false);
+                generate_file_diff(writer, path, &old_content, &new_content, ctx, is_binary)?;
+                writeln!(writer)?;
+            }
+            FileStatus::Added(path) => {
+                let full_path = if path.is_relative() {
+                    home_dir.join(path)
+                } else {
+                    path.clone()
+                };
+                let new_content =
+                    std::fs::read_to_string(&full_path).unwrap_or_else(|_| String::new());
+                let is_binary = full_path.exists() && is_binary_file(&full_path).unwrap_or(false);
+
+                generate_file_diff(writer, path, "", &new_content, ctx, is_binary)?;
+                writeln!(writer)?;
+            }
+            FileStatus::Deleted(path) => {
+                let old_content = get_old_content_for_working_diff(
+                    path,
+                    index,
+                    committed_files,
+                    snapshot_manager,
+                );
+
+                generate_file_diff(writer, path, &old_content, "", ctx, false)?;
+                writeln!(writer)?;
+            }
+            FileStatus::Untracked(_) => {}
+        }
+    }
+    Ok(())
+}
+
+/// Get old content for working directory diff (from staged or committed)
+fn get_old_content_for_working_diff(
+    path: &Path,
+    index: &Index,
+    committed_files: Option<&HashMap<PathBuf, SnapshotFile>>,
+    snapshot_manager: &SnapshotManager,
+) -> String {
+    index.staged_entries.get(path).map_or_else(
+        || {
+            committed_files
+                .and_then(|files| {
+                    files
+                        .get(path)
+                        .map(|sf| read_object_content(snapshot_manager, &sf.content_hash))
+                })
+                .unwrap_or_default()
+        },
+        |entry| read_object_content(snapshot_manager, &entry.hash),
+    )
+}
+
+/// Process and display diff for commit vs working comparison
+fn process_commit_vs_working_diff(
+    writer: &mut dyn PagerWriter,
+    statuses: &[FileStatus],
+    ctx: &DotmanContext,
+    snapshot: &crate::storage::snapshots::Snapshot,
+    index: &Index,
+    snapshot_manager: &SnapshotManager,
+    home_dir: &Path,
+) -> Result<()> {
+    for status in statuses {
+        match status {
+            FileStatus::Modified(path) => {
+                let old_content = snapshot.files.get(path).map_or_else(String::new, |file| {
+                    read_object_content(snapshot_manager, &file.content_hash)
+                });
+
+                let new_content = index
+                    .staged_entries
+                    .get(path)
+                    .map_or_else(String::new, |entry| {
+                        read_object_content(snapshot_manager, &entry.hash)
+                    });
+
+                let full_path = home_dir.join(path);
+                let is_binary = full_path.exists() && is_binary_file(&full_path).unwrap_or(false);
+
+                generate_file_diff(writer, path, &old_content, &new_content, ctx, is_binary)?;
+                writeln!(writer)?;
+            }
+            FileStatus::Added(path) => {
+                let new_content = index
+                    .staged_entries
+                    .get(path)
+                    .map_or_else(String::new, |entry| {
+                        read_object_content(snapshot_manager, &entry.hash)
+                    });
+
+                let full_path = home_dir.join(path);
+                let is_binary = full_path.exists() && is_binary_file(&full_path).unwrap_or(false);
+
+                generate_file_diff(writer, path, "", &new_content, ctx, is_binary)?;
+                writeln!(writer)?;
+            }
+            FileStatus::Deleted(path) => {
+                let old_content = snapshot.files.get(path).map_or_else(String::new, |file| {
+                    read_object_content(snapshot_manager, &file.content_hash)
+                });
+
+                generate_file_diff(writer, path, &old_content, "", ctx, false)?;
+                writeln!(writer)?;
+            }
+            FileStatus::Untracked(_) => {}
+        }
+    }
+    Ok(())
+}
+
+/// Process and display diff between two commits
+fn process_commits_diff(
+    writer: &mut dyn PagerWriter,
+    statuses: &[FileStatus],
+    ctx: &DotmanContext,
+    from_snapshot: &crate::storage::snapshots::Snapshot,
+    to_snapshot: &crate::storage::snapshots::Snapshot,
+    snapshot_manager: &SnapshotManager,
+) -> Result<()> {
+    for status in statuses {
+        match status {
+            FileStatus::Modified(path) => {
+                let old_content = from_snapshot
+                    .files
+                    .get(path)
+                    .map_or_else(String::new, |file| {
+                        read_object_content(snapshot_manager, &file.content_hash)
+                    });
+
+                let new_content = to_snapshot
+                    .files
+                    .get(path)
+                    .map_or_else(String::new, |file| {
+                        read_object_content(snapshot_manager, &file.content_hash)
+                    });
+
+                let is_binary = if !new_content.is_empty() {
+                    new_content.contains('\0')
+                } else if !old_content.is_empty() {
+                    old_content.contains('\0')
+                } else {
+                    false
+                };
+
+                generate_file_diff(writer, path, &old_content, &new_content, ctx, is_binary)?;
+                writeln!(writer)?;
+            }
+            FileStatus::Added(path) => {
+                let new_content = to_snapshot
+                    .files
+                    .get(path)
+                    .map_or_else(String::new, |file| {
+                        read_object_content(snapshot_manager, &file.content_hash)
+                    });
+
+                let is_binary = new_content.contains('\0');
+
+                generate_file_diff(writer, path, "", &new_content, ctx, is_binary)?;
+                writeln!(writer)?;
+            }
+            FileStatus::Deleted(path) => {
+                let old_content = from_snapshot
+                    .files
+                    .get(path)
+                    .map_or_else(String::new, |file| {
+                        read_object_content(snapshot_manager, &file.content_hash)
+                    });
+
+                let is_binary = old_content.contains('\0');
+
+                generate_file_diff(writer, path, &old_content, "", ctx, is_binary)?;
+                writeln!(writer)?;
+            }
+            FileStatus::Untracked(_) => {}
+        }
+    }
+    Ok(())
 }

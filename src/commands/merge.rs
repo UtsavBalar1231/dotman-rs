@@ -14,6 +14,7 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write as FmtWrite;
+use std::process::{Command, Stdio};
 
 /// Execute merge command - join two or more development histories together
 ///
@@ -165,9 +166,10 @@ fn handle_remote_branch_merge(
     mirror.init_mirror()?;
 
     // Checkout the remote branch in mirror
-    let output = std::process::Command::new("git")
+    let output = Command::new("git")
         .args(["checkout", &format!("origin/{branch}")])
         .current_dir(mirror.get_mirror_path())
+        .stdin(Stdio::null())
         .output()?;
 
     if !output.status.success() {

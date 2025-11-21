@@ -4,7 +4,6 @@ use memmap2::MmapOptions;
 use std::fs::File;
 use std::path::Path;
 
-// Fast TOML parser optimized for our config structure
 /// Parse a configuration file from disk
 ///
 /// # Errors
@@ -78,15 +77,11 @@ fn validate_config(config: &Config) -> Result<()> {
     Ok(())
 }
 
-/// Fast in-memory configuration updater for efficient TOML editing
+/// In-memory TOML configuration updater with pattern-based editing
 ///
-/// This struct provides an optimized way to update individual configuration values
-/// without full TOML parsing/serialization. It operates directly on the byte content
-/// of the configuration file, making it ideal for quick key-value updates.
-///
-/// The updater uses pattern matching to locate sections and keys in the TOML file,
-/// then performs in-place replacements of values. This is significantly faster than
-/// parsing the entire TOML structure, modifying it, and re-serializing.
+/// Updates individual configuration values without full TOML parsing/serialization.
+/// Operates directly on byte content using pattern matching to locate sections and keys,
+/// then performs in-place value replacements.
 ///
 /// # Example
 ///
@@ -102,10 +97,7 @@ fn validate_config(config: &Config) -> Result<()> {
 /// # }
 /// ```
 pub struct FastConfigUpdater {
-    /// Raw byte content of the configuration file
-    ///
-    /// This field holds the complete TOML file content as bytes, allowing for
-    /// efficient pattern matching and in-place editing without string allocations.
+    /// Raw byte content of the configuration file for pattern matching and editing
     content: Vec<u8>,
 }
 

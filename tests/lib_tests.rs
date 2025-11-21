@@ -9,7 +9,7 @@ fn test_context_new_with_explicit_paths() -> Result<()> {
     let repo_path = temp_dir.path().join("repo");
     let config_path = temp_dir.path().join("config.toml");
 
-    let context = DotmanContext::new_with_explicit_paths(repo_path.clone(), config_path.clone())?;
+    let context = DotmanContext::new_explicit(repo_path.clone(), config_path.clone())?;
 
     assert_eq!(context.repo_path, repo_path);
     assert_eq!(context.config_path, config_path);
@@ -24,7 +24,7 @@ fn test_repo_initialization_check() -> Result<()> {
     let repo_path = temp_dir.path().join("repo");
     let config_path = temp_dir.path().join("config.toml");
 
-    let context = DotmanContext::new_with_explicit_paths(repo_path.clone(), config_path)?;
+    let context = DotmanContext::new_explicit(repo_path.clone(), config_path)?;
 
     // Initially not initialized
     assert!(!context.is_repo_initialized());
@@ -47,7 +47,7 @@ fn test_ensure_repo_exists() -> Result<()> {
     let repo_path = temp_dir.path().join("repo");
     let config_path = temp_dir.path().join("config.toml");
 
-    let context = DotmanContext::new_with_explicit_paths(repo_path.clone(), config_path)?;
+    let context = DotmanContext::new_explicit(repo_path.clone(), config_path)?;
 
     context.ensure_repo_exists()?;
 
@@ -64,16 +64,16 @@ fn test_context_with_pager() -> Result<()> {
     let repo_path = temp_dir.path().join(".dotman");
     let config_path = temp_dir.path().join("config.toml");
 
-    // Test with pager disabled (no_pager = true)
-    let context = DotmanContext::new_with_explicit_paths(repo_path.clone(), config_path.clone())?;
-    let context = DotmanContext {
-        no_pager: true,
-        ..context
-    };
+    // Test with pager disabled (no_pager = true) - new_explicit() sets this by default
+    let context = DotmanContext::new_explicit(repo_path.clone(), config_path.clone())?;
     assert!(context.no_pager);
 
-    // Test with pager enabled (no_pager = false, default)
-    let context_with_pager = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+    // Test that we can manually override to enable pager if needed
+    let context_with_pager = DotmanContext::new_explicit(repo_path, config_path)?;
+    let context_with_pager = DotmanContext {
+        no_pager: false,
+        ..context_with_pager
+    };
     assert!(!context_with_pager.no_pager);
 
     Ok(())
@@ -86,8 +86,7 @@ fn test_repo_path_explicit() -> Result<()> {
     let custom_config = temp_dir.path().join("custom_config.toml");
 
     // Use explicit paths instead of environment variables to avoid test isolation issues
-    let context =
-        DotmanContext::new_with_explicit_paths(custom_repo.clone(), custom_config.clone())?;
+    let context = DotmanContext::new_explicit(custom_repo.clone(), custom_config.clone())?;
 
     assert_eq!(context.repo_path, custom_repo);
     assert_eq!(context.config_path, custom_config);
@@ -101,7 +100,7 @@ fn test_repo_not_initialized_error() -> Result<()> {
     let repo_path = temp_dir.path().join("repo");
     let config_path = temp_dir.path().join("config.toml");
 
-    let context = DotmanContext::new_with_explicit_paths(repo_path, config_path)?;
+    let context = DotmanContext::new_explicit(repo_path, config_path)?;
 
     let result = context.check_repo_initialized();
     assert!(result.is_err());

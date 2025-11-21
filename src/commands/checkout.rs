@@ -42,6 +42,7 @@ use crate::refs::resolver::RefResolver;
 use crate::storage::snapshots::SnapshotManager;
 use anyhow::{Context, Result};
 use colored::Colorize;
+use std::io::IsTerminal;
 
 /// Switch to a different commit or branch
 ///
@@ -64,10 +65,37 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
         }
     }
 
-    // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
-    let resolver = RefResolver::new(ctx.repo_path.clone());
-    let commit_id = resolver.resolve(target).with_context(|| {
-        // Check if target looks like a file path
+    let commit_id = resolve_target_ref(target, &ctx.repo_path)?;
+
+    if commit_id == crate::NULL_COMMIT_ID {
+        return handle_null_commit(target, &ctx.repo_path);
+    }
+
+    let snapshot_manager = create_snapshot_manager(ctx);
+    let snapshot = snapshot_manager
+        .load_snapshot(&commit_id)
+        .with_context(|| format!("Failed to load commit: {commit_id}"))?;
+
+    display_checkout_info(&commit_id);
+
+    let home = dirs::home_dir().context("Could not find home directory")?;
+    let current_files = get_current_tracked_files(&snapshot_manager, &ctx.repo_path, &home)?;
+
+    if !force {
+        prompt_for_untracked_conflicts(ctx, &snapshot, &home, &current_files)?;
+    }
+
+    restore_and_clear_index(ctx, &snapshot_manager, &commit_id, &home, &current_files)?;
+    update_head_after_checkout(target, &commit_id, &ctx.repo_path)?;
+    display_checkout_success(&commit_id, &snapshot);
+
+    Ok(())
+}
+
+/// Resolve a target reference to a commit ID
+fn resolve_target_ref(target: &str, repo_path: &std::path::Path) -> Result<String> {
+    let resolver = RefResolver::new(repo_path.to_path_buf());
+    resolver.resolve(target).with_context(|| {
         if target.contains('/') || std::path::Path::new(target).exists() {
             format!(
                 "Failed to resolve reference: {target}\n\
@@ -76,101 +104,166 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
         } else {
             format!("Failed to resolve reference: {target}")
         }
-    })?;
+    })
+}
 
-    // Check if we're checking out the NULL commit (no commits yet)
-    if commit_id == crate::NULL_COMMIT_ID {
-        // Update HEAD to point to the branch
-        let ref_manager = RefManager::new(ctx.repo_path.clone());
-        let message = format!("checkout: moving to {target}");
+/// Handle checkout of NULL commit (no commits exist yet)
+fn handle_null_commit(target: &str, repo_path: &std::path::Path) -> Result<()> {
+    let ref_manager = RefManager::new(repo_path.to_path_buf());
+    let message = format!("checkout: moving to {target}");
 
-        if ref_manager.branch_exists(target) {
-            ref_manager.set_head_to_branch(target, Some("checkout"), Some(&message))?;
-            output::success(&format!("Switched to branch '{target}'"));
-        } else {
-            return Err(anyhow::anyhow!(
-                "Cannot checkout '{target}' - no commits exist yet"
-            ));
-        }
-        return Ok(());
+    if ref_manager.branch_exists(target) {
+        ref_manager.set_head_to_branch(target, Some("checkout"), Some(&message))?;
+        output::success(&format!("Switched to branch '{target}'"));
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!(
+            "Cannot checkout '{target}' - no commits exist yet"
+        ))
     }
+}
 
-    let snapshot_manager = SnapshotManager::with_permissions(
+/// Create a snapshot manager from context
+fn create_snapshot_manager(ctx: &DotmanContext) -> SnapshotManager {
+    SnapshotManager::with_permissions(
         ctx.repo_path.clone(),
         ctx.config.core.compression_level,
         ctx.config.tracking.preserve_permissions,
-    );
+    )
+}
 
-    let snapshot = snapshot_manager
-        .load_snapshot(&commit_id)
-        .with_context(|| format!("Failed to load commit: {commit_id}"))?;
-
+/// Display checkout progress info
+fn display_checkout_info(commit_id: &str) {
     let display_target = if commit_id.len() >= 8 {
         &commit_id[..8]
     } else {
-        &commit_id
+        commit_id
     };
     output::info(&format!("Checking out commit {}", display_target.yellow()));
+}
 
-    // Get home directory as target
-    let home = dirs::home_dir().context("Could not find home directory")?;
+/// Get list of currently tracked files for cleanup
+fn get_current_tracked_files(
+    snapshot_manager: &SnapshotManager,
+    repo_path: &std::path::Path,
+    home: &std::path::Path,
+) -> Result<Vec<std::path::PathBuf>> {
+    let ref_manager = RefManager::new(repo_path.to_path_buf());
 
-    // Get list of currently tracked files for cleanup by loading HEAD snapshot
-    let ref_manager = RefManager::new(ctx.repo_path.clone());
-    let current_files = if let Some(head_commit) = ref_manager.get_head_commit()? {
+    if let Some(head_commit) = ref_manager.get_head_commit()? {
         if head_commit == crate::NULL_COMMIT_ID {
-            Vec::new()
-        } else {
-            // Load current HEAD snapshot to get tracked files
-            let head_snapshot = snapshot_manager
-                .load_snapshot(&head_commit)
-                .with_context(|| format!("Failed to load HEAD commit: {head_commit}"))?;
-
-            // Convert snapshot paths to absolute paths
-            head_snapshot
-                .files
-                .keys()
-                .map(|path| {
-                    if path.is_relative() {
-                        home.join(path)
-                    } else {
-                        path.clone()
-                    }
-                })
-                .collect()
+            return Ok(Vec::new());
         }
+
+        let head_snapshot = snapshot_manager
+            .load_snapshot(&head_commit)
+            .with_context(|| format!("Failed to load HEAD commit: {head_commit}"))?;
+
+        Ok(head_snapshot
+            .files
+            .keys()
+            .map(|path| {
+                if path.is_relative() {
+                    home.join(path)
+                } else {
+                    path.clone()
+                }
+            })
+            .collect())
     } else {
-        Vec::new()
-    };
+        Ok(Vec::new())
+    }
+}
 
-    // Restore files with cleanup of files not in target
-    snapshot_manager.restore_snapshot(&commit_id, &home, Some(&current_files))?;
+/// Prompt user for confirmation if untracked files would be overwritten
+fn prompt_for_untracked_conflicts(
+    ctx: &DotmanContext,
+    snapshot: &crate::storage::snapshots::Snapshot,
+    home: &std::path::Path,
+    current_files: &[std::path::PathBuf],
+) -> Result<()> {
+    let conflicts = detect_untracked_conflicts(snapshot, home, current_files);
+    if conflicts.is_empty() {
+        return Ok(());
+    }
 
-    // Clear the index - after checkout, there are no staged changes
-    // Committed files are stored in the snapshot, not in the index
+    eprintln!(
+        "\n{}: The following untracked files would be overwritten by checkout:",
+        "Warning".yellow().bold()
+    );
+    for file in &conflicts {
+        if let Ok(rel_path) = file.strip_prefix(home) {
+            eprintln!("  {}", rel_path.display());
+        } else {
+            eprintln!("  {}", file.display());
+        }
+    }
+
+    // Check if we're in a non-interactive environment
+    let is_non_interactive = ctx.non_interactive
+        || std::env::var("DOTMAN_NON_INTERACTIVE").is_ok()
+        || !std::io::stdin().is_terminal();
+
+    if is_non_interactive {
+        // In non-interactive mode, fail with a clear error message
+        return Err(anyhow::anyhow!(
+            "Checkout would overwrite untracked files. Use --force to proceed anyway."
+        ));
+    }
+
+    eprint!("\n{}? (Y/n): ", "Continue".bold());
+    std::io::Write::flush(&mut std::io::stderr())?;
+
+    let mut response = String::new();
+    std::io::stdin().read_line(&mut response)?;
+    let response = response.trim().to_lowercase();
+
+    if !response.is_empty() && response != "y" && response != "yes" {
+        return Err(anyhow::anyhow!("Checkout cancelled by user"));
+    }
+
+    Ok(())
+}
+
+/// Restore snapshot and clear the index
+fn restore_and_clear_index(
+    ctx: &DotmanContext,
+    snapshot_manager: &SnapshotManager,
+    commit_id: &str,
+    home: &std::path::Path,
+    current_files: &[std::path::PathBuf],
+) -> Result<()> {
+    snapshot_manager.restore_snapshot(commit_id, home, Some(current_files))?;
+
     let index_path = ctx.repo_path.join(crate::INDEX_FILE);
     let index = crate::storage::index::Index::new();
     index
         .save(&index_path)
-        .with_context(|| "Failed to clear index after checkout")?;
+        .with_context(|| "Failed to clear index after checkout")
+}
 
-    // Update HEAD with reflog entry
-    let ref_manager = RefManager::new(ctx.repo_path.clone());
+/// Update HEAD reference after checkout
+fn update_head_after_checkout(
+    target: &str,
+    commit_id: &str,
+    repo_path: &std::path::Path,
+) -> Result<()> {
+    let ref_manager = RefManager::new(repo_path.to_path_buf());
     let message = format!("checkout: moving to {target}");
 
-    // Check if target is a branch name
     if ref_manager.branch_exists(target) {
-        // Checkout the branch (update HEAD to point to the branch)
-        ref_manager.set_head_to_branch(target, Some("checkout"), Some(&message))?;
+        ref_manager.set_head_to_branch(target, Some("checkout"), Some(&message))
     } else {
-        // Checkout a specific commit (detached HEAD)
-        ref_manager.set_head_to_commit(&commit_id, Some("checkout"), Some(&message))?;
+        ref_manager.set_head_to_commit(commit_id, Some("checkout"), Some(&message))
     }
+}
 
+/// Display success message after checkout
+fn display_checkout_success(commit_id: &str, snapshot: &crate::storage::snapshots::Snapshot) {
     let display_id = if commit_id.len() >= 8 {
         &commit_id[..8]
     } else {
-        &commit_id
+        commit_id
     };
 
     output::success(&format!(
@@ -181,8 +274,6 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
 
     println!("  {}: {}", "Author".bold(), snapshot.commit.author);
     println!("  {}: {}", "Message".bold(), snapshot.commit.message);
-
-    Ok(())
 }
 
 /// Returns true if no modifications or staged changes exist
@@ -244,4 +335,37 @@ fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     // (This is a basic check - a more thorough check would scan for all untracked files)
     // For now, if we've made it this far, consider it clean
     Ok(true)
+}
+
+/// Detects untracked files that would be overwritten by checkout
+///
+/// Returns a vector of paths to untracked files that conflict with files in the target snapshot.
+/// A file is considered a conflict if:
+/// - It exists on disk
+/// - It's not in the current HEAD's tracked files
+/// - The target snapshot wants to write to that path
+fn detect_untracked_conflicts(
+    snapshot: &crate::storage::snapshots::Snapshot,
+    home: &std::path::Path,
+    current_files: &[std::path::PathBuf],
+) -> Vec<std::path::PathBuf> {
+    use std::collections::HashSet;
+
+    let current_files_set: HashSet<_> = current_files.iter().collect();
+    let mut conflicts = Vec::new();
+
+    for path in snapshot.files.keys() {
+        let abs_path = if path.is_relative() {
+            home.join(path)
+        } else {
+            path.clone()
+        };
+
+        // If file exists and is not currently tracked, it's an untracked file that would be overwritten
+        if abs_path.exists() && !current_files_set.contains(&abs_path) {
+            conflicts.push(abs_path);
+        }
+    }
+
+    conflicts
 }

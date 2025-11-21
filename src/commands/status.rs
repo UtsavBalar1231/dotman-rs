@@ -148,6 +148,16 @@ pub fn execute_verbose(
         }
     };
 
+    // Invariant: no file should be both staged and deleted
+    // Index::mark_deleted() enforces this by removing from staged_entries
+    debug_assert!(
+        index
+            .staged_entries
+            .keys()
+            .all(|k| !index.deleted_entries.contains(k)),
+        "Invariant violated: file is both staged and deleted"
+    );
+
     // Check staged entries - show ALL staged files (Git-like semantics)
     for path in index.staged_entries.keys() {
         // Skip files in deleted_entries to avoid showing them twice

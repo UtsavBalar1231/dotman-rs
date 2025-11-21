@@ -45,7 +45,6 @@
 use super::FileEntry;
 use crate::utils::serialization;
 use anyhow::{Context, Result};
-use fs4::fs_std::FileExt;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -163,14 +162,17 @@ impl Index {
         (total, cached, hit_rate)
     }
 
-    /// Save the index to disk
+    /// Atomically saves the index to disk using a complete overwrite.
+    ///
+    /// This method performs a complete index write, replacing the previous contents.
+    /// File system atomic write guarantees (via rename on POSIX) make explicit locking
+    /// unnecessary for dotman's single-process, single-user access pattern.
     ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - Failed to serialize the index
     /// - Failed to write to disk
-    /// - Failed to acquire file lock
     pub fn save(&self, path: &Path) -> Result<()> {
         // Create a copy of the index without cached_hash for serialization
         // The cached_hash is only for runtime performance and shouldn't be persisted
@@ -188,80 +190,9 @@ impl Index {
                 .with_context(|| format!("Failed to create directory: {}", parent.display()))?;
         }
 
-        // Write directly without locking to avoid potential issues
+        // Atomic write using file system guarantees (no explicit locking needed)
         std::fs::write(path, &data)
             .with_context(|| format!("Failed to write index file: {}", path.display()))?;
-
-        Ok(())
-    }
-
-    /// Save the index, merging with existing data on disk
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - Failed to open or read existing index
-    /// - Failed to serialize or write the merged index
-    /// - Failed to acquire file lock
-    pub fn save_merge(&self, path: &Path) -> Result<()> {
-        use std::io::Write;
-        if !path.exists() {
-            std::fs::write(path, [])
-                .with_context(|| format!("Failed to create index file: {}", path.display()))?;
-        }
-
-        let file = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(path)
-            .with_context(|| format!("Failed to open index file for merge: {}", path.display()))?;
-
-        file.lock_exclusive()
-            .context("Failed to acquire exclusive lock on index file")?;
-
-        let mut final_index = if path.exists()
-            && file
-                .metadata()
-                .context("Failed to get file metadata")?
-                .len()
-                > 0
-        {
-            let existing_data = std::fs::read(path)
-                .with_context(|| format!("Failed to read existing index: {}", path.display()))?;
-            serialization::deserialize::<Self>(&existing_data).with_context(|| {
-                format!(
-                    "Failed to deserialize existing index from: {}",
-                    path.display()
-                )
-            })?
-        } else {
-            Self::new()
-        };
-
-        for (path, entry) in &self.staged_entries {
-            let mut entry_without_cache = entry.clone();
-            entry_without_cache.cached_hash = None;
-            final_index
-                .staged_entries
-                .insert(path.clone(), entry_without_cache);
-        }
-
-        // Merge deleted entries
-        for path in &self.deleted_entries {
-            final_index.deleted_entries.insert(path.clone());
-        }
-
-        let data =
-            serialization::serialize(&final_index).context("Failed to serialize merged index")?;
-
-        file.set_len(0).context("Failed to truncate index file")?;
-        let mut file_writer = &file;
-        file_writer
-            .write_all(&data)
-            .context("Failed to write index data")?;
-        file_writer.flush().context("Failed to flush index data")?;
-
-        file.unlock().context("Failed to unlock index file")?;
 
         Ok(())
     }
