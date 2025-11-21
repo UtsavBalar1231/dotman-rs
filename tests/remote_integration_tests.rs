@@ -81,7 +81,6 @@ mod push_pull_tests {
 
     #[test]
     #[serial]
-    #[ignore = "TODO: Pull into empty repo needs architectural fixes for checkout conflict detection"]
     fn test_push_pull_roundtrip() -> Result<()> {
         let (temp_dir, mut ctx1) = setup_test_repo()?;
         let remote_path = setup_bare_git_remote(&temp_dir)?;
@@ -140,14 +139,27 @@ mod push_pull_tests {
         // Pull from remote into repo2
         commands::pull::execute(&ctx2, Some("origin"), Some("main"), false, false, false)?;
 
-        // Verify file exists in repo2
+        // Verify file exists in working directory after pull
+        let home_dir = dirs::home_dir().context("Could not find home directory")?;
+        let test_file = home_dir.join(".dotman_test_files/test.txt");
+
+        assert!(
+            test_file.exists(),
+            "Pulled file should exist in working directory"
+        );
+
+        let content = fs::read_to_string(&test_file)?;
+        assert_eq!(
+            content, "original content",
+            "Pulled file should have original content"
+        );
+
+        // Verify staging area is empty after pull (as it should be after commit)
         let index = CommandContext::load_concurrent_index(&ctx2)?;
-        let entries = index.staged_entries();
-
-        assert!(!entries.is_empty(), "Should have pulled files");
-
-        let pulled_file = entries.iter().find(|(path, _)| path.ends_with("test.txt"));
-        assert!(pulled_file.is_some(), "Should have test.txt in index");
+        assert!(
+            index.staged_entries().is_empty(),
+            "Staging area should be empty after pull"
+        );
 
         Ok(())
     }
@@ -374,7 +386,6 @@ mod conflict_tests {
 
     #[test]
     #[serial]
-    #[ignore = "TODO: Pull into empty repo needs architectural fixes for checkout conflict detection"]
     fn test_pull_conflict_detection() -> Result<()> {
         let (temp_dir, mut ctx1) = setup_test_repo()?;
         let remote_path = setup_bare_git_remote(&temp_dir)?;

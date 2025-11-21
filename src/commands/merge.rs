@@ -452,11 +452,8 @@ fn perform_three_way_merge(
     // Save snapshot
     snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
-    // Update index
-    let mut index = Index::new();
-    for file in &files {
-        index.stage_entry(file.clone());
-    }
+    // Clear staging area after creating commit
+    let index = Index::new();
     index.save(&ctx.repo_path.join(crate::INDEX_FILE))?;
 
     // Update HEAD

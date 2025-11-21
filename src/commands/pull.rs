@@ -388,6 +388,10 @@ fn pull_from_git(
     // TRANSACTION POINT: Create snapshot (persisted to disk)
     snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
+    // Clear staging area after creating commit
+    index.commit_staged();
+    index.save(&ctx.repo_path.join(crate::INDEX_FILE))?;
+
     // Store original branch ref for rollback if needed
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let current_branch = ref_manager.current_branch()?;

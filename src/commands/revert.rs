@@ -450,6 +450,11 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
     snapshot_manager.create_snapshot(commit, &files, None::<fn(usize)>)?;
 
+    // Clear staging area after creating commit
+    let mut index = index;
+    index.commit_staged();
+    index.save(&index_path)?;
+
     // Update HEAD
     update_head(ctx, &commit_id)?;
 
