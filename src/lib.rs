@@ -53,6 +53,9 @@
 //! # }
 //! ```
 
+/// Command-line interface definitions (argument parsing structures).
+pub mod cli;
+
 /// Commands module containing all CLI command implementations.
 pub mod commands;
 

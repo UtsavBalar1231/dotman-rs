@@ -117,6 +117,18 @@ docs:
 docs-check:
     RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
 
+# Man Pages
+generate-manpages:
+    cargo run -p xtask -- generate-man-pages
+
+install-manpages: generate-manpages
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Installing man pages to /usr/share/man/man1/ (requires sudo)..."
+    sudo install -Dm644 man/*.1 -t /usr/share/man/man1/
+    sudo mandb
+    echo "Man pages installed successfully!"
+
 # Development Tools
 watch:
     cargo watch -x "build --all-features"
@@ -288,7 +300,7 @@ package-arch:
     cd "${BUILD_DIR}"
     sed -i "s|source=(.*)|source=('dotman-${VERSION}.tar.gz')|" PKGBUILD
     sed -i "s|sha256sums=(.*)|sha256sums=('SKIP')|" PKGBUILD
-    
+
     # Add environment variable to force bundled zstd build
     sed -i '/^build() {/a\    export ZSTD_SYS_USE_PKG_CONFIG=0' PKGBUILD
 

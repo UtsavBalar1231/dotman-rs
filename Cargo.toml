@@ -1,3 +1,7 @@
+[workspace]
+members = [".", "xtask"]
+resolver = "2"
+
 [package]
 name = "dotman"
 version = "0.0.1"
