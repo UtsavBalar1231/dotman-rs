@@ -61,7 +61,7 @@ log_info "Generating Zsh completion..."
 "$BINARY_PATH" completion zsh > "$COMPLETIONS_DIR/_dot"
 log_success "Generated Zsh completion: completions/_dot"
 
-# Fish completion  
+# Fish completion
 log_info "Generating Fish completion..."
 "$BINARY_PATH" completion fish > "$COMPLETIONS_DIR/dot.fish"
 log_success "Generated Fish completion: completions/dot.fish"
@@ -97,7 +97,7 @@ Quick Installation (using the install script):
   ./scripts/install-completions.sh bash    # Install enhanced Bash completions
   ./scripts/install-completions.sh zsh     # Install enhanced Zsh completions
   ./scripts/install-completions.sh fish    # Install enhanced Fish completions
-  
+
   Use 'basic' as second argument for basic completions:
   ./scripts/install-completions.sh bash basic
 
@@ -106,14 +106,14 @@ Manual Installation:
 Bash:
   Basic: Copy completions/dot.bash to ~/.local/share/bash-completion/completions/dot
   Enhanced: Copy completions/dot-enhanced.bash to ~/.local/share/bash-completion/completions/dot
-  
+
   Or source directly in ~/.bashrc:
     source /path/to/completions/dot.bash  # or dot-enhanced.bash
 
 Zsh:
   Basic: Copy completions/_dot to ~/.local/share/zsh/site-functions/_dot
   Enhanced: Copy completions/_dot-enhanced to ~/.local/share/zsh/site-functions/_dot
-  
+
   Add to ~/.zshrc (if not already present):
     fpath=(~/.local/share/zsh/site-functions \$fpath)
     autoload -Uz compinit && compinit

@@ -21,7 +21,7 @@ export RUSTFLAGS = -C link-arg=-Wl,-z,relro,-z,now
 override_dh_auto_configure:
 	# Create cargo home directory
 	mkdir -p $(CARGO_HOME)
-	
+
 	# Configure cargo for offline builds
 	dh_auto_configure
 
@@ -32,36 +32,36 @@ override_dh_auto_build:
 override_dh_auto_test:
 	# Run comprehensive test suite
 	dh_auto_test -- --all-features --release
-	
+
 	# Run additional tests (skip property-based tests for build speed)
 	# cargo test --release --test integration_test || true
 
 override_dh_auto_install:
 	dh_auto_install
-	
+
 	# Install binary (note: cargo builds 'dot', not 'dotman')
 	install -D -m755 target/release/dot debian/dotman/usr/bin/dot
-	
+
 	# Generate and install shell completions
 	mkdir -p debian/dotman/usr/share/bash-completion/completions
 	target/release/dot completion bash > debian/dotman/usr/share/bash-completion/completions/dot || true
-	
+
 	mkdir -p debian/dotman/usr/share/zsh/vendor-completions
 	target/release/dot completion zsh > debian/dotman/usr/share/zsh/vendor-completions/_dot || true
-	
+
 	mkdir -p debian/dotman/usr/share/fish/vendor_completions.d
 	target/release/dot completion fish > debian/dotman/usr/share/fish/vendor_completions.d/dot.fish || true
-	
+
 	# Generate man page
 	mkdir -p debian/dotman/usr/share/man/man1
 	help2man --no-info --name="blazingly fast dotfiles manager" \
 		--version-string="$(shell cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')" \
 		target/release/dot > debian/dotman/usr/share/man/man1/dot.1 || true
-	
+
 	# Install additional documentation
 	mkdir -p debian/dotman/usr/share/doc/dotman
 	cp README.md debian/dotman/usr/share/doc/dotman/ || true
-	
+
 	# Install examples if they exist
 	if [ -d examples ]; then \
 		mkdir -p debian/dotman/usr/share/doc/dotman/examples; \
@@ -70,7 +70,7 @@ override_dh_auto_install:
 
 override_dh_auto_clean:
 	dh_auto_clean
-	
+
 	# Clean up cargo build artifacts
 	rm -rf target/
 	rm -rf $(CARGO_HOME)

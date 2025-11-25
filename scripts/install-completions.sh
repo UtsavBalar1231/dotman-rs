@@ -80,13 +80,13 @@ install_bash_completions() {
     else
         source_file="$COMPLETIONS_DIR/dot.bash"
     fi
-    
+
     if [[ ! -f "$source_file" ]]; then
         log_error "Completion file not found: $source_file"
         log_info "Run './scripts/generate-completions.sh' first to generate completions"
         exit 1
     fi
-    
+
     # Determine installation directory
     local install_dir
     if [[ "$OS" == "Darwin" ]]; then
@@ -100,15 +100,15 @@ install_bash_completions() {
         # Linux
         install_dir="$HOME/.local/share/bash-completion/completions"
     fi
-    
+
     # Create directory if it doesn't exist
     mkdir -p "$install_dir"
-    
+
     # Install completion
     cp "$source_file" "$install_dir/dot"
-    
+
     log_success "Installed $COMPLETION_TYPE Bash completions to $install_dir/dot"
-    
+
     # Check if bash-completion is loaded in .bashrc
     if ! grep -q "bash-completion" "$HOME/.bashrc" 2>/dev/null; then
         log_warning "bash-completion might not be loaded in your .bashrc"
@@ -126,7 +126,7 @@ install_bash_completions() {
         echo "      done"
         echo "  fi"
     fi
-    
+
     log_info "Reload your shell or run 'source ~/.bashrc' to activate completions"
 }
 
@@ -137,24 +137,24 @@ install_zsh_completions() {
     else
         source_file="$COMPLETIONS_DIR/_dot"
     fi
-    
+
     if [[ ! -f "$source_file" ]]; then
         log_error "Completion file not found: $source_file"
         log_info "Run './scripts/generate-completions.sh' first to generate completions"
         exit 1
     fi
-    
+
     # Determine installation directory
     local install_dir="$HOME/.local/share/zsh/site-functions"
-    
+
     # Create directory if it doesn't exist
     mkdir -p "$install_dir"
-    
+
     # Install completion
     cp "$source_file" "$install_dir/_dot"
-    
+
     log_success "Installed $COMPLETION_TYPE Zsh completions to $install_dir/_dot"
-    
+
     # Check if fpath includes our directory
     if ! grep -q "fpath.*\.local/share/zsh/site-functions" "$HOME/.zshrc" 2>/dev/null; then
         log_warning "The completion directory might not be in your fpath"
@@ -164,7 +164,7 @@ install_zsh_completions() {
         echo "  fpath=(~/.local/share/zsh/site-functions \$fpath)"
         echo "  autoload -Uz compinit && compinit"
     fi
-    
+
     log_info "Run 'rm ~/.zcompdump && compinit' to rebuild completion cache"
 }
 
@@ -175,22 +175,22 @@ install_fish_completions() {
     else
         source_file="$COMPLETIONS_DIR/dot.fish"
     fi
-    
+
     if [[ ! -f "$source_file" ]]; then
         log_error "Completion file not found: $source_file"
         log_info "Run './scripts/generate-completions.sh' first to generate completions"
         exit 1
     fi
-    
+
     # Fish completions directory
     local install_dir="$HOME/.config/fish/completions"
-    
+
     # Create directory if it doesn't exist
     mkdir -p "$install_dir"
-    
+
     # Install completion
     cp "$source_file" "$install_dir/dot.fish"
-    
+
     log_success "Installed $COMPLETION_TYPE Fish completions to $install_dir/dot.fish"
     log_info "Fish will automatically load the completions on next start"
 }

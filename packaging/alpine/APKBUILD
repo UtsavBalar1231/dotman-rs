@@ -35,15 +35,15 @@ export CARGO_PROFILE_RELEASE_STRIP=true
 
 prepare() {
 	default_prepare
-	
+
 	# Update cargo lock file
 	cargo fetch --target="$CTARGET" --locked
 }
 
 build() {
-	# Set Alpine-specific optimization flags  
+	# Set Alpine-specific optimization flags
 	export RUSTFLAGS="-C target-feature=+crt-static -C target-cpu=generic -C opt-level=3"
-	
+
 	# Build with cargo-auditable for supply chain security
 	if command -v cargo-auditable >/dev/null 2>&1; then
 		cargo auditable build --release --locked --all-features --bin dot
@@ -60,16 +60,16 @@ check() {
 package() {
 	# Install the main binary
 	install -Dm755 target/release/dot "$pkgdir"/usr/bin/dot
-	
+
 	# Install documentation
 	install -Dm644 README.md "$pkgdir"/usr/share/doc/$pkgname/README.md
-	
+
 	# Generate shell completions
 	mkdir -p completions
 	./target/release/dot completion bash > completions/dot.bash
 	./target/release/dot completion zsh > completions/_dot
 	./target/release/dot completion fish > completions/dot.fish
-	
+
 	# Install shell completions
 	install -Dm644 completions/dot.bash \
 		"$pkgdir"/usr/share/bash-completion/completions/dot
@@ -77,7 +77,7 @@ package() {
 		"$pkgdir"/usr/share/zsh/site-functions/_dot
 	install -Dm644 completions/dot.fish \
 		"$pkgdir"/usr/share/fish/vendor_completions.d/dot.fish
-	
+
 	# Generate and install man page
 	help2man --no-info --name="blazingly fast dotfiles manager" \
 		--version-string="$pkgver" ./target/release/dot > dot.1
@@ -86,7 +86,7 @@ package() {
 
 doc() {
 	default_doc
-	
+
 	# Additional documentation
 	pkgdesc="$pkgdesc (documentation)"
 }

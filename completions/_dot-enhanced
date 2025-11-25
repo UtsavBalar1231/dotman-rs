@@ -82,7 +82,7 @@ _dot_get_current_branch() {
 _dot() {
     local context state state_descr line
     typeset -A opt_args
-    
+
     local -a commands
     commands=(
         'add:Add files to be tracked'
@@ -103,11 +103,11 @@ _dot() {
         'completion:Generate shell completion scripts'
         'help:Show help for a command'
     )
-    
+
     _arguments -C \
         '1:command:->command' \
         '*::arg:->args'
-    
+
     case $state in
         command)
             _describe -t commands 'dot command' commands
@@ -120,14 +120,14 @@ _dot() {
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '*:files:_dot_get_untracked_files'
                     ;;
-                
+
                 status)
                     _arguments \
                         '(-s --short)'{-s,--short}'[Show short format]' \
                         '(-u --untracked)'{-u,--untracked}'[Show untracked files]' \
                         '(-h --help)'{-h,--help}'[Show help]'
                     ;;
-                
+
                 commit)
                     _arguments \
                         '(-m --message)'{-m,--message}'[Commit message]:message:' \
@@ -135,13 +135,13 @@ _dot() {
                         '--amend[Amend the last commit]' \
                         '(-h --help)'{-h,--help}'[Show help]'
                     ;;
-                
+
                 checkout)
                     _arguments \
                         '(-f --force)'{-f,--force}'[Force checkout]' \
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '1:target:->checkout_target'
-                    
+
                     case $state in
                         checkout_target)
                             _alternative \
@@ -151,14 +151,14 @@ _dot() {
                             ;;
                     esac
                     ;;
-                
+
                 reset)
                     _arguments \
                         '--hard[Reset working tree and index]' \
                         '--soft[Reset only HEAD]' \
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '1:commit:->reset_target'
-                    
+
                     case $state in
                         reset_target)
                             _alternative \
@@ -168,32 +168,32 @@ _dot() {
                             ;;
                     esac
                     ;;
-                
+
                 push)
                     _arguments \
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '1:remote:_dot_get_remotes' \
                         '2:branch:_dot_get_branches'
                     ;;
-                
+
                 pull)
                     _arguments \
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '1:remote:_dot_get_remotes' \
                         '2:branch:_dot_get_branches'
                     ;;
-                
+
                 init)
                     _arguments \
                         '(-b --bare)'{-b,--bare}'[Create a bare repository]' \
                         '(-h --help)'{-h,--help}'[Show help]'
                     ;;
-                
+
                 show)
                     _arguments \
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '1:object:->show_object'
-                    
+
                     case $state in
                         show_object)
                             _alternative \
@@ -203,14 +203,14 @@ _dot() {
                             ;;
                     esac
                     ;;
-                
+
                 log)
                     _arguments \
                         '(-n --limit)'{-n,--limit}'[Number of commits to show]:number:(5 10 20 50 100)' \
                         '--oneline[Show in oneline format]' \
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '::target:->log_target'
-                    
+
                     case $state in
                         log_target)
                             _alternative \
@@ -220,13 +220,13 @@ _dot() {
                             ;;
                     esac
                     ;;
-                
+
                 diff)
                     _arguments \
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '1:from:->diff_from' \
                         '2:to:->diff_to'
-                    
+
                     case $state in
                         diff_from|diff_to)
                             _alternative \
@@ -236,7 +236,7 @@ _dot() {
                             ;;
                     esac
                     ;;
-                
+
                 rm)
                     _arguments \
                         '(-c --cached)'{-c,--cached}'[Remove from index only]' \
@@ -245,7 +245,7 @@ _dot() {
                         '(-h --help)'{-h,--help}'[Show help]' \
                         '*:files:_files'
                     ;;
-                
+
                 remote)
                     local -a remote_commands
                     remote_commands=(
@@ -256,11 +256,11 @@ _dot() {
                         'show:Show information about a remote'
                         'rename:Rename a remote'
                     )
-                    
+
                     _arguments -C \
                         '1:subcommand:->remote_command' \
                         '*::arg:->remote_args'
-                    
+
                     case $state in
                         remote_command)
                             _describe -t remote-commands 'remote command' remote_commands
@@ -298,7 +298,7 @@ _dot() {
                             ;;
                     esac
                     ;;
-                
+
                 branch)
                     local -a branch_commands
                     branch_commands=(
@@ -309,11 +309,11 @@ _dot() {
                         'set-upstream:Set upstream tracking for a branch'
                         'unset-upstream:Remove upstream tracking for a branch'
                     )
-                    
+
                     _arguments -C \
                         '1:subcommand:->branch_command' \
                         '*::arg:->branch_args'
-                    
+
                     case $state in
                         branch_command)
                             _describe -t branch-commands 'branch command' branch_commands
@@ -325,7 +325,7 @@ _dot() {
                                         '(-f --from)'{-f,--from}'[Starting point]:ref:->create_from' \
                                         '(-h --help)'{-h,--help}'[Show help]' \
                                         '1:name:'
-                                    
+
                                     case $state in
                                         create_from)
                                             _alternative \
@@ -376,7 +376,7 @@ _dot() {
                             ;;
                     esac
                     ;;
-                
+
                 config)
                     _arguments \
                         '--unset[Unset the configuration key]' \
@@ -385,7 +385,7 @@ _dot() {
                         '1:key:_dot_get_config_keys' \
                         '::value:'
                     ;;
-                
+
                 completion)
                     local -a shells
                     shells=(

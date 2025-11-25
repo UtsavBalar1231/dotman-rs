@@ -46,7 +46,7 @@ QA_FLAGS_IGNORED="usr/bin/dot"
 src_configure() {
 	# Set optimization flags
 	export RUSTFLAGS="-C target-cpu=native -C opt-level=3 -C lto=fat -C strip=symbols"
-	
+
 	# Configure cargo
 	cargo_src_configure --offline
 }
@@ -64,33 +64,33 @@ src_test() {
 src_install() {
 	# Install the binary
 	cargo_src_install --bin dot
-	
+
 	# Install documentation
 	dodoc README.md
-	
+
 	# Generate and install shell completions
 	local completions_dir="${T}/completions"
 	mkdir -p "${completions_dir}" || die
-	
+
 	"${S}/target/release/dot" completion bash > "${completions_dir}/dot" || die
-	"${S}/target/release/dot" completion zsh > "${completions_dir}/_dot" || die  
+	"${S}/target/release/dot" completion zsh > "${completions_dir}/_dot" || die
 	"${S}/target/release/dot" completion fish > "${completions_dir}/dot.fish" || die
-	
+
 	# Install completions
 	insinto /usr/share/bash-completion/completions
 	doins "${completions_dir}/dot"
-	
+
 	insinto /usr/share/zsh/site-functions
 	doins "${completions_dir}/_dot"
-	
+
 	insinto /usr/share/fish/vendor_completions.d
 	doins "${completions_dir}/dot.fish"
-	
+
 	# Generate and install man page
 	help2man --no-info --name="blazingly fast dotfiles manager" \
 		--version-string="${PV}" "${S}/target/release/dot" > "${T}/dot.1" || die
 	doman "${T}/dot.1"
-	
+
 	# Install additional documentation if requested
 	if use doc; then
 		cargo_src_install --doc

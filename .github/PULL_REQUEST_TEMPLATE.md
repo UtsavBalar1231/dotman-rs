@@ -32,14 +32,14 @@ Please check the relevant option(s):
 <!-- Describe the changes in detail -->
 
 ### Core Changes
-- 
-- 
-- 
+-
+-
+-
 
 ### Additional Changes
-- 
-- 
-- 
+-
+-
+-
 
 ## Testing
 
@@ -54,7 +54,7 @@ Please check the relevant option(s):
 
 **Manual Testing:**
 - [ ] Tested on Linux
-- [ ] Tested on macOS  
+- [ ] Tested on macOS
 - [ ] Tested on Windows (if applicable)
 
 **Performance Testing:**
@@ -82,8 +82,8 @@ dot command2 --option
 <!-- Describe any performance implications -->
 
 - [ ] No performance impact
-- [ ] Positive performance impact: 
-- [ ] Negative performance impact: 
+- [ ] Positive performance impact:
+- [ ] Negative performance impact:
 - [ ] Performance impact unknown/needs review
 
 ## Security Considerations
@@ -93,7 +93,7 @@ dot command2 --option
 - [ ] No security implications
 - [ ] Security review completed
 - [ ] New dependencies audited
-- [ ] Potential security impact: 
+- [ ] Potential security impact:
 
 ## Breaking Changes
 
@@ -163,7 +163,7 @@ dot command2 --option
 
 Please pay special attention to:
 - [ ] Algorithm correctness in `file:line`
-- [ ] Error handling in `file:line` 
+- [ ] Error handling in `file:line`
 - [ ] Performance implications of `feature`
 - [ ] Security implications of `change`
 - [ ] API design for `feature`

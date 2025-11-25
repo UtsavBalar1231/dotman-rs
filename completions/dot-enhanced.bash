@@ -99,7 +99,7 @@ _dot_enhanced() {
                 COMPREPLY=($(compgen -W "-f --force -h --help" -- "$cur"))
             fi
             ;;
-        
+
         branch)
             case "$subcmd" in
                 delete|rename)
@@ -158,7 +158,7 @@ _dot_enhanced() {
                     ;;
             esac
             ;;
-        
+
         remote)
             case "$subcmd" in
                 remove|show|rename|set-url)
@@ -176,7 +176,7 @@ _dot_enhanced() {
                     ;;
             esac
             ;;
-        
+
         push|pull)
             # Complete with remotes for first arg, branches for second
             local arg_num=1
@@ -186,7 +186,7 @@ _dot_enhanced() {
                     break
                 fi
             done
-            
+
             if [[ $arg_num -eq 1 ]] && [[ "$cur" != -* ]]; then
                 # First argument: remote
                 local remotes=$(_dot_get_remotes)
@@ -199,7 +199,7 @@ _dot_enhanced() {
                 COMPREPLY=($(compgen -W "-h --help" -- "$cur"))
             fi
             ;;
-        
+
         config)
             if [[ $cword -eq 2 ]] || ([[ $cword -eq 3 ]] && [[ "${words[2]}" == --* ]]); then
                 # Complete with config keys
@@ -208,7 +208,7 @@ _dot_enhanced() {
             elif [[ "$cur" == -* ]]; then
                 COMPREPLY=($(compgen -W "--unset --list -h --help" -- "$cur"))
             fi
-            
+
             # Smart completion for partial keys
             if [[ "$cur" == user.* ]]; then
                 COMPREPLY=($(compgen -W "user.name user.email" -- "$cur"))
@@ -220,7 +220,7 @@ _dot_enhanced() {
                 COMPREPLY=($(compgen -W "tracking.follow_symlinks tracking.preserve_permissions" -- "$cur"))
             fi
             ;;
-        
+
         add)
             if [[ "$cur" != -* ]]; then
                 # Complete with untracked files and directories
@@ -235,7 +235,7 @@ _dot_enhanced() {
                 COMPREPLY=($(compgen -W "-f --force -h --help" -- "$cur"))
             fi
             ;;
-        
+
         rm)
             if [[ "$prev" == "--cached" || "$prev" == "-c" ]]; then
                 # Complete with tracked files
@@ -248,7 +248,7 @@ _dot_enhanced() {
                 COMPREPLY=($(compgen -W "-c --cached -f --force -i --interactive -h --help" -- "$cur"))
             fi
             ;;
-        
+
         show|diff|reset)
             if [[ "$cur" != -* ]]; then
                 # Complete with commits and HEAD
@@ -269,7 +269,7 @@ _dot_enhanced() {
                 esac
             fi
             ;;
-        
+
         log)
             if [[ "$prev" == "--limit" || "$prev" == "-n" ]]; then
                 # Suggest common limit values
@@ -283,7 +283,7 @@ _dot_enhanced() {
                 COMPREPLY=($(compgen -W "-n --limit --oneline -h --help" -- "$cur"))
             fi
             ;;
-        
+
         commit)
             if [[ "$prev" == "--message" || "$prev" == "-m" ]]; then
                 # Don't complete message content
@@ -292,19 +292,19 @@ _dot_enhanced() {
                 COMPREPLY=($(compgen -W "-m --message -a --all --amend -h --help" -- "$cur"))
             fi
             ;;
-        
+
         status)
             if [[ "$cur" == -* ]]; then
                 COMPREPLY=($(compgen -W "-s --short -u --untracked -h --help" -- "$cur"))
             fi
             ;;
-        
+
         init)
             if [[ "$cur" == -* ]]; then
                 COMPREPLY=($(compgen -W "-b --bare -h --help" -- "$cur"))
             fi
             ;;
-        
+
         completion)
             if [[ "$cur" != -* ]]; then
                 COMPREPLY=($(compgen -W "bash zsh fish powershell elvish" -- "$cur"))

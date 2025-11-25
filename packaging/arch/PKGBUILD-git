@@ -26,17 +26,17 @@ pkgver() {
 
 prepare() {
     cd dotman
-    
+
     # Update Cargo.lock for reproducible builds
     cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
 }
 
 build() {
     cd dotman
-    
+
     # Build with optimizations for the target architecture
     export RUSTFLAGS="-C target-cpu=native"
-    
+
     cargo build \
         --release \
         --frozen \
@@ -46,7 +46,7 @@ build() {
 
 check() {
     cd dotman
-    
+
     # Run test suite (skip property-based tests for faster builds)
     cargo test \
         --release \
@@ -58,31 +58,31 @@ check() {
 
 package() {
     cd dotman
-    
+
     # Install binary (binary name is 'dot', not 'dotman')
     install -Dm755 target/release/dot "$pkgdir/usr/bin/dot"
-    
+
     # Install documentation
     install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
-    
+
     # Install license
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || \
     install -Dm644 Cargo.toml "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-    
+
     # Generate and install shell completions
     if command -v dot >/dev/null 2>&1; then
         # Bash completion
         mkdir -p "$pkgdir/usr/share/bash-completion/completions"
         target/release/dot completion bash > "$pkgdir/usr/share/bash-completion/completions/dot" 2>/dev/null || true
-        
+
         # Zsh completion
         mkdir -p "$pkgdir/usr/share/zsh/site-functions"
         target/release/dot completion zsh > "$pkgdir/usr/share/zsh/site-functions/_dot" 2>/dev/null || true
-        
+
         # Fish completion
         mkdir -p "$pkgdir/usr/share/fish/vendor_completions.d"
         target/release/dot completion fish > "$pkgdir/usr/share/fish/vendor_completions.d/dot.fish" 2>/dev/null || true
-        
+
         # Generate man page
         mkdir -p "$pkgdir/usr/share/man/man1"
         target/release/dot --help | help2man -N -n "blazingly fast dotfiles manager" \
@@ -90,7 +90,7 @@ package() {
             -o "$pkgdir/usr/share/man/man1/dot.1" \
             target/release/dot 2>/dev/null || true
     fi
-    
+
     # Install examples if they exist
     if [ -d "examples" ]; then
         install -dm755 "$pkgdir/usr/share/doc/$pkgname/examples"

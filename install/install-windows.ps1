@@ -27,7 +27,7 @@ function Write-ColorOutput {
         [string]$Color = "White",
         [string]$Prefix = ""
     )
-    
+
     if ($Prefix) {
         Write-Host "[$Prefix] " -ForegroundColor $Color -NoNewline
         Write-Host $Message
@@ -114,7 +114,7 @@ function Get-Architecture {
     switch ($env:PROCESSOR_ARCHITECTURE) {
         "AMD64" { return "x86_64" }
         "ARM64" { return "aarch64" }
-        default { 
+        default {
             Write-Error "Unsupported architecture: $env:PROCESSOR_ARCHITECTURE"
             exit 1
         }
@@ -125,7 +125,7 @@ function Install-ViaWinget {
     if (-not (Test-Command "winget")) {
         return $false
     }
-    
+
     Write-Info "Installing via winget..."
     try {
         winget install UtsavBalar1231.dotman
@@ -141,7 +141,7 @@ function Install-ViaScoop {
     if (-not (Test-Command "scoop")) {
         return $false
     }
-    
+
     Write-Info "Installing via Scoop..."
     try {
         scoop bucket add utsav https://github.com/UtsavBalar1231/scoop-bucket
@@ -158,7 +158,7 @@ function Install-ViaChocolatey {
     if (-not (Test-Command "choco")) {
         return $false
     }
-    
+
     Write-Info "Installing via Chocolatey..."
     try {
         choco install dotman
@@ -174,29 +174,29 @@ function Install-FromGitHub {
     $version = Get-LatestVersion
     $arch = Get-Architecture
     $platform = "windows-$arch"
-    
+
     Write-Info "Installing dotman v$version for $platform"
-    
+
     $downloadUrl = "$RepoUrl/releases/download/v$version/dotman-rs-$version-$platform.zip"
     $tempDir = [System.IO.Path]::GetTempPath() + [System.Guid]::NewGuid().ToString()
     $zipPath = "$tempDir\dotman.zip"
-    
+
     try {
         # Create temp directory
         New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-        
+
         # Download the release
         Write-Info "Downloading from $downloadUrl"
         Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
-        
+
         # Extract the archive
         Expand-Archive -Path $zipPath -DestinationPath $tempDir
-        
+
         # Create install directory
         if (-not (Test-Path $InstallDir)) {
             New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
         }
-        
+
         # Install binary
         $sourceBinary = Get-ChildItem -Path $tempDir -Filter $BinaryName -Recurse | Select-Object -First 1
         if ($sourceBinary) {
@@ -207,7 +207,7 @@ function Install-FromGitHub {
             Write-Error "Binary not found in downloaded archive"
             return $false
         }
-        
+
         return $true
     }
     catch {
@@ -224,25 +224,25 @@ function Install-FromGitHub {
 
 function Add-ToPath {
     $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-    
+
     if ($currentPath -like "*$InstallDir*") {
         Write-Info "Install directory already in PATH"
         return
     }
-    
+
     $newPath = if ($currentPath) { "$InstallDir;$currentPath" } else { $InstallDir }
     [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
-    
+
     # Update current session PATH
     $env:PATH = "$InstallDir;$env:PATH"
-    
+
     Write-Success "Added $InstallDir to PATH"
     Write-Warning "Please restart your terminal or PowerShell session"
 }
 
 function Test-Installation {
     $binaryPath = Join-Path $InstallDir $BinaryName
-    
+
     if (Test-Path $binaryPath) {
         try {
             $output = & $binaryPath --version 2>$null
@@ -267,7 +267,7 @@ function Test-Installation {
         }
         catch { }
     }
-    
+
     Write-Error "Installation verification failed. Binary not found or not working."
     return $false
 }

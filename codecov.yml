@@ -6,7 +6,7 @@ coverage:
   range: 70..100    # Color range for coverage percentage
   round: down       # Round coverage down
   precision: 2      # Two decimal places for coverage
-  
+
   status:
     # Overall project coverage requirements
     project:
@@ -15,18 +15,18 @@ coverage:
         threshold: 2%       # Allow 2% coverage drop
         base: auto         # Compare against base automatically
         if_ci_failed: error # Fail if CI fails
-        
+
     # Coverage requirements for new/modified code
     patch:
       default:
         target: 80%         # New code should have 80% coverage
         threshold: 0%       # No tolerance for drops in patch coverage
         base: auto
-        
+
 # Files and directories to ignore in coverage reports
 ignore:
   - "tests/**"              # Test files
-  - "benches/**"            # Benchmark files  
+  - "benches/**"            # Benchmark files
   - "examples/**"           # Example code
   - "target/**"             # Build artifacts
   - "**/*.proptest-regressions" # Property test regression files
@@ -35,7 +35,7 @@ ignore:
   - "containers/**"         # Docker configurations
   - "completions/**"        # Shell completions
   - "install/**"            # Installation scripts
-  
+
 # Pull request comment configuration
 comment:
   layout: "reach, diff, flags, files"  # What to show in PR comments

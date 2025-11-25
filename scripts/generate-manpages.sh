@@ -144,7 +144,7 @@ dotman is optimized for extreme performance:
 .IP \[bu] 2
 SIMD-accelerated operations for maximum throughput
 .IP \[bu] 2
-Parallel file processing using all available CPU cores  
+Parallel file processing using all available CPU cores
 .IP \[bu] 2
 Memory-mapped I/O for efficient large file handling
 .IP \[bu] 2
@@ -172,10 +172,10 @@ EOF
 if [[ -f "$MAN_DIR/dot.1" ]]; then
     # Insert additional content before the last few sections
     temp_file=$(mktemp)
-    
+
     # Split the man page at the AUTHOR or COPYRIGHT section
     awk '
-    /^\.SH (AUTHOR|COPYRIGHT|REPORTING BUGS)/ { 
+    /^\.SH (AUTHOR|COPYRIGHT|REPORTING BUGS)/ {
         # Insert additional content before author section
         while ((getline line < "'"$MAN_DIR/dot.1.additional"'") > 0) {
             print line
@@ -184,10 +184,10 @@ if [[ -f "$MAN_DIR/dot.1" ]]; then
     }
     { print }
     ' "$MAN_DIR/dot.1" > "$temp_file"
-    
+
     mv "$temp_file" "$MAN_DIR/dot.1"
     rm -f "$MAN_DIR/dot.1.additional"
-    
+
     log_success "Enhanced main man page with examples and additional content"
 fi
 
@@ -227,7 +227,7 @@ Install user-local:
 
 View the man page:
   man dot
-  
+
   Or directly:
   man man/dot.1
 
@@ -235,7 +235,7 @@ DISTRIBUTION PACKAGING:
 
 The generated man page is ready for inclusion in distribution packages:
 - Debian: Install to /usr/share/man/man1/dot.1.gz (gzipped)
-- RPM: Install to %{_mandir}/man1/dot.1.gz (gzipped)  
+- RPM: Install to %{_mandir}/man1/dot.1.gz (gzipped)
 - Arch: Install to /usr/share/man/man1/dot.1.gz (gzipped)
 - Alpine: Install to /usr/share/man/man1/dot.1 (uncompressed)
 

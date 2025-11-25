@@ -62,7 +62,7 @@ All features of basic completions plus:
 - **Remote Completion**: Tab-complete configured remote names
 - **Commit Hash Completion**: Tab-complete recent commit hashes (last 20)
 - **Config Key Completion**: Tab-complete configuration keys with descriptions
-- **File Status Awareness**: 
+- **File Status Awareness**:
   - Show untracked files for `dot add`
   - Show tracked files for `dot rm --cached`
 - **Context-Aware Filtering**:
@@ -208,12 +208,12 @@ dot config <TAB>         # Should show config keys with descriptions
    ```bash
    # Bash
    source ~/.bashrc
-   
+
    # Zsh
    source ~/.zshrc
    # Or rebuild completion cache
    rm ~/.zcompdump && exec zsh
-   
+
    # Fish
    exec fish
    ```

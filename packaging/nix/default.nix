@@ -55,7 +55,7 @@ rustPlatform.buildRustPackage rec {
       --bash <($out/bin/dot completion bash) \
       --zsh <($out/bin/dot completion zsh) \
       --fish <($out/bin/dot completion fish)
-    
+
     # Generate man page
     help2man --no-info --name="blazingly fast dotfiles manager" \
       --version-string="${version}" \
@@ -70,7 +70,7 @@ rustPlatform.buildRustPackage rec {
       demand speed without sacrificing functionality. Unlike traditional dotfile
       managers that treat performance as an afterthought, dotman is built from
       the ground up with extreme optimization in mind.
-      
+
       Key features:
       - SIMD-accelerated operations for maximum performance
       - Parallel file processing using all available CPU cores
@@ -81,7 +81,7 @@ rustPlatform.buildRustPackage rec {
       - Binary index format for instant loading
       - Git-like interface with familiar commands
       - Cross-platform support with architecture optimizations
-      
+
       This package provides the 'dot' command-line tool.
     '';
     homepage = "https://github.com/UtsavBalar1231/dotman-rs";

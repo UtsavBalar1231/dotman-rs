@@ -76,7 +76,7 @@ OPTIONS:
 
 EXAMPLES:
     $0 all                # Build for all platforms
-    $0 linux              # Build for all Linux targets  
+    $0 linux              # Build for all Linux targets
     $0 macos-aarch64      # Build for Apple Silicon only
     $0 --dist all         # Build all and create distribution archives
     $0 -j 8 linux         # Use 8 parallel jobs for Linux builds
@@ -176,7 +176,7 @@ check_dependencies() {
 		log_error "Please install missing dependencies and try again"
 		exit 1
 	fi
-	
+
 	# Check if target toolchains are installed for cross-compilation
 	check_target_toolchains
 }
@@ -184,7 +184,7 @@ check_dependencies() {
 # Check if required target toolchains are installed
 check_target_toolchains() {
 	local target="$TARGET"
-	
+
 	# Only check for non-native targets
 	if [[ "$target" == "all" ]] || [[ "$target" == "linux" ]] || [[ "$target" == *"aarch64"* ]]; then
 		# Check if aarch64 target is installed
@@ -197,7 +197,7 @@ check_target_toolchains() {
 				exit 1
 			}
 		fi
-		
+
 		# Check for aarch64 linker
 		if ! command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
 			log_warning "Cross-compilation linker 'aarch64-linux-gnu-gcc' not found"
@@ -331,7 +331,7 @@ build_target() {
 create_distribution_archive() {
 	local target="$1"
 	local binary_path="$2"
-	
+
 	# Convert target triple to simplified naming
 	local simplified_name=""
 	case "$target" in
@@ -360,7 +360,7 @@ create_distribution_archive() {
 		simplified_name="$PROJECT_NAME-v$VERSION-$target"
 		;;
 	esac
-	
+
 	local archive_name="$simplified_name"
 
 	log_info "Creating distribution archive for $target..."
@@ -406,7 +406,7 @@ create_distribution_archive() {
 
 	# Cleanup
 	rm -rf "$temp_dir"
-	
+
 	# Return to original directory
 	cd "$orig_dir"
 }

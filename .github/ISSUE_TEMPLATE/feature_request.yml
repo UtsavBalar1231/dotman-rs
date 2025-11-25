@@ -9,7 +9,7 @@ body:
     attributes:
       value: |
         Thanks for suggesting a new feature! 🚀
-        
+
         Please provide as much detail as possible to help us understand your request.
 
   - type: checkboxes
@@ -109,11 +109,11 @@ body:
       placeholder: |
         Command interface:
         $ dot new-command --option value
-        
+
         Configuration:
         [new-feature]
         setting = "value"
-        
+
         Output:
         Feature successfully executed!
       render: shell
@@ -158,7 +158,7 @@ body:
       description: What documentation would be needed for this feature?
       placeholder: |
         - Command reference updates
-        - Configuration examples  
+        - Configuration examples
         - Tutorial or guide sections
         - FAQ entries
 
