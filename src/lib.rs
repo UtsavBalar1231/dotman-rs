@@ -80,6 +80,9 @@ pub mod mirror;
 /// Output formatting and progress display.
 pub mod output;
 
+/// Rebase state management for persistent rebase operations.
+pub mod rebase;
+
 /// Reflog for tracking reference changes.
 pub mod reflog;
 

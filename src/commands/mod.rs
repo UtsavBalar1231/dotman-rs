@@ -30,6 +30,8 @@ pub mod merge;
 pub mod pull;
 /// Push changes to remote repository.
 pub mod push;
+/// Rebase commits onto a new base.
+pub mod rebase;
 /// Reference log operations.
 pub mod reflog;
 /// Remote repository management.

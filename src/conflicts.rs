@@ -275,22 +275,24 @@ impl MergeState {
 /// - The conflict-marked file cannot be written
 pub fn write_conflict_markers(
     conflict: &ConflictInfo,
-    _snapshot_manager: &SnapshotManager,
-    objects_path: &Path,
+    snapshot_manager: &SnapshotManager,
+    _objects_path: &Path,
     target_path: &Path,
     branch_name: &str,
 ) -> Result<()> {
-    // Read content from object storage
+    // Read content from object storage using SnapshotManager
     let local_content = if conflict.local_hash.is_empty() {
         String::from("(file deleted in local)")
     } else {
-        read_object_content(objects_path, &conflict.local_hash)?
+        let bytes = snapshot_manager.read_object(&conflict.local_hash)?;
+        String::from_utf8(bytes).context("Local content is not valid UTF-8")?
     };
 
     let remote_content = if conflict.remote_hash.is_empty() {
         String::from("(file deleted in remote)")
     } else {
-        read_object_content(objects_path, &conflict.remote_hash)?
+        let bytes = snapshot_manager.read_object(&conflict.remote_hash)?;
+        String::from_utf8(bytes).context("Remote content is not valid UTF-8")?
     };
 
     // Generate conflict markers
@@ -310,43 +312,6 @@ pub fn write_conflict_markers(
     })?;
 
     Ok(())
-}
-
-/// Read content from object storage
-///
-/// # Arguments
-///
-/// * `objects_path` - Path to the objects directory
-/// * `hash` - Content hash of the object to read
-///
-/// # Returns
-///
-/// String content of the object
-///
-/// # Errors
-///
-/// Returns an error if the object cannot be read or decoded
-fn read_object_content(objects_path: &Path, hash: &str) -> Result<String> {
-    // Object storage uses the first 2 characters as directory, rest as filename
-    let (dir, file) = if hash.len() >= 2 {
-        (&hash[..2], &hash[2..])
-    } else {
-        return Err(anyhow::anyhow!("Invalid hash: too short"));
-    };
-
-    let object_path = objects_path.join(dir).join(file);
-
-    // Read and decompress object content (objects may be compressed)
-    let content = fs::read(&object_path)
-        .with_context(|| format!("Failed to read object: {}", object_path.display()))?;
-
-    // Try to decode as UTF-8 string
-    String::from_utf8(content).with_context(|| {
-        format!(
-            "Object content is not valid UTF-8: {}",
-            object_path.display()
-        )
-    })
 }
 
 #[cfg(test)]

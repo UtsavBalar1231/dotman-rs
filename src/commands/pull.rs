@@ -629,33 +629,17 @@ fn find_common_ancestor(ctx: &DotmanContext, commit1: &str, commit2: &str) -> Op
 
 /// Performs rebase operation onto a specific commit
 ///
-/// **NOT CURRENTLY IMPLEMENTED** - Returns an error indicating rebase is not yet supported.
-///
-/// A full implementation would:
-/// 1. Find the common ancestor between current HEAD and `onto_commit`
-/// 2. Save local commits since the common ancestor
-/// 3. Reset to the new base commit (`onto_commit`)
-/// 4. Cherry-pick/replay the local commits on top
-/// 5. Handle merge conflicts during replay
+/// This delegates to the rebase module to replay local commits on top of the
+/// new base commit (`onto_commit`).
 ///
 /// # Arguments
 ///
-/// * `_ctx` - The dotman context (unused)
-/// * `onto_commit` - The commit ID to rebase onto (unused)
+/// * `ctx` - The dotman context
+/// * `onto_commit` - The commit ID to rebase onto
 ///
 /// # Errors
 ///
-/// Always returns an error indicating the feature is not implemented
-fn perform_rebase(_ctx: &DotmanContext, onto_commit: &str) -> Result<()> {
-    // Rebase implementation tracked in issue #3
-    // For now, return a clear error to prevent data loss
-
-    Err(anyhow::anyhow!(
-        "Rebase is not yet implemented.\n\n\
-        Suggested alternatives:\n\
-        - Use 'dot pull --no-rebase' for a merge-based pull\n\
-        - Use 'dot pull --ff-only' to only allow fast-forward merges\n\
-        - Manually merge with 'dot fetch' followed by 'dot merge {}'",
-        &onto_commit[..8.min(onto_commit.len())]
-    ))
+/// Returns an error if the rebase operation fails
+fn perform_rebase(ctx: &DotmanContext, onto_commit: &str) -> Result<()> {
+    crate::commands::rebase::execute_start_internal(ctx, onto_commit)
 }

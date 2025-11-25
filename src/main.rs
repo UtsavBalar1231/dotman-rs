@@ -167,6 +167,23 @@ fn run() -> Result<()> {
             let ctx = context.context("Context not initialized for merge command")?;
             commands::merge::execute(&ctx, &branch, no_ff, squash, message.as_deref())?;
         }
+        Commands::Rebase {
+            upstream,
+            branch,
+            r#continue,
+            abort,
+            skip,
+        } => {
+            let ctx = context.context("Context not initialized for rebase command")?;
+            commands::rebase::execute(
+                &ctx,
+                upstream.as_deref(),
+                branch.as_deref(),
+                r#continue,
+                abort,
+                skip,
+            )?;
+        }
         Commands::Push {
             remote,
             branch,

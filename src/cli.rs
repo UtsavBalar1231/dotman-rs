@@ -194,6 +194,28 @@ pub enum Commands {
         message: Option<String>,
     },
 
+    /// Reapply commits on top of another base
+    Rebase {
+        /// Upstream branch or commit to rebase onto
+        upstream: Option<String>,
+
+        /// Branch to rebase (defaults to current branch)
+        #[arg(value_name = "BRANCH")]
+        branch: Option<String>,
+
+        /// Continue rebase after resolving conflicts
+        #[arg(long, conflicts_with_all = ["abort", "skip", "upstream"])]
+        r#continue: bool,
+
+        /// Abort rebase and restore original state
+        #[arg(long, conflicts_with_all = ["continue", "skip", "upstream"])]
+        abort: bool,
+
+        /// Skip current commit and continue
+        #[arg(long, conflicts_with_all = ["continue", "abort", "upstream"])]
+        skip: bool,
+    },
+
     /// Fetch from and integrate with another repository
     Pull {
         /// Remote name (uses tracking if not specified)
