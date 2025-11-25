@@ -93,19 +93,18 @@ pub fn execute_start(ctx: &DotmanContext, upstream: &str, branch: Option<&str>) 
         .resolve(upstream)
         .with_context(|| format!("Failed to resolve upstream: {upstream}"))?;
 
-    // Get current HEAD and branch
-    let original_head = ref_manager
-        .get_head_commit()?
-        .context("No commits in current branch")?;
-    let original_branch = ref_manager.current_branch()?;
-
-    // If branch is specified, resolve it
-    let rebase_from = if let Some(branch_name) = branch {
-        resolver
+    // If branch is specified, use it as the target; otherwise use current HEAD/branch
+    let (original_head, original_branch, rebase_from) = if let Some(branch_name) = branch {
+        let commit = resolver
             .resolve(branch_name)
-            .with_context(|| format!("Failed to resolve branch: {branch_name}"))?
+            .with_context(|| format!("Failed to resolve branch: {branch_name}"))?;
+        (commit.clone(), Some(branch_name.to_string()), commit)
     } else {
-        original_head.clone()
+        let head = ref_manager
+            .get_head_commit()?
+            .context("No commits in current branch")?;
+        let current_branch = ref_manager.current_branch()?;
+        (head.clone(), current_branch, head)
     };
 
     // Check if already up to date
@@ -222,6 +221,32 @@ pub fn execute_continue(ctx: &DotmanContext) -> Result<()> {
             }
         }
     }
+
+    // Create the rebased commit for the current (just-resolved) commit
+    let current_commit_id = state
+        .current_commit()
+        .context("No current commit to continue")?
+        .to_string();
+
+    let snapshot_manager = ctx.create_snapshot_manager();
+    let commit_snapshot = snapshot_manager
+        .load_snapshot(&current_commit_id)
+        .with_context(|| format!("Failed to load commit: {current_commit_id}"))?;
+
+    let index = ctx.load_index()?;
+
+    // Create rebased commit
+    create_rebased_commit_for_branch(
+        ctx,
+        &index,
+        &commit_snapshot.commit,
+        state.original_branch.as_deref(),
+    )?;
+
+    // Clear staging area after commit
+    let index_path = ctx.repo_path.join("index.bin");
+    let clean_index = Index::new();
+    clean_index.save(&index_path)?;
 
     // Move to next commit
     state.advance();
@@ -579,7 +604,12 @@ fn apply_commit_changes(
     }
 
     // Create new commit with the replayed changes
-    create_rebased_commit(ctx, &index, &commit_snapshot.commit)?;
+    create_rebased_commit_for_branch(
+        ctx,
+        &index,
+        &commit_snapshot.commit,
+        state.original_branch.as_deref(),
+    )?;
 
     // Save index
     index.save(&index_path)?;
@@ -587,15 +617,23 @@ fn apply_commit_changes(
     Ok(())
 }
 
-/// Create a new commit for the rebased changes
+/// Create a new commit for the rebased changes, updating a specific branch
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context
+/// * `index` - The index containing staged changes
+/// * `original_commit` - The original commit being replayed (for message)
+/// * `branch_name` - Optional branch name to update (None for detached HEAD)
 ///
 /// # Errors
 ///
 /// Returns an error if snapshot creation fails
-fn create_rebased_commit(
+fn create_rebased_commit_for_branch(
     ctx: &DotmanContext,
     index: &Index,
     original_commit: &Commit,
+    branch_name: Option<&str>,
 ) -> Result<()> {
     let (timestamp, nanos) = get_precise_timestamp();
     let author = get_user_from_config(&ctx.config);
@@ -645,9 +683,14 @@ fn create_rebased_commit(
 
     snapshot_manager.create_snapshot(commit.clone(), &files, None::<fn(usize)>)?;
 
-    // Update HEAD
-    if let Some(branch) = ref_manager.current_branch()? {
-        ref_manager.update_branch(&branch, &commit_id)?;
+    // Update HEAD and branch
+    if let Some(branch) = branch_name {
+        ref_manager.update_branch(branch, &commit_id)?;
+        ref_manager.set_head_to_branch(
+            branch,
+            Some("rebase"),
+            Some(&format!("rebase: {}", &commit.message)),
+        )?;
     } else {
         ref_manager.set_head_to_commit(
             &commit_id,
