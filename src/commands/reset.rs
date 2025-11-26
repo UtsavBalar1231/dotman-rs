@@ -199,7 +199,8 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
     let mut reset_count = 0;
     let mut not_found_count = 0;
 
-    for path_str in paths {
+    let mut progress = output::start_progress("Resetting files", paths.len());
+    for (i, path_str) in paths.iter().enumerate() {
         let path = PathBuf::from(path_str);
 
         let index_path = if path.is_absolute() {
@@ -232,7 +233,9 @@ fn reset_files(ctx: &DotmanContext, commit: &str, paths: &[String]) -> Result<()
                 not_found_count += 1;
             }
         }
+        progress.update(i + 1);
     }
+    progress.finish();
 
     // Save updated index
     if reset_count > 0 {

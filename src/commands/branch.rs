@@ -8,7 +8,6 @@ use colored::Colorize;
 use std::collections::HashSet;
 
 /// List all branches
-/// List all branches
 ///
 /// # Errors
 ///
@@ -56,7 +55,6 @@ pub fn list(ctx: &DotmanContext) -> Result<()> {
     Ok(())
 }
 
-/// Create a new branch
 /// Create a new branch
 ///
 /// # Errors
@@ -149,10 +147,9 @@ fn is_branch_fully_merged(
         visited.insert(commit_id.clone());
         reachable_commits.insert(commit_id.clone());
 
-        // Load the snapshot to get the parent
         match snapshot_manager.load_snapshot(&commit_id) {
             Ok(snapshot) => {
-                current = snapshot.commit.parent;
+                current = snapshot.commit.parents.first().cloned();
             }
             Err(_) => {
                 // If we can't load a snapshot, it means we've reached a broken chain

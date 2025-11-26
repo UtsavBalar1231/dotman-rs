@@ -195,6 +195,13 @@ fn execute_add_all(ctx: &DotmanContext) -> Result<()> {
 /// With `force=true`, non-existent paths are skipped rather than erroring.
 /// With `all=true`, stages all changes (modified, deleted, and new files).
 ///
+/// # Arguments
+///
+/// * `ctx` - The dotman context
+/// * `paths` - List of file/directory paths to stage
+/// * `force` - If `true`, skip non-existent paths instead of erroring
+/// * `all` - If `true`, stage all changes like `git add -A`
+///
 /// # Errors
 ///
 /// Returns an error if:

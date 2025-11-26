@@ -185,8 +185,8 @@ impl<'a> Exporter<'a> {
 
 /// Import files from a directory into dotman storage
 pub struct Importer<'a> {
-    /// Mutable reference to the snapshot manager (unused, kept for future use)
-    _snapshot_manager: &'a mut SnapshotManager,
+    /// Mutable reference to the snapshot manager for object storage
+    snapshot_manager: &'a mut SnapshotManager,
     /// Mutable reference to the file index
     index: &'a mut Index,
     /// Whether to preserve file permissions during import
@@ -194,34 +194,13 @@ pub struct Importer<'a> {
 }
 
 impl<'a> Importer<'a> {
-    /// Create a new importer with default settings
-    ///
-    /// Permissions are preserved by default.
-    ///
-    /// # Arguments
-    ///
-    /// * `snapshot_manager` - Mutable reference to the snapshot manager
-    /// * `index` - Mutable reference to the file index
-    ///
-    /// # Returns
-    ///
-    /// A new `Importer` instance with permission preservation enabled
+    /// Create a new importer with default settings (permissions preserved)
     #[must_use]
     pub const fn new(snapshot_manager: &'a mut SnapshotManager, index: &'a mut Index) -> Self {
         Self::with_permissions(snapshot_manager, index, true)
     }
 
     /// Create a new importer with configurable permission preservation
-    ///
-    /// # Arguments
-    ///
-    /// * `snapshot_manager` - Mutable reference to the snapshot manager
-    /// * `index` - Mutable reference to the file index
-    /// * `preserve_permissions` - Whether to preserve file permissions during import
-    ///
-    /// # Returns
-    ///
-    /// A new `Importer` instance with the specified permission preservation setting
     #[must_use]
     pub const fn with_permissions(
         snapshot_manager: &'a mut SnapshotManager,
@@ -229,10 +208,40 @@ impl<'a> Importer<'a> {
         preserve_permissions: bool,
     ) -> Self {
         Self {
-            _snapshot_manager: snapshot_manager,
+            snapshot_manager,
             index,
             preserve_permissions,
         }
+    }
+
+    /// Create a `FileEntry` from source file metadata
+    fn create_file_entry(
+        source_path: &Path,
+        target_path: PathBuf,
+        hash: String,
+        preserve_permissions: bool,
+    ) -> Result<crate::storage::FileEntry> {
+        let metadata = fs::metadata(source_path)?;
+        let mode = if preserve_permissions {
+            crate::utils::permissions::FilePermissions::from_path(source_path)?.mode()
+        } else {
+            0o644
+        };
+
+        Ok(crate::storage::FileEntry {
+            path: target_path,
+            hash,
+            size: metadata.len(),
+            modified: i64::try_from(
+                metadata
+                    .modified()?
+                    .duration_since(std::time::UNIX_EPOCH)?
+                    .as_secs(),
+            )
+            .unwrap_or(i64::MAX),
+            mode,
+            cached_hash: None,
+        })
     }
 
     /// Import files from a source directory
@@ -327,10 +336,11 @@ impl<'a> Importer<'a> {
 
     /// Compare a directory with current index and import changes
     ///
+    /// Copies files to home directory AND updates staging area.
+    ///
     /// # Errors
     ///
     /// Returns an error if failed to walk directory or compare files
-    #[allow(clippy::too_many_lines)]
     pub fn import_changes(
         &mut self,
         source_dir: &Path,
@@ -340,11 +350,8 @@ impl<'a> Importer<'a> {
         let mut added = Vec::new();
         let mut modified = Vec::new();
         let mut deleted = Vec::new();
-
-        // Track files we've seen in the source
         let mut seen_files = std::collections::HashSet::new();
 
-        // Walk the source directory
         for entry in walkdir::WalkDir::new(source_dir)
             .follow_links(follow_symlinks)
             .into_iter()
@@ -352,127 +359,126 @@ impl<'a> Importer<'a> {
         {
             let path = entry.path();
 
-            // Skip directories and .git
             if entry.file_type().is_dir() || path.components().any(|c| c.as_os_str() == ".git") {
                 continue;
             }
 
             let relative_path = path.strip_prefix(source_dir)?;
             let target_path = home_dir.join(relative_path);
-
             seen_files.insert(target_path.clone());
 
-            if let Some(index_entry) = self.index.get_staged_entry(&target_path) {
-                // File exists in staging, check if modified
-                let content = fs::read(path)?;
-                let (hash, _cache) = crate::storage::file_ops::hash_file(path, None)?;
+            let (hash, _) = crate::storage::file_ops::hash_file(path, None)?;
 
-                if hash != index_entry.hash {
-                    // File modified
+            let is_modified = self
+                .index
+                .get_staged_entry(&target_path)
+                .is_some_and(|e| e.hash != hash);
+            let is_new = self.index.get_staged_entry(&target_path).is_none();
+
+            if is_modified || is_new {
+                if is_modified {
                     modified.push(target_path.clone());
-
-                    if let Some(parent) = target_path.parent() {
-                        fs::create_dir_all(parent)?;
-                    }
-                    fs::write(&target_path, content)?;
-
-                    #[cfg(unix)]
-                    {
-                        let metadata = fs::metadata(path)?;
-                        let permissions = metadata.permissions();
-                        fs::set_permissions(&target_path, permissions)?;
-                    }
-
-                    // Update index entry
-                    let metadata = fs::metadata(&target_path)?;
-                    let file_entry = crate::storage::FileEntry {
-                        path: target_path.clone(),
-                        hash: {
-                            let (hash, _cache) =
-                                crate::storage::file_ops::hash_file(&target_path, None)?;
-                            hash
-                        },
-                        size: metadata.len(),
-                        modified: i64::try_from(
-                            metadata
-                                .modified()?
-                                .duration_since(std::time::UNIX_EPOCH)?
-                                .as_secs(),
-                        )
-                        .unwrap_or(i64::MAX),
-                        mode: {
-                            #[cfg(unix)]
-                            {
-                                use std::os::unix::fs::PermissionsExt;
-                                metadata.permissions().mode()
-                            }
-                            #[cfg(not(unix))]
-                            {
-                                0o644
-                            }
-                        },
-                        cached_hash: None,
-                    };
-                    self.index.stage_entry(file_entry);
+                } else {
+                    added.push(target_path.clone());
                 }
-            } else {
-                // New file
-                added.push(target_path.clone());
 
                 if let Some(parent) = target_path.parent() {
                     fs::create_dir_all(parent)?;
                 }
                 fs::copy(path, &target_path)?;
 
-                #[cfg(unix)]
-                {
-                    let metadata = fs::metadata(path)?;
-                    let permissions = metadata.permissions();
-                    fs::set_permissions(&target_path, permissions)?;
+                if self.preserve_permissions {
+                    let permissions = crate::utils::permissions::FilePermissions::from_path(path)?;
+                    permissions.apply_to_path(&target_path, true)?;
                 }
 
-                let metadata = fs::metadata(&target_path)?;
-                let file_entry = crate::storage::FileEntry {
-                    path: target_path.clone(),
-                    hash: {
-                        let (hash, _cache) =
-                            crate::storage::file_ops::hash_file(&target_path, None)?;
-                        hash
-                    },
-                    size: metadata.len(),
-                    modified: i64::try_from(
-                        metadata
-                            .modified()?
-                            .duration_since(std::time::UNIX_EPOCH)?
-                            .as_secs(),
-                    )
-                    .unwrap_or(i64::MAX),
-                    mode: {
-                        #[cfg(unix)]
-                        {
-                            use std::os::unix::fs::PermissionsExt;
-                            metadata.permissions().mode()
-                        }
-                        #[cfg(not(unix))]
-                        {
-                            0o644
-                        }
-                    },
-                    cached_hash: None,
-                };
+                let (target_hash, _) = crate::storage::file_ops::hash_file(&target_path, None)?;
+                let file_entry = Self::create_file_entry(
+                    &target_path,
+                    target_path.clone(),
+                    target_hash,
+                    self.preserve_permissions,
+                )?;
                 self.index.stage_entry(file_entry);
             }
         }
 
-        // Check for files that were in staging but are now deleted in source
         let staged_paths: Vec<PathBuf> = self.index.staged_entries.keys().cloned().collect();
-        for staged_path in &staged_paths {
-            if !seen_files.contains(staged_path) {
+        for staged_path in staged_paths {
+            if !seen_files.contains(&staged_path) {
                 deleted.push(staged_path.clone());
-                self.index.staged_entries.remove(staged_path);
+                self.index.staged_entries.remove(&staged_path);
+            }
+        }
 
-                // Optionally remove the file from the filesystem
-                // For now, we'll keep it to be safe
+        Ok(ImportChanges {
+            added,
+            modified,
+            deleted,
+        })
+    }
+
+    /// Stage files from a source directory WITHOUT copying to home directory
+    ///
+    /// Designed for pull operations - files are stored in objects/ and indexed,
+    /// but not written to the working directory (that happens during checkout).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if failed to walk directory, hash files, or store objects
+    pub fn stage_from_directory(
+        &mut self,
+        source_dir: &Path,
+        home_dir: &Path,
+        follow_symlinks: bool,
+    ) -> Result<ImportChanges> {
+        let mut added = Vec::new();
+        let mut modified = Vec::new();
+        let mut deleted = Vec::new();
+        let mut seen_files = std::collections::HashSet::new();
+
+        for entry in walkdir::WalkDir::new(source_dir)
+            .follow_links(follow_symlinks)
+            .into_iter()
+            .filter_map(std::result::Result::ok)
+        {
+            let path = entry.path();
+
+            if entry.file_type().is_dir() || path.components().any(|c| c.as_os_str() == ".git") {
+                continue;
+            }
+
+            let relative_path = path.strip_prefix(source_dir)?;
+            let target_path = home_dir.join(relative_path);
+            seen_files.insert(target_path.clone());
+
+            let (hash, _) = crate::storage::file_ops::hash_file(path, None)?;
+
+            let is_modified = self
+                .index
+                .get_staged_entry(&target_path)
+                .is_some_and(|e| e.hash != hash);
+            let is_new = self.index.get_staged_entry(&target_path).is_none();
+
+            if is_modified || is_new {
+                if is_modified {
+                    modified.push(target_path.clone());
+                } else {
+                    added.push(target_path.clone());
+                }
+
+                self.snapshot_manager.store_object_from_path(path, &hash)?;
+                let file_entry =
+                    Self::create_file_entry(path, target_path, hash, self.preserve_permissions)?;
+                self.index.stage_entry(file_entry);
+            }
+        }
+
+        let staged_paths: Vec<PathBuf> = self.index.staged_entries.keys().cloned().collect();
+        for staged_path in staged_paths {
+            if !seen_files.contains(&staged_path) {
+                deleted.push(staged_path.clone());
+                self.index.staged_entries.remove(&staged_path);
             }
         }
 

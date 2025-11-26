@@ -64,11 +64,14 @@ pub fn resolve_partial_commit_id(repo_path: &Path, partial_id: &str) -> Result<S
 }
 
 /// Generates a content-addressed commit ID using xxhash
-/// Creates a deterministic 32-character hex string based on commit content
+/// Creates a deterministic 32-character hex string based on commit content.
+///
+/// Parent order is significant: first parent is the "mainline" branch (what you were on),
+/// second parent is what you merged in. This mirrors Git's semantics for `--first-parent`.
 #[must_use]
 pub fn generate_commit_id(
     tree_hash: &str,
-    parent: Option<&str>,
+    parents: &[&str],
     message: &str,
     author: &str,
     timestamp: i64,
@@ -81,8 +84,8 @@ pub fn generate_commit_id(
     commit_content.push_str(tree_hash);
     commit_content.push('\n');
 
-    // Add parent if it exists
-    if let Some(parent_id) = parent {
+    // Add parents in order (first parent = mainline, second = merged branch)
+    for parent_id in parents {
         commit_content.push_str("parent ");
         commit_content.push_str(parent_id);
         commit_content.push('\n');

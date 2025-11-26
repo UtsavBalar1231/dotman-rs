@@ -21,38 +21,38 @@ use anyhow::Result;
 pub fn execute(ctx: &DotmanContext) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    output::info("Checking repository consistency...");
-
     let mut warnings = Vec::new();
     let mut errors = Vec::new();
 
+    let mut progress = output::start_progress("Checking repository", 4);
+
     // Check 1: Config/Mapping Consistency
-    output::info("Checking config/mapping consistency...");
     match check_config_mapping_consistency(ctx) {
         Ok(w) => warnings.extend(w),
         Err(e) => errors.push(format!("Config/mapping check failed: {e}")),
     }
+    progress.update(1);
 
     // Check 2: Branch Refs Consistency
-    output::info("Checking branch refs...");
     match check_branch_refs(ctx) {
         Ok(w) => warnings.extend(w),
         Err(e) => errors.push(format!("Branch ref check failed: {e}")),
     }
+    progress.update(2);
 
     // Check 3: Remote Refs Consistency
-    output::info("Checking remote refs...");
     match check_remote_refs(ctx) {
         Ok(w) => warnings.extend(w),
         Err(e) => errors.push(format!("Remote ref check failed: {e}")),
     }
+    progress.update(3);
 
     // Check 4: Index Consistency
-    output::info("Checking index...");
     match check_index_consistency(ctx) {
         Ok(w) => warnings.extend(w),
         Err(e) => errors.push(format!("Index check failed: {e}")),
     }
+    progress.finish();
 
     // Report results
     println!();

@@ -1,5 +1,6 @@
+use crate::NULL_COMMIT_ID;
 use crate::reflog::ReflogManager;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::fs;
 use std::path::PathBuf;
 
@@ -149,15 +150,27 @@ impl RefManager {
     /// Returns an error if:
     /// - Failed to get current HEAD commit
     /// - Failed to write branch file
-    pub fn create_branch(&self, name: &str, commit_id: Option<&str>) -> Result<()> {
+    pub fn create_branch(&self, name: &str, start_point: Option<&str>) -> Result<()> {
+        use crate::refs::resolver::RefResolver;
+
         let branch_path = self.repo_path.join(format!("refs/heads/{name}"));
 
-        // If commit_id is provided, use it; otherwise use current HEAD
-        let commit = if let Some(id) = commit_id {
-            id.to_string()
+        // If start_point is provided, resolve it to a commit ID; otherwise use current HEAD
+        let commit = if let Some(ref_spec) = start_point {
+            // If it's already a full commit ID (32 hex chars), use it directly
+            // This handles NULL_COMMIT_ID and direct commit ID references
+            if ref_spec.len() == 32 && ref_spec.chars().all(|c| c.is_ascii_hexdigit()) {
+                ref_spec.to_string()
+            } else {
+                // Resolve the ref_spec (could be branch name, tag, short commit id, etc.)
+                let resolver = RefResolver::new(self.repo_path.clone());
+                resolver
+                    .resolve(ref_spec)
+                    .with_context(|| format!("Failed to resolve start point '{ref_spec}'"))?
+            }
         } else {
             self.get_head_commit()?
-                .unwrap_or_else(|| crate::NULL_COMMIT_ID.to_string())
+                .unwrap_or_else(|| NULL_COMMIT_ID.to_string())
         };
 
         fs::write(&branch_path, commit)?;
@@ -563,6 +576,23 @@ impl RefManager {
 
         if remotes_dir.exists() {
             fs::remove_dir_all(&remotes_dir)?;
+        }
+
+        Ok(())
+    }
+
+    /// Delete a specific remote ref
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if file removal fails
+    pub fn delete_remote_ref(&self, remote: &str, branch: &str) -> Result<()> {
+        let ref_path = self
+            .repo_path
+            .join(format!("refs/remotes/{remote}/{branch}"));
+
+        if ref_path.exists() {
+            fs::remove_file(&ref_path)?;
         }
 
         Ok(())

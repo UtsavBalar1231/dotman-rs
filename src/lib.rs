@@ -62,6 +62,9 @@ pub mod commands;
 /// Configuration parsing, validation, and management.
 pub mod config;
 
+/// DAG (Directed Acyclic Graph) utilities for commit traversal.
+pub mod dag;
+
 /// Diff generation for file comparisons (unified diff, binary detection).
 pub mod diff;
 
@@ -101,6 +104,9 @@ pub mod sync;
 /// Tracking system for managing tracked directories and files.
 pub mod tracking;
 
+/// RAII-based transaction system for atomic repository operations.
+pub mod transaction;
+
 /// Utility functions and helpers.
 pub mod utils;
 
@@ -125,7 +131,23 @@ pub const COMMITS_DIR: &str = "commits";
 /// Directory name for content-addressed object storage.
 pub const OBJECTS_DIR: &str = "objects";
 
-/// Placeholder commit ID representing no commits (32-character xxHash3 format).
+/// Placeholder commit ID representing "no commit" (32 zeros in xxHash3 format).
+///
+/// Used as a sentinel value when:
+/// - A branch has no commits yet (newly created repository)
+/// - A root commit needs a parent placeholder
+/// - Checking if a ref points to a valid commit
+///
+/// # Checking Pattern
+///
+/// Always check for `NULL_COMMIT_ID` when resolving refs or traversing history:
+/// ```ignore
+/// use crate::NULL_COMMIT_ID;
+///
+/// if commit_id == NULL_COMMIT_ID {
+///     // Handle "no commit" case
+/// }
+/// ```
 pub const NULL_COMMIT_ID: &str = "00000000000000000000000000000000";
 
 /// Central context for all Dotman operations.

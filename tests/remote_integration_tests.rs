@@ -15,8 +15,16 @@ use std::process::Stdio;
 use tempfile::TempDir;
 
 /// Setup a test repository with basic structure
+/// Sets HOME env var to `temp_dir` to avoid polluting real home directory
 fn setup_test_repo() -> Result<(TempDir, DotmanContext)> {
     let temp_dir = TempDir::new()?;
+
+    // Set HOME to temp_dir so dirs::home_dir() returns temp path
+    // This prevents tests from polluting the real home directory
+    // IMPORTANT: Tests using this MUST have #[serial] attribute
+    // SAFETY: Tests are run serially (#[serial]) so no concurrent access to env vars
+    unsafe { std::env::set_var("HOME", temp_dir.path()) };
+
     let repo_path = temp_dir.path().join(".dotman");
     let config_path = temp_dir.path().join(".config/dotman/config");
 
@@ -391,8 +399,9 @@ mod conflict_tests {
     #[test]
     #[serial]
     fn test_pull_conflict_detection() -> Result<()> {
-        let (temp_dir, mut ctx1) = setup_test_repo()?;
-        let remote_path = setup_bare_git_remote(&temp_dir)?;
+        let (temp_dir1, mut ctx1) = setup_test_repo()?;
+        let home1 = temp_dir1.path().to_path_buf();
+        let remote_path = setup_bare_git_remote(&temp_dir1)?;
         let remote_url = format!("file://{}", remote_path.display());
 
         // Setup repo1
@@ -405,13 +414,12 @@ mod conflict_tests {
         );
         ctx1.config.save(&ctx1.config_path)?;
 
-        // Create test file in HOME directory for remote sync
-        let home_dir = dirs::home_dir().context("Could not find home directory")?;
-        let test_dir = home_dir.join(".dotman_test_files");
-        fs::create_dir_all(&test_dir)?;
-        let test_file = test_dir.join("conflict.txt");
-        fs::write(&test_file, "original")?;
-        commands::add::execute(&ctx1, &[test_file.to_string_lossy().into()], false, false)?;
+        // Create test file in repo1's HOME directory
+        let test_dir1 = home1.join(".dotman_test_files");
+        fs::create_dir_all(&test_dir1)?;
+        let test_file1 = test_dir1.join("conflict.txt");
+        fs::write(&test_file1, "original")?;
+        commands::add::execute(&ctx1, &[test_file1.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx1, "Initial commit", false)?;
         commands::push::execute(
             &mut ctx1,
@@ -426,12 +434,9 @@ mod conflict_tests {
             },
         )?;
 
-        // Clean up test files so repo2 starts fresh - must succeed to avoid hanging
-        fs::remove_dir_all(&test_dir)
-            .context("Failed to clean up test files before repo2 setup")?;
-
-        // Setup repo2 and pull
+        // Setup repo2 with its own HOME
         let (temp_dir2, mut ctx2) = setup_test_repo()?;
+        let home2 = temp_dir2.path().to_path_buf();
         ctx2.config.set_remote(
             "origin".to_string(),
             RemoteConfig {
@@ -443,9 +448,13 @@ mod conflict_tests {
 
         commands::pull::execute(&ctx2, Some("origin"), Some("main"), false, false, false)?;
 
+        // Switch HOME back to repo1 for conflicting change
+        // SAFETY: Tests are run serially (#[serial]) so no concurrent access to env vars
+        unsafe { std::env::set_var("HOME", &home1) };
+
         // Make conflicting change in repo1
-        fs::write(&test_file, "repo1 version")?;
-        commands::add::execute(&ctx1, &[test_file.to_string_lossy().into()], false, false)?;
+        fs::write(&test_file1, "repo1 version")?;
+        commands::add::execute(&ctx1, &[test_file1.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx1, "Repo1 change", false)?;
         commands::push::execute(
             &mut ctx1,
@@ -460,22 +469,43 @@ mod conflict_tests {
             },
         )?;
 
+        // Switch HOME to repo2 for conflicting change
+        // SAFETY: Tests are run serially (#[serial]) so no concurrent access to env vars
+        unsafe { std::env::set_var("HOME", &home2) };
+
         // Make conflicting change in repo2
-        let test_file2 = temp_dir2.path().join("conflict.txt");
+        let test_dir2 = home2.join(".dotman_test_files");
+        fs::create_dir_all(&test_dir2)?;
+        let test_file2 = test_dir2.join("conflict.txt");
         fs::write(&test_file2, "repo2 version")?;
         commands::add::execute(&ctx2, &[test_file2.to_string_lossy().into()], false, false)?;
         commands::commit::execute(&ctx2, "Repo2 change", false)?;
 
-        // Pull should detect conflict
+        // Pull should detect conflict and either merge or report error
         let result =
             commands::pull::execute(&ctx2, Some("origin"), Some("main"), false, false, false);
 
-        // For now, conflict detection might vary based on implementation
-        // The test verifies the operation completes (either success with merge or error)
-        assert!(
-            result.is_ok() || result.is_err(),
-            "Pull with conflict should complete (success with merge or error)"
-        );
+        // Verify the pull operation completed and we have a valid state
+        // Either: merged successfully, or detected conflict requiring resolution
+        match &result {
+            Ok(()) => {
+                // If merge succeeded, verify we have commits from both repos
+                let resolver = RefResolver::new(ctx2.repo_path.clone());
+                let head = resolver.resolve("HEAD");
+                assert!(head.is_ok(), "HEAD should be valid after successful merge");
+            }
+            Err(e) => {
+                // If conflict detected, error message should indicate conflict or uncommitted changes
+                let err_msg = e.to_string().to_lowercase();
+                assert!(
+                    err_msg.contains("conflict")
+                        || err_msg.contains("merge")
+                        || err_msg.contains("diverge")
+                        || err_msg.contains("uncommitted"),
+                    "Error should indicate merge conflict or uncommitted changes: {e}"
+                );
+            }
+        }
 
         Ok(())
     }

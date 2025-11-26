@@ -7,6 +7,7 @@
 use crate::DotmanContext;
 use crate::commands::context::CommandContext;
 use crate::conflicts::{detect_conflicts, write_conflict_markers};
+use crate::dag;
 use crate::output;
 use crate::rebase::RebaseState;
 use crate::refs::RefManager;
@@ -113,8 +114,10 @@ pub fn execute_start(ctx: &DotmanContext, upstream: &str, branch: Option<&str>) 
         return Ok(());
     }
 
+    let snapshot_manager = ctx.create_snapshot_manager();
+
     // Check if this is a fast-forward (rebase_from is ancestor of onto_commit)
-    if is_ancestor(ctx, &rebase_from, &onto_commit) {
+    if dag::is_ancestor(&snapshot_manager, &rebase_from, &onto_commit) {
         output::info("Fast-forwarding...");
         // Update HEAD to onto_commit
         if let Some(current_branch) = &original_branch {
@@ -136,7 +139,7 @@ pub fn execute_start(ctx: &DotmanContext, upstream: &str, branch: Option<&str>) 
     }
 
     // Find commits to replay
-    let common_ancestor = find_common_ancestor(ctx, &rebase_from, &onto_commit)
+    let common_ancestor = dag::find_common_ancestor(&snapshot_manager, &rebase_from, &onto_commit)
         .context("Could not find common ancestor")?;
 
     let commits_to_replay = collect_commits_between(ctx, &common_ancestor, &rebase_from);
@@ -339,6 +342,8 @@ pub fn execute_skip(ctx: &DotmanContext) -> Result<()> {
 /// - Snapshot creation fails
 fn replay_commits(ctx: &DotmanContext, mut state: RebaseState) -> Result<()> {
     let snapshot_manager = ctx.create_snapshot_manager();
+    let total = state.total_commits();
+    let mut progress = output::start_progress("Replaying commits", total);
 
     while !state.is_complete() {
         let commit_id = state
@@ -346,12 +351,7 @@ fn replay_commits(ctx: &DotmanContext, mut state: RebaseState) -> Result<()> {
             .context("Failed to get current commit")?
             .to_string();
 
-        output::info(&format!(
-            "Applying commit {}/{}: {}",
-            state.current_index + 1,
-            state.total_commits(),
-            format_commit_id(&commit_id).yellow()
-        ));
+        progress.update(state.current_index + 1);
 
         // Cherry-pick the commit
         match cherry_pick_commit(ctx, &snapshot_manager, &state, &commit_id) {
@@ -361,6 +361,7 @@ fn replay_commits(ctx: &DotmanContext, mut state: RebaseState) -> Result<()> {
                 state.save(&ctx.repo_path)?;
             }
             Err(e) => {
+                progress.finish();
                 // Check if this is a conflict
                 if e.to_string().contains("conflicts") {
                     output::warning(
@@ -373,6 +374,8 @@ fn replay_commits(ctx: &DotmanContext, mut state: RebaseState) -> Result<()> {
             }
         }
     }
+
+    progress.finish();
 
     // Rebase complete
     RebaseState::clear(&ctx.repo_path)?;
@@ -409,8 +412,8 @@ fn cherry_pick_commit(
         .load_snapshot(&current_head)
         .with_context(|| format!("Failed to load HEAD: {current_head}"))?;
 
-    // Get parent of commit being replayed (for three-way merge)
-    let parent_snapshot = if let Some(parent_id) = &commit_snapshot.commit.parent {
+    // Get first parent of commit being replayed (for three-way merge)
+    let parent_snapshot = if let Some(parent_id) = commit_snapshot.commit.parents.first() {
         Some(
             snapshot_manager
                 .load_snapshot(parent_id)
@@ -654,9 +657,11 @@ fn create_rebased_commit_for_branch(
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
     // Generate new commit ID
+    let parents: Vec<String> = parent.into_iter().collect();
+    let parent_refs: Vec<&str> = parents.iter().map(String::as_str).collect();
     let commit_id = generate_commit_id(
         &tree_hash,
-        parent.as_deref(),
+        &parent_refs,
         &original_commit.message,
         &author,
         timestamp,
@@ -665,7 +670,7 @@ fn create_rebased_commit_for_branch(
 
     let commit = Commit {
         id: commit_id.clone(),
-        parent,
+        parents,
         message: original_commit.message.clone(),
         author,
         timestamp,
@@ -702,71 +707,6 @@ fn create_rebased_commit_for_branch(
     Ok(())
 }
 
-/// Find the common ancestor of two commits
-///
-/// # Errors
-///
-/// Returns an error if no common ancestor exists
-fn find_common_ancestor(ctx: &DotmanContext, commit1: &str, commit2: &str) -> Result<String> {
-    let snapshot_manager = ctx.create_snapshot_manager();
-
-    // Build ancestor chain for commit1
-    let mut commit1_ancestors = HashSet::new();
-    let mut current = Some(commit1.to_string());
-
-    while let Some(commit_id) = current {
-        commit1_ancestors.insert(commit_id.clone());
-
-        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
-            current = snapshot.commit.parent;
-        } else {
-            break;
-        }
-    }
-
-    // Walk back from commit2 until we find a common ancestor
-    let mut current = Some(commit2.to_string());
-    while let Some(commit_id) = current {
-        if commit1_ancestors.contains(&commit_id) {
-            return Ok(commit_id);
-        }
-
-        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
-            current = snapshot.commit.parent;
-        } else {
-            break;
-        }
-    }
-
-    anyhow::bail!("No common ancestor found between commits")
-}
-
-/// Check if `ancestor` is an ancestor of `descendant`
-fn is_ancestor(ctx: &DotmanContext, ancestor: &str, descendant: &str) -> bool {
-    let snapshot_manager = ctx.create_snapshot_manager();
-
-    let mut current = Some(descendant.to_string());
-    let mut visited = HashSet::new();
-
-    while let Some(commit_id) = current {
-        if commit_id == ancestor {
-            return true;
-        }
-
-        if !visited.insert(commit_id.clone()) {
-            break; // Cycle detected
-        }
-
-        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
-            current = snapshot.commit.parent;
-        } else {
-            break;
-        }
-    }
-
-    false
-}
-
 /// Collect all commits between `from` (exclusive) and `to` (inclusive)
 ///
 /// Returns commits in chronological order (oldest first)
@@ -783,7 +723,7 @@ fn collect_commits_between(ctx: &DotmanContext, from: &str, to: &str) -> Vec<Str
         commits.push(commit_id.clone());
 
         if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
-            current = snapshot.commit.parent;
+            current = snapshot.commit.parents.first().cloned();
         } else {
             break;
         }

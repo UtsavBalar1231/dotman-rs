@@ -1,4 +1,5 @@
 use crate::DotmanContext;
+use crate::dag;
 use crate::mapping::MappingManager;
 use crate::mirror::GitMirror;
 use crate::output;
@@ -12,7 +13,7 @@ use crate::utils::{
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::process::{Command, Stdio};
 
@@ -65,7 +66,9 @@ pub fn execute(
         return Ok(());
     }
 
-    let can_fast_forward = is_ancestor(ctx, &current_commit, &target_commit);
+    let snapshot_manager =
+        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
+    let can_fast_forward = dag::is_ancestor(&snapshot_manager, &current_commit, &target_commit);
 
     if can_fast_forward && !no_ff && !squash {
         // Fast-forward merge
@@ -218,12 +221,12 @@ fn handle_remote_branch_merge(
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
     // Generate commit ID
-    let commit_id = generate_commit_id(&tree_hash, None, &message, &author, timestamp, nanos);
+    let commit_id = generate_commit_id(&tree_hash, &[], &message, &author, timestamp, nanos);
 
     // Create commit object
     let commit = Commit {
         id: commit_id.clone(),
-        parent: None,
+        parents: vec![],
         message,
         author,
         timestamp,
@@ -239,60 +242,6 @@ fn handle_remote_branch_merge(
     mapping_manager.add_and_save(remote, &commit_id, &git_commit)?;
 
     Ok(commit_id)
-}
-
-/// Checks if one commit is an ancestor of another
-///
-/// This function determines if a commit (ancestor) appears in the history of another
-/// commit (descendant) by walking back through the commit chain. It is used to determine
-/// whether a fast-forward merge is possible.
-///
-/// # Arguments
-///
-/// * `ctx` - The dotman context containing repository configuration
-/// * `ancestor` - The potential ancestor commit ID
-/// * `descendant` - The descendant commit ID to check
-///
-/// # Returns
-///
-/// Returns `true` if `ancestor` is found in the parent chain of `descendant`,
-/// `false` otherwise.
-///
-/// # Note
-///
-/// This is a simplified implementation that only follows first-parent chains.
-/// A complete implementation would need to handle multiple parents (merge commits)
-/// and build a full commit graph for accurate ancestry detection.
-fn is_ancestor(ctx: &DotmanContext, ancestor: &str, descendant: &str) -> bool {
-    let snapshot_manager =
-        SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
-
-    // Note: This is a simplified implementation that only follows first-parent chains.
-    // A complete implementation would need to handle multiple parents (merge commits)
-    // and build a full commit graph for accurate ancestry detection.
-
-    // Walk back from descendant to see if we reach ancestor
-    let mut current = Some(descendant.to_string());
-    let mut visited = HashSet::new();
-
-    while let Some(commit_id) = current {
-        if commit_id == ancestor {
-            return true;
-        }
-
-        if !visited.insert(commit_id.clone()) {
-            break; // Cycle detected
-        }
-
-        // Get parent
-        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
-            current = snapshot.commit.parent;
-        } else {
-            break;
-        }
-    }
-
-    false
 }
 
 /// Performs a three-way merge between two commits
@@ -361,15 +310,18 @@ fn perform_three_way_merge(
     all_paths.extend(current_snapshot.files.keys().cloned());
     all_paths.extend(target_snapshot.files.keys().cloned());
 
-    for path in all_paths {
-        let in_current = current_snapshot.files.contains_key(&path);
-        let in_target = target_snapshot.files.contains_key(&path);
+    let all_paths_vec: Vec<_> = all_paths.into_iter().collect();
+    let mut progress = output::start_progress("Merging files", all_paths_vec.len());
+
+    for (i, path) in all_paths_vec.iter().enumerate() {
+        let in_current = current_snapshot.files.contains_key(path);
+        let in_target = target_snapshot.files.contains_key(path);
 
         match (in_current, in_target) {
             (true, true) => {
                 // File exists in both - check if they differ
-                let current_file = &current_snapshot.files[&path];
-                let target_file = &target_snapshot.files[&path];
+                let current_file = &current_snapshot.files[path];
+                let target_file = &target_snapshot.files[path];
 
                 if current_file.hash == target_file.hash {
                     // Same content in both branches
@@ -383,15 +335,17 @@ fn perform_three_way_merge(
             }
             (true, false) => {
                 // File only in current branch
-                merged_files.insert(path.clone(), current_snapshot.files[&path].clone());
+                merged_files.insert(path.clone(), current_snapshot.files[path].clone());
             }
             (false, true) => {
                 // File only in target branch
-                merged_files.insert(path.clone(), target_snapshot.files[&path].clone());
+                merged_files.insert(path.clone(), target_snapshot.files[path].clone());
             }
             (false, false) => unreachable!(),
         }
+        progress.update(i + 1);
     }
+    progress.finish();
 
     if !conflicts.is_empty() {
         output::warning(&format!(
@@ -418,20 +372,21 @@ fn perform_three_way_merge(
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
-    // Generate commit ID (with current commit as parent)
+    // Generate commit ID with BOTH parents (merge commit)
+    let parents = vec![current_commit.to_string(), target_commit.to_string()];
+    let parent_refs: Vec<&str> = parents.iter().map(String::as_str).collect();
     let commit_id = generate_commit_id(
         &tree_hash,
-        Some(current_commit),
+        &parent_refs,
         &merge_message,
         &author,
         timestamp,
         nanos,
     );
 
-    // Create commit object with both parents (simplified - only tracking one parent in current structure)
     let commit = Commit {
         id: commit_id.clone(),
-        parent: Some(current_commit.to_string()),
+        parents,
         message: merge_message,
         author,
         timestamp,
@@ -624,9 +579,11 @@ pub fn execute_merge_continue(ctx: &DotmanContext, message: Option<&str>) -> Res
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
     // Generate commit ID
+    let parents: Vec<String> = vec![current_commit];
+    let parent_refs: Vec<&str> = parents.iter().map(String::as_str).collect();
     let commit_id = generate_commit_id(
         &tree_hash,
-        Some(&current_commit),
+        &parent_refs,
         &commit_message,
         &author,
         timestamp,
@@ -636,7 +593,7 @@ pub fn execute_merge_continue(ctx: &DotmanContext, message: Option<&str>) -> Res
     // Create commit object
     let commit = Commit {
         id: commit_id.clone(),
-        parent: Some(current_commit),
+        parents,
         message: commit_message,
         author,
         timestamp,

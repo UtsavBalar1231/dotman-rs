@@ -332,6 +332,28 @@ impl SnapshotManager {
         Ok(hash.to_string())
     }
 
+    /// Store file content from a source path to the object store
+    ///
+    /// This is the public interface for storing files in the content-addressed
+    /// object store. Unlike the internal `store_file_content`, this takes a
+    /// source path and hash, and can be used during import operations.
+    ///
+    /// # Arguments
+    ///
+    /// * `source_path` - Path to the file to store
+    /// * `hash` - Content hash of the file (must match actual content)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Failed to read the source file
+    /// - Failed to compress the content
+    /// - Failed to write the object file
+    pub fn store_object_from_path(&self, source_path: &Path, hash: &str) -> Result<()> {
+        self.store_file_content(source_path, hash)?;
+        Ok(())
+    }
+
     /// Restore file content from the object store
     ///
     /// # Errors

@@ -1,3 +1,4 @@
+use crate::NULL_COMMIT_ID;
 use crate::refs::RefManager;
 use crate::storage::snapshots::SnapshotManager;
 use anyhow::{Context, Result};
@@ -69,8 +70,8 @@ impl RefResolver {
         }
 
         if let Some(caret_spec) = reference.strip_prefix("HEAD^") {
-            let parent_count = self.parse_caret_notation(caret_spec, reference)?;
-            return self.resolve_head_parent(parent_count);
+            // Parse caret notation - distinguishes between HEAD^n (nth parent) and HEAD^^ (ancestors)
+            return self.resolve_caret_notation(caret_spec, reference);
         }
 
         // Try as remote ref (e.g., "origin/main")
@@ -117,87 +118,124 @@ impl RefResolver {
             .context("No commits yet")
     }
 
-    /// Resolve HEAD~n to nth parent commit
-    fn resolve_head_parent(&self, parent_count: usize) -> Result<String> {
-        if parent_count == 0 {
+    /// Resolve HEAD~n to nth ancestor following first parent chain
+    fn resolve_head_parent(&self, ancestor_count: usize) -> Result<String> {
+        if ancestor_count == 0 {
             return self.resolve_head();
         }
 
         let mut current = self.resolve_head()?;
         let snapshot_manager = SnapshotManager::new(self.repo_path.clone(), 3);
 
-        for i in 0..parent_count {
+        for i in 0..ancestor_count {
             let Ok(snapshot) = snapshot_manager.load_snapshot(&current) else {
                 return Err(anyhow::anyhow!(
-                    "Cannot go back {parent_count} commits from HEAD (only {i} commits in history)"
+                    "Cannot go back {ancestor_count} commits from HEAD (only {i} commits in history)"
                 ));
             };
 
-            if let Some(parent) = snapshot.commit.parent {
-                if parent == crate::NULL_COMMIT_ID {
-                    if i == 0 {
-                        return Err(anyhow::anyhow!(
-                            "Cannot go back {} commit{} from HEAD: current commit is the initial commit",
-                            parent_count,
-                            if parent_count == 1 { "" } else { "s" }
-                        ));
-                    }
-                    return Err(anyhow::anyhow!(
-                        "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
-                        parent_count,
-                        i,
-                        if i == 1 { "" } else { "s" }
-                    ));
+            if let Some(parent) = snapshot.commit.parents.first() {
+                if parent == NULL_COMMIT_ID {
+                    return Err(Self::ancestor_error(ancestor_count, i));
                 }
-                current = parent;
+                current.clone_from(parent);
             } else {
-                // No parent means we've reached the initial commit
-                if i == 0 {
-                    return Err(anyhow::anyhow!(
-                        "Cannot go back {} commit{} from HEAD: current commit is the initial commit",
-                        parent_count,
-                        if parent_count == 1 { "" } else { "s" }
-                    ));
-                }
-                return Err(anyhow::anyhow!(
-                    "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
-                    parent_count,
-                    i,
-                    if i == 1 { "" } else { "s" }
-                ));
+                // No parents means root commit
+                return Err(Self::ancestor_error(ancestor_count, i));
             }
         }
 
         Ok(current)
     }
 
-    /// Parse caret notation (^, ^^, ^^^, ^n) into parent count
-    /// Supports:
-    /// - "" (empty) -> 1 (HEAD^ means first parent)
-    /// - "^" -> 2 (HEAD^^ means second ancestor)
-    /// - "^^" -> 3 (HEAD^^^ means third ancestor)
-    /// - "n" (number) -> n (HEAD^2 means second ancestor)
-    #[allow(clippy::unused_self)]
-    fn parse_caret_notation(&self, caret_spec: &str, full_reference: &str) -> Result<usize> {
+    /// Generate appropriate error for ancestor traversal failure
+    fn ancestor_error(requested: usize, reached: usize) -> anyhow::Error {
+        if reached == 0 {
+            anyhow::anyhow!(
+                "Cannot go back {} commit{} from HEAD: current commit is the initial commit",
+                requested,
+                if requested == 1 { "" } else { "s" }
+            )
+        } else {
+            anyhow::anyhow!(
+                "Cannot go back {} commits from HEAD: only {} commit{} in history before HEAD",
+                requested,
+                reached,
+                if reached == 1 { "" } else { "s" }
+            )
+        }
+    }
+
+    /// Resolve caret notation (HEAD^, HEAD^2, HEAD^^)
+    ///
+    /// Git semantics:
+    /// - HEAD^ or HEAD^1 = first parent
+    /// - HEAD^2 = second parent (for merge commits)
+    /// - HEAD^^ = HEAD^1^1 = first parent of first parent
+    fn resolve_caret_notation(&self, caret_spec: &str, full_reference: &str) -> Result<String> {
+        let snapshot_manager = SnapshotManager::new(self.repo_path.clone(), 3);
+
         if caret_spec.is_empty() {
             // HEAD^ means first parent
-            return Ok(1);
+            return Self::resolve_nth_parent(&snapshot_manager, &self.resolve_head()?, 1);
         }
 
         if caret_spec.chars().all(|c| c == '^') {
-            // Each additional caret adds one to the parent count
-            // HEAD^^ = 2, HEAD^^^ = 3, etc.
-            return Ok(caret_spec.len() + 1);
+            // HEAD^^ = first parent of first parent = HEAD~2
+            // HEAD^^^ = HEAD~3
+            return self.resolve_head_parent(caret_spec.len() + 1);
         }
 
-        if let Ok(num) = caret_spec.parse::<usize>() {
-            return Ok(num);
+        if let Ok(parent_index) = caret_spec.parse::<usize>() {
+            // HEAD^2 = second parent of HEAD
+            return Self::resolve_nth_parent(
+                &snapshot_manager,
+                &self.resolve_head()?,
+                parent_index,
+            );
         }
 
-        // Invalid caret notation
         Err(anyhow::anyhow!(
             "Invalid parent specification: {full_reference}"
         ))
+    }
+
+    /// Resolve the nth parent of a commit (1-indexed, like git)
+    fn resolve_nth_parent(
+        snapshot_manager: &SnapshotManager,
+        commit_id: &str,
+        parent_index: usize,
+    ) -> Result<String> {
+        let snapshot = snapshot_manager
+            .load_snapshot(commit_id)
+            .with_context(|| format!("Failed to load commit: {commit_id}"))?;
+
+        if parent_index == 0 {
+            return Err(anyhow::anyhow!("Parent index must be >= 1"));
+        }
+
+        // Convert 1-indexed to 0-indexed
+        let idx = parent_index - 1;
+
+        snapshot
+            .commit
+            .parents
+            .get(idx)
+            .filter(|p| *p != NULL_COMMIT_ID)
+            .cloned()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Commit {} has no parent #{} (has {} parent{})",
+                    &commit_id[..8.min(commit_id.len())],
+                    parent_index,
+                    snapshot.commit.parents.len(),
+                    if snapshot.commit.parents.len() == 1 {
+                        ""
+                    } else {
+                        "s"
+                    }
+                )
+            })
     }
 
     /// Resolve a branch name to commit ID

@@ -60,18 +60,15 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
-    let commit_id = generate_commit_id(
-        &tree_hash,
-        parent.as_deref(),
-        message,
-        &author,
-        timestamp,
-        nanos,
-    );
+    let parents: Vec<String> = parent.into_iter().collect();
+    let parent_refs: Vec<&str> = parents.iter().map(String::as_str).collect();
+
+    let commit_id =
+        generate_commit_id(&tree_hash, &parent_refs, message, &author, timestamp, nanos);
 
     let commit = Commit {
         id: commit_id.clone(),
-        parent,
+        parents,
         message: message.to_string(),
         author,
         timestamp,
@@ -80,13 +77,13 @@ pub fn execute(ctx: &DotmanContext, message: &str, all: bool) -> Result<()> {
 
     let snapshot_manager = ctx.create_snapshot_manager();
 
-    // Snapshot contains only what's in the staging area
-    let files: Vec<FileEntry> = index
-        .staged_entries
-        .iter()
-        .filter(|(path, _entry)| !index.deleted_entries.contains(*path))
-        .map(|(_path, entry)| entry.clone())
-        .collect();
+    // Build complete file list: parent commit files + staged changes - deletions
+    let files = build_complete_file_list(
+        &snapshot_manager,
+        commit.parents.first().map(String::as_str),
+        &index.staged_entries,
+        &index.deleted_entries,
+    );
 
     let total_files = files.len();
     let progress = std::sync::Arc::new(std::sync::Mutex::new(output::start_progress(
@@ -179,9 +176,16 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     let (timestamp, nanos) = get_precise_timestamp();
     let author = get_user_from_config(&ctx.config);
 
+    let parent_refs: Vec<&str> = last_snapshot
+        .commit
+        .parents
+        .iter()
+        .map(String::as_str)
+        .collect();
+
     let commit_id = generate_commit_id(
         &tree_hash,
-        last_snapshot.commit.parent.as_deref(),
+        &parent_refs,
         commit_message,
         &author,
         timestamp,
@@ -190,7 +194,7 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
 
     let commit = Commit {
         id: commit_id.clone(),
-        parent: last_snapshot.commit.parent.clone(),
+        parents: last_snapshot.commit.parents.clone(),
         message: commit_message.to_string(),
         author,
         timestamp,
@@ -200,7 +204,14 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
     // Delete the old snapshot
     snapshot_manager.delete_snapshot(&last_commit_id)?;
 
-    let files: Vec<FileEntry> = index.staged_entries.values().cloned().collect();
+    // Build file list: start with last commit's files, then apply staged changes
+    let files = build_amend_file_list(
+        &snapshot_manager,
+        commit.parents.first().map(String::as_str),
+        &last_snapshot.files,
+        &index.staged_entries,
+        &index.deleted_entries,
+    );
 
     let total_files = files.len();
     let progress = std::sync::Arc::new(std::sync::Mutex::new(output::start_progress(
@@ -302,4 +313,96 @@ fn get_last_commit_id(ctx: &DotmanContext) -> Result<Option<String>> {
 fn update_head(ctx: &DotmanContext, commit_id: &str) -> Result<()> {
     let updater = ReflogUpdater::new(ctx.repo_path.clone());
     updater.commit_head(commit_id, format_commit_id(commit_id))
+}
+
+/// Build complete file list from parent commit + staged changes - deletions
+///
+/// This ensures each commit contains ALL files at that point in history,
+/// not just the delta from the previous commit.
+fn build_complete_file_list(
+    snapshot_manager: &crate::storage::snapshots::SnapshotManager,
+    parent_id: Option<&str>,
+    staged_entries: &std::collections::HashMap<std::path::PathBuf, FileEntry>,
+    deleted_entries: &std::collections::HashSet<std::path::PathBuf>,
+) -> Vec<FileEntry> {
+    let mut all_files = load_files_from_commit(snapshot_manager, parent_id);
+
+    // Override with staged files (new/modified)
+    for (path, entry) in staged_entries {
+        all_files.insert(path.clone(), entry.clone());
+    }
+
+    // Remove deleted entries
+    for path in deleted_entries {
+        all_files.remove(path);
+    }
+
+    all_files.into_values().collect()
+}
+
+/// Build file list for amend: grandparent files + last commit files + staged - deletions
+fn build_amend_file_list(
+    snapshot_manager: &crate::storage::snapshots::SnapshotManager,
+    grandparent_id: Option<&str>,
+    last_commit_files: &std::collections::HashMap<
+        std::path::PathBuf,
+        crate::storage::snapshots::SnapshotFile,
+    >,
+    staged_entries: &std::collections::HashMap<std::path::PathBuf, FileEntry>,
+    deleted_entries: &std::collections::HashSet<std::path::PathBuf>,
+) -> Vec<FileEntry> {
+    // Start with grandparent files
+    let mut all_files = load_files_from_commit(snapshot_manager, grandparent_id);
+
+    // Overlay with files from the commit being amended
+    for (path, snapshot_file) in last_commit_files {
+        let entry = FileEntry {
+            path: path.clone(),
+            hash: snapshot_file.hash.clone(),
+            size: 0,
+            modified: 0,
+            mode: snapshot_file.mode,
+            cached_hash: None,
+        };
+        all_files.insert(path.clone(), entry);
+    }
+
+    // Override with staged files (new/modified)
+    for (path, entry) in staged_entries {
+        all_files.insert(path.clone(), entry.clone());
+    }
+
+    // Remove deleted entries
+    for path in deleted_entries {
+        all_files.remove(path);
+    }
+
+    all_files.into_values().collect()
+}
+
+/// Load files from a commit snapshot into a `HashMap`
+fn load_files_from_commit(
+    snapshot_manager: &crate::storage::snapshots::SnapshotManager,
+    commit_id: Option<&str>,
+) -> std::collections::HashMap<std::path::PathBuf, FileEntry> {
+    let mut files = std::collections::HashMap::new();
+
+    if let Some(id) = commit_id
+        && !id.chars().all(|c| c == '0')
+        && let Ok(snapshot) = snapshot_manager.load_snapshot(id)
+    {
+        for (path, snapshot_file) in snapshot.files {
+            let entry = FileEntry {
+                path: path.clone(),
+                hash: snapshot_file.hash,
+                size: 0,
+                modified: 0,
+                mode: snapshot_file.mode,
+                cached_hash: None,
+            };
+            files.insert(path, entry);
+        }
+    }
+
+    files
 }

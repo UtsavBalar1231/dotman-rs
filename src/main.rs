@@ -414,6 +414,10 @@ fn run() -> Result<()> {
             };
             commands::import::execute(&ctx, &source, &options)?;
         }
+        Commands::Fsck => {
+            let ctx = context.context("Context not initialized for fsck command")?;
+            commands::fsck::execute(&ctx)?;
+        }
     }
 
     Ok(())

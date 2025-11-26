@@ -219,13 +219,28 @@ pub fn show(ctx: &DotmanContext, name: &str) -> Result<()> {
     println!("{} {}", "Tag:".bold(), name.yellow());
     println!("{} {}", "Commit:".bold(), commit_id.yellow());
 
-    if let Some(parent) = &commit.parent {
-        let parent_display = if parent.len() >= 8 {
-            &parent[..8]
-        } else {
-            parent
-        };
-        println!("{} {}", "Parent:".bold(), parent_display);
+    if !commit.parents.is_empty() {
+        let parent_display: Vec<String> = commit
+            .parents
+            .iter()
+            .map(|p| {
+                if p.len() >= 8 {
+                    p[..8].to_string()
+                } else {
+                    p.clone()
+                }
+            })
+            .collect();
+        println!(
+            "{} {}",
+            if commit.parents.len() > 1 {
+                "Parents:"
+            } else {
+                "Parent:"
+            }
+            .bold(),
+            parent_display.join(", ")
+        );
     }
 
     println!("{} {}", "Author:".bold(), commit.author);

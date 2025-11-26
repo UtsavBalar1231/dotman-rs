@@ -42,12 +42,22 @@ pub fn execute(ctx: &DotmanContext, object: &str) -> Result<()> {
     // Display commit information
     writeln!(writer, "{} {}", "commit".yellow(), commit.id)?;
 
-    if let Some(parent) = &commit.parent {
+    if !commit.parents.is_empty() {
+        let parent_display: Vec<String> = commit
+            .parents
+            .iter()
+            .map(|p| p[..8.min(p.len())].to_string())
+            .collect();
         writeln!(
             writer,
             "{}: {}",
-            "Parent".bold(),
-            &parent[..8.min(parent.len())]
+            if commit.parents.len() > 1 {
+                "Parents"
+            } else {
+                "Parent"
+            }
+            .bold(),
+            parent_display.join(", ")
         )?;
     }
 

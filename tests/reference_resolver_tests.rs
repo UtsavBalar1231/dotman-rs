@@ -291,13 +291,15 @@ mod ref_manager_tests {
         let (_temp, repo_path) = setup_test_repo()?;
         let ref_manager = RefManager::new(repo_path.clone());
 
-        ref_manager.create_branch("feature", Some("commit123"))?;
+        // Use a valid 32-hex-char commit ID (dotman uses xxHash3)
+        let commit_id = "0123456789abcdef0123456789abcdef";
+        ref_manager.create_branch("feature", Some(commit_id))?;
 
         let branch_file = repo_path.join("refs/heads/feature");
         assert!(branch_file.exists());
 
         let content = fs::read_to_string(branch_file)?;
-        assert_eq!(content, "commit123");
+        assert_eq!(content, commit_id);
 
         Ok(())
     }
@@ -307,7 +309,8 @@ mod ref_manager_tests {
         let (_temp, repo_path) = setup_test_repo()?;
         let ref_manager = RefManager::new(repo_path.clone());
 
-        ref_manager.create_branch("temp", Some("commit123"))?;
+        let commit_id = "0123456789abcdef0123456789abcdef";
+        ref_manager.create_branch("temp", Some(commit_id))?;
         assert!(repo_path.join("refs/heads/temp").exists());
 
         ref_manager.delete_branch("temp")?;
@@ -321,8 +324,10 @@ mod ref_manager_tests {
         let (_temp, repo_path) = setup_test_repo()?;
         let ref_manager = RefManager::new(repo_path);
 
-        ref_manager.create_branch("feature1", Some("commit1"))?;
-        ref_manager.create_branch("feature2", Some("commit2"))?;
+        let commit1 = "1111111111111111111111111111111a";
+        let commit2 = "2222222222222222222222222222222b";
+        ref_manager.create_branch("feature1", Some(commit1))?;
+        ref_manager.create_branch("feature2", Some(commit2))?;
 
         let branches = ref_manager.list_branches()?;
         assert!(branches.contains(&"main".to_string()));
@@ -356,9 +361,10 @@ mod ref_manager_tests {
         let (_temp, repo_path) = setup_test_repo()?;
         let ref_manager = RefManager::new(repo_path);
 
-        ref_manager.create_branch("feature", Some("commit123"))?;
+        let commit_id = "fedcba9876543210fedcba9876543210";
+        ref_manager.create_branch("feature", Some(commit_id))?;
         let commit = ref_manager.get_branch_commit("feature")?;
-        assert_eq!(commit, "commit123");
+        assert_eq!(commit, commit_id);
 
         // Non-existent branch
         let result = ref_manager.get_branch_commit("nonexistent");
@@ -382,7 +388,7 @@ mod ref_manager_tests {
         let old_snapshot = Snapshot {
             commit: Commit {
                 id: old_commit.to_string(),
-                parent: None,
+                parents: vec![],
                 message: "test".to_string(),
                 author: "test".to_string(),
                 timestamp: 0,
@@ -395,7 +401,7 @@ mod ref_manager_tests {
         let new_snapshot = Snapshot {
             commit: Commit {
                 id: new_commit.to_string(),
-                parent: Some(old_commit.to_string()),
+                parents: vec![old_commit.to_string()],
                 message: "test".to_string(),
                 author: "test".to_string(),
                 timestamp: 1,
@@ -525,7 +531,8 @@ mod ref_manager_tests {
         assert!(ref_manager.branch_exists("main"));
         assert!(!ref_manager.branch_exists("nonexistent"));
 
-        ref_manager.create_branch("feature", Some("commit123"))?;
+        let commit_id = "abcdef0123456789abcdef0123456789";
+        ref_manager.create_branch("feature", Some(commit_id))?;
         assert!(ref_manager.branch_exists("feature"));
 
         Ok(())

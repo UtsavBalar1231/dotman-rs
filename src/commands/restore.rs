@@ -59,7 +59,8 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
     let mut restored_count = 0;
     let mut not_found = Vec::new();
 
-    for path_str in paths {
+    let mut progress = output::start_progress("Restoring files", paths.len());
+    for (i, path_str) in paths.iter().enumerate() {
         let path = PathBuf::from(path_str);
 
         // Normalize the path - convert absolute to relative from home
@@ -95,7 +96,9 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
         } else {
             not_found.push(path_str.clone());
         }
+        progress.update(i + 1);
     }
+    progress.finish();
 
     // Report results
     if restored_count > 0 {

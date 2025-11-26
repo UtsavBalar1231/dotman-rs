@@ -395,6 +395,19 @@ impl CommitMapping {
             .unwrap_or_default()
     }
 
+    /// Remove a specific commit mapping
+    ///
+    /// This removes the bidirectional mapping between a dotman commit and git commit.
+    /// Used for cleanup during rollback operations (e.g., when a pull fails).
+    pub fn remove_commit(&mut self, remote: &str, dotman_id: &str, git_id: &str) {
+        if let Some(d2g) = self.dotman_to_git.get_mut(remote) {
+            d2g.remove(dotman_id);
+        }
+        if let Some(g2d) = self.git_to_dotman.get_mut(remote) {
+            g2d.remove(git_id);
+        }
+    }
+
     /// Validate mapping consistency against configuration
     ///
     /// Checks that all remotes referenced in the mapping exist in the configuration.
@@ -564,6 +577,18 @@ impl MappingManager {
         remote: Option<(&str, &str)>,
     ) -> Result<()> {
         self.mapping.update_branch(branch, dotman_head, remote);
+        self.save()
+    }
+
+    /// Remove a commit mapping and save
+    ///
+    /// Used for cleanup during rollback operations (e.g., when a pull fails).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the mapping cannot be saved to disk
+    pub fn remove_and_save(&mut self, remote: &str, dotman_id: &str, git_id: &str) -> Result<()> {
+        self.mapping.remove_commit(remote, dotman_id, git_id);
         self.save()
     }
 }

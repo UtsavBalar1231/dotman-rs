@@ -396,6 +396,9 @@ pub enum Commands {
         #[arg(short = 'y', long)]
         yes: bool,
     },
+
+    /// Verify repository integrity and consistency
+    Fsck,
 }
 
 /// Stash subcommands.

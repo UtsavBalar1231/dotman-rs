@@ -12,9 +12,8 @@ use serial_test::serial;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Barrier, Mutex, mpsc};
 use std::thread;
-use std::time::Duration;
 use tempfile::TempDir;
 
 /// Setup a test repository with basic structure
@@ -74,17 +73,21 @@ mod mirror_tests {
         let success_count = Arc::new(Mutex::new(0));
         let error_count = Arc::new(Mutex::new(0));
 
+        // Use barrier for true concurrent start instead of flaky sleep-based timing
+        let barrier = Arc::new(Barrier::new(5));
         let mut handles = vec![];
 
-        for i in 0..5 {
+        for _ in 0..5 {
             let repo_path = repo_path.clone();
             let remote_url = remote_url.clone();
             let config = config.clone();
             let success_count = Arc::clone(&success_count);
             let error_count = Arc::clone(&error_count);
+            let barrier = Arc::clone(&barrier);
 
             let handle = thread::spawn(move || {
-                thread::sleep(Duration::from_millis(i * 10));
+                // All threads wait here until all 5 are ready, then start simultaneously
+                barrier.wait();
 
                 let mirror = GitMirror::new(&repo_path, "origin", &remote_url, config);
                 if matches!(mirror.init_mirror(), Ok(())) {
@@ -507,12 +510,19 @@ mod mapping_tests {
         let mut manager1 = MappingManager::new(&ctx.repo_path)?;
         manager1.add_and_save("origin", "commit1", "git1")?;
 
-        // Try to create second manager (should wait for lock)
+        // Use channel for proper synchronization instead of flaky sleep
+        let (tx, rx) = mpsc::channel();
         let repo_path = ctx.repo_path;
+
         let handle = thread::spawn(move || {
-            thread::sleep(Duration::from_millis(100));
+            // Signal that we're about to try acquiring the lock
+            tx.send(()).expect("Failed to signal");
+            // Now try to acquire - this will block until lock is released
             MappingManager::new(&repo_path)
         });
+
+        // Wait for thread to signal it's ready
+        rx.recv().expect("Failed to receive signal");
 
         // Release first lock by dropping
         drop(manager1);
@@ -523,7 +533,8 @@ mod mapping_tests {
             manager2
                 .mapping()
                 .get_git_commit("origin", "commit1")
-                .is_some()
+                .is_some(),
+            "Manager2 should see data saved by manager1"
         );
 
         Ok(())

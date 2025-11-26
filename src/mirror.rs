@@ -77,6 +77,19 @@ use std::time::{Duration, Instant};
 /// Git error categorization and handling
 pub mod errors;
 
+/// Information extracted from a git commit
+#[derive(Debug, Clone)]
+pub struct GitCommitInfo {
+    /// The commit message
+    pub message: String,
+    /// Author name
+    pub author_name: String,
+    /// Author email
+    pub author_email: String,
+    /// Unix timestamp of the commit
+    pub timestamp: i64,
+}
+
 /// Manages git mirror repositories for remote synchronization
 pub struct GitMirror {
     /// Path to the mirror repository (.dotman/mirrors/{remote-name})
@@ -605,18 +618,29 @@ impl GitMirror {
     /// - Failed to remove tracked files after retries
     /// - Failed to read or delete directory entries after retries
     pub fn clear_working_directory(&self) -> Result<()> {
-        // Clear git index with retry
-        let output = Command::new("git")
-            .args(["rm", "-rf", "--cached", "."])
+        // Check if there are any files in the git index before trying to remove
+        let ls_output = Command::new("git")
+            .args(["ls-files"])
             .current_dir(&self.mirror_path)
             .stdin(Stdio::null())
             .output()
-            .context("Failed to execute git rm command")?;
+            .context("Failed to list files in index")?;
 
-        // Check if git rm succeeded
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            eprintln!("Warning: git rm failed (continuing with manual cleanup): {stderr}");
+        let has_tracked_files = ls_output.status.success() && !ls_output.stdout.is_empty();
+
+        // Only run git rm if there are files to remove
+        if has_tracked_files {
+            let output = Command::new("git")
+                .args(["rm", "-rf", "--cached", "."])
+                .current_dir(&self.mirror_path)
+                .stdin(Stdio::null())
+                .output()
+                .context("Failed to execute git rm command")?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                eprintln!("Warning: git rm failed (continuing with manual cleanup): {stderr}");
+            }
         }
 
         // Physically remove files (except .git) with retry logic
@@ -831,7 +855,7 @@ impl GitMirror {
     ///
     /// # Errors
     ///
-    /// Returns an error if the git fetch command fails
+    /// Returns an error if the git fetch command fails (except for missing remote refs)
     pub fn fetch(&self, branch: Option<&str>) -> Result<()> {
         let mut args = vec!["fetch", "origin"];
 
@@ -848,10 +872,70 @@ impl GitMirror {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            // "couldn't find remote ref" is expected for first push to empty repos
+            if stderr.contains("couldn't find remote ref") {
+                return Ok(());
+            }
             return Err(anyhow::anyhow!("Git fetch failed: {stderr}"));
         }
 
         Ok(())
+    }
+
+    /// Get the commit ID of a remote tracking branch (e.g., origin/main)
+    ///
+    /// # Arguments
+    ///
+    /// * `branch` - The branch name (without origin/ prefix)
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Some(commit_id))` if the remote branch exists, `Ok(None)` if it doesn't exist
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the git command fails unexpectedly
+    pub fn get_remote_branch_commit(&self, branch: &str) -> Result<Option<String>> {
+        let output = Command::new("git")
+            .args(["rev-parse", &format!("origin/{branch}")])
+            .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
+            .output()
+            .context("Failed to get remote branch commit")?;
+
+        if output.status.success() {
+            let commit_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            Ok(Some(commit_id))
+        } else {
+            // Remote branch doesn't exist yet - this is normal for first push
+            Ok(None)
+        }
+    }
+
+    /// Check if one commit is an ancestor of another
+    ///
+    /// # Arguments
+    ///
+    /// * `ancestor` - The potential ancestor commit
+    /// * `descendant` - The potential descendant commit
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if `ancestor` is an ancestor of `descendant`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the git command fails unexpectedly
+    pub fn is_ancestor(&self, ancestor: &str, descendant: &str) -> Result<bool> {
+        let output = Command::new("git")
+            .args(["merge-base", "--is-ancestor", ancestor, descendant])
+            .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
+            .output()
+            .context("Failed to check ancestry")?;
+
+        // Exit code 0 = is ancestor, exit code 1 = not ancestor
+        Ok(output.status.success())
     }
 
     /// Merge a branch into the current branch
@@ -989,6 +1073,141 @@ impl GitMirror {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     }
 
+    /// Get detailed information about a git commit
+    ///
+    /// # Arguments
+    ///
+    /// * `commit_id` - The git commit ID to query
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git show fails or output cannot be parsed
+    pub fn get_commit_info(&self, commit_id: &str) -> Result<GitCommitInfo> {
+        // Format: message (with newlines), then separator, then author name, email, timestamp
+        let output = Command::new("git")
+            .args([
+                "show",
+                "--format=%B%n--DOTMAN_SEP--%n%an%n%ae%n%at",
+                "--no-patch",
+                commit_id,
+            ])
+            .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
+            .output()
+            .context("Failed to get commit info")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow::anyhow!("Git show failed: {stderr}"));
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let parts: Vec<&str> = stdout.split("--DOTMAN_SEP--\n").collect();
+
+        if parts.len() != 2 {
+            return Err(anyhow::anyhow!(
+                "Unexpected git show output format for commit {commit_id}"
+            ));
+        }
+
+        // First part is message (may have trailing newline)
+        let message = parts[0].trim_end().to_string();
+
+        // Second part is author_name\nauthor_email\ntimestamp
+        let meta_lines: Vec<&str> = parts[1].trim().lines().collect();
+        if meta_lines.len() < 3 {
+            return Err(anyhow::anyhow!(
+                "Unexpected metadata format for commit {commit_id}"
+            ));
+        }
+
+        let author_name = meta_lines[0].to_string();
+        let author_email = meta_lines[1].to_string();
+        let timestamp = meta_lines[2]
+            .parse()
+            .with_context(|| format!("Invalid timestamp for commit {commit_id}"))?;
+
+        Ok(GitCommitInfo {
+            message,
+            author_name,
+            author_email,
+            timestamp,
+        })
+    }
+
+    /// Get parent commit IDs for a git commit
+    ///
+    /// Returns the list of parent commit IDs (SHA-1 hashes) for the specified commit.
+    /// For normal commits, this returns a single parent.
+    /// For merge commits, this returns multiple parents.
+    /// For root commits, this returns an empty vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `commit_id` - The git commit ID to query
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git log fails
+    pub fn get_commit_parents(&self, commit_id: &str) -> Result<Vec<String>> {
+        let output = Command::new("git")
+            .args(["log", "-1", "--format=%P", commit_id])
+            .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
+            .output()
+            .context("Failed to get commit parents")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow::anyhow!("Git log failed: {stderr}"));
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        Ok(stdout
+            .split_whitespace()
+            .filter(|s| !s.is_empty())
+            .map(String::from)
+            .collect())
+    }
+
+    /// List commits between a base and head, in chronological order (oldest first)
+    ///
+    /// # Arguments
+    ///
+    /// * `base` - The base commit (exclusive). If None, lists all ancestors of head.
+    /// * `head` - The head commit (inclusive)
+    ///
+    /// # Returns
+    ///
+    /// A list of commit IDs from oldest to newest
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git rev-list fails
+    pub fn list_commits_between(&self, base: Option<&str>, head: &str) -> Result<Vec<String>> {
+        let range = base.map_or_else(|| head.to_string(), |b| format!("{b}..{head}"));
+
+        let output = Command::new("git")
+            .args(["rev-list", "--reverse", &range])
+            .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
+            .output()
+            .context("Failed to list commits")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow::anyhow!("Git rev-list failed: {stderr}"));
+        }
+
+        let commits = String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .filter(|s| !s.is_empty())
+            .map(String::from)
+            .collect();
+
+        Ok(commits)
+    }
+
     /// Get the path to the mirror repository
     #[must_use]
     pub fn get_mirror_path(&self) -> &Path {
@@ -1052,6 +1271,59 @@ impl GitMirror {
             } else {
                 return Err(anyhow::anyhow!("Git checkout failed: {stderr}"));
             }
+        }
+
+        Ok(())
+    }
+
+    /// Checkout a specific commit in the mirror (detached HEAD)
+    ///
+    /// # Arguments
+    ///
+    /// * `commit` - The git commit ID to checkout
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git checkout fails
+    pub fn checkout_commit(&self, commit: &str) -> Result<()> {
+        let output = Command::new("git")
+            .args(["checkout", "--quiet", commit])
+            .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
+            .output()
+            .context("Failed to checkout commit")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow::anyhow!("Git checkout failed: {stderr}"));
+        }
+
+        Ok(())
+    }
+
+    /// Create a git tag in the mirror pointing to a specific commit
+    ///
+    /// Uses `-f` flag to overwrite existing tags if necessary.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The tag name
+    /// * `commit` - The git commit ID to tag
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if git tag command fails
+    pub fn create_tag(&self, name: &str, commit: &str) -> Result<()> {
+        let output = Command::new("git")
+            .args(["tag", "-f", name, commit])
+            .current_dir(&self.mirror_path)
+            .stdin(Stdio::null())
+            .output()
+            .context("Failed to create tag")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow::anyhow!("Git tag failed: {stderr}"));
         }
 
         Ok(())

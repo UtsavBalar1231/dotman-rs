@@ -48,8 +48,8 @@ pub struct FileEntry {
 pub struct Commit {
     /// Unique commit identifier
     pub id: String,
-    /// Parent commit ID if any
-    pub parent: Option<String>,
+    /// Parent commit IDs (empty for root, 1 for normal commits, 2+ for merges)
+    pub parents: Vec<String>,
     /// Commit message
     pub message: String,
     /// Author name and email

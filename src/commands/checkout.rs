@@ -36,6 +36,7 @@
 //! ```
 
 use crate::DotmanContext;
+use crate::NULL_COMMIT_ID;
 use crate::output;
 use crate::refs::RefManager;
 use crate::refs::resolver::RefResolver;
@@ -45,6 +46,12 @@ use colored::Colorize;
 use std::io::IsTerminal;
 
 /// Switch to a different commit or branch
+///
+/// # Arguments
+///
+/// * `ctx` - The dotman context
+/// * `target` - Branch name, commit ID, or reference (e.g., `HEAD~1`)
+/// * `force` - If `true`, proceed even with uncommitted changes
 ///
 /// # Errors
 ///
@@ -67,7 +74,7 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
 
     let commit_id = resolve_target_ref(target, &ctx.repo_path)?;
 
-    if commit_id == crate::NULL_COMMIT_ID {
+    if commit_id == NULL_COMMIT_ID {
         return handle_null_commit(target, &ctx.repo_path);
     }
 
@@ -151,7 +158,7 @@ fn get_current_tracked_files(
     let ref_manager = RefManager::new(repo_path.to_path_buf());
 
     if let Some(head_commit) = ref_manager.get_head_commit()? {
-        if head_commit == crate::NULL_COMMIT_ID {
+        if head_commit == NULL_COMMIT_ID {
             return Ok(Vec::new());
         }
 
@@ -285,6 +292,8 @@ fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     use crate::INDEX_FILE;
     use crate::storage::index::Index;
 
+    const PROGRESS_THRESHOLD: usize = 10;
+
     let index_path = ctx.repo_path.join(INDEX_FILE);
     let index = Index::load(&index_path)?;
 
@@ -296,7 +305,7 @@ fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     // Check for unstaged modifications by comparing with HEAD snapshot
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let head_commit = match ref_manager.get_head_commit()? {
-        Some(commit) if commit != crate::NULL_COMMIT_ID => commit,
+        Some(commit) if commit != NULL_COMMIT_ID => commit,
         _ => return Ok(true), // No commits yet, so working directory is clean
     };
 
@@ -314,27 +323,38 @@ fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
     // Get home directory
     let home = dirs::home_dir().context("Could not find home directory")?;
 
-    // Check if any files in the snapshot have been modified or deleted
-    for (path, file) in &snapshot.files {
+    // Show progress for larger file sets (hashing is I/O-bound)
+    let file_count = snapshot.files.len();
+    let mut progress = (file_count > PROGRESS_THRESHOLD)
+        .then(|| output::start_progress("Checking working directory", file_count));
+
+    // Check all files, tracking whether directory is clean
+    let mut is_clean = true;
+    for (i, (path, file)) in snapshot.files.iter().enumerate() {
         let abs_path = home.join(path);
 
-        // Check if file exists
         if !abs_path.exists() {
-            return Ok(false); // File was deleted
+            is_clean = false;
+            break;
         }
 
-        // Check if file has been modified by comparing hash
-        // Use the cached hash if available to avoid re-hashing
-        let (current_hash, _) = crate::storage::file_ops::hash_file(&abs_path, None)?;
+        let (current_hash, _) = crate::storage::file_ops::hash_file(&abs_path, None)
+            .with_context(|| format!("Failed to hash file: {}", abs_path.display()))?;
         if current_hash != file.hash {
-            return Ok(false); // File was modified
+            is_clean = false;
+            break;
+        }
+
+        if let Some(ref mut p) = progress {
+            p.update(i + 1);
         }
     }
 
-    // Check for new untracked files that might conflict
-    // (This is a basic check - a more thorough check would scan for all untracked files)
-    // For now, if we've made it this far, consider it clean
-    Ok(true)
+    if let Some(p) = progress {
+        p.finish();
+    }
+
+    Ok(is_clean)
 }
 
 /// Detects untracked files that would be overwritten by checkout

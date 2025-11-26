@@ -1,4 +1,5 @@
 use crate::DotmanContext;
+use crate::dag;
 use crate::mapping::{CommitMapping, MappingManager};
 use crate::mirror::GitMirror;
 use crate::output;
@@ -46,89 +47,25 @@ struct PushOptions<'a> {
     tags: bool,
 }
 
-/// Tracks state for push transaction to enable rollback on failure
+/// Reset git mirror to previous HEAD state
 ///
-/// This struct captures the state of the git mirror and mappings before
-/// a push operation begins. If the push fails at any point, this transaction
-/// can be used to rollback the mirror and mappings to their previous state.
-struct PushTransaction {
-    /// Git HEAD commit in mirror before push (None if mirror was empty)
-    mirror_head_before: Option<String>,
-    /// Clone of commit mappings before any modifications
-    mappings_before: CommitMapping,
-    /// List of dotman commits that were pushed (for logging)
-    pushed_commits: Vec<String>,
-}
-
-/// Rollback a failed push operation
-///
-/// Restores the git mirror and mappings to their state before the push.
-/// This ensures consistency if the push operation fails after git commits
-/// are made but before mappings are saved or remote push succeeds.
-///
-/// # Arguments
-///
-/// * `mirror` - The git mirror to reset
-/// * `transaction` - The transaction containing pre-push state
-/// * `mapping_path` - Path to the mapping file to restore
-///
-/// # Errors
-///
-/// Returns an error if:
-/// - Git reset command fails
-/// - Mapping file cannot be restored
-fn rollback_push(
-    mirror: &GitMirror,
-    transaction: &PushTransaction,
-    mapping_path: &Path,
-) -> Result<()> {
-    output::warning("Push failed - rolling back changes...");
-
-    // Reset git mirror to previous HEAD (hard reset to discard commits)
-    // Only reset if there was a previous HEAD (mirror wasn't empty)
-    if let Some(previous_head) = &transaction.mirror_head_before {
-        let reset_output = Command::new("git")
-            .args(["reset", "--hard", previous_head])
+/// Used for cleanup when push fails after git commits were created.
+fn reset_mirror_head(mirror: &GitMirror, previous_head: Option<&str>) -> Result<()> {
+    if let Some(head) = previous_head {
+        let output = Command::new("git")
+            .args(["reset", "--hard", head])
             .current_dir(mirror.get_mirror_path())
             .stdin(Stdio::null())
             .output()
-            .context("Failed to execute git reset for rollback")?;
+            .context("Failed to execute git reset")?;
 
-        if !reset_output.status.success() {
-            let stderr = String::from_utf8_lossy(&reset_output.stderr);
-            return Err(anyhow::anyhow!("Failed to rollback git mirror: {stderr}"));
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow::anyhow!("Git reset failed: {stderr}"));
         }
     } else {
-        // Mirror was empty before push, clean it up completely
         mirror.clear_working_directory()?;
     }
-
-    // Restore mappings from transaction (they weren't saved yet, but restore from backup if exists)
-    // The backup was created when loading, so we can restore from it
-    let backup_path = mapping_path.with_extension("bak");
-    if backup_path.exists() {
-        std::fs::copy(&backup_path, mapping_path)
-            .context("Failed to restore mapping file from backup during rollback")?;
-        output::info("Mapping file restored from backup");
-    } else {
-        // No backup exists, save the original mappings we cloned
-        transaction
-            .mappings_before
-            .save(mapping_path)
-            .context("Failed to restore original mappings during rollback")?;
-        output::info("Mapping file restored from transaction");
-    }
-
-    output::success(&format!(
-        "Rollback complete - removed {} uncommitted git commit{}",
-        transaction.pushed_commits.len(),
-        if transaction.pushed_commits.len() == 1 {
-            ""
-        } else {
-            "s"
-        }
-    ));
-
     Ok(())
 }
 
@@ -264,7 +201,7 @@ fn build_commit_chain(snapshot_manager: &SnapshotManager, target_commit: &str) -
     let mut commits = Vec::new();
     let mut current_commit = Some(target_commit.to_string());
 
-    // Follow parent links to collect all commits
+    // Follow parent links to collect all commits (newest to oldest)
     while let Some(ref commit_id) = current_commit {
         // Skip the special "all zeros" parent that represents no parent
         if commit_id.chars().all(|c| c == '0') {
@@ -275,7 +212,7 @@ fn build_commit_chain(snapshot_manager: &SnapshotManager, target_commit: &str) -
 
         match snapshot_manager.load_snapshot(commit_id) {
             Ok(snapshot) => {
-                current_commit.clone_from(&snapshot.commit.parent);
+                current_commit = snapshot.commit.parents.first().cloned();
             }
             Err(_) => {
                 // Stop if we can't load a commit
@@ -284,23 +221,10 @@ fn build_commit_chain(snapshot_manager: &SnapshotManager, target_commit: &str) -
         }
     }
 
-    let mut commits_with_timestamps = Vec::new();
-    for commit_id in commits {
-        if let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) {
-            commits_with_timestamps.push((commit_id, snapshot.commit.timestamp));
-        }
-    }
-
-    // Sort by timestamp (oldest first)
-    commits_with_timestamps.sort_by_key(|(_, timestamp)| *timestamp);
-
-    // Extract just the commit IDs in chronological order
-    let chain: Vec<String> = commits_with_timestamps
-        .into_iter()
-        .map(|(commit_id, _)| commit_id)
-        .collect();
-
-    chain
+    // Reverse to get oldest-first order (root → target)
+    // This is more reliable than timestamp sorting when commits have the same timestamp
+    commits.reverse();
+    commits
 }
 
 /// Get commits that haven't been pushed yet
@@ -448,6 +372,10 @@ fn push_to_git(
 
     mirror.checkout_branch(opts.branch)?;
 
+    // Fetch latest remote state for divergence detection
+    output::info("Fetching remote state...");
+    mirror.fetch(Some(opts.branch))?;
+
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     let current_commit = ref_manager
         .get_head_commit()?
@@ -456,6 +384,42 @@ fn push_to_git(
     let snapshot_manager =
         SnapshotManager::new(ctx.repo_path.clone(), ctx.config.core.compression_level);
     let mut mapping_manager = MappingManager::new(&ctx.repo_path)?;
+
+    // Check for divergent history before proceeding
+    // If remote has commits we don't know about, or they're not in our ancestry, reject unless force push
+    let remote_git_commit = mirror.get_remote_branch_commit(opts.branch)?;
+    if let Some(ref remote_commit) = remote_git_commit {
+        // Check if the remote commit is in our mappings
+        let remote_dotman_commit = mapping_manager
+            .mapping()
+            .get_dotman_commit(opts.remote, remote_commit);
+
+        // Check if remote commit is an ancestor of our current commit (fast-forward safe)
+        let is_fast_forward = remote_dotman_commit.as_ref().is_some_and(|dotman_id| {
+            dag::is_ancestor(&snapshot_manager, dotman_id, &current_commit)
+        });
+
+        if !is_fast_forward && !opts.force && !opts.force_with_lease {
+            let hint = if remote_dotman_commit.is_some() {
+                "Hint: Your local branch has diverged from the remote (rebased or reset)."
+            } else {
+                "Hint: The remote branch has commits not in your history."
+            };
+            return Err(anyhow::anyhow!(
+                "Updates were rejected because the tip of your current branch is behind its remote counterpart.\n\
+                 {hint}\n\
+                 Hint: Use 'dot pull' to integrate remote changes, or\n\
+                 Hint: Use 'dot push --force' to overwrite remote (may lose data).",
+            ));
+        }
+
+        if !is_fast_forward && opts.force {
+            output::warning(&format!(
+                "Remote '{}' has commits not in your ancestry - force push will overwrite them!",
+                opts.branch
+            ));
+        }
+    }
 
     let commits_to_push = get_unpushed_commits(
         &snapshot_manager,
@@ -479,37 +443,10 @@ fn push_to_git(
     let index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
     let exporter = Exporter::new(&snapshot_manager, &index);
 
-    // === TRANSACTION START ===
-    // This implements a transactional push with rollback capability using a three-phase approach:
-    //
-    // Phase 1: PREPARE - Create git commits in mirror but don't push or save mappings
-    //   - Export dotman commits to mirror working directory
-    //   - Create git commits with original timestamps
-    //   - Keep mappings in memory only (pending_mappings)
-    //   - Save transaction state for rollback (mirror HEAD, original mappings)
-    //
-    // Phase 2: PUSH - Send commits to remote and verify
-    //   - Push to remote repository
-    //   - Verify remote received commits (git ls-remote)
-    //   - On failure: rollback git mirror to original HEAD
-    //
-    // Phase 3: COMMIT - Persist mappings (point of no return)
-    //   - Save all pending mappings to disk
-    //   - Update branch tracking
-    //   - Push tags if requested
-    //
-    // Rollback guarantee: If anything fails before phase 3 completes, we can restore
-    // to exact pre-push state by resetting mirror HEAD and restoring mapping backup.
-
-    // Capture state before making any git commits for potential rollback
-    // If mirror is empty (no HEAD), there's nothing to rollback to
+    // Capture mirror HEAD for rollback if push fails
     let mirror_head_before = mirror.get_head_commit().ok();
 
-    let mappings_before = mapping_manager.mapping().clone();
-    let mapping_path = ctx.repo_path.join("mapping.toml");
-
-    // Collect mappings in memory - DO NOT save until push succeeds
-    // This allows us to rollback cleanly if the remote push fails
+    // Collect mappings in memory - only save after push succeeds
     let mut pending_mappings: Vec<(String, String)> = Vec::new();
 
     let mut progress = output::start_progress("Processing commits", commits_to_push.len());
@@ -555,28 +492,26 @@ fn push_to_git(
         return Ok(());
     }
 
-    // Create transaction for rollback capability
-    let transaction = PushTransaction {
-        mirror_head_before,
-        mappings_before,
-        pushed_commits: commits_to_push.clone(),
-    };
-
-    // === PUSH PHASE ===
-    // At this point we have git commits in the mirror but haven't modified any persistent
-    // state (mappings not saved, remote not updated). This is the critical phase where
-    // we attempt the actual network operation. If this fails, we can still rollback cleanly.
+    // Push to remote
     output::info(&format!("Pushing branch '{}' to remote...", opts.branch));
 
     let push_result = if opts.force || opts.force_with_lease {
         // Push with force options
         let mirror_path = mirror.get_mirror_path();
-        let mut args = vec!["push", "origin", opts.branch];
+
+        let mut args: Vec<String> = vec![
+            "push".to_string(),
+            "origin".to_string(),
+            opts.branch.to_string(),
+        ];
 
         if opts.force_with_lease {
-            args.push("--force-with-lease");
+            // Use --force-with-lease without explicit expected value
+            // Git uses the tracking ref from our recent fetch (line 377) automatically
+            // This avoids race condition from stale expected value captured earlier
+            args.push("--force-with-lease".to_string());
         } else {
-            args.push("--force");
+            args.push("--force".to_string());
         }
 
         let output = Command::new("git")
@@ -596,35 +531,23 @@ fn push_to_git(
         mirror.push(opts.branch)
     };
 
-    // Handle push failure with rollback
+    // Handle push failure - reset mirror to previous state
     if let Err(e) = push_result {
-        rollback_push(&mirror, &transaction, &mapping_path)?;
+        output::warning("Push failed - resetting mirror...");
+        let _ = reset_mirror_head(&mirror, mirror_head_before.as_deref());
         return Err(e);
     }
 
-    // === VERIFICATION PHASE ===
-    // Verify that remote actually received the commits
+    // Verify remote received commits
     output::info("Verifying remote received commits...");
-    let verify_result = verify_remote_push(&mirror, opts.branch, &last_git_commit);
-
-    if let Err(e) = verify_result {
+    if let Err(e) = verify_remote_push(&mirror, opts.branch, &last_git_commit) {
         output::warning(&format!("Remote verification failed: {e}"));
-        rollback_push(&mirror, &transaction, &mapping_path)?;
+        let _ = reset_mirror_head(&mirror, mirror_head_before.as_deref());
         return Err(anyhow::anyhow!(
             "Push verification failed - changes rolled back: {e}"
         ));
     }
 
-    // === COMMIT PHASE ===
-    // Push and verification succeeded! Now save all commit mappings.
-    //
-    // This is the COMMIT POINT of the transaction. After mappings are saved to disk,
-    // we're fully committed - the remote has our commits and we've recorded the mapping.
-    // There's no rollback after this point.
-    //
-    // If mapping save fails here, the remote still has our commits but we've lost the
-    // mapping information. This is recoverable (user can re-push to recreate mappings)
-    // but we warn about it since it's an inconsistent state.
     for (dotman_commit, git_commit) in pending_mappings {
         mapping_manager
             .mapping_mut()
@@ -650,7 +573,12 @@ fn push_to_git(
     // Push tags if requested (non-fatal)
     if opts.tags {
         output::info("Pushing tags...");
-        if let Err(e) = push_tags(&mirror) {
+        if let Err(e) = push_tags(
+            &ctx.repo_path,
+            &mirror,
+            mapping_manager.mapping(),
+            opts.remote,
+        ) {
             output::warning(&format!("Failed to push tags: {e}"));
             // Don't fail the entire operation if tags fail
         }
@@ -681,20 +609,76 @@ fn push_to_git(
 ///
 /// # Arguments
 ///
+/// * `repo_path` - Path to the dotman repository
 /// * `mirror` - The git mirror instance to use for pushing
+/// * `mapping` - The commit mapping to look up git commit IDs
+/// * `remote` - The remote name for mapping lookups
 ///
 /// # Errors
 ///
 /// Returns an error if the git command fails to execute (not if the
 /// push itself is rejected - that only produces a warning).
-fn push_tags(mirror: &GitMirror) -> Result<()> {
+fn push_tags(
+    repo_path: &Path,
+    mirror: &GitMirror,
+    mapping: &CommitMapping,
+    remote: &str,
+) -> Result<()> {
+    // Get all dotman tags
+    let ref_manager = RefManager::new(repo_path.to_path_buf());
+    let tags = ref_manager.list_tags()?;
+
+    if tags.is_empty() {
+        output::info("No tags to push");
+        return Ok(());
+    }
+
+    let mut synced_count = 0;
+
+    // Sync each dotman tag to the git mirror
+    for tag_name in &tags {
+        // Get the dotman commit this tag points to
+        let dotman_commit = match ref_manager.get_tag_commit(tag_name) {
+            Ok(commit) => commit,
+            Err(e) => {
+                output::warning(&format!("Skipping tag '{tag_name}': {e}"));
+                continue;
+            }
+        };
+
+        // Look up the corresponding git commit
+        if let Some(git_commit) = mapping.get_git_commit(remote, &dotman_commit) {
+            // Create the tag in the mirror
+            if let Err(e) = mirror.create_tag(tag_name, &git_commit) {
+                output::warning(&format!("Failed to create tag '{tag_name}' in mirror: {e}"));
+                continue;
+            }
+            synced_count += 1;
+        } else {
+            output::warning(&format!(
+                "Tag '{tag_name}' points to commit {} which hasn't been pushed to '{remote}'",
+                &dotman_commit[..8]
+            ));
+        }
+    }
+
+    if synced_count == 0 {
+        output::info("No tags synced to mirror (commits not pushed yet)");
+        return Ok(());
+    }
+
+    // Now push tags to remote
     let output = Command::new("git")
         .args(["push", "origin", "--tags"])
         .current_dir(mirror.get_mirror_path())
         .output()?;
 
     if output.status.success() {
-        output::success("Tags pushed successfully");
+        output::success(&format!(
+            "Pushed {} tag{} successfully",
+            synced_count,
+            if synced_count == 1 { "" } else { "s" }
+        ));
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         output::warning(&format!("Failed to push tags: {stderr}"));

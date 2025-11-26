@@ -33,12 +33,9 @@ pub struct UnifiedDiffConfig {
 /// * `config` - Diff configuration (context lines, algorithm, colorization)
 /// * `writer` - Output writer to write diff to
 ///
-/// # Returns
-///
 /// # Errors
 ///
-/// * `Ok(())` on success
-/// * `Err` if writing fails
+/// Returns an error if writing to the output writer fails.
 pub fn generate_unified_diff(
     old_content: &str,
     new_content: &str,

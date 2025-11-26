@@ -368,7 +368,7 @@ mod snapshot_tests {
         Snapshot {
             commit: Commit {
                 id: id.to_string(),
-                parent,
+                parents: parent.into_iter().collect(),
                 message: "Test commit".to_string(),
                 author: "Test User".to_string(),
                 timestamp: chrono::Utc::now().timestamp(),
@@ -432,7 +432,10 @@ mod snapshot_tests {
 
         // Load and verify
         let loaded = manager.load_snapshot("child456")?;
-        assert_eq!(loaded.commit.parent, Some("parent123".to_string()));
+        assert_eq!(
+            loaded.commit.parents.first().cloned(),
+            Some("parent123".to_string())
+        );
 
         Ok(())
     }
@@ -461,7 +464,7 @@ mod snapshot_tests {
 
         let commit = Commit {
             id: "large_snapshot".to_string(),
-            parent: None,
+            parents: vec![],
             message: "Large commit".to_string(),
             author: "Test User".to_string(),
             timestamp: chrono::Utc::now().timestamp(),
@@ -545,7 +548,7 @@ mod snapshot_tests {
 
         let commit = Commit {
             id: "test_special".to_string(),
-            parent: None,
+            parents: vec![],
             message: "Commit with special chars: \n\t'\"\\".to_string(),
             author: "Test User <test@example.com>".to_string(),
             timestamp: chrono::Utc::now().timestamp(),
@@ -683,7 +686,10 @@ mod index_tests {
 
         let loaded = Index::load(&index_path)?;
         assert_eq!(loaded.staged_entries.len(), 0);
-        assert_eq!(loaded.staged_entries.len(), 0);
+        assert!(
+            loaded.deleted_entries.is_empty(),
+            "Empty index should have no deleted entries"
+        );
 
         Ok(())
     }
@@ -699,9 +705,138 @@ mod index_tests {
 
         let index = result?;
         assert_eq!(index.staged_entries.len(), 0);
-        assert_eq!(index.staged_entries.len(), 0);
+        assert!(
+            index.deleted_entries.is_empty(),
+            "New index should have no deleted entries"
+        );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_index_deleted_entries_basic() {
+        let mut index = Index::new();
+        let path1 = PathBuf::from("deleted_file.txt");
+        let path2 = PathBuf::from("another_deleted.txt");
+
+        // Initially no deletions
+        assert!(!index.is_deleted(&path1));
+        assert!(index.get_deleted_entries().is_empty());
+
+        // Mark file as deleted
+        index.mark_deleted(&path1);
+        assert!(index.is_deleted(&path1));
+        assert!(!index.is_deleted(&path2));
+        assert_eq!(index.get_deleted_entries().len(), 1);
+
+        // Mark another file
+        index.mark_deleted(&path2);
+        assert!(index.is_deleted(&path2));
+        assert_eq!(index.get_deleted_entries().len(), 2);
+
+        // Unmark a file
+        let was_deleted = index.unmark_deleted(&path1);
+        assert!(
+            was_deleted,
+            "unmark_deleted should return true for deleted file"
+        );
+        assert!(!index.is_deleted(&path1));
+        assert!(index.is_deleted(&path2));
+
+        // Unmark non-deleted file
+        let was_deleted = index.unmark_deleted(&path1);
+        assert!(
+            !was_deleted,
+            "unmark_deleted should return false for non-deleted file"
+        );
+    }
+
+    #[test]
+    fn test_index_deleted_entries_persistence() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let index_path = temp_dir.path().join("index.bin");
+
+        // Create index with deleted entries
+        let mut index = Index::new();
+        let path1 = PathBuf::from("deleted1.txt");
+        let path2 = PathBuf::from("deleted2.txt");
+        index.mark_deleted(&path1);
+        index.mark_deleted(&path2);
+
+        // Save
+        index.save(&index_path)?;
+
+        // Load and verify
+        let loaded = Index::load(&index_path)?;
+        assert_eq!(loaded.get_deleted_entries().len(), 2);
+        assert!(loaded.is_deleted(&path1), "Deleted entries should persist");
+        assert!(loaded.is_deleted(&path2), "Deleted entries should persist");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_index_deleted_removes_from_staged() {
+        let mut index = Index::new();
+        let path = PathBuf::from("file.txt");
+
+        // Stage a file
+        let entry = FileEntry {
+            path: path.clone(),
+            hash: "hash123".to_string(),
+            size: 100,
+            mode: 0o644,
+            modified: 1_234_567_890,
+            cached_hash: None,
+        };
+        index.staged_entries.insert(path.clone(), entry);
+        assert!(index.staged_entries.contains_key(&path));
+
+        // Mark as deleted - should remove from staged
+        index.mark_deleted(&path);
+        assert!(
+            !index.staged_entries.contains_key(&path),
+            "Deleted file should be removed from staged"
+        );
+        assert!(index.is_deleted(&path), "File should be marked as deleted");
+    }
+
+    #[test]
+    fn test_index_commit_clears_deleted() {
+        let mut index = Index::new();
+        let path = PathBuf::from("deleted_file.txt");
+
+        // Stage and mark deleted
+        index.mark_deleted(&path);
+        assert!(
+            index.has_staged_changes(),
+            "Deleted entries count as staged changes"
+        );
+        assert!(index.is_deleted(&path));
+
+        // Commit clears deleted entries
+        index.commit_staged();
+        assert!(
+            !index.is_deleted(&path),
+            "Deleted entries should be cleared after commit"
+        );
+        assert!(index.get_deleted_entries().is_empty());
+        assert!(!index.has_staged_changes(), "No changes after commit");
+    }
+
+    #[test]
+    fn test_index_has_staged_changes_includes_deletions() {
+        let mut index = Index::new();
+
+        // Empty index has no changes
+        assert!(!index.has_staged_changes());
+
+        // Mark deletion
+        index.mark_deleted(&PathBuf::from("deleted.txt"));
+        assert!(
+            index.has_staged_changes(),
+            "Deletions count as staged changes"
+        );
     }
 }
 

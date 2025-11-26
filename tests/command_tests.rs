@@ -5,8 +5,11 @@ use anyhow::Result;
 use dotman::commands::context::CommandContext;
 use dotman::{DotmanContext, commands};
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
 use tempfile::TempDir;
+
+// Unix-specific imports for permission and symlink tests
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 mod add_command_tests {
     use super::*;
@@ -98,6 +101,7 @@ mod add_command_tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_add_symlink() -> Result<()> {
         let (temp_dir, ctx) = setup_test_repo()?;
 
@@ -114,8 +118,8 @@ mod add_command_tests {
         let index = CommandContext::load_concurrent_index(&ctx)?;
         let staged = index.staged_entries();
 
-        // Depending on config, should either follow or not follow symlink
-        assert!(!staged.is_empty());
+        // Verify the symlink (or target, depending on config) was added
+        assert!(!staged.is_empty(), "Symlink should be added to staging");
 
         Ok(())
     }
@@ -175,6 +179,7 @@ mod add_command_tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_add_preserves_permissions() -> Result<()> {
         let (temp_dir, ctx) = setup_test_repo()?;
 
@@ -191,10 +196,17 @@ mod add_command_tests {
 
         let index = CommandContext::load_concurrent_index(&ctx)?;
         let staged = index.staged_entries();
-        let (_, entry) = &staged[0];
+        assert!(!staged.is_empty(), "File should be staged");
+        let (_, entry) = staged
+            .first()
+            .expect("Should have at least one staged entry");
 
         // Check that executable bit is preserved
-        assert_eq!(entry.mode & 0o111, 0o111);
+        assert_eq!(
+            entry.mode & 0o111,
+            0o111,
+            "Executable bits should be preserved"
+        );
 
         Ok(())
     }
@@ -299,14 +311,14 @@ mod commit_command_tests {
     #[test]
     fn test_commit_id_generation_deterministic() {
         let tree_hash = "abcd1234567890abcdef1234567890abcdef1234";
-        let parent = Some("parent1234567890abcdef1234567890abcdef12");
+        let parents = &["parent1234567890abcdef1234567890abcdef12"];
         let message = "Test commit message";
         let author = "Test User <test@example.com>";
         let timestamp = 1_234_567_890;
         let nanos = 123_456_789;
 
-        let id1 = generate_commit_id(tree_hash, parent, message, author, timestamp, nanos);
-        let id2 = generate_commit_id(tree_hash, parent, message, author, timestamp, nanos);
+        let id1 = generate_commit_id(tree_hash, parents, message, author, timestamp, nanos);
+        let id2 = generate_commit_id(tree_hash, parents, message, author, timestamp, nanos);
 
         assert_eq!(id1, id2);
         assert_eq!(id1.len(), 32); // xxHash produces 32-char hex
@@ -319,8 +331,8 @@ mod commit_command_tests {
         let timestamp = 1_234_567_890;
         let nanos = 123_456_789;
 
-        let id1 = generate_commit_id(tree_hash, None, "Message 1", author, timestamp, nanos);
-        let id2 = generate_commit_id(tree_hash, None, "Message 2", author, timestamp, nanos);
+        let id1 = generate_commit_id(tree_hash, &[], "Message 1", author, timestamp, nanos);
+        let id2 = generate_commit_id(tree_hash, &[], "Message 2", author, timestamp, nanos);
 
         assert_ne!(id1, id2);
     }
@@ -360,7 +372,7 @@ mod commit_command_tests {
         // Load the second commit and check it has the first as parent
         let snapshot_manager = dotman::storage::snapshots::SnapshotManager::new(ctx.repo_path, 3);
         let snapshot = snapshot_manager.load_snapshot(&second_commit)?;
-        assert_eq!(snapshot.commit.parent, Some(first_commit));
+        assert_eq!(snapshot.commit.parents.first().cloned(), Some(first_commit));
 
         Ok(())
     }
@@ -439,8 +451,18 @@ mod status_command_tests {
     fn test_status_clean_repo() -> Result<()> {
         let (_temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
 
-        // Status should show clean
+        // Status should show clean - verify no staged files
         commands::status::execute(&ctx, false, true)?;
+
+        let index = CommandContext::load_concurrent_index(&ctx)?;
+        assert!(
+            index.staged_entries().is_empty(),
+            "Clean repo should have no staged files"
+        );
+        assert!(
+            index.get_deleted_entries().is_empty(),
+            "Clean repo should have no deleted files"
+        );
 
         Ok(())
     }
@@ -740,8 +762,27 @@ mod branch_command_tests {
         commands::branch::create(&ctx, "feature1", None)?;
         commands::branch::create(&ctx, "feature2", None)?;
 
-        // List should work
-        commands::branch::list(&ctx)?;
+        // List should work and return the branches
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path);
+        let branches = ref_manager.list_branches()?;
+
+        // Verify all expected branches exist (main + 2 created)
+        assert!(
+            branches.len() >= 3,
+            "Should have at least main + 2 created branches"
+        );
+        assert!(
+            branches.iter().any(|b| b == "main"),
+            "Should have main branch"
+        );
+        assert!(
+            branches.iter().any(|b| b == "feature1"),
+            "Should have feature1 branch"
+        );
+        assert!(
+            branches.iter().any(|b| b == "feature2"),
+            "Should have feature2 branch"
+        );
 
         Ok(())
     }
@@ -1046,7 +1087,12 @@ mod reset_command_tests {
 
     #[test]
     fn test_reset_with_head_notation() -> Result<()> {
-        let (_temp_dir, ctx, _commits) = setup_repo_with_commits()?;
+        let (_temp_dir, ctx, commits) = setup_repo_with_commits()?;
+
+        // Get HEAD before reset
+        let resolver = dotman::refs::resolver::RefResolver::new(ctx.repo_path.clone());
+        let head_before = resolver.resolve("HEAD")?;
+        assert_eq!(head_before, commits[2], "HEAD should point to commit 3");
 
         // Reset to HEAD~1
         commands::reset::execute(
@@ -1055,6 +1101,14 @@ mod reset_command_tests {
             &commands::reset::ResetOptions::default(),
             &[],
         )?;
+
+        // Verify HEAD now points to commit 2
+        let head_after = resolver.resolve("HEAD")?;
+        assert_eq!(
+            head_after, commits[1],
+            "HEAD should point to commit 2 after reset"
+        );
+        assert_ne!(head_before, head_after, "HEAD should have changed");
 
         Ok(())
     }
@@ -1292,9 +1346,20 @@ mod log_command_tests {
     fn test_log_displays_commits() -> Result<()> {
         let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
 
+        // Verify commits exist before testing log
+        let resolver = dotman::refs::resolver::RefResolver::new(ctx.repo_path.clone());
+        let head = resolver.resolve("HEAD")?;
+        assert!(!head.is_empty(), "HEAD should point to a commit");
+
+        // Verify we have the expected commit chain (3 commits)
+        let commit1 = resolver.resolve("HEAD~2")?;
+        let commit2 = resolver.resolve("HEAD~1")?;
+        let commit3 = resolver.resolve("HEAD")?;
+        assert_ne!(commit1, commit2, "Commits should be unique");
+        assert_ne!(commit2, commit3, "Commits should be unique");
+
         // Log should work without errors
-        let result = commands::log::execute(&ctx, None, 10, false, false);
-        assert!(result.is_ok());
+        commands::log::execute(&ctx, None, 10, false, false)?;
 
         Ok(())
     }
@@ -1303,9 +1368,14 @@ mod log_command_tests {
     fn test_log_respects_limit() -> Result<()> {
         let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
 
-        // Should be able to limit to 2 commits
-        let result = commands::log::execute(&ctx, None, 2, false, false);
-        assert!(result.is_ok());
+        // Verify we have 3 commits
+        let resolver = dotman::refs::resolver::RefResolver::new(ctx.repo_path.clone());
+        let _commit1 = resolver.resolve("HEAD~2")?;
+        let _commit2 = resolver.resolve("HEAD~1")?;
+        let _commit3 = resolver.resolve("HEAD")?;
+
+        // Should be able to limit - command succeeds regardless of limit
+        commands::log::execute(&ctx, None, 2, false, false)?;
 
         Ok(())
     }
@@ -1314,9 +1384,13 @@ mod log_command_tests {
     fn test_log_oneline_format() -> Result<()> {
         let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
 
-        // Test oneline format
-        let result = commands::log::execute(&ctx, None, 10, true, false);
-        assert!(result.is_ok());
+        // Verify commits exist
+        let resolver = dotman::refs::resolver::RefResolver::new(ctx.repo_path.clone());
+        let head = resolver.resolve("HEAD")?;
+        assert!(!head.is_empty(), "HEAD should point to a commit");
+
+        // Test oneline format - should succeed
+        commands::log::execute(&ctx, None, 10, true, false)?;
 
         Ok(())
     }
@@ -1353,12 +1427,17 @@ mod log_command_tests {
     fn test_log_with_specific_target() -> Result<()> {
         let (_temp_dir, ctx) = setup_test_repo_with_commits()?;
 
-        // Test starting from a specific commit
+        // Get commit references
         let resolver = dotman::refs::resolver::RefResolver::new(ctx.repo_path.clone());
         let commit2 = resolver.resolve("HEAD~1")?;
+        let commit1 = resolver.resolve("HEAD~2")?;
 
-        let result = commands::log::execute(&ctx, Some(&commit2), 10, false, false);
-        assert!(result.is_ok());
+        // Verify commit2 exists and has commit1 as ancestor
+        assert!(!commit2.is_empty(), "HEAD~1 should resolve to a commit");
+        assert_ne!(commit1, commit2, "Commits should be different");
+
+        // Test starting from a specific commit - should succeed
+        commands::log::execute(&ctx, Some(&commit2), 10, false, false)?;
 
         Ok(())
     }

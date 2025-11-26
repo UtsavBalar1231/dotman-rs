@@ -167,7 +167,7 @@ impl RebaseState {
 
     /// Get the number of commits remaining (including current)
     #[must_use]
-    pub fn remaining_commits(&self) -> usize {
+    pub const fn remaining_commits(&self) -> usize {
         self.commits_to_replay
             .len()
             .saturating_sub(self.current_index)

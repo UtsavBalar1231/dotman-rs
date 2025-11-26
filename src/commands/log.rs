@@ -20,12 +20,22 @@ fn display_commit(writer: &mut dyn PagerWriter, commit: &Commit, oneline: bool) 
     } else {
         writeln!(writer, "{} {}", "commit".yellow(), commit.id)?;
 
-        if let Some(parent) = &commit.parent {
+        if !commit.parents.is_empty() {
+            let parent_display: Vec<String> = commit
+                .parents
+                .iter()
+                .map(|p| p[..8.min(p.len())].to_string())
+                .collect();
             writeln!(
                 writer,
                 "{}: {}",
-                "Parent".bold(),
-                &parent[..8.min(parent.len())]
+                if commit.parents.len() > 1 {
+                    "Parents"
+                } else {
+                    "Parent"
+                }
+                .bold(),
+                parent_display.join(", ")
             )?;
         }
 
@@ -153,8 +163,8 @@ pub fn execute(
             display_commit(writer, commit, oneline)?;
             commits_displayed += 1;
 
-            // Move to parent commit
-            current_commit_id.clone_from(&commit.parent);
+            // Move to first parent commit (follow mainline)
+            current_commit_id = commit.parents.first().cloned();
         }
     } else {
         // Try to get HEAD commit, if it exists
@@ -184,8 +194,8 @@ pub fn execute(
                 display_commit(writer, commit, oneline)?;
                 commits_displayed += 1;
 
-                // Move to parent commit
-                current_commit_id.clone_from(&commit.parent);
+                // Move to first parent commit (follow mainline)
+                current_commit_id = commit.parents.first().cloned();
             }
         }
     }

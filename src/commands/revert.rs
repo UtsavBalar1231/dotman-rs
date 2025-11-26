@@ -187,7 +187,7 @@ fn calculate_revert_changes(
 ) -> Result<Vec<RevertChange>> {
     let mut revert_changes = Vec::new();
 
-    if let Some(parent_id) = &target_snapshot.commit.parent {
+    if let Some(parent_id) = target_snapshot.commit.parents.first() {
         // Commit has a parent - compare with parent to see what the original commit did
         let parent_snapshot = snapshot_manager
             .load_snapshot(parent_id)
@@ -420,20 +420,17 @@ fn create_revert_commit(ctx: &DotmanContext, message: &str) -> Result<()> {
     }
     let tree_hash = hash_bytes(tree_content.as_bytes());
 
+    let parents: Vec<String> = parent.into_iter().collect();
+    let parent_refs: Vec<&str> = parents.iter().map(String::as_str).collect();
+
     // Generate content-addressed commit ID
-    let commit_id = generate_commit_id(
-        &tree_hash,
-        parent.as_deref(),
-        message,
-        &author,
-        timestamp,
-        nanos,
-    );
+    let commit_id =
+        generate_commit_id(&tree_hash, &parent_refs, message, &author, timestamp, nanos);
 
     // Create commit object
     let commit = Commit {
         id: commit_id.clone(),
-        parent,
+        parents,
         message: message.to_string(),
         author,
         timestamp,
