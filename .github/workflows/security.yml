@@ -64,7 +64,7 @@ jobs:
         run: cargo install cargo-deny
 
       - name: Setup Rust cache
-        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+        uses: Swatinem/rust-cache@v2.8.2
 
       - name: Create cargo-deny configuration
         run: |
@@ -213,7 +213,7 @@ jobs:
           cargo install cargo-machete
 
       - name: Setup Rust cache
-        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+        uses: Swatinem/rust-cache@v2.8.2
 
       - name: Generate dependency tree
         run: |

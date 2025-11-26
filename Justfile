@@ -13,7 +13,7 @@ build-release:
 
 build-optimized:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
     export RUSTFLAGS="-C target-cpu=native -C opt-level=3"
     cargo build --release --all-features
 
@@ -41,7 +41,7 @@ test-property:
 
 test-coverage:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
     cargo llvm-cov --all-features --workspace --html
     echo "Coverage report: target/llvm-cov/html/index.html"
 
@@ -96,7 +96,7 @@ bench-name name:
 
 profile-perf:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
     cargo build --profile release-with-debug
     perf record --call-graph=dwarf target/release-with-debug/dot --help
     perf report
@@ -106,7 +106,7 @@ profile-flame:
 
 profile-memory:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
     cargo build --profile release-with-debug
     valgrind --tool=massif target/release-with-debug/dot --help
 
@@ -123,7 +123,7 @@ generate-manpages:
 
 install-manpages: generate-manpages
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
     echo "Installing man pages to /usr/share/man/man1/ (requires sudo)..."
     sudo install -Dm644 man/*.1 -t /usr/share/man/man1/
     sudo mandb
@@ -138,7 +138,7 @@ watch-test:
 
 setup:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
     echo "Installing required development tools..."
     cargo install cargo-watch
     cargo install cargo-audit
@@ -160,7 +160,7 @@ uninstall:
 # Packaging
 package-debian:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
 
     # Build release binary
     cargo build --release
@@ -212,7 +212,7 @@ package-debian:
 
 package-rpm:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
 
     # Check for required tools
     if ! command -v rpmbuild >/dev/null 2>&1; then
@@ -263,7 +263,7 @@ package-rpm:
 
 package-arch:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
 
     # Check for required tools
     if ! command -v makepkg >/dev/null 2>&1; then
@@ -316,7 +316,7 @@ package-arch:
 
 package-alpine:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
 
     # Build static binary for Alpine
     cargo build --release --target x86_64-unknown-linux-musl
@@ -357,15 +357,37 @@ docker-run:
 
 docker-test:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
     just docker-build-alpine
     echo "Testing Alpine container..."
     docker run --rm dotman:alpine --version
 
+# Package Testing (Docker-based)
+test-packages:
+    #!/usr/bin/env bash
+    set -e
+    cd packaging/docker-test && ./build-all.sh
+
+test-package-debian:
+    docker build --network=host -f packaging/docker-test/debian.Dockerfile -t dotman-test-deb .
+    docker run --rm dotman-test-deb dot --version
+
+test-package-arch:
+    docker build --network=host -f packaging/docker-test/arch.Dockerfile -t dotman-test-arch .
+    docker run --rm dotman-test-arch dot --version
+
+test-package-alpine:
+    docker build --network=host -f packaging/docker-test/alpine.Dockerfile -t dotman-test-alpine .
+    docker run --rm dotman-test-alpine dot --version
+
+test-package-fedora:
+    docker build --network=host -f packaging/docker-test/fedora.Dockerfile -t dotman-test-rpm .
+    docker run --rm dotman-test-rpm dot --version
+
 # Release Management
 release-prepare version:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
 
     # Update version in all files
     sed -i 's/^version = ".*"/version = "{{ version }}"/' Cargo.toml
@@ -383,7 +405,7 @@ release-prepare version:
 
 release-artifacts:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
 
     echo "Building release artifacts..."
 

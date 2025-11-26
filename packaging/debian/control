@@ -3,16 +3,13 @@ Section: utils
 Priority: optional
 Maintainer: UtsavBalar1231 <utsavbalar1231@gmail.com>
 Build-Depends: debhelper-compat (= 13),
-               dh-cargo (>= 25),
                rustc (>= 1.70),
                cargo (>= 1.70),
-               libstd-rust-dev,
-               pkg-config,
                help2man
 Standards-Version: 4.6.2
-Homepage: https://github.com/UtsavBalar1231/dotman-rs
-Vcs-Git: https://github.com/UtsavBalar1231/dotman-rs.git
-Vcs-Browser: https://github.com/UtsavBalar1231/dotman-rs
+Homepage: https://github.com/UtsavBalar1231/dotman
+Vcs-Git: https://github.com/UtsavBalar1231/dotman.git
+Vcs-Browser: https://github.com/UtsavBalar1231/dotman
 Rules-Requires-Root: no
 
 Package: dotman

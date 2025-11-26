@@ -28,7 +28,7 @@ We take security vulnerabilities seriously and appreciate responsible disclosure
 
 **Preferred Method: GitHub Security Advisories**
 
-Use [GitHub's private vulnerability reporting](https://github.com/utsavbalar1231/dotman/security/advisories/new) for secure, private disclosure. This is the recommended approach as it provides:
+Use [GitHub's private vulnerability reporting](https://github.com/UtsavBalar1231/dotman/security/advisories/new) for secure, private disclosure. This is the recommended approach as it provides:
 - Private communication channel
 - Coordinated disclosure workflow
 - Integration with GitHub's security features
@@ -238,7 +238,7 @@ For security researchers and auditors:
 
 ```bash
 # Clone repository
-git clone https://github.com/utsavbalar1231/dotman.git
+git clone https://github.com/UtsavBalar1231/dotman.git
 cd dotman
 
 # Run security-focused tests
@@ -268,8 +268,8 @@ cargo build --release
 ## Contact
 
 - **Security Issues**: Use GitHub Security Advisories or email utsavbalar1231@gmail.com
-- **General Issues**: Use [GitHub Issues](https://github.com/utsavbalar1231/dotman/issues)
-- **Questions**: Use [GitHub Discussions](https://github.com/utsavbalar1231/dotman/discussions)
+- **General Issues**: Use [GitHub Issues](https://github.com/UtsavBalar1231/dotman/issues)
+- **Questions**: Use [GitHub Discussions](https://github.com/UtsavBalar1231/dotman/discussions)
 
 ## Acknowledgments
 

@@ -3,61 +3,56 @@
 pkgname=dotman
 pkgver=0.0.1
 pkgrel=0
-pkgdesc="Blazingly fast dotfiles manager with git-like semantics"
-url="https://github.com/UtsavBalar1231/dotman-rs"
-arch="all"
+pkgdesc="High-performance dotfiles manager with git-like semantics"
+url="https://github.com/UtsavBalar1231/dotman"
+arch="x86_64 aarch64"
 license="MIT"
 makedepends="
 	cargo
 	cargo-auditable
 	help2man
 	"
-checkdepends="
-	cargo
-	"
-source="$pkgname-$pkgver.tar.gz::https://github.com/UtsavBalar1231/dotman-rs/archive/refs/tags/v$pkgver.tar.gz"
-options="net" # Required for cargo to fetch dependencies
-
-# Subpackages
+checkdepends="cargo"
 subpackages="
 	$pkgname-doc
 	$pkgname-bash-completion
 	$pkgname-zsh-completion
 	$pkgname-fish-completion
 	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/UtsavBalar1231/dotman/archive/refs/tags/v$pkgver.tar.gz"
+options="net"  # Required for cargo to fetch dependencies
 
 # Build configuration
 export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
 export CARGO_PROFILE_RELEASE_LTO=true
 export CARGO_PROFILE_RELEASE_OPT_LEVEL=3
-export CARGO_PROFILE_RELEASE_PANIC=abort
 export CARGO_PROFILE_RELEASE_STRIP=true
 
 prepare() {
 	default_prepare
-
-	# Update cargo lock file
-	cargo fetch --target="$CTARGET" --locked
+	cd "$builddir"
+	cargo fetch --locked
 }
 
 build() {
-	# Set Alpine-specific optimization flags
-	export RUSTFLAGS="-C target-feature=+crt-static -C target-cpu=generic -C opt-level=3"
+	cd "$builddir"
 
 	# Build with cargo-auditable for supply chain security
 	if command -v cargo-auditable >/dev/null 2>&1; then
-		cargo auditable build --release --locked --all-features --bin dot
+		cargo auditable build --release --locked --all-features
 	else
-		cargo build --release --locked --all-features --bin dot
+		cargo build --release --locked --all-features
 	fi
 }
 
 check() {
-	# Run the test suite
+	cd "$builddir"
 	cargo test --release --locked --all-features
 }
 
 package() {
+	cd "$builddir"
+
 	# Install the main binary
 	install -Dm755 target/release/dot "$pkgdir"/usr/bin/dot
 
@@ -79,37 +74,9 @@ package() {
 		"$pkgdir"/usr/share/fish/vendor_completions.d/dot.fish
 
 	# Generate and install man page
-	help2man --no-info --name="blazingly fast dotfiles manager" \
+	help2man --no-info --name="high-performance dotfiles manager" \
 		--version-string="$pkgver" ./target/release/dot > dot.1
 	install -Dm644 dot.1 "$pkgdir"/usr/share/man/man1/dot.1
 }
 
-doc() {
-	default_doc
-
-	# Additional documentation
-	pkgdesc="$pkgdesc (documentation)"
-}
-
-bashcompletion() {
-	default_bashcompletion
-	pkgdesc="$pkgdesc (bash completions)"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
-}
-
-zshcompletion() {
-	default_zshcompletion
-	pkgdesc="$pkgdesc (zsh completions)"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel zsh"
-}
-
-fishcompletion() {
-	default_fishcompletion
-	pkgdesc="$pkgdesc (fish completions)"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel fish"
-}
-
-sha512sums="" # This will be populated when the package is submitted
+sha512sums="SKIP"  # Updated by CI/release workflow

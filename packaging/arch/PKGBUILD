@@ -1,66 +1,42 @@
 # Maintainer: Utsav Balar <utsavbalar1231@gmail.com>
-# Contributor: Community
 
 pkgname=dotman
 pkgver=0.0.1
 pkgrel=1
-pkgdesc="Blazingly fast dotfiles manager built in Rust with git-like semantics"
+pkgdesc="High-performance dotfiles manager with git-like semantics"
 arch=('x86_64' 'aarch64')
-url="https://github.com/UtsavBalar1231/dotman-rs"
+url="https://github.com/UtsavBalar1231/dotman"
 license=('MIT')
 depends=('gcc-libs' 'glibc')
-makedepends=('rust' 'cargo' 'pkg-config' 'gcc' 'zstd')
+makedepends=('rust' 'cargo' 'help2man')
 provides=('dotman')
 conflicts=('dotman-git')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/UtsavBalar1231/dotman-rs/archive/v$pkgver.tar.gz")
-sha256sums=('SKIP') # Updated by CI/CD pipeline
-
-# Build with full optimizations
-export RUSTUP_TOOLCHAIN=stable
-export CARGO_TARGET_DIR=target
+source=("$pkgname-$pkgver.tar.gz::https://github.com/UtsavBalar1231/dotman/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # Updated by CI/release workflow
 
 prepare() {
-    pushd "$pkgname-$pkgver"
-
-    # Update Cargo.lock for reproducible builds
-    cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
-
-    popd
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
 }
 
 build() {
-    pushd "$pkgname-$pkgver"
-
-    # Build with optimizations for the target architecture
-    export RUSTFLAGS="-C target-cpu=native"
-
-    # Allow pkg-config to find system libraries
-    export PKG_CONFIG_ALLOW_CROSS=1
-
-    cargo build \
-        --release \
-        --frozen \
-        --all-features \
-        --target-dir=target
-
-    popd
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --release --locked --all-features
 }
 
 check() {
     cd "$pkgname-$pkgver"
-
-    # Run test suite
-    cargo test \
-        --release \
-        --frozen \
-        --all-features \
-        --target-dir=target
+    export RUSTUP_TOOLCHAIN=stable
+    cargo test --release --locked --all-features
 }
 
 package() {
     cd "$pkgname-$pkgver"
 
-    # Install binary (binary name is 'dot', not 'dotman')
+    # Install binary
     install -Dm755 target/release/dot "$pkgdir/usr/bin/dot"
 
     # Install documentation
@@ -68,32 +44,20 @@ package() {
 
     # Install license
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || \
-    install -Dm644 Cargo.toml "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+        echo "MIT" > "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 
     # Generate and install shell completions
-    if command -v dot >/dev/null 2>&1; then
-        # Bash completion
-        mkdir -p "$pkgdir/usr/share/bash-completion/completions"
-        target/release/dot completion bash > "$pkgdir/usr/share/bash-completion/completions/dot" 2>/dev/null || true
+    mkdir -p "$pkgdir/usr/share/bash-completion/completions"
+    ./target/release/dot completion bash > "$pkgdir/usr/share/bash-completion/completions/dot"
 
-        # Zsh completion
-        mkdir -p "$pkgdir/usr/share/zsh/site-functions"
-        target/release/dot completion zsh > "$pkgdir/usr/share/zsh/site-functions/_dot" 2>/dev/null || true
+    mkdir -p "$pkgdir/usr/share/zsh/site-functions"
+    ./target/release/dot completion zsh > "$pkgdir/usr/share/zsh/site-functions/_dot"
 
-        # Fish completion
-        mkdir -p "$pkgdir/usr/share/fish/vendor_completions.d"
-        target/release/dot completion fish > "$pkgdir/usr/share/fish/vendor_completions.d/dot.fish" 2>/dev/null || true
+    mkdir -p "$pkgdir/usr/share/fish/vendor_completions.d"
+    ./target/release/dot completion fish > "$pkgdir/usr/share/fish/vendor_completions.d/dot.fish"
 
-        # Generate man page
-        mkdir -p "$pkgdir/usr/share/man/man1"
-        target/release/dot --help | help2man -N -n "blazingly fast dotfiles manager" \
-            --version-string="$pkgver" -o "$pkgdir/usr/share/man/man1/dot.1" \
-            target/release/dot 2>/dev/null || true
-    fi
-
-    # Install examples if they exist
-    if [ -d "examples" ]; then
-        install -dm755 "$pkgdir/usr/share/doc/$pkgname/examples"
-        cp -r examples/* "$pkgdir/usr/share/doc/$pkgname/examples/"
-    fi
+    # Generate and install man page
+    mkdir -p "$pkgdir/usr/share/man/man1"
+    help2man --no-info --name="high-performance dotfiles manager" \
+        --version-string="$pkgver" ./target/release/dot > "$pkgdir/usr/share/man/man1/dot.1"
 }

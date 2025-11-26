@@ -1,29 +1,22 @@
 # Multi-stage Dockerfile for dotman
-FROM rustlang/rust:nightly-bookworm AS builder
+# Builds an optimized release binary in a Debian-based container
+#
+# Build: docker build -f containers/Dockerfile -t dotman:latest .
+# Run:   docker run --rm dotman:latest --version
+
+FROM rust:bookworm AS builder
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y \
-    pkg-config \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     help2man \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Create build directory
 WORKDIR /usr/src/app
 
-# Copy manifest files first
-COPY Cargo.toml Cargo.lock ./
-
-# Copy source code
-COPY src ./src
-
-# Copy tests
-COPY tests ./tests
-
-# Copy benches
-COPY benches ./benches
-
-# Copy README.md
-COPY README.md ./README.md
+# Copy source
+COPY . .
 
 # Build the application
 RUN cargo build --release --all-features
@@ -62,12 +55,13 @@ ENV DOTMAN_CONFIG_PATH=/home/app/.config/dotman/config
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD dot --version || exit 1
 
-CMD ["dot", "--help"]
+ENTRYPOINT ["/usr/local/bin/dot"]
+CMD ["--help"]
 
 # Metadata
 LABEL org.opencontainers.image.title="dotman"
 LABEL org.opencontainers.image.description="High-performance dotfiles manager"
-LABEL org.opencontainers.image.url="https://github.com/UtsavBalar1231/dotman-rs"
-LABEL org.opencontainers.image.source="https://github.com/UtsavBalar1231/dotman-rs"
+LABEL org.opencontainers.image.url="https://github.com/UtsavBalar1231/dotman"
+LABEL org.opencontainers.image.source="https://github.com/UtsavBalar1231/dotman"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.authors="UtsavBalar1231 <utsavbalar1231@gmail.com>"

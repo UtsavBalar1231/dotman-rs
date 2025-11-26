@@ -16,8 +16,8 @@
           inherit system overlays;
         };
 
-        # Use the Rust toolchain specified in the project
-        rustToolchain = pkgs.rust-bin.stable."1.70.0".default.override {
+        # Use stable Rust toolchain
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
           extensions = [ "rust-src" "clippy" "rustfmt" ];
         };
 
@@ -94,7 +94,7 @@
               - Git-like interface with familiar commands
               - Cross-platform support with architecture optimizations
             '';
-            homepage = "https://github.com/UtsavBalar1231/dotman-rs";
+            homepage = "https://github.com/UtsavBalar1231/dotman";
             license = licenses.mit;
             maintainers = [ "UtsavBalar1231" ];
             platforms = platforms.all;
