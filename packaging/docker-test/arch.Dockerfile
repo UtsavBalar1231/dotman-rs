@@ -39,8 +39,7 @@ RUN VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/'
 
 # Create local PKGBUILD for testing
 # Note: We use source=() and skip build() since we build from local copy
-RUN VERSION=$(cat /tmp/version) && \
-    cat > PKGBUILD << PKGBUILD_EOF
+RUN VERSION=$(cat /tmp/version) && cat > PKGBUILD << PKGBUILD_EOF
 # Maintainer: Utsav Balar <utsavbalar1231@gmail.com>
 
 pkgname=dotman

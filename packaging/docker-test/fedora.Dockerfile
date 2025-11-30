@@ -47,8 +47,7 @@ RUN VERSION=$(cat /tmp/version) && \
 RUN rpmdev-setuptree
 
 # Create simplified spec file that works without rust-packaging
-RUN VERSION=$(cat /tmp/version) && \
-    cat > ~/rpmbuild/SPECS/dotman.spec << 'SPEC_EOF'
+RUN VERSION=$(cat /tmp/version) && cat > ~/rpmbuild/SPECS/dotman.spec << 'SPEC_EOF'
 Name:           dotman
 Version:        VERSION_PLACEHOLDER
 Release:        1%{?dist}
