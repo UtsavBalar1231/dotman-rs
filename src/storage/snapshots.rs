@@ -288,9 +288,10 @@ impl SnapshotManager {
                     })?;
 
                 // Restore file permissions using cross-platform module
+                // SECURITY: Never allow dangerous bits on restore
                 let permissions =
                     crate::utils::permissions::FilePermissions::from_mode(snapshot_file.mode);
-                permissions.apply_to_path(&target_path, self.preserve_permissions)?;
+                permissions.apply_to_path(&target_path, self.preserve_permissions, false)?;
 
                 Ok(())
             })?;

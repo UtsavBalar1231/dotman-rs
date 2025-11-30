@@ -333,8 +333,11 @@ fn apply_stash(ctx: &DotmanContext, stash_id: Option<String>, is_pop: bool) -> R
                     // Set permissions using cross-platform module
                     let permissions =
                         crate::utils::permissions::FilePermissions::from_mode(stash_file.mode);
-                    permissions
-                        .apply_to_path(&abs_path, ctx.config.tracking.preserve_permissions)?;
+                    permissions.apply_to_path(
+                        &abs_path,
+                        ctx.config.tracking.preserve_permissions,
+                        false,
+                    )?;
 
                     applied += 1;
                 }

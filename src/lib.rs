@@ -339,4 +339,99 @@ impl DotmanContext {
             .context("Failed to create objects directory")?;
         Ok(())
     }
+
+    /// Validates a user-provided path against security policies.
+    ///
+    /// This method checks if the path is within the allowed directories
+    /// configured in the security settings. It expands tildes, canonicalizes
+    /// paths, and prevents path traversal attacks.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to validate
+    ///
+    /// # Returns
+    ///
+    /// The validated absolute path if successful.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The path is outside allowed directories (when enforcement is enabled)
+    /// - Path validation fails
+    /// - The path contains traversal patterns
+    ///
+    /// # Security
+    ///
+    /// This method is essential for preventing path traversal vulnerabilities.
+    /// It should be called by all commands that accept user-provided file paths.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use dotman::DotmanContext;
+    /// # fn main() -> anyhow::Result<()> {
+    /// let ctx = DotmanContext::new()?;
+    ///
+    /// // Validate a path before adding
+    /// let safe_path = ctx.validate_user_path(std::path::Path::new("~/.bashrc"))?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn validate_user_path(&self, path: &std::path::Path) -> Result<PathBuf> {
+        utils::paths::validate_path_security(
+            path,
+            &self.config.security.allowed_directories,
+            self.config.security.enforce_path_validation,
+        )
+    }
+
+    /// Validates and normalizes a user-provided path for storage.
+    ///
+    /// This method combines path validation with normalization, producing a
+    /// home-relative path that is safe to store in the index. It performs all
+    /// security checks and then converts the path to be relative to the home
+    /// directory.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to validate and normalize
+    ///
+    /// # Returns
+    ///
+    /// A validated path relative to the home directory.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Path validation fails (see [`validate_user_path`](Self::validate_user_path))
+    /// - Path normalization fails
+    /// - The home directory cannot be determined
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use dotman::DotmanContext;
+    /// # use dotman::commands::context::CommandContext;
+    /// # fn main() -> anyhow::Result<()> {
+    /// let ctx = DotmanContext::new()?;
+    ///
+    /// // Validate and normalize for storage
+    /// let relative_path = ctx.validate_and_normalize_user_path(
+    ///     std::path::Path::new("~/.bashrc")
+    /// )?;
+    /// // Returns ".bashrc" (relative to home)
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn validate_and_normalize_user_path(&self, path: &std::path::Path) -> Result<PathBuf> {
+        use crate::commands::context::CommandContext;
+        let home = self.get_home_dir()?;
+        utils::paths::validate_and_normalize_path(
+            path,
+            &home,
+            &self.config.security.allowed_directories,
+            self.config.security.enforce_path_validation,
+        )
+    }
 }

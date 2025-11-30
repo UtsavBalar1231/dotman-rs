@@ -19,6 +19,22 @@ mod add_command_tests {
         let repo_path = temp_dir.path().join(".dotman");
         let config_path = temp_dir.path().join(".config/dotman/config");
 
+        // Create config directory
+        if let Some(parent) = config_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        // Write test config with temp directory in allowed_directories
+        let config_content = format!(
+            r#"[security]
+allowed_directories = ["{}"]
+enforce_path_validation = true
+strip_dangerous_permissions = true
+"#,
+            temp_dir.path().display()
+        );
+        fs::write(&config_path, config_content)?;
+
         let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;
 
@@ -91,10 +107,18 @@ mod add_command_tests {
 
     #[test]
     fn test_add_nonexistent_file_with_force() -> Result<()> {
-        let (_temp_dir, ctx) = setup_test_repo()?;
+        let (temp_dir, ctx) = setup_test_repo()?;
 
-        // Should not error with force flag
-        let result = commands::add::execute(&ctx, &["/nonexistent/file.txt".into()], true, false);
+        // Use a nonexistent file in an existing directory (parent must exist for path validation)
+        let nonexistent_path = temp_dir.path().join("nonexistent_file.txt");
+
+        // Should not error with force flag (skips non-existent paths)
+        let result = commands::add::execute(
+            &ctx,
+            &[nonexistent_path.to_string_lossy().into()],
+            true,
+            false,
+        );
         assert!(result.is_ok());
 
         Ok(())
@@ -1314,6 +1338,22 @@ mod log_command_tests {
         let temp_dir = TempDir::new()?;
         let repo_path = temp_dir.path().join(".dotman");
         let config_path = temp_dir.path().join(".config/dotman/config");
+
+        // Create config directory
+        if let Some(parent) = config_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        // Write test config with temp directory in allowed_directories
+        let config_content = format!(
+            r#"[security]
+allowed_directories = ["{}"]
+enforce_path_validation = true
+strip_dangerous_permissions = true
+"#,
+            temp_dir.path().display()
+        );
+        fs::write(&config_path, config_content)?;
 
         let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
         ctx.ensure_repo_exists()?;

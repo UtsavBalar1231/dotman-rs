@@ -94,11 +94,96 @@ compression_level = 3  # 1-22 (default: 3)
 
 [tracking]
 ignore_patterns = [".git", "*.swp", "*.tmp", "node_modules"]
+
+[security]
+# Path validation (default: enforce with $HOME only)
+allowed_directories = ["/home/user"]
+enforce_path_validation = true
+
+# Permission sanitization (default: strip dangerous bits)
+strip_dangerous_permissions = true
+max_file_mode = 0o777
 ```
 
 **Environment variables:**
 - `DOTMAN_CONFIG_PATH` - Override config location
 - `DOTMAN_REPO_PATH` - Override repository location (default: `~/.dotman`)
+
+## Security
+
+Dotman includes built-in security features to prevent common attacks:
+
+### Path Traversal Protection
+
+Prevents tracking files outside allowed directories (default: `$HOME` only).
+
+```toml
+[security]
+# Allowed directories for tracking files
+allowed_directories = ["/home/user", "/opt/custom"]
+
+# Enforce path validation (default: true)
+enforce_path_validation = true
+```
+
+**What's blocked:**
+- `../../../etc/passwd` - Parent directory traversal
+- `/etc/shadow` - Absolute paths outside allowed directories
+- `~/../../../root` - Tilde bypass patterns
+- Symlinks pointing outside allowed directories
+
+**Error message example:**
+```
+Error: Path '/etc/passwd' is outside allowed directories.
+Allowed directories:
+  - /home/user
+
+To track files in additional directories, edit ~/.config/dotman/config
+```
+
+### Permission Sanitization
+
+Strips dangerous permission bits (setuid/setgid/sticky) from tracked files by default.
+
+```toml
+[security]
+# Strip dangerous permission bits when storing (default: true)
+strip_dangerous_permissions = true
+
+# Maximum allowed file mode (default: 0o777)
+max_file_mode = 0o777
+```
+
+**What's stripped:**
+- `setuid (0o4000)` - Set user ID on execution
+- `setgid (0o2000)` - Set group ID on execution
+- `sticky (0o1000)` - Sticky bit
+
+**Warning displayed when dangerous bits are stripped:**
+```
+Stripped dangerous permission bits from ~/.local/bin/script
+  Original: 0o4755
+  Sanitized: 0o755
+  Removed: setuid (0o4000)
+
+This is a security feature. Dangerous bits are stripped by default.
+To disable: Set strip_dangerous_permissions = false in ~/.config/dotman/config (NOT RECOMMENDED)
+```
+
+**Security guarantees:**
+- Dangerous bits are ALWAYS stripped on restore (even if disabled for storage)
+- Normal permissions (rwxrwxrwx) are fully preserved
+- Configuration allows opt-out for edge cases (with warnings)
+
+### Why These Defaults?
+
+**Path validation:** Prevents privilege escalation via unauthorized file access. Tracking `/etc/sudoers` or `/root/.ssh/authorized_keys` could allow attackers to gain root access when dotfiles are restored on a compromised system.
+
+**Permission stripping:** Prevents setuid/setgid exploits. A malicious dotfile with setuid bit could run as root, enabling privilege escalation attacks.
+
+### Migrating to 2.0.0
+
+See `SECURITY_MIGRATION.md` for upgrading from older versions.
 
 ## Repository Structure
 

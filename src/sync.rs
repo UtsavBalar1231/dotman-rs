@@ -120,7 +120,7 @@ impl<'a> Exporter<'a> {
 
             // Set file permissions using cross-platform module
             let permissions = crate::utils::permissions::FilePermissions::from_mode(file.mode);
-            permissions.apply_to_path(&target_path, self.preserve_permissions)?;
+            permissions.apply_to_path(&target_path, self.preserve_permissions, false)?;
 
             exported_files.push((path.clone(), relative_path.to_path_buf()));
         }
@@ -174,7 +174,7 @@ impl<'a> Exporter<'a> {
 
             // Set file permissions using cross-platform module
             let permissions = crate::utils::permissions::FilePermissions::from_mode(entry.mode);
-            permissions.apply_to_path(&target_path, self.preserve_permissions)?;
+            permissions.apply_to_path(&target_path, self.preserve_permissions, false)?;
 
             exported_files.push((path.clone(), relative_path.to_path_buf()));
         }
@@ -223,7 +223,7 @@ impl<'a> Importer<'a> {
     ) -> Result<crate::storage::FileEntry> {
         let metadata = fs::metadata(source_path)?;
         let mode = if preserve_permissions {
-            crate::utils::permissions::FilePermissions::from_path(source_path)?.mode()
+            crate::utils::permissions::FilePermissions::from_path(source_path, true)?.mode()
         } else {
             0o644
         };
@@ -300,8 +300,9 @@ impl<'a> Importer<'a> {
 
             // Copy permissions using cross-platform module
             if self.preserve_permissions {
-                let permissions = crate::utils::permissions::FilePermissions::from_path(path)?;
-                permissions.apply_to_path(&target_path, true)?;
+                let permissions =
+                    crate::utils::permissions::FilePermissions::from_path(path, true)?;
+                permissions.apply_to_path(&target_path, true, false)?;
             }
 
             let metadata = fs::metadata(&target_path)?;
@@ -321,7 +322,7 @@ impl<'a> Importer<'a> {
                 .unwrap_or(i64::MAX),
                 mode: {
                     let permissions =
-                        crate::utils::permissions::FilePermissions::from_path(&target_path)?;
+                        crate::utils::permissions::FilePermissions::from_path(&target_path, true)?;
                     permissions.mode()
                 },
                 cached_hash: None,
@@ -388,8 +389,9 @@ impl<'a> Importer<'a> {
                 fs::copy(path, &target_path)?;
 
                 if self.preserve_permissions {
-                    let permissions = crate::utils::permissions::FilePermissions::from_path(path)?;
-                    permissions.apply_to_path(&target_path, true)?;
+                    let permissions =
+                        crate::utils::permissions::FilePermissions::from_path(path, true)?;
+                    permissions.apply_to_path(&target_path, true, false)?;
                 }
 
                 let (target_hash, _) = crate::storage::file_ops::hash_file(&target_path, None)?;

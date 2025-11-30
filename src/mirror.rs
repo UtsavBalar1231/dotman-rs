@@ -398,8 +398,8 @@ impl GitMirror {
                 // Preserve file permissions using cross-platform module
                 if self.config.tracking.preserve_permissions {
                     let permissions =
-                        crate::utils::permissions::FilePermissions::from_path(source_path)?;
-                    permissions.apply_to_path(&dest_path, true)?;
+                        crate::utils::permissions::FilePermissions::from_path(source_path, true)?;
+                    permissions.apply_to_path(&dest_path, true, false)?;
                 }
             }
         }

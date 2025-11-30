@@ -89,7 +89,11 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
             // Restore file permissions using cross-platform module
             let permissions =
                 crate::utils::permissions::FilePermissions::from_mode(snapshot_file.mode);
-            permissions.apply_to_path(&target_path, ctx.config.tracking.preserve_permissions)?;
+            permissions.apply_to_path(
+                &target_path,
+                ctx.config.tracking.preserve_permissions,
+                false,
+            )?;
 
             println!("  {} {}", "✓".green(), target_path.display());
             restored_count += 1;

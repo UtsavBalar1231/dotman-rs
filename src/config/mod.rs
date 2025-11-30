@@ -8,6 +8,7 @@
 //! - Performance tuning options
 //! - File tracking and ignore patterns
 //! - User identity configuration
+//! - Security and path validation settings
 //!
 //! # Configuration File Location
 //!
@@ -33,6 +34,11 @@
 //! ignore_patterns = [".git", "*.swp"]
 //! follow_symlinks = false
 //! preserve_permissions = true
+//!
+//! [security]
+//! allowed_directories = ["~"]
+//! enforce_path_validation = true
+//! strip_dangerous_permissions = true
 //! ```
 //!
 //! # Examples
@@ -108,6 +114,10 @@ pub struct Config {
     /// Diff command configuration.
     #[serde(default)]
     pub diff: DiffConfig,
+
+    /// Security and path validation settings.
+    #[serde(default)]
+    pub security: SecurityConfig,
 }
 
 /// Core dotman configuration settings.
@@ -318,6 +328,52 @@ impl Default for DiffConfig {
             context: 3,    // 3 lines of context
             algorithm: DiffAlgorithm::Myers,
             color: true, // Colorize by default
+        }
+    }
+}
+
+/// Security and path validation configuration.
+///
+/// Controls security features including path validation and permission sanitization.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityConfig {
+    /// Allowed base directories for file tracking.
+    ///
+    /// Default: `[$HOME]` only. Paths outside these directories will be rejected
+    /// when `enforce_path_validation` is enabled.
+    #[serde(default = "default_allowed_directories")]
+    pub allowed_directories: Vec<PathBuf>,
+
+    /// Enforce strict path validation (reject paths outside allowed directories).
+    ///
+    /// Default: `true`. When enabled, dotman will reject attempts to track files
+    /// outside the allowed directories, preventing path traversal attacks.
+    #[serde(default = "default_enforce_path_validation")]
+    pub enforce_path_validation: bool,
+
+    /// Strip dangerous permission bits (setuid/setgid/sticky).
+    ///
+    /// Default: `true`. When enabled, dangerous permission bits (0o4000, 0o2000, 0o1000)
+    /// are automatically stripped when storing files, preventing privilege escalation
+    /// attacks when files are restored.
+    #[serde(default = "default_strip_dangerous_permissions")]
+    pub strip_dangerous_permissions: bool,
+
+    /// Maximum allowed file mode (for manual override).
+    ///
+    /// Default: `0o777` (rwxrwxrwx). Files with permission bits exceeding this mask
+    /// will have the excess bits stripped.
+    #[serde(default = "default_max_file_mode")]
+    pub max_file_mode: u32,
+}
+
+impl Default for SecurityConfig {
+    fn default() -> Self {
+        Self {
+            allowed_directories: default_allowed_directories(),
+            enforce_path_validation: default_enforce_path_validation(),
+            strip_dangerous_permissions: default_strip_dangerous_permissions(),
+            max_file_mode: default_max_file_mode(),
         }
     }
 }
@@ -690,4 +746,53 @@ const fn default_use_hard_links() -> bool {
 /// `104_857_600` (100 MB) - Files larger than 100 MB are considered large.
 const fn default_large_file_threshold() -> u64 {
     100 * 1024 * 1024 // 100 MB
+}
+
+/// Returns the default allowed directories for path validation.
+///
+/// This function is used by serde as the default value provider for the
+/// allowed directories configuration field.
+///
+/// # Returns
+///
+/// A vector containing only the user's home directory. If the home directory
+/// cannot be determined, falls back to `/home` as a safe default.
+fn default_allowed_directories() -> Vec<PathBuf> {
+    vec![dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home"))]
+}
+
+/// Returns the default setting for path validation enforcement.
+///
+/// This function is used by serde as the default value provider for the
+/// `enforce_path_validation` configuration field.
+///
+/// # Returns
+///
+/// `true` - Path validation is enabled by default for security.
+const fn default_enforce_path_validation() -> bool {
+    true
+}
+
+/// Returns the default setting for stripping dangerous permission bits.
+///
+/// This function is used by serde as the default value provider for the
+/// `strip_dangerous_permissions` configuration field.
+///
+/// # Returns
+///
+/// `true` - Dangerous permission bits are stripped by default for security.
+const fn default_strip_dangerous_permissions() -> bool {
+    true
+}
+
+/// Returns the default maximum file mode.
+///
+/// This function is used by serde as the default value provider for the
+/// `max_file_mode` configuration field.
+///
+/// # Returns
+///
+/// `0o777` - Only standard rwxrwxrwx permissions are allowed by default.
+const fn default_max_file_mode() -> u32 {
+    0o777
 }

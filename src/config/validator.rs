@@ -42,6 +42,29 @@ impl ConfigValidator {
         known_fields.insert("tracking.preserve_permissions".to_string());
         known_fields.insert("tracking.large_file_threshold".to_string());
 
+        // Security fields
+        known_fields.insert("security.allowed_directories".to_string());
+        known_fields.insert("security.enforce_path_validation".to_string());
+        known_fields.insert("security.strip_dangerous_permissions".to_string());
+        known_fields.insert("security.max_file_mode".to_string());
+
+        // Pager fields
+        known_fields.insert("pager.diff".to_string());
+        known_fields.insert("pager.log".to_string());
+        known_fields.insert("pager.show".to_string());
+        known_fields.insert("pager.branch".to_string());
+        known_fields.insert("pager.status".to_string());
+        known_fields.insert("pager.diff_pager".to_string());
+        known_fields.insert("pager.log_pager".to_string());
+        known_fields.insert("pager.auto".to_string());
+        known_fields.insert("pager.min_lines".to_string());
+
+        // Diff fields
+        known_fields.insert("diff.unified".to_string());
+        known_fields.insert("diff.context".to_string());
+        known_fields.insert("diff.algorithm".to_string());
+        known_fields.insert("diff.color".to_string());
+
         // Branch fields
         deprecated_fields.insert("branches.current".to_string());
         // Dynamic branch tracking fields are handled separately

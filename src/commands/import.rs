@@ -335,8 +335,8 @@ fn import_file(source: &Path, target: &Path) -> Result<()> {
     // Preserve permissions using cross-platform module
     // Note: We use a local config check since we don't have ctx here
     // In the future, this function should accept preserve_permissions as a parameter
-    let permissions = crate::utils::permissions::FilePermissions::from_path(source)?;
-    permissions.apply_to_path(target, true)?;
+    let permissions = crate::utils::permissions::FilePermissions::from_path(source, true)?;
+    permissions.apply_to_path(target, true, false)?;
 
     Ok(())
 }

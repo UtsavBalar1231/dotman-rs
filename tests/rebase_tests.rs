@@ -12,6 +12,22 @@ fn setup_test_context() -> Result<(TempDir, TempDir, DotmanContext)> {
     let repo_path = temp_dir.path().join(".dotman");
     let config_path = temp_dir.path().join(".config/dotman/config");
 
+    // Create config directory
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    // Write test config with temp directory in allowed_directories
+    let config_content = format!(
+        r#"[security]
+allowed_directories = ["{}"]
+enforce_path_validation = true
+strip_dangerous_permissions = true
+"#,
+        temp_dir.path().display()
+    );
+    fs::write(&config_path, config_content)?;
+
     let ctx = DotmanContext::new_explicit(repo_path, config_path)?;
     ctx.ensure_repo_exists()?;
 

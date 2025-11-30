@@ -265,6 +265,7 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
 fn stage_all_tracked_files(ctx: &DotmanContext, index: &mut Index) -> Result<()> {
     let home = ctx.get_home_dir()?;
     let mut staged = 0;
+    let strip_dangerous_perms = ctx.config.security.strip_dangerous_permissions;
 
     // Load files from HEAD snapshot if it exists
     let resolver = ctx.create_ref_resolver();
@@ -275,9 +276,12 @@ fn stage_all_tracked_files(ctx: &DotmanContext, index: &mut Index) -> Result<()>
                 let abs_path = home.join(&path);
                 if abs_path.exists() {
                     // Create new entry with current file state
-                    if let Ok(entry) =
-                        crate::commands::add::create_file_entry(&abs_path, &home, None)
-                    {
+                    if let Ok(entry) = crate::commands::add::create_file_entry(
+                        &abs_path,
+                        &home,
+                        None,
+                        strip_dangerous_perms,
+                    ) {
                         index.stage_entry(entry);
                         staged += 1;
                     }

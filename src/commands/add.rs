@@ -94,6 +94,9 @@ fn execute_add_all(ctx: &DotmanContext) -> Result<()> {
     let index = ctx.load_concurrent_index()?;
     let home = ctx.get_home_dir()?;
 
+    // Extract security settings for permission sanitization
+    let strip_dangerous_perms = ctx.config.security.strip_dangerous_permissions;
+
     // Load committed files from HEAD snapshot
     let committed_files = load_committed_files(ctx)?;
 
@@ -140,7 +143,8 @@ fn execute_add_all(ctx: &DotmanContext) -> Result<()> {
         .par_iter()
         .enumerate()
         .map(|(i, (path, cached_hash))| {
-            let result = create_file_entry(path, &home, cached_hash.as_ref());
+            let result =
+                create_file_entry(path, &home, cached_hash.as_ref(), strip_dangerous_perms);
             if let Ok(mut p) = progress_clone.lock() {
                 p.update(i + 1);
             }
@@ -236,11 +240,17 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
     // Extract threshold once to avoid recreating context for every file
     let large_file_threshold = ctx.config.tracking.large_file_threshold;
 
+    // Extract security settings for permission sanitization
+    let strip_dangerous_perms = ctx.config.security.strip_dangerous_permissions;
+
     let mut files_to_add = Vec::new();
     let home = ctx.get_home_dir()?;
 
     for path_str in paths {
         let path = expand_tilde(path_str)?;
+
+        // Validate path security (prevent path traversal attacks)
+        let path = ctx.validate_user_path(&path)?;
 
         if !path.exists() {
             if !force {
@@ -299,7 +309,8 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
                 .as_ref()
                 .and_then(|rp| index.get_staged_entry(rp))
                 .and_then(|e| e.cached_hash);
-            let result = create_file_entry(path, &home, cached_hash.as_ref());
+            let result =
+                create_file_entry(path, &home, cached_hash.as_ref(), strip_dangerous_perms);
             if let Ok(mut p) = progress_clone.lock() {
                 p.update(i + 1);
             }
@@ -516,7 +527,7 @@ fn check_file_size(path: &Path, metadata: &std::fs::Metadata, threshold: u64) {
 /// # fn main() -> anyhow::Result<()> {
 /// let path = PathBuf::from("/home/user/.bashrc");
 /// let home = PathBuf::from("/home/user");
-/// let entry = create_file_entry(&path, &home, None)?;
+/// let entry = create_file_entry(&path, &home, None, true)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -524,6 +535,7 @@ pub fn create_file_entry(
     path: &Path,
     home: &Path,
     cached_hash: Option<&CachedHash>,
+    strip_dangerous_perms: bool,
 ) -> Result<FileEntry> {
     let metadata = std::fs::metadata(path)
         .with_context(|| format!("Failed to get metadata for: {}", path.display()))?;
@@ -541,9 +553,32 @@ pub fn create_file_entry(
     )
     .context("File modification time too large")?;
 
-    // Use the cross-platform permissions module
-    let permissions = crate::utils::permissions::FilePermissions::from_path(path)?;
+    // Read permissions from file
+    // Check for dangerous bits BEFORE stripping (for warning)
+    let original_permissions = crate::utils::permissions::FilePermissions::from_path(path, false)?;
+    let has_dangerous = original_permissions.has_dangerous_bits();
+
+    // Get sanitized permissions
+    let permissions =
+        crate::utils::permissions::FilePermissions::from_path(path, strip_dangerous_perms)?;
     let mode = permissions.mode();
+
+    // Warn if dangerous bits were stripped
+    if strip_dangerous_perms && has_dangerous {
+        let dangerous_bits = original_permissions.get_dangerous_bits();
+        crate::output::warning(&format!(
+            "Stripped dangerous permission bits from {}\n  \
+            Original: 0o{:o}\n  \
+            Sanitized: 0o{:o}\n  \
+            Removed: {}\n\n\
+            This is a security feature. Dangerous bits are stripped by default.\n\
+            To disable: Set strip_dangerous_permissions = false in ~/.config/dotman/config (NOT RECOMMENDED)",
+            path.display(),
+            original_permissions.mode(),
+            mode,
+            dangerous_bits.join(", ")
+        ));
+    }
 
     let relative_path = make_relative(path, home)
         .with_context(|| format!("Failed to make path relative: {}", path.display()))?;

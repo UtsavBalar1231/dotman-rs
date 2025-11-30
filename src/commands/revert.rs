@@ -352,7 +352,11 @@ fn apply_revert_changes(
 
                 // Set file permissions using cross-platform module
                 let permissions = crate::utils::permissions::FilePermissions::from_mode(*mode);
-                permissions.apply_to_path(&abs_path, ctx.config.tracking.preserve_permissions)?;
+                permissions.apply_to_path(
+                    &abs_path,
+                    ctx.config.tracking.preserve_permissions,
+                    false,
+                )?;
 
                 // Calculate new hash for index
                 let (new_hash, _cache) = crate::storage::file_ops::hash_file(&abs_path, None)?;
