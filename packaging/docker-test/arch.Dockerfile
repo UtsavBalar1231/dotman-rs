@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Arch Linux packaging test environment
 # Tests PKGBUILD package building and installation
 #
@@ -39,7 +40,11 @@ RUN VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/'
 
 # Create local PKGBUILD for testing
 # Note: We use source=() and skip build() since we build from local copy
-RUN VERSION=$(cat /tmp/version) && cat > PKGBUILD << PKGBUILD_EOF
+RUN <<PKGBUILD_SCRIPT
+#!/bin/bash
+set -e
+VERSION=$(cat /tmp/version)
+cat > PKGBUILD <<PKGBUILD_EOF
 # Maintainer: Utsav Balar <utsavbalar1231@gmail.com>
 
 pkgname=dotman
@@ -90,6 +95,7 @@ package() {
         --version-string="\${pkgver}" ./target/release/dot > "\${pkgdir}/usr/share/man/man1/dot.1"
 }
 PKGBUILD_EOF
+PKGBUILD_SCRIPT
 
 # Build package using makepkg
 RUN makepkg -sf --noconfirm

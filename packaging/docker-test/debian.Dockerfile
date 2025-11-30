@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Debian packaging test environment
 # Tests .deb package building and installation
 #
@@ -78,11 +79,14 @@ RUN . /tmp/pkg_env && \
     gzip -9 "${PKG_DIR}/usr/share/man/man1/dot.1"
 
 # Create control file
-RUN . /tmp/pkg_env && \
-    VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/') && \
-    ARCH=$(dpkg --print-architecture) && \
-    INSTALLED_SIZE=$(du -sk "${PKG_DIR}" | cut -f1) && \
-    cat > "${PKG_DIR}/DEBIAN/control" << EOF
+RUN <<CONTROL_SCRIPT
+#!/bin/bash
+set -e
+. /tmp/pkg_env
+VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+ARCH=$(dpkg --print-architecture)
+INSTALLED_SIZE=$(du -sk "${PKG_DIR}" | cut -f1)
+cat > "${PKG_DIR}/DEBIAN/control" <<EOF
 Package: dotman
 Version: ${VERSION}-1
 Section: utils
@@ -104,6 +108,7 @@ Description: High-performance dotfiles manager with git-like semantics
   - Content-addressed storage with deduplication
   - Zstd compression
 EOF
+CONTROL_SCRIPT
 
 # Build the package
 RUN . /tmp/pkg_env && \

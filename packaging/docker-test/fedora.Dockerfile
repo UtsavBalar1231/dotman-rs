@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Fedora/RPM packaging test environment
 # Tests .rpm package building and installation
 #
@@ -47,7 +48,11 @@ RUN VERSION=$(cat /tmp/version) && \
 RUN rpmdev-setuptree
 
 # Create simplified spec file that works without rust-packaging
-RUN VERSION=$(cat /tmp/version) && cat > ~/rpmbuild/SPECS/dotman.spec << 'SPEC_EOF'
+RUN <<SPEC_SCRIPT
+#!/bin/bash
+set -e
+VERSION=$(cat /tmp/version)
+cat > ~/rpmbuild/SPECS/dotman.spec <<'SPEC_EOF'
 Name:           dotman
 Version:        VERSION_PLACEHOLDER
 Release:        1%{?dist}
@@ -105,6 +110,7 @@ install -Dm644 /build/dot.1 %{buildroot}%{_mandir}/man1/dot.1
 * %(date "+%a %b %d %Y") Utsav Balar <utsavbalar1231@gmail.com> - VERSION_PLACEHOLDER-1
 - Package built for testing
 SPEC_EOF
+SPEC_SCRIPT
 
 # Update version in spec
 RUN VERSION=$(cat /tmp/version) && \
