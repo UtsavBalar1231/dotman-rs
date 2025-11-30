@@ -144,13 +144,18 @@ fn run() -> Result<()> {
             commit,
             no_edit,
             force,
+            dry_run,
         } => {
             let ctx = context.context("Context not initialized for revert command")?;
-            commands::revert::execute(&ctx, &commit, no_edit, force)?;
+            commands::revert::execute(&ctx, &commit, no_edit, force, dry_run)?;
         }
-        Commands::Restore { paths, source } => {
+        Commands::Restore {
+            paths,
+            source,
+            dry_run,
+        } => {
             let ctx = context.context("Context not initialized for restore command")?;
-            commands::restore::execute(&ctx, &paths, Some(&source))?;
+            commands::restore::execute(&ctx, &paths, Some(&source), dry_run)?;
         }
         Commands::Fetch {
             remote,
@@ -166,9 +171,10 @@ fn run() -> Result<()> {
             no_ff,
             squash,
             message,
+            dry_run,
         } => {
             let ctx = context.context("Context not initialized for merge command")?;
-            commands::merge::execute(&ctx, &branch, no_ff, squash, message.as_deref())?;
+            commands::merge::execute(&ctx, &branch, no_ff, squash, message.as_deref(), dry_run)?;
         }
         Commands::Rebase {
             upstream,

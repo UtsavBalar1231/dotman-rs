@@ -1225,7 +1225,7 @@ mod restore_command_tests {
         fs::write(&test_file, "modified")?;
 
         // Restore it
-        commands::restore::execute(&ctx, &[test_file.to_string_lossy().into()], None)?;
+        commands::restore::execute(&ctx, &[test_file.to_string_lossy().into()], None, false)?;
 
         // File should be back to original
         let content = fs::read_to_string(&test_file)?;
@@ -1249,7 +1249,7 @@ mod restore_command_tests {
         commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
         // Restore from HEAD (should restore to "original")
-        commands::restore::execute(&ctx, &[test_file.to_string_lossy().into()], None)?;
+        commands::restore::execute(&ctx, &[test_file.to_string_lossy().into()], None, false)?;
 
         // File should be restored to original content
         let content = fs::read_to_string(&test_file)?;
@@ -1272,7 +1272,7 @@ mod restore_command_tests {
         fs::remove_file(&test_file)?;
 
         // Restore it
-        commands::restore::execute(&ctx, &[test_file.to_string_lossy().into()], None)?;
+        commands::restore::execute(&ctx, &[test_file.to_string_lossy().into()], None, false)?;
 
         // File should exist again
         assert!(test_file.exists());

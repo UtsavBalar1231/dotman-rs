@@ -498,7 +498,7 @@ fn test_add_commit_restore_strips_dangerous_permissions() -> Result<()> {
     // Restore from commit (should restore with safe permissions only)
     let resolver = ctx.create_ref_resolver();
     let commit_id = resolver.resolve("HEAD")?;
-    dotman::commands::restore::execute(&ctx, &[test_file_str], Some(&commit_id))?;
+    dotman::commands::restore::execute(&ctx, &[test_file_str], Some(&commit_id), false)?;
 
     // Verify restored permissions are safe
     let metadata = fs::metadata(&test_file)?;
@@ -536,7 +536,7 @@ fn test_normal_permissions_preserved_through_cycle() -> Result<()> {
     // Restore from commit
     let resolver = ctx.create_ref_resolver();
     let commit_id = resolver.resolve("HEAD")?;
-    dotman::commands::restore::execute(&ctx, &[test_file_str], Some(&commit_id))?;
+    dotman::commands::restore::execute(&ctx, &[test_file_str], Some(&commit_id), false)?;
 
     // Verify normal permissions are preserved
     let metadata = fs::metadata(&test_file)?;

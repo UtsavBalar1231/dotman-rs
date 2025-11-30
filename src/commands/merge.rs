@@ -33,6 +33,7 @@ pub fn execute(
     no_ff: bool,
     squash: bool,
     message: Option<&str>,
+    dry_run: bool,
 ) -> Result<()> {
     ctx.check_repo_initialized()?;
 
@@ -72,6 +73,11 @@ pub fn execute(
 
     if can_fast_forward && !no_ff && !squash {
         // Fast-forward merge
+        if dry_run {
+            preview_fast_forward(&target_commit, &snapshot_manager)?;
+            return Ok(());
+        }
+
         output::info(&format!(
             "Fast-forwarding to {}",
             target_commit[..8.min(target_commit.len())].yellow()
@@ -98,9 +104,23 @@ pub fn execute(
     } else {
         // Three-way merge or squash merge
         if squash {
-            perform_squash_merge(ctx, &current_commit, &target_commit, branch, message)?;
+            perform_squash_merge(
+                ctx,
+                &current_commit,
+                &target_commit,
+                branch,
+                message,
+                dry_run,
+            )?;
         } else {
-            perform_three_way_merge(ctx, &current_commit, &target_commit, branch, message)?;
+            perform_three_way_merge(
+                ctx,
+                &current_commit,
+                &target_commit,
+                branch,
+                message,
+                dry_run,
+            )?;
         }
     }
 
@@ -283,6 +303,7 @@ fn perform_three_way_merge(
     target_commit: &str,
     branch: &str,
     message: Option<&str>,
+    dry_run: bool,
 ) -> Result<()> {
     output::info(&format!("Merging {} into current branch", branch.yellow()));
 
@@ -356,6 +377,11 @@ fn perform_three_way_merge(
             println!("  {} {}", "conflict:".red(), path.display());
         }
         output::info("Conflicts were auto-resolved by taking the incoming version");
+    }
+
+    if dry_run {
+        preview_three_way_merge(branch, &merged_files, &conflicts);
+        return Ok(());
     }
 
     // Create merge commit
@@ -469,6 +495,7 @@ fn perform_squash_merge(
     target_commit: &str,
     branch: &str,
     message: Option<&str>,
+    dry_run: bool,
 ) -> Result<()> {
     output::info(&format!(
         "Squash merging {} into current branch",
@@ -480,6 +507,11 @@ fn perform_squash_merge(
 
     // Load target snapshot
     let target_snapshot = snapshot_manager.load_snapshot(target_commit)?;
+
+    if dry_run {
+        preview_squash_merge(branch, &target_snapshot, message);
+        return Ok(());
+    }
 
     // Apply changes to index but don't commit
     let mut index = Index::load(&ctx.repo_path.join(crate::INDEX_FILE))?;
@@ -676,4 +708,91 @@ pub fn execute_merge_abort(ctx: &DotmanContext) -> Result<()> {
     output::success("Merge aborted. Repository restored to pre-merge state.");
 
     Ok(())
+}
+
+/// Preview a fast-forward merge
+fn preview_fast_forward(target_commit: &str, snapshot_manager: &SnapshotManager) -> Result<()> {
+    let snapshot = snapshot_manager.load_snapshot(target_commit)?;
+
+    println!(
+        "\n{}",
+        "Dry run - would fast-forward merge:".yellow().bold()
+    );
+    println!(
+        "  {} Target: commit {}",
+        "→".dimmed(),
+        target_commit[..8].yellow()
+    );
+    println!(
+        "  {} Commit message: \"{}\"",
+        "→".dimmed(),
+        snapshot.commit.message
+    );
+    println!(
+        "  {} {} file(s) would be updated",
+        "→".dimmed(),
+        snapshot.files.len()
+    );
+    println!("\n{}", "Run without --dry-run to execute".dimmed());
+
+    Ok(())
+}
+
+/// Preview a three-way merge
+fn preview_three_way_merge(
+    branch: &str,
+    merged_files: &HashMap<std::path::PathBuf, crate::storage::snapshots::SnapshotFile>,
+    conflicts: &[std::path::PathBuf],
+) {
+    println!(
+        "\n{}",
+        "Dry run - would create merge commit:".yellow().bold()
+    );
+    println!("  {} Merging branch '{}'", "→".dimmed(), branch.yellow());
+    println!(
+        "  {} {} file(s) would be in merge commit",
+        "→".dimmed(),
+        merged_files.len()
+    );
+
+    if conflicts.is_empty() {
+        println!("  {} No conflicts detected", "✓".green());
+    } else {
+        println!(
+            "  {} {} conflict(s) detected:",
+            "⚠".yellow(),
+            conflicts.len()
+        );
+        for path in conflicts {
+            println!("    {} {}", "conflict:".red(), path.display());
+        }
+        println!(
+            "  {} Conflicts would be auto-resolved (incoming version)",
+            "→".dimmed()
+        );
+    }
+
+    println!("\n{}", "Run without --dry-run to execute".dimmed());
+}
+
+/// Preview a squash merge
+fn preview_squash_merge(
+    branch: &str,
+    target_snapshot: &crate::storage::snapshots::Snapshot,
+    message: Option<&str>,
+) {
+    println!("\n{}", "Dry run - would squash merge:".yellow().bold());
+    println!("  {} Branch: '{}'", "→".dimmed(), branch.yellow());
+    println!(
+        "  {} {} file(s) would be staged",
+        "→".dimmed(),
+        target_snapshot.files.len()
+    );
+    println!(
+        "  {} Suggested commit message: \"{}\"",
+        "→".dimmed(),
+        message.unwrap_or(&format!("Squashed commit from {branch}"))
+    );
+    println!("  {} Changes would be staged (not committed)", "→".dimmed());
+    println!("\n{}", "Run without --dry-run to execute".dimmed());
 }

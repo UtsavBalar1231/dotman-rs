@@ -67,7 +67,13 @@ fn compare_file_collections(
 /// - The specified commit cannot be resolved
 /// - The revert operation creates conflicts
 /// - Commit creation fails
-pub fn execute(ctx: &DotmanContext, commit_ref: &str, _no_edit: bool, force: bool) -> Result<()> {
+pub fn execute(
+    ctx: &DotmanContext,
+    commit_ref: &str,
+    _no_edit: bool,
+    force: bool,
+    dry_run: bool,
+) -> Result<()> {
     ctx.check_repo_initialized()?;
 
     if !force {
@@ -117,6 +123,11 @@ pub fn execute(ctx: &DotmanContext, commit_ref: &str, _no_edit: bool, force: boo
 
     // Show what will be reverted
     display_revert_summary(&changes_to_revert);
+
+    if dry_run {
+        println!("{}", "\nRun without --dry-run to execute".dimmed());
+        return Ok(());
+    }
 
     // Apply the inverse changes to the working directory and index
     apply_revert_changes(ctx, &changes_to_revert, &snapshot_manager)?;

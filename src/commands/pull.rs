@@ -426,6 +426,7 @@ fn pull_from_git(
                 no_ff,
                 squash,
                 None,
+                false,
             )?;
         } else if is_fast_forward {
             output::info("Fast-forwarding...");
@@ -444,6 +445,7 @@ fn pull_from_git(
                 false,
                 false,
                 None,
+                false,
             )?;
         }
     }

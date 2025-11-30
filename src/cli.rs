@@ -134,6 +134,10 @@ pub enum Commands {
         /// Allow reverting when there are uncommitted changes
         #[arg(short, long)]
         force: bool,
+
+        /// Show what would happen without making changes
+        #[arg(long)]
+        dry_run: bool,
     },
 
     /// Restore specific files from a commit
@@ -144,6 +148,10 @@ pub enum Commands {
         /// Source commit to restore from
         #[arg(short, long, default_value = "HEAD")]
         source: String,
+
+        /// Show what would happen without making changes
+        #[arg(long)]
+        dry_run: bool,
     },
 
     /// Update remote refs along with associated objects
@@ -200,6 +208,10 @@ pub enum Commands {
 
         #[arg(short, long)]
         message: Option<String>,
+
+        /// Show what would happen without making changes
+        #[arg(long)]
+        dry_run: bool,
     },
 
     /// Reapply commits on top of another base

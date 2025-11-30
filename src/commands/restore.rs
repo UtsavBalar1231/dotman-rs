@@ -16,7 +16,12 @@ use std::path::PathBuf;
 /// - The source reference cannot be resolved
 /// - The specified commit does not exist
 /// - Failed to restore files
-pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> Result<()> {
+pub fn execute(
+    ctx: &DotmanContext,
+    paths: &[String],
+    source: Option<&str>,
+    dry_run: bool,
+) -> Result<()> {
     ctx.check_repo_initialized()?;
 
     if paths.is_empty() {
@@ -48,13 +53,18 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
         &commit_id
     };
 
+    // Get home directory as base for relative paths
+    let home = dirs::home_dir().context("Could not find home directory")?;
+
+    if dry_run {
+        preview_restore(&snapshot, paths, &home, display_commit);
+        return Ok(());
+    }
+
     output::info(&format!(
         "Restoring files from commit {}",
         display_commit.yellow()
     ));
-
-    // Get home directory as base for relative paths
-    let home = dirs::home_dir().context("Could not find home directory")?;
 
     let mut restored_count = 0;
     let mut not_found = Vec::new();
@@ -127,4 +137,66 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], source: Option<&str>) -> R
     }
 
     Ok(())
+}
+
+/// Preview what files would be restored
+fn preview_restore(
+    snapshot: &crate::storage::snapshots::Snapshot,
+    paths: &[String],
+    home: &std::path::Path,
+    display_commit: &str,
+) {
+    println!("\n{}", "Dry run - would restore:".yellow().bold());
+    println!(
+        "  {} Source: commit {}",
+        "→".dimmed(),
+        display_commit.yellow()
+    );
+
+    let mut would_restore = Vec::new();
+    let mut not_found = Vec::new();
+
+    for path_str in paths {
+        let path = PathBuf::from(path_str);
+        let relative_path = if path.is_absolute() {
+            path.strip_prefix(home).unwrap_or(&path).to_path_buf()
+        } else {
+            path.clone()
+        };
+
+        if snapshot.files.contains_key(&relative_path) {
+            let target_path = if path.is_absolute() {
+                path.clone()
+            } else {
+                home.join(&path)
+            };
+            would_restore.push(target_path);
+        } else {
+            not_found.push(path_str.clone());
+        }
+    }
+
+    if !would_restore.is_empty() {
+        println!(
+            "  {} {} file(s) would be restored:",
+            "→".dimmed(),
+            would_restore.len()
+        );
+        for path in &would_restore {
+            println!("    {} {}", "✓".green(), path.display());
+        }
+    }
+
+    if !not_found.is_empty() {
+        println!(
+            "  {} {} file(s) not found in commit:",
+            "⚠".yellow(),
+            not_found.len()
+        );
+        for path in &not_found {
+            println!("    {} {}", "✗".red(), path);
+        }
+    }
+
+    println!("\n{}", "Run without --dry-run to execute".dimmed());
 }
