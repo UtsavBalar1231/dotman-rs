@@ -24,13 +24,13 @@
 //! let ctx = DotmanContext::new()?;
 //!
 //! // Checkout a branch
-//! checkout::execute(&ctx, "main", false)?;
+//! checkout::execute(&ctx, "main", false, false)?;
 //!
 //! // Checkout a specific commit (detached HEAD)
-//! checkout::execute(&ctx, "abc123", false)?;
+//! checkout::execute(&ctx, "abc123", false, false)?;
 //!
 //! // Checkout with uncommitted changes (force)
-//! checkout::execute(&ctx, "main", true)?;
+//! checkout::execute(&ctx, "main", true, false)?;
 //! # Ok(())
 //! # }
 //! ```
