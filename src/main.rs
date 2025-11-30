@@ -100,6 +100,7 @@ fn run() -> Result<()> {
         Commands::Checkout {
             target,
             force,
+            dry_run,
             new_branch,
         } => {
             let ctx = context.context("Context not initialized for checkout command")?;
@@ -108,12 +109,12 @@ fn run() -> Result<()> {
                 // Create and checkout new branch (-b flag used)
                 let start_point = target.as_deref();
                 commands::branch::create(&ctx, &branch_name, start_point)?;
-                commands::checkout::execute(&ctx, &branch_name, force)?;
+                commands::checkout::execute(&ctx, &branch_name, force, dry_run)?;
             } else {
                 // Regular checkout (no -b flag)
                 let target_ref =
                     target.ok_or_else(|| anyhow::anyhow!("Target branch or commit required"))?;
-                commands::checkout::execute(&ctx, &target_ref, force)?;
+                commands::checkout::execute(&ctx, &target_ref, force, dry_run)?;
             }
         }
         Commands::Reset {
@@ -122,6 +123,7 @@ fn run() -> Result<()> {
             soft,
             mixed,
             keep,
+            dry_run,
             paths,
         } => {
             let ctx = context.context("Context not initialized for reset command")?;
@@ -133,6 +135,7 @@ fn run() -> Result<()> {
                     soft,
                     mixed,
                     keep,
+                    dry_run,
                 },
                 &paths,
             )?;
@@ -301,7 +304,7 @@ fn run() -> Result<()> {
             // Handle -b flag (shorthand for create + checkout)
             if let Some(branch_name) = new_branch {
                 commands::branch::create(&ctx, &branch_name, start_point.as_deref())?;
-                commands::checkout::execute(&ctx, &branch_name, false)?;
+                commands::checkout::execute(&ctx, &branch_name, false, false)?;
             } else {
                 // Regular branch subcommands
                 match action {

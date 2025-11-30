@@ -194,7 +194,7 @@ fn pull_from_git(
             &dotman_commit[..8]
         ));
 
-        crate::commands::checkout::execute(ctx, &dotman_commit, false)?;
+        crate::commands::checkout::execute(ctx, &dotman_commit, false, false)?;
 
         output::success(&format!(
             "Successfully pulled from {remote} ({branch}) - already up to date"
@@ -435,7 +435,7 @@ fn pull_from_git(
             }
             // Checkout to restore files from the pulled commit
             let target = current_branch.as_deref().unwrap_or(&final_commit_id);
-            crate::commands::checkout::execute(ctx, target, true)?;
+            crate::commands::checkout::execute(ctx, target, true, false)?;
         } else {
             output::info("Merging divergent histories...");
             crate::commands::merge::execute(

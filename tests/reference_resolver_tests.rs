@@ -683,7 +683,7 @@ strip_dangerous_permissions = true
 
         // Create feature branch
         commands::branch::create(&ctx, "feature", None)?;
-        commands::checkout::execute(&ctx, "feature", true)?; // Use force since we know the state is clean
+        commands::checkout::execute(&ctx, "feature", true, false)?; // Use force since we know the state is clean
 
         // Commit on feature branch
         let feature_file = temp_dir.path().join("feature.txt");
@@ -695,7 +695,7 @@ strip_dangerous_permissions = true
         let feature_commit = resolver.resolve("HEAD")?;
 
         // Switch back to main
-        commands::checkout::execute(&ctx, "main", true)?; // Use force since we know the state is clean
+        commands::checkout::execute(&ctx, "main", true, false)?; // Use force since we know the state is clean
 
         // Commit on main
         let main_file = temp_dir.path().join("main.txt");

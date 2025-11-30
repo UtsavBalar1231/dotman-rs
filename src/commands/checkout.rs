@@ -52,6 +52,7 @@ use std::io::IsTerminal;
 /// * `ctx` - The dotman context
 /// * `target` - Branch name, commit ID, or reference (e.g., `HEAD~1`)
 /// * `force` - If `true`, proceed even with uncommitted changes
+/// * `dry_run` - If `true`, show what would happen without making changes
 ///
 /// # Errors
 ///
@@ -60,10 +61,10 @@ use std::io::IsTerminal;
 /// - Working directory has uncommitted changes (unless forced)
 /// - Failed to resolve the target reference
 /// - Failed to load or restore the snapshot
-pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
+pub fn execute(ctx: &DotmanContext, target: &str, force: bool, dry_run: bool) -> Result<()> {
     ctx.check_repo_initialized()?;
 
-    if !force {
+    if !force && !dry_run {
         let status_output = check_working_directory_clean(ctx)?;
         if !status_output {
             return Err(anyhow::anyhow!(
@@ -75,6 +76,13 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
     let commit_id = resolve_target_ref(target, &ctx.repo_path)?;
 
     if commit_id == NULL_COMMIT_ID {
+        if dry_run {
+            println!("\n{}", "Dry run - would checkout:".yellow().bold());
+            println!("  {} Target: {}", "→".dimmed(), target);
+            println!("  {} No commits exist yet", "→".dimmed());
+            println!("\n{}", "Run without --dry-run to execute".dimmed());
+            return Ok(());
+        }
         return handle_null_commit(target, &ctx.repo_path);
     }
 
@@ -83,10 +91,15 @@ pub fn execute(ctx: &DotmanContext, target: &str, force: bool) -> Result<()> {
         .load_snapshot(&commit_id)
         .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
-    display_checkout_info(&commit_id);
-
     let home = dirs::home_dir().context("Could not find home directory")?;
     let current_files = get_current_tracked_files(&snapshot_manager, &ctx.repo_path, &home)?;
+
+    if dry_run {
+        preview_checkout(ctx, target, &commit_id, &snapshot, &home, &current_files);
+        return Ok(());
+    }
+
+    display_checkout_info(&commit_id);
 
     if !force {
         prompt_for_untracked_conflicts(ctx, &snapshot, &home, &current_files)?;
@@ -281,6 +294,77 @@ fn display_checkout_success(commit_id: &str, snapshot: &crate::storage::snapshot
 
     println!("  {}: {}", "Author".bold(), snapshot.commit.author);
     println!("  {}: {}", "Message".bold(), snapshot.commit.message);
+}
+
+/// Preview what would happen during checkout
+fn preview_checkout(
+    ctx: &DotmanContext,
+    target: &str,
+    commit_id: &str,
+    snapshot: &crate::storage::snapshots::Snapshot,
+    home: &std::path::Path,
+    current_files: &[std::path::PathBuf],
+) {
+    let ref_manager = RefManager::new(ctx.repo_path.clone());
+    let is_branch = ref_manager.branch_exists(target);
+
+    println!("\n{}", "Dry run - would checkout:".yellow().bold());
+    println!(
+        "  {} Target: {}",
+        "→".dimmed(),
+        if is_branch {
+            format!("branch '{target}'")
+        } else {
+            format!("commit {}", &commit_id[..8.min(commit_id.len())])
+        }
+    );
+
+    let mut files_to_restore = 0;
+    let mut files_to_delete = 0;
+
+    // Files that would be restored from snapshot
+    for path in snapshot.files.keys() {
+        let abs_path = home.join(path);
+        if abs_path.exists() || current_files.contains(&abs_path) {
+            files_to_restore += 1;
+        }
+    }
+
+    // Files that would be deleted (in current but not in target)
+    for current_file in current_files {
+        let rel_path = current_file.strip_prefix(home).unwrap_or(current_file);
+        if !snapshot.files.contains_key(&rel_path.to_path_buf()) {
+            files_to_delete += 1;
+        }
+    }
+
+    // Check for untracked file conflicts
+    let conflicts = detect_untracked_conflicts(snapshot, home, current_files);
+    let untracked_conflicts = conflicts.len();
+
+    println!(
+        "  {} {} file(s) would be restored",
+        "→".dimmed(),
+        files_to_restore
+    );
+    if files_to_delete > 0 {
+        println!(
+            "  {} {} file(s) would be deleted",
+            "→".dimmed(),
+            files_to_delete.to_string().red()
+        );
+    }
+    if untracked_conflicts > 0 {
+        println!(
+            "  {} {} {} untracked file(s) would be overwritten",
+            "⚠".yellow(),
+            "WARNING:".yellow().bold(),
+            untracked_conflicts.to_string().red()
+        );
+    }
+    println!("  {} Index would be cleared", "→".dimmed());
+
+    println!("\n{}", "Run without --dry-run to execute".dimmed());
 }
 
 /// Returns true if no modifications or staged changes exist

@@ -287,7 +287,7 @@ pub fn checkout(ctx: &DotmanContext, name: &str, force: bool) -> Result<()> {
 
     // Delegate to the checkout command which handles branch resolution,
     // working directory updates, and proper reflog entries
-    crate::commands::checkout::execute(ctx, name, force)?;
+    crate::commands::checkout::execute(ctx, name, force, false)?;
 
     Ok(())
 }

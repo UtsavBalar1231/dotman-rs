@@ -89,7 +89,7 @@ pub fn execute(
         }
 
         // Update working directory
-        crate::commands::checkout::execute(ctx, &target_commit, false)?;
+        crate::commands::checkout::execute(ctx, &target_commit, false, false)?;
 
         output::success(&format!(
             "Fast-forwarded to {}",
@@ -427,7 +427,7 @@ fn perform_three_way_merge(
 
     // Update working directory
     output::info("Updating working directory...");
-    crate::commands::checkout::execute(ctx, &commit_id, false)?;
+    crate::commands::checkout::execute(ctx, &commit_id, false, false)?;
 
     output::success(&format!(
         "Successfully merged '{}' into current branch",
@@ -665,7 +665,7 @@ pub fn execute_merge_abort(ctx: &DotmanContext) -> Result<()> {
     output::info("Restoring working directory to HEAD...");
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     if let Some(head_commit) = ref_manager.get_head_commit()? {
-        crate::commands::checkout::execute(ctx, &head_commit, false)?;
+        crate::commands::checkout::execute(ctx, &head_commit, false, false)?;
     }
 
     // Clear any staged changes from the merge

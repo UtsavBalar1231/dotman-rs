@@ -74,7 +74,7 @@ fn test_rebase_simple_linear() -> Result<()> {
 
     // Create a feature branch
     dotman::commands::branch::create(&ctx, "feature", None)?;
-    dotman::commands::checkout::execute(&ctx, "feature", false)?;
+    dotman::commands::checkout::execute(&ctx, "feature", false, false)?;
 
     // Make a commit on feature branch
     let file2 = home.join("test2.txt");
@@ -83,14 +83,14 @@ fn test_rebase_simple_linear() -> Result<()> {
     commit::execute(&ctx, "Feature commit", false)?;
 
     // Switch back to main and make another commit
-    dotman::commands::checkout::execute(&ctx, "main", true)?;
+    dotman::commands::checkout::execute(&ctx, "main", true, false)?;
     let file3 = home.join("test3.txt");
     create_test_file(&file3, "main content")?;
     add::execute(&ctx, &[file3.to_str().unwrap().to_string()], false, false)?;
     commit::execute(&ctx, "Main commit", false)?;
 
     // Switch back to feature and rebase onto main
-    dotman::commands::checkout::execute(&ctx, "feature", false)?;
+    dotman::commands::checkout::execute(&ctx, "feature", false, false)?;
     rebase::execute(&ctx, Some("main"), None, false, false, false)?;
 
     // Verify that feature branch now has all three files
@@ -120,19 +120,19 @@ fn test_rebase_abort_restores_state() -> Result<()> {
 
     // Create feature branch with a commit
     dotman::commands::branch::create(&ctx, "feature-abort", None)?;
-    dotman::commands::checkout::execute(&ctx, "feature-abort", false)?;
+    dotman::commands::checkout::execute(&ctx, "feature-abort", false, false)?;
     create_test_file(&file1, "feature change")?;
     add::execute(&ctx, &[file1.to_str().unwrap().to_string()], false, false)?;
     commit::execute(&ctx, "Feature change", false)?;
 
     // Switch to main and make conflicting change
-    dotman::commands::checkout::execute(&ctx, "main", true)?;
+    dotman::commands::checkout::execute(&ctx, "main", true, false)?;
     create_test_file(&file1, "main change")?;
     add::execute(&ctx, &[file1.to_str().unwrap().to_string()], false, false)?;
     commit::execute(&ctx, "Main change", false)?;
 
     // Switch back to feature and attempt rebase (should conflict)
-    dotman::commands::checkout::execute(&ctx, "feature-abort", false)?;
+    dotman::commands::checkout::execute(&ctx, "feature-abort", false, false)?;
     let rebase_result = rebase::execute(&ctx, Some("main"), None, false, false, false);
 
     // Rebase should fail with conflicts
@@ -165,7 +165,7 @@ fn test_rebase_already_up_to_date() -> Result<()> {
 
     // Create feature branch (no new commits)
     dotman::commands::branch::create(&ctx, "feature-uptodate", None)?;
-    dotman::commands::checkout::execute(&ctx, "feature-uptodate", false)?;
+    dotman::commands::checkout::execute(&ctx, "feature-uptodate", false, false)?;
 
     // Attempt rebase (should report up to date)
     let result = rebase::execute(&ctx, Some("main"), None, false, false, false);
@@ -193,7 +193,7 @@ fn test_rebase_skip_commit() -> Result<()> {
 
     // Create feature branch with two commits
     dotman::commands::branch::create(&ctx, "feature-skip", None)?;
-    dotman::commands::checkout::execute(&ctx, "feature-skip", false)?;
+    dotman::commands::checkout::execute(&ctx, "feature-skip", false, false)?;
 
     create_test_file(&file1, "feature change 1")?;
     add::execute(&ctx, &[file1.to_str().unwrap().to_string()], false, false)?;
@@ -205,13 +205,13 @@ fn test_rebase_skip_commit() -> Result<()> {
     commit::execute(&ctx, "Feature commit 2", false)?;
 
     // Switch to main and make conflicting change
-    dotman::commands::checkout::execute(&ctx, "main", true)?;
+    dotman::commands::checkout::execute(&ctx, "main", true, false)?;
     create_test_file(&file1, "main change")?;
     add::execute(&ctx, &[file1.to_str().unwrap().to_string()], false, false)?;
     commit::execute(&ctx, "Main change", false)?;
 
     // Switch back to feature and start rebase
-    dotman::commands::checkout::execute(&ctx, "feature-skip", false)?;
+    dotman::commands::checkout::execute(&ctx, "feature-skip", false, false)?;
     let rebase_result = rebase::execute(&ctx, Some("main"), None, false, false, false);
 
     // Should conflict on first commit
@@ -244,7 +244,7 @@ fn test_rebase_no_changes() -> Result<()> {
 
     // Create and checkout feature branch
     dotman::commands::branch::create(&ctx, "feature-nochange", None)?;
-    dotman::commands::checkout::execute(&ctx, "feature-nochange", false)?;
+    dotman::commands::checkout::execute(&ctx, "feature-nochange", false, false)?;
 
     // Rebase onto main (no commits to replay)
     let result = rebase::execute(&ctx, Some("main"), None, false, false, false);

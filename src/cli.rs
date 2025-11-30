@@ -86,6 +86,10 @@ pub enum Commands {
         #[arg(short, long)]
         force: bool,
 
+        /// Show what would happen without making changes
+        #[arg(long)]
+        dry_run: bool,
+
         /// Create a new branch and check it out
         #[arg(short = 'b', long = "branch")]
         new_branch: Option<String>,
@@ -108,6 +112,10 @@ pub enum Commands {
 
         #[arg(long)]
         keep: bool,
+
+        /// Show what would happen without making changes
+        #[arg(long)]
+        dry_run: bool,
 
         /// Files to reset
         #[arg(last = true)]

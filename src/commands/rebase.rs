@@ -130,7 +130,7 @@ pub fn execute_start(ctx: &DotmanContext, upstream: &str, branch: Option<&str>) 
             )?;
         }
         // Update working directory
-        crate::commands::checkout::execute(ctx, &onto_commit, false)?;
+        crate::commands::checkout::execute(ctx, &onto_commit, false, false)?;
         output::success(&format!(
             "Fast-forwarded to {}",
             format_commit_id(&onto_commit).yellow()
@@ -175,7 +175,7 @@ pub fn execute_start(ctx: &DotmanContext, upstream: &str, branch: Option<&str>) 
     )?;
 
     // Checkout onto commit to update working directory
-    crate::commands::checkout::execute(ctx, &onto_commit, true)?;
+    crate::commands::checkout::execute(ctx, &onto_commit, true, false)?;
 
     // Start replaying commits
     replay_commits(ctx, state)
@@ -290,7 +290,7 @@ pub fn execute_abort(ctx: &DotmanContext) -> Result<()> {
     }
 
     // Restore working directory (force to override conflict markers)
-    crate::commands::checkout::execute(ctx, &state.original_head, true)?;
+    crate::commands::checkout::execute(ctx, &state.original_head, true, false)?;
 
     // Clear rebase state
     RebaseState::clear(&ctx.repo_path)?;
@@ -321,7 +321,7 @@ pub fn execute_skip(ctx: &DotmanContext) -> Result<()> {
     // Restore working directory to HEAD (clean up conflict markers)
     let ref_manager = RefManager::new(ctx.repo_path.clone());
     if let Some(head) = ref_manager.get_head_commit()? {
-        crate::commands::checkout::execute(ctx, &head, true)?;
+        crate::commands::checkout::execute(ctx, &head, true, false)?;
     }
 
     // Move to next commit

@@ -538,7 +538,7 @@ fn reset_to_head(ctx: &DotmanContext) -> Result<()> {
     use crate::commands::checkout;
 
     // Use checkout to reset to HEAD
-    checkout::execute(ctx, "HEAD", true)?;
+    checkout::execute(ctx, "HEAD", true, false)?;
 
     Ok(())
 }

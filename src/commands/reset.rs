@@ -20,6 +20,8 @@ pub struct ResetOptions {
     pub mixed: bool,
     /// Keep reset: reset HEAD and index but keep working directory changes
     pub keep: bool,
+    /// Dry run: show what would happen without making changes
+    pub dry_run: bool,
 }
 
 /// Execute reset command - reset current HEAD to the specified state
@@ -69,26 +71,48 @@ pub fn execute(
         .with_context(|| format!("Failed to load commit: {commit_id}"))?;
 
     if options.hard {
-        // Hard reset: update index and working directory
-        output::info(&format!(
-            "Hard reset to commit {}",
-            commit_id[..8.min(commit_id.len())].yellow()
-        ));
+        if options.dry_run {
+            preview_hard_reset(ctx, &commit_id, &snapshot_manager)?;
+        } else {
+            // Hard reset: update index and working directory
+            output::info(&format!(
+                "Hard reset to commit {}",
+                commit_id[..8.min(commit_id.len())].yellow()
+            ));
 
-        // Restore files to working directory
-        let home = dirs::home_dir().context("Could not find home directory")?;
-        snapshot_manager.restore_snapshot(&commit_id, &home, None)?;
+            // Restore files to working directory
+            let home = dirs::home_dir().context("Could not find home directory")?;
+            snapshot_manager.restore_snapshot(&commit_id, &home, None)?;
 
-        // Clear the staging area - files are now in the working directory and snapshot
-        let index = Index::new();
-        let index_path = ctx.repo_path.join(INDEX_FILE);
-        index.save(&index_path)?;
+            // Clear the staging area - files are now in the working directory and snapshot
+            let index = Index::new();
+            let index_path = ctx.repo_path.join(INDEX_FILE);
+            index.save(&index_path)?;
 
-        output::success(&format!(
-            "Hard reset complete. Working directory and index updated to match commit {}",
-            commit_id[..8.min(commit_id.len())].yellow()
-        ));
+            output::success(&format!(
+                "Hard reset complete. Working directory and index updated to match commit {}",
+                commit_id[..8.min(commit_id.len())].yellow()
+            ));
+        }
     } else if options.soft {
+        if options.dry_run {
+            println!(
+                "\n{}",
+                "Dry run - would perform soft reset:".yellow().bold()
+            );
+            println!(
+                "  {} HEAD would be moved to commit {}",
+                "→".dimmed(),
+                commit_id[..8.min(commit_id.len())].yellow()
+            );
+            println!(
+                "  {} Index and working directory would remain unchanged",
+                "→".dimmed()
+            );
+            println!("\n{}", "Run without --dry-run to execute".dimmed());
+            return Ok(());
+        }
+
         // Soft reset: only move HEAD, keep index and working directory
         output::info(&format!(
             "Soft reset to commit {}",
@@ -100,6 +124,28 @@ pub fn execute(
             commit_id[..8.min(commit_id.len())].yellow()
         ));
     } else if options.keep {
+        if options.dry_run {
+            println!(
+                "\n{}",
+                "Dry run - would perform keep reset:".yellow().bold()
+            );
+            println!(
+                "  {} HEAD would be moved to commit {}",
+                "→".dimmed(),
+                commit_id[..8.min(commit_id.len())].yellow()
+            );
+            println!(
+                "  {} Index would be cleared (staged changes unstaged)",
+                "→".dimmed()
+            );
+            println!(
+                "  {} Working directory changes would be preserved",
+                "→".dimmed()
+            );
+            println!("\n{}", "Run without --dry-run to execute".dimmed());
+            return Ok(());
+        }
+
         // Keep reset: reset HEAD and index but keep working directory changes
         output::info(&format!(
             "Keep reset to commit {}",
@@ -116,6 +162,28 @@ pub fn execute(
             commit_id[..8.min(commit_id.len())].yellow()
         ));
     } else {
+        if options.dry_run {
+            println!(
+                "\n{}",
+                "Dry run - would perform mixed reset:".yellow().bold()
+            );
+            println!(
+                "  {} HEAD would be moved to commit {}",
+                "→".dimmed(),
+                commit_id[..8.min(commit_id.len())].yellow()
+            );
+            println!(
+                "  {} Index would be cleared (staged changes unstaged)",
+                "→".dimmed()
+            );
+            println!(
+                "  {} Working directory would remain unchanged",
+                "→".dimmed()
+            );
+            println!("\n{}", "Run without --dry-run to execute".dimmed());
+            return Ok(());
+        }
+
         // Mixed reset (default or explicit): update index but not working directory
         output::info(&format!(
             "Mixed reset to commit {}",
@@ -136,6 +204,85 @@ pub fn execute(
     // Update HEAD to point to the new commit
     update_head(ctx, &commit_id)?;
 
+    Ok(())
+}
+
+/// Preview what files would be affected by a hard reset
+fn preview_hard_reset(
+    ctx: &DotmanContext,
+    commit_id: &str,
+    snapshot_manager: &SnapshotManager,
+) -> Result<()> {
+    let snapshot = snapshot_manager.load_snapshot(commit_id)?;
+    let home = dirs::home_dir().context("Could not find home directory")?;
+    let index_path = ctx.repo_path.join(INDEX_FILE);
+    let index = Index::load(&index_path).unwrap_or_default();
+
+    println!(
+        "\n{}",
+        "Dry run - would perform hard reset:".yellow().bold()
+    );
+    println!(
+        "  {} Commit: {}",
+        "→".dimmed(),
+        commit_id[..8.min(commit_id.len())].yellow()
+    );
+
+    // Count changes
+    let mut files_to_restore = 0;
+    let mut files_to_delete = 0;
+    let staged_to_clear = index.staged_entries.len();
+
+    // Files that would be restored from snapshot
+    for path in snapshot.files.keys() {
+        let abs_path = home.join(path);
+        if abs_path.exists() {
+            files_to_restore += 1;
+        }
+    }
+
+    // Files in working directory that would be deleted (not in snapshot)
+    if let Ok(ref_manager) = crate::refs::RefManager::new(ctx.repo_path.clone()).get_head_commit()
+        && let Some(current_commit) = ref_manager
+        && current_commit != "0".repeat(40)
+        && let Ok(current_snapshot) = snapshot_manager.load_snapshot(&current_commit)
+    {
+        for path in current_snapshot.files.keys() {
+            if !snapshot.files.contains_key(path) {
+                let abs_path = home.join(path);
+                if abs_path.exists() {
+                    files_to_delete += 1;
+                }
+            }
+        }
+    }
+
+    println!(
+        "  {} {} file(s) would be restored from snapshot",
+        "→".dimmed(),
+        files_to_restore
+    );
+    if files_to_delete > 0 {
+        println!(
+            "  {} {} file(s) would be deleted from working directory",
+            "→".dimmed(),
+            files_to_delete.to_string().red()
+        );
+    }
+    if staged_to_clear > 0 {
+        println!(
+            "  {} {} staged change(s) would be cleared",
+            "→".dimmed(),
+            staged_to_clear
+        );
+    }
+    println!(
+        "  {} {} All uncommitted changes would be lost",
+        "⚠".yellow(),
+        "WARNING:".yellow().bold()
+    );
+
+    println!("\n{}", "Run without --dry-run to execute".dimmed());
     Ok(())
 }
 

@@ -859,7 +859,7 @@ mod branch_command_tests {
 
         // Create and checkout a new branch using the shorthand
         commands::branch::create(&ctx, "feature", None)?;
-        commands::checkout::execute(&ctx, "feature", false)?;
+        commands::checkout::execute(&ctx, "feature", false, false)?;
 
         // Verify we're on the new branch
         let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
@@ -878,7 +878,7 @@ mod branch_command_tests {
 
         // Create and checkout feature from main
         commands::branch::create(&ctx, "feature", Some("main"))?;
-        commands::checkout::execute(&ctx, "feature", false)?;
+        commands::checkout::execute(&ctx, "feature", false, false)?;
 
         // Verify we're on feature branch
         let ref_manager = dotman::refs::RefManager::new(ctx.repo_path);
@@ -903,7 +903,7 @@ mod checkout_command_tests {
 
         // Create a branch and checkout
         commands::branch::create(&ctx, "feature", None)?;
-        commands::checkout::execute(&ctx, "feature", false)?;
+        commands::checkout::execute(&ctx, "feature", false, false)?;
 
         // Current branch should be feature
         let ref_manager = dotman::refs::RefManager::new(ctx.repo_path);
@@ -926,11 +926,11 @@ mod checkout_command_tests {
         commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
 
         // Checkout should fail without force
-        let result = commands::checkout::execute(&ctx, "feature", false);
+        let result = commands::checkout::execute(&ctx, "feature", false, false);
         assert!(result.is_err());
 
         // Force checkout should work
-        let result = commands::checkout::execute(&ctx, "feature", true);
+        let result = commands::checkout::execute(&ctx, "feature", true, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -940,7 +940,7 @@ mod checkout_command_tests {
     fn test_checkout_nonexistent_branch() -> Result<()> {
         let (_temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
 
-        let result = commands::checkout::execute(&ctx, "nonexistent", false);
+        let result = commands::checkout::execute(&ctx, "nonexistent", false, false);
         assert!(result.is_err());
 
         Ok(())
@@ -952,7 +952,7 @@ mod checkout_command_tests {
 
         // Create and checkout a new branch from HEAD using -b flag
         commands::branch::create(&ctx, "feature", None)?;
-        commands::checkout::execute(&ctx, "feature", false)?;
+        commands::checkout::execute(&ctx, "feature", false, false)?;
 
         // Verify we're on the new branch
         let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
@@ -974,7 +974,7 @@ mod checkout_command_tests {
 
         // Create and checkout feature from dev
         commands::branch::create(&ctx, "feature", Some("dev"))?;
-        commands::checkout::execute(&ctx, "feature", false)?;
+        commands::checkout::execute(&ctx, "feature", false, false)?;
 
         // Verify we're on feature branch
         let ref_manager = dotman::refs::RefManager::new(ctx.repo_path);
@@ -991,7 +991,7 @@ mod checkout_command_tests {
         // Since setup_test_repo creates an empty repo, just use main as start point
         // This tests that we can create a branch from an existing branch name
         commands::branch::create(&ctx, "feature", Some("main"))?;
-        commands::checkout::execute(&ctx, "feature", false)?;
+        commands::checkout::execute(&ctx, "feature", false, false)?;
 
         // Verify we're on feature branch
         let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
