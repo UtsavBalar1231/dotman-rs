@@ -247,9 +247,18 @@ pub enum Commands {
     },
 
     /// Show commit logs
+    ///
+    /// Arguments: \[commit\] \[paths...\]
+    ///
+    /// Examples:
+    ///   dot log                    # Show recent commits from HEAD
+    ///   dot log HEAD~5             # Show from 5 commits back
+    ///   dot log .bashrc            # Show commits that modified .bashrc
+    ///   dot log HEAD .bashrc       # Show .bashrc changes from HEAD
+    ///   dot log file1 file2        # Show commits touching either file
     Log {
-        /// Commit to start from (defaults to showing all commits)
-        target: Option<String>,
+        /// Arguments: optional commit reference followed by optional file paths
+        args: Vec<String>,
 
         #[arg(short = 'n', long, default_value = "10")]
         limit: usize,

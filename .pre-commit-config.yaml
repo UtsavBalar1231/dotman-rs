@@ -17,7 +17,7 @@ repos:
     hooks:
       - id: cargo-clippy
         name: cargo clippy
-        entry: cargo clippy --all-targets --all-features -- -D warnings
+        entry: cargo clippy --all-targets --all-features -- -D warnings -W clippy::arithmetic_side_effects -W clippy::expect_used -W clippy::float_arithmetic -W clippy::indexing_slicing -W clippy::mem_forget -W clippy::nursery -W clippy::panic -W clippy::pedantic -W clippy::unwrap_used
         language: system
         types: [rust]
         pass_filenames: false
@@ -58,7 +58,7 @@ repos:
         name: fix end of files
       - id: check-added-large-files
         name: check for large files
-        args: ['--maxkb=500']
+        args: ["--maxkb=500"]
 
 # Pre-commit.ci configuration
 ci:
@@ -67,8 +67,8 @@ ci:
 
     [pre-commit.ci] automated fixes from pre-commit hooks
   autofix_prs: true
-  autoupdate_branch: ''
-  autoupdate_commit_msg: 'chore: update pre-commit hook versions'
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "chore: update pre-commit hook versions"
   autoupdate_schedule: weekly
   # Skip expensive hooks on pre-commit.ci to save CI resources
   # These run locally and in GitHub Actions CI

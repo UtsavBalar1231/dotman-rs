@@ -1,12 +1,15 @@
 use crate::DotmanContext;
+use crate::commands::context::CommandContext;
 use crate::output;
 use crate::refs::resolver::RefResolver;
 use crate::storage::{Commit, snapshots::SnapshotManager};
 use crate::utils::pager::{Pager, PagerConfig, PagerWriter};
+use crate::utils::paths::expand_tilde;
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
 use std::collections::HashSet;
+use std::path::PathBuf;
 
 /// Format and display a single commit
 fn display_commit(writer: &mut dyn PagerWriter, commit: &Commit, oneline: bool) -> Result<()> {
@@ -57,6 +60,85 @@ fn display_commit(writer: &mut dyn PagerWriter, commit: &Commit, oneline: bool) 
     Ok(())
 }
 
+/// Parse and normalize a single path argument
+fn parse_path(ctx: &DotmanContext, path_str: &str) -> Result<PathBuf> {
+    use std::path::Path;
+
+    // Expand tilde
+    let expanded = expand_tilde(Path::new(path_str))?;
+
+    // Normalize to home-relative path (matches snapshot storage)
+    let home_dir = ctx.get_home_dir()?;
+    let normalized = expanded
+        .strip_prefix(&home_dir)
+        .map_or_else(|_| expanded.clone(), std::path::Path::to_path_buf);
+
+    Ok(normalized)
+}
+
+/// Parse args into (`optional_ref`, paths)
+/// Strategy: Try resolving first arg as ref. If succeeds, it's a ref and rest are paths.
+/// If fails, all args are paths.
+fn parse_log_args(
+    ctx: &DotmanContext,
+    args: &[String],
+    resolver: &RefResolver,
+) -> Result<(Option<String>, Vec<PathBuf>)> {
+    if args.is_empty() {
+        return Ok((None, vec![])); // Default: from HEAD, no filtering
+    }
+
+    // Try resolving first arg as reference
+    let first_arg = &args[0];
+    if let Ok(commit_id) = resolver.resolve(first_arg) {
+        // First arg is a valid ref
+        let paths = args[1..]
+            .iter()
+            .map(|p| parse_path(ctx, p))
+            .collect::<Result<Vec<_>>>()?;
+        Ok((Some(commit_id), paths))
+    } else {
+        // First arg is not a valid ref, treat all args as paths
+        let paths = args
+            .iter()
+            .map(|p| parse_path(ctx, p))
+            .collect::<Result<Vec<_>>>()?;
+        Ok((None, paths))
+    }
+}
+
+/// Check if commit modified any of the specified files
+/// Returns true if:
+/// - files list is empty (no filtering), OR
+/// - commit modified at least one of the files (union behavior)
+fn commit_touches_files(
+    snapshot: &crate::storage::snapshots::Snapshot,
+    prev_snapshot: Option<&crate::storage::snapshots::Snapshot>,
+    filter_paths: &[PathBuf],
+) -> bool {
+    // No filtering - include all commits
+    if filter_paths.is_empty() {
+        return true;
+    }
+
+    // Check each filter path
+    for path in filter_paths {
+        // Check if file was added, modified, or deleted
+        let current_hash = snapshot.files.get(path).map(|f| &f.hash);
+        let prev_hash = prev_snapshot.and_then(|ps| ps.files.get(path).map(|f| &f.hash));
+
+        // File changed if:
+        // 1. Exists now but didn't before (added)
+        // 2. Existed before but doesn't now (deleted)
+        // 3. Hash changed (modified)
+        if current_hash != prev_hash {
+            return true; // At least one file changed - include commit
+        }
+    }
+
+    false // None of the filter paths changed in this commit
+}
+
 /// Display commit history
 ///
 /// # Errors
@@ -68,7 +150,7 @@ fn display_commit(writer: &mut dyn PagerWriter, commit: &Commit, oneline: bool) 
 #[allow(clippy::too_many_lines)] // Detailed log formatting requires multiple sections
 pub fn execute(
     ctx: &DotmanContext,
-    target: Option<&str>,
+    args: &[String],
     limit: usize,
     oneline: bool,
     all: bool,
@@ -131,77 +213,74 @@ pub fn execute(
         return Ok(());
     }
 
-    let mut commits_displayed = 0;
-
     // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
     let resolver = RefResolver::new(ctx.repo_path.clone());
 
-    // If a target is specified, start from that commit and follow parent chain
-    if let Some(target_ref) = target {
-        let start_commit_id = resolver.resolve(target_ref)?;
+    // Parse arguments into ref and paths
+    let (start_commit, filter_paths) = parse_log_args(ctx, args, &resolver)?;
 
-        // Follow parent chain from the starting commit
-        let mut current_commit_id = Some(start_commit_id);
-        let mut visited = HashSet::new();
+    let mut commits_displayed = 0;
 
-        while let Some(ref commit_id) = current_commit_id {
-            if commits_displayed >= limit {
-                break;
-            }
-
-            // Prevent infinite loops
-            if visited.contains(commit_id) {
-                break;
-            }
-            visited.insert(commit_id.clone());
-
-            let Ok(snapshot) = snapshot_manager.load_snapshot(commit_id) else {
-                break; // Stop if we can't find the commit
-            };
-
-            let commit = &snapshot.commit;
-            display_commit(writer, commit, oneline)?;
-            commits_displayed += 1;
-
-            // Move to first parent commit (follow mainline)
-            current_commit_id = commit.parents.first().cloned();
-        }
+    // Determine starting commit
+    let starting_commit_id = if let Some(commit_id) = start_commit {
+        commit_id
     } else {
-        // Try to get HEAD commit, if it exists
-        let head_result = resolver.resolve("HEAD");
-
-        if let Ok(head_commit_id) = head_result {
-            // Follow parent chain from HEAD
-            let mut current_commit_id = Some(head_commit_id);
-            let mut visited = HashSet::new();
-
-            while let Some(ref commit_id) = current_commit_id {
-                if commits_displayed >= limit {
-                    break;
-                }
-
-                // Prevent infinite loops
-                if visited.contains(commit_id) {
-                    break;
-                }
-                visited.insert(commit_id.clone());
-
-                let Ok(snapshot) = snapshot_manager.load_snapshot(commit_id) else {
-                    break;
-                };
-
-                let commit = &snapshot.commit;
-                display_commit(writer, commit, oneline)?;
-                commits_displayed += 1;
-
-                // Move to first parent commit (follow mainline)
-                current_commit_id = commit.parents.first().cloned();
-            }
+        // Default to HEAD if it exists
+        if let Ok(id) = resolver.resolve("HEAD") {
+            id
+        } else {
+            output::info("No commits yet");
+            return Ok(());
         }
+    };
+
+    // Follow parent chain from starting commit
+    let mut current_commit_id = Some(starting_commit_id);
+    let mut visited = HashSet::new();
+
+    while let Some(ref commit_id) = current_commit_id {
+        if commits_displayed >= limit {
+            break;
+        }
+
+        // Prevent infinite loops
+        if visited.contains(commit_id) {
+            break;
+        }
+        visited.insert(commit_id.clone());
+
+        let Ok(snapshot) = snapshot_manager.load_snapshot(commit_id) else {
+            break;
+        };
+
+        // Load parent snapshot for comparison (to detect changes in this commit)
+        let parent_snapshot = snapshot
+            .commit
+            .parents
+            .first()
+            .and_then(|pid| snapshot_manager.load_snapshot(pid).ok());
+
+        // Apply file filtering (compare current commit vs its parent)
+        if commit_touches_files(&snapshot, parent_snapshot.as_ref(), &filter_paths) {
+            display_commit(writer, &snapshot.commit, oneline)?;
+            commits_displayed += 1;
+        }
+
+        // Move to first parent
+        current_commit_id = snapshot.commit.parents.first().cloned();
     }
 
     if commits_displayed == 0 {
-        output::info("No commits to display");
+        if filter_paths.is_empty() {
+            output::info("No commits yet");
+        } else {
+            let path_list = filter_paths
+                .iter()
+                .map(|p| format!("'{}'", p.display()))
+                .collect::<Vec<_>>()
+                .join(", ");
+            output::info(&format!("No commits found that modified {path_list}"));
+        }
     } else if commits_displayed >= limit {
         // Only show truncation indicator if we hit the display limit
         writeln!(
