@@ -41,6 +41,7 @@ impl ConfigValidator {
         known_fields.insert("tracking.follow_symlinks".to_string());
         known_fields.insert("tracking.preserve_permissions".to_string());
         known_fields.insert("tracking.large_file_threshold".to_string());
+        known_fields.insert("tracking.warn_large_files".to_string());
 
         // Security fields
         known_fields.insert("security.allowed_directories".to_string());

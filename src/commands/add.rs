@@ -46,6 +46,7 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -70,6 +71,131 @@ fn load_committed_files(ctx: &DotmanContext) -> Result<HashMap<PathBuf, Snapshot
                 .map(|snapshot| snapshot.files)
                 .unwrap_or_default())
         })
+}
+
+/// Information about a large file exceeding threshold.
+#[derive(Debug, Clone)]
+struct LargeFileInfo {
+    /// Path to the file (relative to home)
+    path: PathBuf,
+    /// File size in bytes
+    size: u64,
+}
+
+impl LargeFileInfo {
+    /// Format file size for display (e.g., "150.25 MB")
+    #[allow(clippy::cast_precision_loss)]
+    fn format_size(&self) -> String {
+        const MB: f64 = 1_048_576.0;
+        let size_mb = self.size as f64 / MB;
+        format!("{size_mb:.2} MB")
+    }
+}
+
+/// Collect files exceeding threshold (metadata check only, no hashing).
+///
+/// This function performs a quick file size check (`stat()` call) without
+/// the expensive hashing operation. Returns only files exceeding the threshold.
+///
+/// # Arguments
+///
+/// * `files_to_add` - List of file paths to check
+/// * `large_file_threshold` - Size threshold in bytes
+/// * `home` - Home directory for relative path conversion
+///
+/// # Returns
+///
+/// Vector of `LargeFileInfo` for files exceeding threshold
+fn collect_large_files(
+    files_to_add: &[PathBuf],
+    large_file_threshold: u64,
+    home: &Path,
+) -> Vec<LargeFileInfo> {
+    let mut large_files = Vec::new();
+
+    for path in files_to_add {
+        if let Ok(metadata) = std::fs::metadata(path) {
+            if metadata.len() <= large_file_threshold {
+                continue;
+            }
+            let relative_path = make_relative(path, home).unwrap_or_else(|_| path.clone());
+            large_files.push(LargeFileInfo {
+                path: relative_path,
+                size: metadata.len(),
+            });
+        }
+    }
+
+    large_files
+}
+
+/// Prompt user to confirm adding large files.
+///
+/// Shows all large files with their sizes and asks for confirmation.
+/// In non-interactive mode, returns an error asking user to use --force.
+///
+/// # Arguments
+///
+/// * `large_files` - List of large files exceeding threshold
+/// * `ctx` - `DotmanContext` for checking interactive mode
+///
+/// # Returns
+///
+/// - `Ok(true)` if user confirmed (typed 'y')
+/// - `Ok(false)` if user declined (typed anything else)
+/// - `Err` if non-interactive mode or I/O error
+#[allow(clippy::cast_precision_loss)]
+fn prompt_for_large_file_confirmation(
+    large_files: &[LargeFileInfo],
+    ctx: &DotmanContext,
+) -> Result<bool> {
+    use std::io::Write;
+
+    // Check if we're in a non-interactive environment
+    let is_non_interactive = ctx.non_interactive
+        || std::env::var("DOTMAN_NON_INTERACTIVE").is_ok()
+        || !std::io::stdin().is_terminal();
+
+    if is_non_interactive {
+        // In non-interactive mode, fail with clear error message
+        let threshold_mb = ctx.config.tracking.large_file_threshold / (1024 * 1024);
+        return Err(anyhow::anyhow!(
+            "Large files detected (exceeding {threshold_mb} MB threshold). \
+             Use --force to add anyway, or set warn_large_files = false in ~/.config/dotman/config"
+        ));
+    }
+
+    // Show all large files with their sizes
+    output::warning("The following files exceed the size threshold:");
+    println!();
+
+    let mut total_size: u64 = 0;
+    for file in large_files {
+        println!(
+            "  {} ({})",
+            file.path.display().to_string().yellow(),
+            file.format_size().dimmed()
+        );
+        total_size += file.size;
+    }
+
+    println!();
+    let total_mb = total_size as f64 / 1_048_576.0;
+    output::info(&format!(
+        "Total: {:.2} MB ({} file{})",
+        total_mb,
+        large_files.len(),
+        if large_files.len() == 1 { "" } else { "s" }
+    ));
+
+    println!();
+    print!("Add these files anyway? [y/N]: ");
+    std::io::stdout().flush()?;
+
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
+
+    Ok(input.trim().eq_ignore_ascii_case("y"))
 }
 
 /// Stage all changes to tracked files (modified and deleted).
@@ -281,6 +407,18 @@ pub fn execute(ctx: &DotmanContext, paths: &[String], force: bool, all: bool) ->
                 ctx.config.tracking.follow_symlinks,
                 large_file_threshold,
             )?;
+        }
+    }
+
+    // Check for large files BEFORE hashing to save computation
+    // Only check if not forced, warnings enabled, and files exist
+    if !force && ctx.config.tracking.warn_large_files && !files_to_add.is_empty() {
+        let large_files = collect_large_files(&files_to_add, large_file_threshold, &home);
+
+        // If large files found, prompt for confirmation
+        if !large_files.is_empty() && !prompt_for_large_file_confirmation(&large_files, ctx)? {
+            output::info("Add cancelled");
+            return Ok(());
         }
     }
 

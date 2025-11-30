@@ -212,6 +212,11 @@ pub struct TrackingConfig {
     /// Warn when adding files larger than this size (in bytes). Default: 100 MB
     #[serde(default = "default_large_file_threshold")]
     pub large_file_threshold: u64,
+
+    /// Enable warnings and confirmation prompt when adding files larger than threshold.
+    /// Default: true (warnings enabled for safety)
+    #[serde(default = "default_warn_large_files")]
+    pub warn_large_files: bool,
 }
 
 /// Branch tracking configuration.
@@ -438,6 +443,7 @@ impl Default for TrackingConfig {
             follow_symlinks: false,
             preserve_permissions: true,
             large_file_threshold: default_large_file_threshold(),
+            warn_large_files: default_warn_large_files(),
         }
     }
 }
@@ -537,6 +543,7 @@ impl Config {
             ("tracking", "preserve_permissions") => {
                 Some(self.tracking.preserve_permissions.to_string())
             }
+            ("tracking", "warn_large_files") => Some(self.tracking.warn_large_files.to_string()),
             _ => None,
         }
     }
@@ -598,6 +605,11 @@ impl Config {
             }
             ("tracking", "preserve_permissions") => {
                 self.tracking.preserve_permissions = value
+                    .parse()
+                    .with_context(|| format!("Invalid boolean: {value}"))?;
+            }
+            ("tracking", "warn_large_files") => {
+                self.tracking.warn_large_files = value
                     .parse()
                     .with_context(|| format!("Invalid boolean: {value}"))?;
             }
@@ -746,6 +758,18 @@ const fn default_use_hard_links() -> bool {
 /// `104_857_600` (100 MB) - Files larger than 100 MB are considered large.
 const fn default_large_file_threshold() -> u64 {
     100 * 1024 * 1024 // 100 MB
+}
+
+/// Returns the default setting for large file warnings.
+///
+/// This function is used by serde as the default value provider for the
+/// `warn_large_files` configuration field.
+///
+/// # Returns
+///
+/// `true` - Large file warnings are enabled by default for safety.
+const fn default_warn_large_files() -> bool {
+    true
 }
 
 /// Returns the default allowed directories for path validation.
