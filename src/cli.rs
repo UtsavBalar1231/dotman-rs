@@ -268,7 +268,10 @@ pub enum Commands {
 
     /// Show commit logs
     ///
-    /// Arguments: \[commit\] \[paths...\]
+    /// Arguments: \[refs...\] \[--\] \[paths...\]
+    ///
+    /// Without `--`: Uses heuristic (first arg as ref if valid, rest as paths).
+    /// With `--`: Everything before is refs, everything after is paths.
     ///
     /// Examples:
     ///   dot log                    # Show recent commits from HEAD
@@ -276,9 +279,17 @@ pub enum Commands {
     ///   dot log .bashrc            # Show commits that modified .bashrc
     ///   dot log HEAD .bashrc       # Show .bashrc changes from HEAD
     ///   dot log file1 file2        # Show commits touching either file
+    ///   dot log -- main            # Force 'main' as path (not branch)
+    ///   dot log HEAD -- config     # Explicit: ref=HEAD, path=config
+    ///   dot log main feature -- f  # Union: commits from main OR feature
     Log {
-        /// Arguments: optional commit reference followed by optional file paths
-        args: Vec<String>,
+        /// Commit references to start from (before --, default: HEAD)
+        #[arg(value_terminator = "--")]
+        refs: Vec<String>,
+
+        /// File paths to filter by (after --)
+        #[arg(last = true)]
+        paths: Vec<String>,
 
         #[arg(short = 'n', long, default_value = "10")]
         limit: usize,

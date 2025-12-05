@@ -8,7 +8,7 @@ use crate::utils::paths::expand_tilde;
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
-use std::collections::HashSet;
+use std::collections::{BinaryHeap, HashSet};
 use std::path::PathBuf;
 
 /// Format and display a single commit
@@ -76,34 +76,59 @@ fn parse_path(ctx: &DotmanContext, path_str: &str) -> Result<PathBuf> {
     Ok(normalized)
 }
 
-/// Parse args into (`optional_ref`, paths)
-/// Strategy: Try resolving first arg as ref. If succeeds, it's a ref and rest are paths.
-/// If fails, all args are paths.
-fn parse_log_args(
-    ctx: &DotmanContext,
-    args: &[String],
-    resolver: &RefResolver,
-) -> Result<(Option<String>, Vec<PathBuf>)> {
-    if args.is_empty() {
-        return Ok((None, vec![])); // Default: from HEAD, no filtering
+/// Parse ref arguments into resolved commit IDs.
+///
+/// Uses heuristic for backward compatibility when no explicit `--` separator is used:
+/// - If first arg resolves as ref, ONLY the first arg is used as ref (rest are paths)
+/// - If first arg doesn't resolve, all args are treated as paths (return empty)
+///
+/// When `--` separator is used (paths is non-empty), ALL refs are definitive and resolved.
+fn parse_refs(refs: &[String], paths: &[String], resolver: &RefResolver) -> Result<Vec<String>> {
+    use anyhow::Context;
+
+    // Explicit -- separator used: all refs are definitive
+    if !paths.is_empty() {
+        return refs
+            .iter()
+            .map(|r| {
+                resolver
+                    .resolve(r)
+                    .with_context(|| format!("Invalid reference: '{r}'"))
+            })
+            .collect();
     }
 
-    // Try resolving first arg as reference
-    let first_arg = &args[0];
-    if let Ok(commit_id) = resolver.resolve(first_arg) {
-        // First arg is a valid ref
-        let paths = args[1..]
-            .iter()
-            .map(|p| parse_path(ctx, p))
-            .collect::<Result<Vec<_>>>()?;
-        Ok((Some(commit_id), paths))
+    if refs.is_empty() {
+        return Ok(vec![]);
+    }
+
+    // Backward compat heuristic: only first arg treated as ref, rest become paths
+    Ok(resolver
+        .resolve(&refs[0])
+        .map_or_else(|_| vec![], |commit_id| vec![commit_id]))
+}
+
+/// Parse path arguments, handling heuristic mode.
+fn parse_paths(
+    ctx: &DotmanContext,
+    refs: &[String],
+    paths: &[String],
+    resolver: &RefResolver,
+) -> Result<Vec<PathBuf>> {
+    if !paths.is_empty() {
+        return paths.iter().map(|p| parse_path(ctx, p)).collect();
+    }
+
+    // Heuristic: if first "ref" doesn't resolve, all args are actually paths
+    if !refs.is_empty() && resolver.resolve(&refs[0]).is_err() {
+        return refs.iter().map(|p| parse_path(ctx, p)).collect();
+    }
+
+    // Backward compat: args after first ref are paths
+    if refs.len() > 1 {
+        refs[1..].iter().map(|p| parse_path(ctx, p)).collect()
     } else {
-        // First arg is not a valid ref, treat all args as paths
-        let paths = args
-            .iter()
-            .map(|p| parse_path(ctx, p))
-            .collect::<Result<Vec<_>>>()?;
-        Ok((None, paths))
+        Ok(vec![])
     }
 }
 
@@ -150,7 +175,8 @@ fn commit_touches_files(
 #[allow(clippy::too_many_lines)] // Detailed log formatting requires multiple sections
 pub fn execute(
     ctx: &DotmanContext,
-    args: &[String],
+    refs: &[String],
+    paths: &[String],
     limit: usize,
     oneline: bool,
     all: bool,
@@ -216,41 +242,47 @@ pub fn execute(
     // Use the reference resolver to handle HEAD, HEAD~n, branches, and short hashes
     let resolver = RefResolver::new(ctx.repo_path.clone());
 
-    // Parse arguments into ref and paths
-    let (start_commit, filter_paths) = parse_log_args(ctx, args, &resolver)?;
+    let start_commits = parse_refs(refs, paths, &resolver)?;
+    let filter_paths = parse_paths(ctx, refs, paths, &resolver)?;
 
     let mut commits_displayed = 0;
 
-    // Determine starting commit
-    let starting_commit_id = if let Some(commit_id) = start_commit {
-        commit_id
-    } else {
-        // Default to HEAD if it exists
+    let starting_commit_ids: Vec<String> = if start_commits.is_empty() {
         if let Ok(id) = resolver.resolve("HEAD") {
-            id
+            vec![id]
         } else {
             output::info("No commits yet");
             return Ok(());
         }
+    } else {
+        start_commits
     };
 
-    // Follow parent chain from starting commit
-    let mut current_commit_id = Some(starting_commit_id);
+    // BinaryHeap gives max-heap on (timestamp, commit_id) for chronological traversal
+    let mut heap: BinaryHeap<(i64, String)> = BinaryHeap::new();
     let mut visited = HashSet::new();
 
-    while let Some(ref commit_id) = current_commit_id {
+    for commit_id in &starting_commit_ids {
+        if !visited.contains(commit_id)
+            && let Ok(snapshot) = snapshot_manager.load_snapshot(commit_id)
+        {
+            heap.push((snapshot.commit.timestamp, commit_id.clone()));
+        }
+    }
+
+    while let Some((_, commit_id)) = heap.pop() {
         if commits_displayed >= limit {
             break;
         }
 
-        // Prevent infinite loops
-        if visited.contains(commit_id) {
-            break;
+        // Merge commits from multiple starting refs can cause duplicates
+        if visited.contains(&commit_id) {
+            continue;
         }
         visited.insert(commit_id.clone());
 
-        let Ok(snapshot) = snapshot_manager.load_snapshot(commit_id) else {
-            break;
+        let Ok(snapshot) = snapshot_manager.load_snapshot(&commit_id) else {
+            continue;
         };
 
         // Load parent snapshot for comparison (to detect changes in this commit)
@@ -266,8 +298,14 @@ pub fn execute(
             commits_displayed += 1;
         }
 
-        // Move to first parent
-        current_commit_id = snapshot.commit.parents.first().cloned();
+        // Traverse all parents for union of multiple refs
+        for parent_id in &snapshot.commit.parents {
+            if !visited.contains(parent_id)
+                && let Ok(parent_snap) = snapshot_manager.load_snapshot(parent_id)
+            {
+                heap.push((parent_snap.commit.timestamp, parent_id.clone()));
+            }
+        }
     }
 
     if commits_displayed == 0 {

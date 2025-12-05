@@ -1471,7 +1471,7 @@ strip_dangerous_permissions = true
         assert_ne!(commit2, commit3, "Commits should be unique");
 
         // Log should work without errors
-        commands::log::execute(&ctx, &[], 10, false, false)?;
+        commands::log::execute(&ctx, &[], &[], 10, false, false)?;
 
         Ok(())
     }
@@ -1487,7 +1487,7 @@ strip_dangerous_permissions = true
         let _commit3 = resolver.resolve("HEAD")?;
 
         // Should be able to limit - command succeeds regardless of limit
-        commands::log::execute(&ctx, &[], 2, false, false)?;
+        commands::log::execute(&ctx, &[], &[], 2, false, false)?;
 
         Ok(())
     }
@@ -1502,7 +1502,7 @@ strip_dangerous_permissions = true
         assert!(!head.is_empty(), "HEAD should point to a commit");
 
         // Test oneline format - should succeed
-        commands::log::execute(&ctx, &[], 10, true, false)?;
+        commands::log::execute(&ctx, &[], &[], 10, true, false)?;
 
         Ok(())
     }
@@ -1525,11 +1525,11 @@ strip_dangerous_permissions = true
         )?;
 
         // Normal log should show 2 commits (reachable from HEAD)
-        let result_normal = commands::log::execute(&ctx, &[], 10, false, false);
+        let result_normal = commands::log::execute(&ctx, &[], &[], 10, false, false);
         assert!(result_normal.is_ok());
 
         // Log --all should show all 3 commits (including orphaned)
-        let result_all = commands::log::execute(&ctx, &[], 10, false, true);
+        let result_all = commands::log::execute(&ctx, &[], &[], 10, false, true);
         assert!(result_all.is_ok());
 
         Ok(())
@@ -1550,7 +1550,7 @@ strip_dangerous_permissions = true
 
         // Test starting from a specific commit - should succeed
         let args = vec![commit2];
-        commands::log::execute(&ctx, &args, 10, false, false)?;
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
 
         Ok(())
     }
@@ -1561,7 +1561,7 @@ strip_dangerous_permissions = true
 
         // Test with HEAD reference
         let args = vec!["HEAD".to_string()];
-        let result = commands::log::execute(&ctx, &args, 10, false, false);
+        let result = commands::log::execute(&ctx, &args, &[], 10, false, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -1584,7 +1584,7 @@ strip_dangerous_permissions = true
         ref_manager.init()?;
 
         // Log on empty repo should succeed (just show "No commits yet")
-        let result = commands::log::execute(&ctx, &[], 10, false, false);
+        let result = commands::log::execute(&ctx, &[], &[], 10, false, false);
         assert!(result.is_ok());
 
         Ok(())
@@ -1618,7 +1618,7 @@ strip_dangerous_permissions = true
 
         // Log filtering by file1 should show commits 1 and 3, skip commit 2
         let args = vec!["file1.txt".to_string()];
-        commands::log::execute(&ctx, &args, 10, false, false)?;
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
 
         Ok(())
     }
@@ -1649,7 +1649,7 @@ strip_dangerous_permissions = true
 
         // Filter by file1 OR file2 - should show commits 1 and 2, skip 3
         let args = vec!["file1.txt".to_string(), "file2.txt".to_string()];
-        commands::log::execute(&ctx, &args, 10, false, false)?;
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
 
         Ok(())
     }
@@ -1671,7 +1671,7 @@ strip_dangerous_permissions = true
         // Log from HEAD~1 filtered by file1
         // Should show commits 1 and 2, but not commit 3
         let args = vec!["HEAD~1".to_string(), "file1.txt".to_string()];
-        commands::log::execute(&ctx, &args, 10, false, false)?;
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
 
         Ok(())
     }
@@ -1683,7 +1683,7 @@ strip_dangerous_permissions = true
 
         // Filter by non-existent file - should show "No commits found"
         let args = vec!["nonexistent.txt".to_string()];
-        commands::log::execute(&ctx, &args, 10, false, false)?;
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
 
         Ok(())
     }
@@ -1712,7 +1712,7 @@ strip_dangerous_permissions = true
 
         // Log should show both commits (add and delete are changes)
         let args = vec!["file1.txt".to_string()];
-        commands::log::execute(&ctx, &args, 10, false, false)?;
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
 
         Ok(())
     }
@@ -1725,23 +1725,149 @@ strip_dangerous_permissions = true
         // All existing usage patterns should still work:
 
         // No args - from HEAD
-        commands::log::execute(&ctx, &[], 10, false, false)?;
+        commands::log::execute(&ctx, &[], &[], 10, false, false)?;
 
         // Ref only
         let args = vec!["HEAD".to_string()];
-        commands::log::execute(&ctx, &args, 10, false, false)?;
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
 
         // Branch name
         let args = vec!["main".to_string()];
-        commands::log::execute(&ctx, &args, 10, false, false)?;
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
 
         // Short commit ID (if available)
         let resolver = dotman::refs::resolver::RefResolver::new(ctx.repo_path.clone());
         if let Ok(commit_id) = resolver.resolve("HEAD") {
             let short_id = &commit_id[..8];
             let args = vec![short_id.to_string()];
-            commands::log::execute(&ctx, &args, 10, false, false)?;
+            commands::log::execute(&ctx, &args, &[], 10, false, false)?;
         }
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_separator_forces_path() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        // Create a file named "main" (same name as the default branch)
+        let main_file = temp_dir.path().join("main");
+        fs::write(&main_file, "content for main file")?;
+        commands::add::execute(&ctx, &[main_file.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add file named main", false)?;
+
+        // Without separator: "main" resolves to branch, shows all commits from main branch
+        let args = vec!["main".to_string()];
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
+
+        // With separator: "-- main" forces "main" as a path, filters to commits touching that file
+        let args = vec!["--".to_string(), "main".to_string()];
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_separator_with_ref_and_path() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        let file1 = temp_dir.path().join("file1.txt");
+
+        // Create 3 commits
+        for i in 1..=3 {
+            fs::write(&file1, format!("version {i}"))?;
+            commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+            commands::commit::execute(&ctx, &format!("Commit {i}"), false)?;
+        }
+
+        // dot log HEAD~1 -- file1.txt (explicit separator)
+        let args = vec![
+            "HEAD~1".to_string(),
+            "--".to_string(),
+            "file1.txt".to_string(),
+        ];
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_separator_only_paths() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        let file1 = temp_dir.path().join("file1.txt");
+        let file2 = temp_dir.path().join("file2.txt");
+
+        // Commit 1: add file1
+        fs::write(&file1, "content1")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add file1", false)?;
+
+        // Commit 2: add file2
+        fs::write(&file2, "content2")?;
+        commands::add::execute(&ctx, &[file2.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add file2", false)?;
+
+        // dot log -- file1.txt file2.txt (no ref, paths only via separator)
+        let args = vec![
+            "--".to_string(),
+            "file1.txt".to_string(),
+            "file2.txt".to_string(),
+        ];
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_separator_multiple_refs_union() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        let file1 = temp_dir.path().join("file1.txt");
+
+        // Create initial commit on main
+        fs::write(&file1, "initial")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Initial commit", false)?;
+
+        // Create a feature branch
+        commands::branch::create(&ctx, "feature", None)?;
+
+        // Add commit on main
+        fs::write(&file1, "main change")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Main branch commit", false)?;
+
+        // Switch to feature branch and add commit
+        commands::branch::checkout(&ctx, "feature", false)?;
+        fs::write(&file1, "feature change")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Feature branch commit", false)?;
+
+        // dot log main feature -- file1.txt (union of both branches)
+        let args = vec![
+            "main".to_string(),
+            "feature".to_string(),
+            "--".to_string(),
+            "file1.txt".to_string(),
+        ];
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_empty_separator() -> Result<()> {
+        let (_temp_dir, ctx) = setup_log_test_repo()?;
+
+        // dot log -- (no ref, no paths - should show all from HEAD)
+        let args = vec!["--".to_string()];
+        commands::log::execute(&ctx, &args, &[], 10, false, false)?;
 
         Ok(())
     }

@@ -241,13 +241,14 @@ fn run() -> Result<()> {
             commands::show::execute(&ctx, &object)?;
         }
         Commands::Log {
-            args,
+            refs,
+            paths,
             limit,
             oneline,
             all,
         } => {
             let ctx = context.context("Context not initialized for log command")?;
-            commands::log::execute(&ctx, &args, limit, oneline, all)?;
+            commands::log::execute(&ctx, &refs, &paths, limit, oneline, all)?;
         }
         Commands::Diff { from, to } => {
             let ctx = context.context("Context not initialized for diff command")?;
