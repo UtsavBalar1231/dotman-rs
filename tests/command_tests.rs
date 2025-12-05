@@ -754,6 +754,77 @@ mod status_command_tests {
 
         Ok(())
     }
+
+    /// Regression test: staged file deleted from disk should show as both
+    /// "new file" (staged) and "deleted" (working tree change)
+    #[test]
+    fn test_status_staged_file_deleted_from_disk() -> Result<()> {
+        let (temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create and stage a file (but don't commit)
+        let test_file = temp_dir.path().join("staged_file.txt");
+        fs::write(&test_file, "content")?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
+
+        // Verify file is staged
+        let index = CommandContext::load_concurrent_index(&ctx)?;
+        assert_eq!(index.staged_entries().len(), 1, "File should be staged");
+
+        // Delete the file from disk (not via dot rm)
+        fs::remove_file(&test_file)?;
+
+        // Status command should run without error and detect the deletion
+        // The file is still in staged_entries but no longer exists on disk
+        commands::status::execute(&ctx, false, false)?;
+
+        // Verify index still has the staged entry (deletion was not auto-staged)
+        let index_after = CommandContext::load_concurrent_index(&ctx)?;
+        assert_eq!(
+            index_after.staged_entries().len(),
+            1,
+            "File should still be in staged_entries after status"
+        );
+
+        Ok(())
+    }
+
+    /// Regression test: commit --all should stage deletions of tracked files
+    #[test]
+    fn test_commit_all_stages_deletions() -> Result<()> {
+        let (temp_dir, ctx) = super::add_command_tests::setup_test_repo()?;
+
+        // Create, stage, and commit a file
+        let test_file = temp_dir.path().join("tracked_file.txt");
+        fs::write(&test_file, "content")?;
+        commands::add::execute(&ctx, &[test_file.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Initial commit", false)?;
+
+        // Delete the file from disk (not via dot rm)
+        fs::remove_file(&test_file)?;
+
+        // Run commit with --all flag (this calls stage_all_tracked_files internally)
+        // The deletion should be staged and committed
+        commands::commit::execute(&ctx, "Delete file", true)?;
+
+        // Load the new commit and verify file is not present
+        let ref_manager = dotman::refs::RefManager::new(ctx.repo_path.clone());
+        let head_commit = ref_manager.get_head_commit()?.expect("Should have HEAD");
+
+        let snapshot_manager = ctx.create_snapshot_manager();
+        let snapshot = snapshot_manager.load_snapshot(&head_commit)?;
+
+        let relative_path = test_file
+            .strip_prefix(temp_dir.path())
+            .unwrap()
+            .to_path_buf();
+
+        assert!(
+            !snapshot.files.contains_key(&relative_path),
+            "Deleted file should not be in new commit snapshot"
+        );
+
+        Ok(())
+    }
 }
 
 mod branch_command_tests {

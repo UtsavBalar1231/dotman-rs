@@ -480,8 +480,20 @@ fn process_working_vs_index_diff(
                 } else {
                     path.clone()
                 };
-                let new_content =
-                    std::fs::read_to_string(&full_path).unwrap_or_else(|_| String::new());
+
+                let (new_content, is_binary) = if full_path.exists() {
+                    let content =
+                        std::fs::read_to_string(&full_path).unwrap_or_else(|_| String::new());
+                    let binary = is_binary_file(&full_path).unwrap_or(false);
+                    (content, binary)
+                } else {
+                    eprintln!(
+                        "{}: {} (staged file deleted from disk)",
+                        "warning".yellow(),
+                        path.display()
+                    );
+                    (String::new(), false)
+                };
 
                 let old_content = get_old_content_for_working_diff(
                     path,
@@ -490,7 +502,6 @@ fn process_working_vs_index_diff(
                     snapshot_manager,
                 );
 
-                let is_binary = full_path.exists() && is_binary_file(&full_path).unwrap_or(false);
                 generate_file_diff(writer, path, &old_content, &new_content, ctx, is_binary)?;
                 writeln!(writer)?;
             }
@@ -500,9 +511,20 @@ fn process_working_vs_index_diff(
                 } else {
                     path.clone()
                 };
-                let new_content =
-                    std::fs::read_to_string(&full_path).unwrap_or_else(|_| String::new());
-                let is_binary = full_path.exists() && is_binary_file(&full_path).unwrap_or(false);
+
+                let (new_content, is_binary) = if full_path.exists() {
+                    let content =
+                        std::fs::read_to_string(&full_path).unwrap_or_else(|_| String::new());
+                    let binary = is_binary_file(&full_path).unwrap_or(false);
+                    (content, binary)
+                } else {
+                    eprintln!(
+                        "{}: {} (staged file deleted from disk)",
+                        "warning".yellow(),
+                        path.display()
+                    );
+                    (String::new(), false)
+                };
 
                 generate_file_diff(writer, path, "", &new_content, ctx, is_binary)?;
                 writeln!(writer)?;

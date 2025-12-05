@@ -422,9 +422,14 @@ fn check_working_directory_clean(ctx: &DotmanContext) -> Result<bool> {
             break;
         }
 
-        let (current_hash, _) = crate::storage::file_ops::hash_file(&abs_path, None)
-            .with_context(|| format!("Failed to hash file: {}", abs_path.display()))?;
-        if current_hash != file.hash {
+        // Handle hash errors gracefully - file may have been deleted between exists() and hash_file()
+        if let Ok((current_hash, _)) = crate::storage::file_ops::hash_file(&abs_path, None) {
+            if current_hash != file.hash {
+                is_clean = false;
+                break;
+            }
+        } else {
+            // File became inaccessible (race condition or permissions) - treat as unclean
             is_clean = false;
             break;
         }

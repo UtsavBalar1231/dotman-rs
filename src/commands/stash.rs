@@ -153,6 +153,11 @@ fn push_stash(
                             content: Some(content),
                         },
                     );
+                } else {
+                    output::warning(&format!(
+                        "Skipping {}: staged file no longer exists on disk",
+                        p.display()
+                    ));
                 }
             }
             FileStatus::Deleted(p) => {

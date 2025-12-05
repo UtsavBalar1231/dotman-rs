@@ -210,6 +210,8 @@ pub fn execute_verbose(
                     }
                 }
             }
+        } else {
+            statuses.push(FileStatus::Deleted(path.clone()));
         }
     }
 
@@ -336,14 +338,27 @@ pub fn execute_verbose(
             })
             .collect();
 
-        // Print staged changes
-        if !staged_new.is_empty() || !staged_modified.is_empty() {
+        // Explicit deletions via `dot rm` go under "Changes to be committed"
+        let staged_deleted: Vec<&FileStatus> = statuses
+            .iter()
+            .filter(|s| {
+                if let FileStatus::Deleted(p) = s {
+                    index.deleted_entries.contains(p)
+                } else {
+                    false
+                }
+            })
+            .collect();
+        if !staged_new.is_empty() || !staged_modified.is_empty() || !staged_deleted.is_empty() {
             println!("\n{}:", "Changes to be committed:".bold());
             for status in &staged_new {
                 println!("  {}: {}", "new file".green(), status.path().display());
             }
             for status in &staged_modified {
                 println!("  {}: {}", "modified".yellow(), status.path().display());
+            }
+            for status in &staged_deleted {
+                println!("  {}: {}", "deleted".red(), status.path().display());
             }
         }
 
@@ -361,19 +376,27 @@ pub fn execute_verbose(
             })
             .collect();
 
-        if !unstaged_modified.is_empty() {
-            println!("\n{}:", "Changes not staged:".bold());
+        // Files deleted from disk (but still staged) go under "Changes not staged"
+        let unstaged_deleted: Vec<&FileStatus> = statuses
+            .iter()
+            .filter(|s| {
+                if let FileStatus::Deleted(p) = s {
+                    !index.deleted_entries.contains(p)
+                } else {
+                    false
+                }
+            })
+            .collect();
+        if !unstaged_modified.is_empty() || !unstaged_deleted.is_empty() {
+            println!("\n{}:", "Changes not staged for commit:".bold());
             for status in &unstaged_modified {
                 println!("  {}: {}", "modified".yellow(), status.path().display());
             }
+            for status in &unstaged_deleted {
+                println!("  {}: {}", "deleted".red(), status.path().display());
+            }
         }
 
-        print_status_group(
-            &statuses,
-            &FileStatus::Deleted(PathBuf::new()),
-            "Deleted files:",
-            "deleted",
-        );
         print_status_group(
             &statuses,
             &FileStatus::Untracked(PathBuf::new()),

@@ -265,6 +265,7 @@ pub fn execute_amend(ctx: &DotmanContext, message: Option<&str>, all: bool) -> R
 fn stage_all_tracked_files(ctx: &DotmanContext, index: &mut Index) -> Result<()> {
     let home = ctx.get_home_dir()?;
     let mut staged = 0;
+    let mut deleted = 0;
     let strip_dangerous_perms = ctx.config.security.strip_dangerous_permissions;
 
     // Load files from HEAD snapshot if it exists
@@ -285,13 +286,21 @@ fn stage_all_tracked_files(ctx: &DotmanContext, index: &mut Index) -> Result<()>
                         index.stage_entry(entry);
                         staged += 1;
                     }
+                } else {
+                    index.mark_deleted(&path);
+                    deleted += 1;
                 }
             }
         }
     }
 
-    if staged > 0 {
-        output::info(&format!("Staged {staged} tracked file(s)"));
+    if staged > 0 || deleted > 0 {
+        if staged > 0 {
+            output::info(&format!("Staged {staged} tracked file(s)"));
+        }
+        if deleted > 0 {
+            output::info(&format!("Staged {deleted} deletion(s)"));
+        }
     }
 
     Ok(())
