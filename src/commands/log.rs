@@ -2,12 +2,14 @@ use crate::DotmanContext;
 use crate::commands::context::CommandContext;
 use crate::output;
 use crate::refs::resolver::RefResolver;
-use crate::storage::{Commit, snapshots::SnapshotManager};
+use crate::storage::Commit;
+use crate::storage::snapshots::{Snapshot, SnapshotManager};
 use crate::utils::pager::{Pager, PagerConfig, PagerWriter};
 use crate::utils::paths::expand_tilde;
 use anyhow::Result;
 use chrono::{Local, TimeZone};
 use colored::Colorize;
+use glob::{MatchOptions, Pattern};
 use std::collections::{BinaryHeap, HashSet};
 use std::path::PathBuf;
 
@@ -60,6 +62,11 @@ fn display_commit(writer: &mut dyn PagerWriter, commit: &Commit, oneline: bool) 
     Ok(())
 }
 
+/// Check if a string contains glob metacharacters
+fn is_glob_pattern(s: &str) -> bool {
+    s.contains('*') || s.contains('?') || s.contains('[')
+}
+
 /// Parse and normalize a single path argument
 fn parse_path(ctx: &DotmanContext, path_str: &str) -> Result<PathBuf> {
     use std::path::Path;
@@ -74,6 +81,140 @@ fn parse_path(ctx: &DotmanContext, path_str: &str) -> Result<PathBuf> {
         .map_or_else(|_| expanded.clone(), std::path::Path::to_path_buf);
 
     Ok(normalized)
+}
+
+/// Filter for matching file paths - supports both exact paths and glob patterns.
+struct PathFilter {
+    /// Exact paths for O(1) `HashMap` lookup
+    exact_paths: Vec<PathBuf>,
+    /// Compiled glob patterns for pattern matching
+    patterns: Vec<Pattern>,
+    /// Original pattern strings for display purposes
+    pattern_strings: Vec<String>,
+}
+
+impl PathFilter {
+    /// Create a new `PathFilter` from raw path strings.
+    /// Exact paths are normalized to home-relative format.
+    /// Glob patterns are compiled for efficient matching.
+    fn new(ctx: &DotmanContext, path_strs: &[String]) -> Result<Self> {
+        let mut exact_paths = Vec::new();
+        let mut patterns = Vec::new();
+        let mut pattern_strings = Vec::new();
+
+        for path_str in path_strs {
+            if is_glob_pattern(path_str) {
+                match Pattern::new(path_str) {
+                    Ok(pattern) => {
+                        patterns.push(pattern);
+                        pattern_strings.push(path_str.clone());
+                    }
+                    Err(_) => {
+                        output::warning(&format!("Invalid glob pattern: {path_str}"));
+                    }
+                }
+            } else {
+                exact_paths.push(parse_path(ctx, path_str)?);
+            }
+        }
+
+        Ok(Self {
+            exact_paths,
+            patterns,
+            pattern_strings,
+        })
+    }
+
+    /// Check if filter is empty (no filtering needed)
+    const fn is_empty(&self) -> bool {
+        self.exact_paths.is_empty() && self.patterns.is_empty()
+    }
+
+    /// Check if any file change in this commit matches the filter.
+    /// Returns true if:
+    /// - Filter is empty (no filtering), OR
+    /// - Any exact path changed, OR
+    /// - Any pattern matches a changed file (union behavior)
+    fn matches_any_change(&self, snapshot: &Snapshot, prev: Option<&Snapshot>) -> bool {
+        // No filtering - include all commits
+        if self.is_empty() {
+            return true;
+        }
+
+        // Check exact paths first (O(1) lookup per path)
+        for path in &self.exact_paths {
+            let current_hash = snapshot.files.get(path).map(|f| &f.hash);
+            let prev_hash = prev.and_then(|p| p.files.get(path).map(|f| &f.hash));
+            if current_hash != prev_hash {
+                return true;
+            }
+        }
+
+        // If no patterns, we're done
+        if self.patterns.is_empty() {
+            return false;
+        }
+
+        // Collect changed files for pattern matching
+        let changed_files = Self::get_changed_files(snapshot, prev);
+
+        // Git-style matching: * crosses directory separators
+        let match_opts = MatchOptions {
+            require_literal_separator: false,
+            require_literal_leading_dot: false,
+            case_sensitive: true,
+        };
+
+        // Check if any pattern matches any changed file
+        for pattern in &self.patterns {
+            for path in &changed_files {
+                if pattern.matches_with(&path.to_string_lossy(), match_opts) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    /// Get set of files that changed between snapshots
+    fn get_changed_files(snapshot: &Snapshot, prev: Option<&Snapshot>) -> Vec<PathBuf> {
+        let mut changed = Vec::new();
+
+        // Files in current snapshot (added or modified)
+        for (path, file) in &snapshot.files {
+            let prev_hash = prev.and_then(|p| p.files.get(path).map(|f| &f.hash));
+            if prev_hash != Some(&file.hash) {
+                changed.push(path.clone());
+            }
+        }
+
+        // Files deleted (in prev but not current)
+        if let Some(p) = prev {
+            for path in p.files.keys() {
+                if !snapshot.files.contains_key(path) {
+                    changed.push(path.clone());
+                }
+            }
+        }
+
+        changed
+    }
+
+    /// Format filter for display in "no commits found" message
+    fn display(&self) -> String {
+        let mut parts = Vec::new();
+
+        for path in &self.exact_paths {
+            parts.push(format!("'{}'", path.display()));
+        }
+
+        for pattern_str in &self.pattern_strings {
+            parts.push(format!("'{pattern_str}'"));
+        }
+
+        parts.join(", ")
+    }
 }
 
 /// Parse ref arguments into resolved commit IDs.
@@ -108,60 +249,27 @@ fn parse_refs(refs: &[String], paths: &[String], resolver: &RefResolver) -> Resu
         .map_or_else(|_| vec![], |commit_id| vec![commit_id]))
 }
 
-/// Parse path arguments, handling heuristic mode.
+/// Parse path arguments into a `PathFilter`, handling both exact paths and glob patterns.
 fn parse_paths(
     ctx: &DotmanContext,
     refs: &[String],
     paths: &[String],
     resolver: &RefResolver,
-) -> Result<Vec<PathBuf>> {
-    if !paths.is_empty() {
-        return paths.iter().map(|p| parse_path(ctx, p)).collect();
-    }
-
-    // Heuristic: if first "ref" doesn't resolve, all args are actually paths
-    if !refs.is_empty() && resolver.resolve(&refs[0]).is_err() {
-        return refs.iter().map(|p| parse_path(ctx, p)).collect();
-    }
-
-    // Backward compat: args after first ref are paths
-    if refs.len() > 1 {
-        refs[1..].iter().map(|p| parse_path(ctx, p)).collect()
+) -> Result<PathFilter> {
+    let path_strs: Vec<String> = if !paths.is_empty() {
+        // Explicit -- separator used
+        paths.to_vec()
+    } else if !refs.is_empty() && resolver.resolve(&refs[0]).is_err() {
+        // Heuristic: if first "ref" doesn't resolve, all args are paths
+        refs.to_vec()
+    } else if refs.len() > 1 {
+        // Backward compat: args after first ref are paths
+        refs[1..].to_vec()
     } else {
-        Ok(vec![])
-    }
-}
+        vec![]
+    };
 
-/// Check if commit modified any of the specified files
-/// Returns true if:
-/// - files list is empty (no filtering), OR
-/// - commit modified at least one of the files (union behavior)
-fn commit_touches_files(
-    snapshot: &crate::storage::snapshots::Snapshot,
-    prev_snapshot: Option<&crate::storage::snapshots::Snapshot>,
-    filter_paths: &[PathBuf],
-) -> bool {
-    // No filtering - include all commits
-    if filter_paths.is_empty() {
-        return true;
-    }
-
-    // Check each filter path
-    for path in filter_paths {
-        // Check if file was added, modified, or deleted
-        let current_hash = snapshot.files.get(path).map(|f| &f.hash);
-        let prev_hash = prev_snapshot.and_then(|ps| ps.files.get(path).map(|f| &f.hash));
-
-        // File changed if:
-        // 1. Exists now but didn't before (added)
-        // 2. Existed before but doesn't now (deleted)
-        // 3. Hash changed (modified)
-        if current_hash != prev_hash {
-            return true; // At least one file changed - include commit
-        }
-    }
-
-    false // None of the filter paths changed in this commit
+    PathFilter::new(ctx, &path_strs)
 }
 
 /// Display commit history
@@ -243,7 +351,7 @@ pub fn execute(
     let resolver = RefResolver::new(ctx.repo_path.clone());
 
     let start_commits = parse_refs(refs, paths, &resolver)?;
-    let filter_paths = parse_paths(ctx, refs, paths, &resolver)?;
+    let filter = parse_paths(ctx, refs, paths, &resolver)?;
 
     let mut commits_displayed = 0;
 
@@ -293,7 +401,7 @@ pub fn execute(
             .and_then(|pid| snapshot_manager.load_snapshot(pid).ok());
 
         // Apply file filtering (compare current commit vs its parent)
-        if commit_touches_files(&snapshot, parent_snapshot.as_ref(), &filter_paths) {
+        if filter.matches_any_change(&snapshot, parent_snapshot.as_ref()) {
             display_commit(writer, &snapshot.commit, oneline)?;
             commits_displayed += 1;
         }
@@ -309,15 +417,10 @@ pub fn execute(
     }
 
     if commits_displayed == 0 {
-        if filter_paths.is_empty() {
+        if filter.is_empty() {
             output::info("No commits yet");
         } else {
-            let path_list = filter_paths
-                .iter()
-                .map(|p| format!("'{}'", p.display()))
-                .collect::<Vec<_>>()
-                .join(", ");
-            output::info(&format!("No commits found that modified {path_list}"));
+            output::info(&format!("No commits found matching {}", filter.display()));
         }
     } else if commits_displayed >= limit {
         // Only show truncation indicator if we hit the display limit

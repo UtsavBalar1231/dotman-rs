@@ -1872,6 +1872,199 @@ strip_dangerous_permissions = true
         Ok(())
     }
 
+    #[test]
+    #[serial]
+    fn test_log_glob_star_pattern() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        // Create files with .txt extension and other extensions
+        let file1 = temp_dir.path().join("file1.txt");
+        let file2 = temp_dir.path().join("file2.rs");
+
+        // Commit 1: add txt file
+        fs::write(&file1, "content1")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add file1.txt", false)?;
+
+        // Commit 2: add rs file
+        fs::write(&file2, "content2")?;
+        commands::add::execute(&ctx, &[file2.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add file2.rs", false)?;
+
+        // Pattern *.txt should only show commit 1
+        commands::log::execute(&ctx, &["*.txt".to_string()], &[], 10, false, false)?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_glob_nested_match() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        // Create nested directory structure
+        let subdir = temp_dir.path().join("subdir");
+        fs::create_dir_all(&subdir)?;
+
+        let file1 = temp_dir.path().join("root.txt");
+        let file2 = subdir.join("nested.txt");
+
+        // Commit 1: add root.txt
+        fs::write(&file1, "root content")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add root.txt", false)?;
+
+        // Commit 2: add nested.txt
+        fs::write(&file2, "nested content")?;
+        commands::add::execute(&ctx, &[file2.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add nested.txt", false)?;
+
+        // Git-style pattern *.txt should match both (at any depth)
+        commands::log::execute(&ctx, &["*.txt".to_string()], &[], 10, false, false)?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_glob_character_class() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        let makefile1 = temp_dir.path().join("Makefile");
+        let makefile2 = temp_dir.path().join("makefile");
+        let other_file = temp_dir.path().join("other.txt");
+
+        // Commit 1: add Makefile
+        fs::write(&makefile1, "UPPER")?;
+        commands::add::execute(&ctx, &[makefile1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add Makefile", false)?;
+
+        // Commit 2: add makefile (lowercase)
+        fs::write(&makefile2, "lower")?;
+        commands::add::execute(&ctx, &[makefile2.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add makefile", false)?;
+
+        // Commit 3: add other file (should not match)
+        fs::write(&other_file, "other")?;
+        commands::add::execute(&ctx, &[other_file.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add other.txt", false)?;
+
+        // Pattern [Mm]akefile should match commits 1 and 2
+        commands::log::execute(&ctx, &["[Mm]akefile".to_string()], &[], 10, false, false)?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_glob_question_mark() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        let file1 = temp_dir.path().join("file1.txt");
+        let file2 = temp_dir.path().join("file2.txt");
+        let file10 = temp_dir.path().join("file10.txt");
+
+        // Commit 1: file1.txt
+        fs::write(&file1, "1")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add file1.txt", false)?;
+
+        // Commit 2: file2.txt
+        fs::write(&file2, "2")?;
+        commands::add::execute(&ctx, &[file2.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add file2.txt", false)?;
+
+        // Commit 3: file10.txt (should NOT match file?.txt)
+        fs::write(&file10, "10")?;
+        commands::add::execute(&ctx, &[file10.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add file10.txt", false)?;
+
+        // Pattern file?.txt should match file1.txt and file2.txt but not file10.txt
+        commands::log::execute(&ctx, &["file?.txt".to_string()], &[], 10, false, false)?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_glob_mixed_exact_and_pattern() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        let file1 = temp_dir.path().join("exact.txt");
+        let file2 = temp_dir.path().join("pattern.rs");
+        let file3 = temp_dir.path().join("other.md");
+
+        // Commit 1: exact.txt
+        fs::write(&file1, "exact")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add exact.txt", false)?;
+
+        // Commit 2: pattern.rs
+        fs::write(&file2, "pattern")?;
+        commands::add::execute(&ctx, &[file2.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add pattern.rs", false)?;
+
+        // Commit 3: other.md (should not match)
+        fs::write(&file3, "other")?;
+        commands::add::execute(&ctx, &[file3.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add other.md", false)?;
+
+        // Mix of exact path and pattern - should show commits 1 and 2
+        commands::log::execute(
+            &ctx,
+            &["exact.txt".to_string(), "*.rs".to_string()],
+            &[],
+            10,
+            false,
+            false,
+        )?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_glob_with_separator() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        let file1 = temp_dir.path().join("code.rs");
+        let file2 = temp_dir.path().join("notes.txt");
+
+        // Commit 1: code.rs
+        fs::write(&file1, "fn main() {}")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add code.rs", false)?;
+
+        // Commit 2: notes.txt
+        fs::write(&file2, "notes")?;
+        commands::add::execute(&ctx, &[file2.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add notes.txt", false)?;
+
+        // Use explicit -- separator with glob pattern
+        // refs = [], paths = ["*.rs"]
+        commands::log::execute(&ctx, &[], &["*.rs".to_string()], 10, false, false)?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_log_glob_no_matches() -> Result<()> {
+        let (temp_dir, ctx) = setup_log_test_repo()?;
+
+        let file1 = temp_dir.path().join("file.txt");
+
+        // Create a single commit
+        fs::write(&file1, "content")?;
+        commands::add::execute(&ctx, &[file1.to_string_lossy().into()], false, false)?;
+        commands::commit::execute(&ctx, "Add file.txt", false)?;
+
+        // Pattern that matches no files - should show "no commits found" message
+        commands::log::execute(&ctx, &["*.nonexistent".to_string()], &[], 10, false, false)?;
+
+        Ok(())
+    }
+
     fn setup_log_test_repo() -> Result<(TempDir, DotmanContext)> {
         let temp_dir = TempDir::new()?;
         let repo_path = temp_dir.path().join(".dotman");
